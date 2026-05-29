@@ -1,44 +1,26 @@
-# Example LabVIEW project (lives in the master tooling repo)
+# Example LabVIEW project — Mini Systems Project
 
-A tiny, self-contained LabVIEW project that the tooling repo **runs its own CI on**.
-It serves two purposes:
+This is the example project the tooling runs its own CI on, so the dashboard
+showcases real Mass Compile / VI Analyzer / VIDiff / Snapshot results.
 
-1. **Live demo** — the master repo's dashboard shows real Mass Compile / VI Analyzer /
-   VIDiff / Snapshot results, so a visitor immediately sees what the tooling produces.
-2. **Integration test** — every change to the tooling is validated against a real
-   (if minimal) LabVIEW project, so regressions surface before consumers hit them.
+It is the **Mini Systems Project** (a solar-tracker + generator-curriculum
+LabVIEW application), seeded from
+[`elijah286/mini-system-manager`](https://github.com/elijah286/mini-system-manager)
+as its **last two genuine code revisions** (that repo's CI-prototype commits were
+intentionally excluded):
 
-This is "dogfooding": the master repo is both the **source of truth** and its own
-**first consumer**.
+| Example commit | From | Change |
+|---|---|---|
+| rev 1 | `mini-system-manager@18f9d59a` (2026-05-29) | *moved a constant* (`main.vi`) |
+| rev 2 | `mini-system-manager@711230b4` (2026-06-01) | *resized the graph* (`Graph Popup.vi`) |
 
-## Layout (after you add the VIs in LabVIEW)
+Because it lands as two revisions, every capability lights up:
 
-```
-example/
-  Example Project.lvproj         LabVIEW project that lists the VIs below
-  Add.vi                          two numeric inputs -> sum (clean compile)
-  Average.vi                      array in -> mean out (calls Add.vi)
-  Greeting.vi                     string in -> formatted string out
-  Main.vi                         top-level VI wiring the above for a demo run
-  example.vipc                    (optional) a dependency so the image-build path is exercised
-```
+- **Mass Compile** / **VI Analyzer** run on the latest revision.
+- **VIDiff** and the **VI Browser** compare rev 2 against rev 1 — the visible
+  diff is `Graph Popup.vi` ("resized the graph").
+- **Snapshots** render every VI's block diagram across both revisions.
 
-> The `.vi` / `.lvproj` files are LabVIEW binaries and must be created in LabVIEW
-> (2021+). Keep them trivial — the point is breadth of capability coverage, not
-> complexity. A handful of VIs that **compile cleanly**, have a couple of VI
-> Analyzer-relevant style points, and change over a few commits is enough to make
-> Mass Compile, VI Analyzer, VIDiff, and Snapshots all light up on the dashboard.
-
-## How CI runs on it
-
-Because this project lives **inside** the tooling repo, its CI references the
-repo's own composite actions by local path (it does not pull `@v1` from itself).
-See [`workflows/example-ci.yml`](workflows/example-ci.yml) — copy it to
-`.github/workflows/` in the master repo. The settings it honors come from
-[`labview-ci.yml`](labview-ci.yml) (copied to the repo root's `.github/`).
-
-## What a visitor learns
-
-Opening the master dashboard, a visitor sees this example's results and the
-**Apply to New Repo** button — which installs the *same* tooling into their repo,
-always sourced from this master repo. That's the whole story in one screen.
+Only the LabVIEW source and project files were copied; the original repo's
+`.github/` CI tooling was left behind (this repo provides the CI). The project
+entry point is `Mini Systems Project.lvproj`.
