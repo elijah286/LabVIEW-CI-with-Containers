@@ -1,11 +1,11 @@
 ﻿<?xml version='1.0' encoding='UTF-8'?>
-<Library LVVersion="24008000">
+<Library LVVersion="26008000">
 	<Property Name="Instrument Driver" Type="Str">True</Property>
 	<Property Name="NI.Lib.DefaultMenu" Type="Str">dir.mnu</Property>
 	<Property Name="NI.Lib.Description" Type="Str">LabVIEW Plug and Play instrument driver for
 the Revidyne Generator module.</Property>
-	<Property Name="NI.Lib.Icon" Type="Bin">*!#!!!!!!!)!"1!&amp;!!!-!%!!!@````]!!!!"!!%!!!*!!!!*Q(C=\&gt;3^41."%)&lt;B$U2![A[1!RK9!EB-3/C1&gt;&amp;JQ3OA7*C6U1!.O931;Q()(,A!DG@@W"DB_:#=AA=1?;_[_`8O]&gt;T[JF60J2,N$Z8ZPK8:G[SOHLR&gt;P\8LZ;&amp;X58WD9XI9-4T[/(QT\00[,^&gt;_X\`&amp;L&lt;`FP`W``W_U(#HVO$H&lt;[Y3)&gt;.3EVK5&amp;VKL6PNUPS*%`S*%`S*!`S)!`S)!`S)(&gt;S*X&gt;S*X&gt;S*T&gt;S)T&gt;S)T&gt;S)W](O=B&amp;,H*W*6E]73C:.*EA[1R&amp;S5@C34S**`&amp;QK=34?"*0YEE]&gt;&amp;(C34S**`%E(I9J]33?R*.Y%A^4.5GWARR0YG&amp;[":\!%XA#4_"B317?!"!M&amp;EQ=4!*$17.Q%HA#4_$B6)%H]!3?Q".Y;&amp;&lt;A#4S"*`!%(I;U89GG[1ZS0%QDR_.Y()`D=4R-,=@D?"S0YX%],#@(YXA=B,/A-TE%/9/=$M[&amp;YX%]`*0D=4S/R`%Y(JL;(@+W-ZWG/]DR'"\$9XA-D_&amp;B#BE?QW.Y$)`B96I:(M.D?!S0Y7%J'2\$9XA-C,%IS]O9T"BI&gt;$)#Q].@?VKMX;6I%GN(`44\"V8V!+I?,.5$IXI16$&gt;9&gt;?.5.U3VU;I.6'W-[AOLPIA+K&amp;J9.;'KIT:]LKB,[I)[J][I5_K%/K;/OK(@X('TW7CV7GGZ8'KR7'A_HWMWGWE[H7ISG7A](GMU'LW_L=YY_H)U@#]^8&gt;Z?&lt;"`OVI^8ZR@&lt;[\MVV_MOP[(@4^8_P@1&lt;XIU[VG\QGG?0HA'4/96$!!!!!!</Property>
-	<Property Name="NI.Lib.SourceVersion" Type="Int">604012544</Property>
+	<Property Name="NI.Lib.Icon" Type="Bin">*A#!!!!!!!)!"1!&amp;!!!-!%!!!@````]!!!!"!!%!!!*!!!!*Q(C=\&gt;3^41."%)&lt;B$U2![A[1!RK9!EB-3/C1&gt;&amp;JQ3OA7*C6U1!.O931;Q()(,A!DG@@W"DB_:#=AA=1?;_[_`8O]&gt;T[JF60J2,N$Z8ZPK8:G[SOHLR&gt;P\8LZ;&amp;X58WD9XI9-4T[/(QT\00[,^&gt;_X\`&amp;L&lt;`FP`W``W_U(#HVO$H&lt;[Y3)&gt;.3EVK5&amp;VKL6PNUPS*%`S*%`S*!`S)!`S)!`S)(&gt;S*X&gt;S*X&gt;S*T&gt;S)T&gt;S)T&gt;S)W](O=B&amp;,H*W*6E]73C:.*EA[1R&amp;S5@C34S**`&amp;QK=34?"*0YEE]&gt;&amp;(C34S**`%E(I9J]33?R*.Y%A^4.5GWARR0YG&amp;[":\!%XA#4_"B317?!"!M&amp;EQ=4!*$17.Q%HA#4_$B6)%H]!3?Q".Y;&amp;&lt;A#4S"*`!%(I;U89GG[1ZS0%QDR_.Y()`D=4R-,=@D?"S0YX%],#@(YXA=B,/A-TE%/9/=$M[&amp;YX%]`*0D=4S/R`%Y(JL;(@+W-ZWG/]DR'"\$9XA-D_&amp;B#BE?QW.Y$)`B96I:(M.D?!S0Y7%J'2\$9XA-C,%IS]O9T"BI&gt;$)#Q].@?VKMX;6I%GN(`44\"V8V!+I?,.5$IXI16$&gt;9&gt;?.5.U3VU;I.6'W-[AOLPIA+K&amp;J9.;'KIT:]LKB,[I)[J][I5_K%/K;/OK(@X('TW7CV7GGZ8'KR7'A_HWMWGWE[H7ISG7A](GMU'LW_L=YY_H)U@#]^8&gt;Z?&lt;"`OVI^8ZR@&lt;[\MVV_MOP[(@4^8_P@1&lt;XIU[VG\QGG?0HA'4/96$!!!!!!</Property>
+	<Property Name="NI.Lib.SourceVersion" Type="Int">637566976</Property>
 	<Property Name="NI.Lib.Version" Type="Str">1.0.0.0</Property>
 	<Property Name="NI.LV.All.SourceOnly" Type="Bool">false</Property>
 	<Item Name="Example" Type="Folder">
