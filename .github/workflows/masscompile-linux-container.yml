@@ -38,12 +38,13 @@ permissions:
   statuses: write
   packages: read
 
-# Share the report-deploy serialization group so the Linux mass compile, the
-# Windows mass compile, and the VI Analyzer never push gh-pages at the same time
-# (peaceiris clones+commits+pushes; concurrent pushes bounce with "fetch first").
-concurrency:
-  group: report-pages-deploy
-  cancel-in-progress: false
+# No shared concurrency group: this mirrors run-vi-analyzer-linux-container.yml,
+# which deploys to gh-pages directly with no group. The Windows report workflows
+# share `report-pages-deploy` (cancel-in-progress:false) to serialize their pushes,
+# but GitHub keeps only one *pending* run per group — so adding a third member
+# would make a normal push cancel one of the three. The Linux job writes to a
+# disjoint path (masscompile/<sha>/linux/) with keep_files:true, so a rare
+# overlapping push is additive rather than destructive.
 
 jobs:
   mass-compile-linux:
