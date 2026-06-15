@@ -1,0 +1,143 @@
+<HTML>
+<HEAD>
+<TITLE>Revidyne Generator.lvlib:Close.vi</TITLE>
+<META NAME="Author" CONTENT="">
+<META NAME="GENERATOR" CONTENT="G Development Environment">
+</HEAD>
+<BODY BGCOLOR="#FFFFFF">
+<A NAME="Revidyne Generator.lvlib:Close.vi"></A><H2>Revidyne Generator.lvlib:Close.vi</H2>
+<P>Performs an instrument error query before terminating the software connection to the instrument.</P>
+<HR>
+<H3>Connector Pane</H3>
+<P><IMG src="data:image/png;base64, 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" ALT="Revidyne Generator.lvlib:Close.vi"></P>
+<HR>
+<H3>Front Panel</H3>
+<P><IMG src="data:image/png;base64, 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" ALT="Revidyne Generator.lvlib:Close.vi"></P>
+<HR>
+<H3>Controls and Indicators</H3>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAAT0lEQVR4XpWRWwoAIAgE9/6wN/YjyiRKMxsi/BjXHuADFAQkqJC393Xt3wTqMGpwR44E2s5ZiwQC8SWIE0yKEsYhrUQ0wrFu8XqohNpn5TTHBJ/ctKoiLwAAAABJRU5ErkJggg==" ALT="cvsrn"></P>
+</TD>
+<TD>
+<B>VISA resource name</B> <P>A reference to the instrument in use.  The reference to the resource name is created in the Initialize VI.  Therefore, before calling this VI, you need to call the Initialize VI.  To run this VI interactively, select the previously initialized resource name from the pull-down menu.  To run this VI programmatically, wire the <B>VISA resource name out</B> terminal of the Initialize VI to subsequent <B>VISA resource name</B> input terminals.  You chain instrument driver VIs together by wiring the <B>VISA resource name out</B> terminal to subsequent <B>VISA resource name</B> input terminals.</P>
+</TD>
+</TR>
+</Table>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAAUklEQVR4Xo2PSQ4AIAgD+3e+zcEFghtWJ4qJTiFCHuBDAMEEHm8rC/ZjESwCL+1GN8H3QDXrcBfCgs+pgk5CvNgoOTqsgpxCwvjFFRcINB5NOAWz5p4hF3InbAAAAABJRU5ErkJggg==" ALT="cerrcodeclst"></P>
+</TD>
+<TD>
+<B>error in (no error)</B> <P><B>error in</B> can accept error information wired from VIs previously called. Use this information to decide if any functionality should be bypassed in the event of errors from other VIs.</P>
+<P></P>
+<P>Right-click the <B>error in</B> control on the front panel and select <B>Explain Error</B> or <B>Explain Warning</B> from the shortcut menu for more information about the error.</P>
+</TD>
+</TR>
+</Table>
+<UL>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAAR0lEQVR4Xp2PwQkAIAwDs/9qrpSHSENFpVE8hIJcQot2AQ8CDCH4+HhlfhUUggbAoyH+cyvyW5BC8rehFDbmFSUSDDaeJZ4OWdHkfaGlu9YAAAAASUVORK5CYII=" ALT="cbool"></P>
+</TD>
+<TD>
+<B>status</B> <P><B>status</B> is TRUE (X) if an error occurred or FALSE (checkmark) to indicate a warning or that no error occurred.</P>
+<P></P>
+<P>Right-click the <B>error in</B> control on the front panel and select <B>Explain Error</B> or <B>Explain Warning</B> from the shortcut menu for more information about the error.</P>
+</TD>
+</TR>
+</Table>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAAVklEQVR4Xo2PXQ7AIAyCuf/xdh4ejP3ZNF1RYpoYP8DiOQgXAIQc0PZ5Wv8KmAE2YoJ7gr/H3QiyADkFgOiwCvK/Itk9Yfmkb1gqqr4tWmVnL2l/Q7QGRH36sX0BviEAAAAASUVORK5CYII=" ALT="ci32"></P>
+</TD>
+<TD>
+<B>code</B> <P><B>code</B> is the error or warning code.</P>
+<P></P>
+<P>Right-click the <B>error in</B> control on the front panel and select <B>Explain Error</B> or <B>Explain Warning</B> from the shortcut menu for more information about the error.</P>
+</TD>
+</TR>
+</Table>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAAUUlEQVR4Xo2PwQ0AIAgDOwn7D9mHERMVkerFxAdXGmAP8CFAMAQd76/MZyEUMgo+iwLjhj70Yv+yYEPAuozkJhguwrnBZEVmXVGy9RXI+FyiaZwnLfeqyZBKAAAAAElFTkSuQmCC" ALT="cstr"></P>
+</TD>
+<TD>
+<B>source</B> <P><B>source</B> describes the origin of the error or warning.</P>
+<P></P>
+<P>Right-click the <B>error in</B> control on the front panel and select <B>Explain Error</B> or <B>Explain Warning</B> from the shortcut menu for more information about the error.</P>
+</TD>
+</TR>
+</Table>
+</UL>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAATUlEQVR4Xo2NMQ4AIAgD+3e+zeBQJLGKcIOJcC2wBhi+zIRPfwh3ziIegnPICB8RnD/tEoENheB7RCnUoyE3PNUJ2oA3KZTksZqJ0LAA3Th1tG3eamsAAAAASUVORK5CYII=" ALT="ierrcodeclst"></P>
+</TD>
+<TD>
+<B>error out</B> <P><B>error out</B> passes error or warning information out of a VI to be used by other VIs.</P>
+<P> </P>
+<P>Right-click the <B>error out</B> control on the front panel and select <B>Explain Error</B> or <B>Explain Warning</B> from the shortcut menu for more information about the error.</P>
+</TD>
+</TR>
+</Table>
+<UL>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAARElEQVR4XmM4TQAwnGbAC4hTgMd8qALc2qEK/kC4ME0QCkXBH6iO0wiSVAUwS2BWkW4CIQUM2AFcAU7AQGRQE1BAAAAAb0Kl2HsrjzIAAAAASUVORK5CYII=" ALT="ibool"></P>
+</TD>
+<TD>
+<B>status</B> <P><B>status</B> is TRUE (X) if an error occurred or FALSE (checkmark) to indicate a warning or that no error occurred.</P>
+<P></P>
+<P>Right-click the <B>error out</B> control on the front panel and select <B>Explain Error</B> or <B>Explain Warning</B> from the shortcut menu for more information about the error.</P>
+</TD>
+</TR>
+</Table>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAAT0lEQVR4Xo2QyQ0AIAgEt//yqIeHCYeBCMIk7ocRUNAACF92wqe/Cf11ExjaRhKeUVBDDtnUWvB8Bc6lYYTXsxCWtBdGATVXaMHyqwdh4AAbkbnjrMwcWQAAAABJRU5ErkJggg==" ALT="ii32"></P>
+</TD>
+<TD>
+<B>code</B> <P><B>code</B> is the error or warning code.</P>
+<P></P>
+<P>Right-click the <B>error out</B> control on the front panel and select <B>Explain Error</B> or <B>Explain Warning</B> from the shortcut menu for more information about the error.</P>
+</TD>
+</TR>
+</Table>
+<Table>
+<TR valign=TOP>
+<TD>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAMAAABA3o1rAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAAT0lEQVR4Xo2QyQ0AIAgEtxL6L5KHURAkkWMePGBYoqAGEEpmQpGvQr6uAnsryC7wnVXCGcphSH0F1uZ+N1lOSCA0gqRnJ/DHhBQMv7oRGhYk9SS1uRY8QQAAAABJRU5ErkJggg==" ALT="istr"></P>
+</TD>
+<TD>
+<B>source</B> <P><B>source</B> describes the origin of the error or warning.</P>
+<P></P>
+<P>Right-click the <B>error out</B> control on the front panel and select <B>Explain Error</B> or <B>Explain Warning</B> from the shortcut menu for more information about the error.</P>
+</TD>
+</TR>
+</Table>
+</UL>
+<HR>
+<H3>Block Diagram</H3>
+<P><IMG src="data:image/png;base64, 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" ALT="Revidyne Generator.lvlib:Close.vi"></P>
+<HR>
+<H3>List of SubVIs and Express VIs with Configuration Information</H3>
+<HR>
+<H3>VI Revision History</H3>
+<P>&quot;Revidyne Generator.lvlib:Close.vi History&quot;</P>
+<P>Current Revision:   38</P>
+<HR>
+<H3>Position in Hierarchy</H3>
+<P><IMG src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAADYAAAB1CAMAAAAyV+ItAAADAFBMVEX//////8z//5n//2b//zP//wD/zP//zMz/zJn/zGb/zDP/zAD/mf//mcz/mZn/mWb/mTP/mQD/Zv//Zsz/Zpn/Zmb/ZjP/ZgD/M///M8z/M5n/M2b/MzP/MwD/AP//AMz/AJn/AGb/ADP/AADM///M/8zM/5nM/2bM/zPM/wDMzP/MzMzMzJnMzGbMzDPMzADMmf/MmczMmZnMmWbMmTPMmQDMZv/MZszMZpnMZmbMZjPMZgDMM//MM8zMM5nMM2bMMzPMMwDMAP/MAMzMAJnMAGbMADPMAACZ//+Z/8yZ/5mZ/2aZ/zOZ/wCZzP+ZzMyZzJmZzGaZzDOZzACZmf+ZmcyZmZmZmWaZmTOZmQCZZv+ZZsyZZpmZZmaZZjOZZgCZM/+ZM8yZM5mZM2aZMzOZMwCZAP+ZAMyZAJmZAGaZADOZAABm//9m/8xm/5lm/2Zm/zNm/wBmzP9mzMxmzJlmzGZmzDNmzABmmf9mmcxmmZlmmWZmmTNmmQBmZv9mZsxmZplmZmZmZjNmZgBmM/9mM8xmM5lmM2ZmMzNmMwBmAP9mAMxmAJlmAGZmADNmAAAz//8z/8wz/5kz/2Yz/zMz/wAzzP8zzMwzzJkzzGYzzDMzzAAzmf8zmcwzmZkzmWYzmTMzmQAzZv8zZswzZpkzZmYzZjMzZgAzM/8zM8wzM5kzM2YzMzMzMwAzAP8zAMwzAJkzAGYzADMzAAAA//8A/8wA/5kA/2YA/zMA/wAAzP8AzMwAzJkAzGYAzDMAzAAAmf8AmcwAmZkAmWYAmTMAmQAAZv8AZswAZpkAZmYAZjMAZgAAM/8AM8wAM5kAM2YAMzMAMwAAAP8AAMwAAJkAAGYAADPuAADdAAC7AACqAACIAAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAARAAAIgAAEQAAAO4AAN0AALsAAKoAAIgAAHcAAFUAAEQAACIAABHu7u7d3d27u7uqqqqIiIh3d3dVVVVEREQiIiIREREAAAD7CIKZAAAB+ElEQVR4Xu2WQXLDIAxFtclJsuQgvYEv0FN2xa7bzri36YYigUAOlkQynTrT+ich2NHzR4ghADys9zskMfWBg/4ZlkzpWDBkYCnkpwalUbFsl9Byv1GxB90ezS1os4jj0LHYw+JNz8BiaMGxcbX341jMv0WO5cFxbwq7tIV2FwYXuMxiVIBY3fCVxEh17KWJ3LpjwaKPXZgD5nQMvlg1t+5oYrS4IueWknDMJd2E7mOcVeXK0E2MlgXnVP1mMZkb9jDhTeiI4TBlbgjhTQ37bGo+xQmfpZdbYH0OC2Qurm3dupOD9U1h6+Ribbshp9ktqG945DS54Ynt9et5t1dTKtY1RO+Gjti2UUJ3seL0S1hNzMRu1YOTcXgapM+kK/vBqk5s0IkNOrFBfwR7vUNHYjCl47HkSMM+TNlY7pRP7rYLFwNuiIRyARMYGcjOpJswmXbbyW0KU6Vi9l+uiiGpMGBgq4UFH1uxudJ7LcxiLC7GVhJi+J1vILR42FoOkIjhd+byQXPx3CrVsMylaz2H6jPJVMfCmt2uOkYazAh7M92EnTArh2jDTSQnUoO0hOS51QLw/NcCLD5GNS7VruUGq9z2WrbcDD0T1o7j5TxPRUkuRlCSHR6Fh0HHineawoQbNMup3NgktcbDVKmYIwWb0MHYtA7DTh2ob+p+j6Jf3LiiAAAAAElFTkSuQmCC" ALT="Revidyne Generator.lvlib:Close.vi"></P>
+<HR>
+<H3>Iconified Cluster Constants</H3>
+</BODY>
+</HTML>

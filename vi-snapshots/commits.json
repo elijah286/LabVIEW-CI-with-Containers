@@ -1,0 +1,34 @@
+[
+  {
+    "sha": "8a4c597662b43d1cb0e574ee626186865c2a7b07",
+    "short": "8a4c597",
+    "message": "config: default max concurrent runners to GitHub Free limit (20)",
+    "author": "Elijah Kerry",
+    "date": "2026-06-15T13:45:19-05:00",
+    "vi_count": 42
+  },
+  {
+    "sha": "3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e",
+    "short": "3db5c70",
+    "message": "Initial extraction of LabVIEW CI with Containers tooling",
+    "author": "elijah286",
+    "date": "2026-06-15T13:17:58-05:00",
+    "vi_count": 0
+  },
+  {
+    "sha": "38c17ff60bf7c3c2b9ff6f1daa585685ab99a8fb",
+    "short": "38c17ff",
+    "message": "resized the graph",
+    "author": "Elijah Kerry",
+    "date": "2026-06-01T01:20:17-07:00",
+    "vi_count": 42
+  },
+  {
+    "sha": "b4fef4dfd4fddd08881bc4a31f6e3df4275e275f",
+    "short": "b4fef4d",
+    "message": "moved a constant",
+    "author": "Elijah Kerry",
+    "date": "2026-05-29T05:38:27-07:00",
+    "vi_count": 42
+  }
+]
