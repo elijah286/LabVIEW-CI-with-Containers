@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "platform": "linux",
+  "version": "linux-c6484cf4d66a",
+  "labview_version": "2026",
+  "base_image": "nationalinstruments/labview:latest-linux",
+  "base_digest": "nationalinstruments/labview@sha256:c6484cf4d66a14355bd3195849c090573f413ed355c429c8cc0752fee589b28c",
+  "image_ref": "nationalinstruments/labview:latest-linux",
+  "build_date": "2026-06-15T18:24:20Z",
+  "git_sha": "3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e",
+  "run_url": "https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/27567236304",
+  "vipc": [],
+  "nipkg_raw": "",
+  "nipkg_packages": []
+}
