@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "sha": "16ef3593e9b370c7939ed44d75fbbbafbc6af21b",
+    "short": "16ef359",
+    "platform": "windows",
+    "repo": "elijah286/LabVIEW-CI-with-Containers",
+    "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers",
+    "commit": {
+      "message": "fix(vi-analyzer): make 'Read worker version' robust so it can't fail the job",
+      "author": "elijah286",
+      "date": "2026-06-15T14:50:28-05:00"
+    },
+    "generated_utc": "2026-06-15 20:13 UTC",
+    "analysis_date": "",
+    "duration": ""
+  },
+  "summary": {
+    "vis_analyzed": 0,
+    "tests_run": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "findings": 0,
+    "vis_with_findings": 0
+  },
+  "errors": {
+    "vi_not_loadable": 0,
+    "test_not_loadable": 0,
+    "test_not_runnable": 0,
+    "test_error_out": 0
+  },
+  "rule_counts": []
+}
