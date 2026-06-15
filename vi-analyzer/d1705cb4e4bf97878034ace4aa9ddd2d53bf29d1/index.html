@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VI Analyzer Report — LabVIEW-CI-with-Containers</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;--row:#21262d;
+  --fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--hover:#1c2128;
+  --ok:#2ea043;--bad:#da3633;--warn:#bb8009;
+}
+@media(prefers-color-scheme:light){:root{
+  --bg:#fff;--surface:#f6f8fa;--surface2:#eef2f6;--border:#d0d7de;--row:#eaeef2;
+  --fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--hover:#f3f4f6;
+}}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);font-size:14px}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1180px;margin:0 auto;padding:20px}
+h1{font-size:1.35em;margin:0 0 2px}
+.sub{color:var(--fg-muted);font-size:.84em;margin-bottom:16px}
+.sub a{color:var(--link)}
+.nav{margin-bottom:16px;font-size:.86em}.nav a{margin-right:16px}
+
+/* summary band */
+.cards{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:120px;flex:1 1 auto}
+.card .n{font-size:1.7em;font-weight:700;line-height:1.1}
+.card .l{color:var(--fg-muted);font-size:.78em;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.card.bad .n{color:var(--bad)}.card.ok .n{color:var(--ok)}
+.bar{height:9px;border-radius:5px;background:var(--bad);overflow:hidden;margin:12px 0 4px;border:1px solid var(--border)}
+.bar>span{display:block;height:100%;background:var(--ok)}
+.barlabel{color:var(--fg-muted);font-size:.78em;margin-bottom:18px}
+
+/* testing-errors banner */
+.errband{background:rgba(218,54,51,.10);border:1px solid var(--bad);border-radius:10px;padding:12px 16px;margin-bottom:16px}
+.errband h2{margin:0 0 6px;font-size:.95em;color:var(--bad)}
+.errband details{margin-top:6px}
+.errband summary{cursor:pointer;font-size:.86em}
+.errband table{border-collapse:collapse;width:100%;margin-top:8px;font-size:.8em}
+.errband td,.errband th{border:1px solid var(--border);padding:5px 8px;text-align:left;vertical-align:top}
+.errband th{color:var(--fg-muted);font-weight:600}
+
+/* tabs + toolbar */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.tabs button{background:none;border:none;border-bottom:2px solid transparent;color:var(--fg-muted);
+  font:inherit;font-weight:600;padding:8px 14px;cursor:pointer;margin-bottom:-1px}
+.tabs button.active{color:var(--fg);border-bottom-color:var(--link)}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+#q{flex:1 1 220px;min-width:180px;background:var(--surface);color:var(--fg);border:1px solid var(--border);
+  border-radius:7px;padding:7px 10px;font-size:.86em}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);
+  border-radius:20px;padding:4px 11px;font-size:.78em;cursor:pointer;user-select:none;color:var(--fg-muted)}
+.chip .dot{width:9px;height:9px;border-radius:50%}
+.chip.on{color:var(--fg);border-color:var(--link)}
+.chip.off{opacity:.45;text-decoration:line-through}
+.tools{display:flex;gap:12px;font-size:.78em}
+.tools button{background:none;border:none;color:var(--link);cursor:pointer;font:inherit;padding:0}
+.count{color:var(--fg-muted);font-size:.8em;margin-left:auto}
+
+/* groups + VI cards */
+.group{margin-bottom:10px}
+.group>summary{cursor:pointer;list-style:none;padding:8px 10px;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;display:flex;align-items:center;gap:10px;font-weight:600}
+.group>summary::-webkit-details-marker{display:none}
+.group>summary .tw{transition:transform .12s ease;color:var(--fg-muted)}
+.group[open]>summary .tw{transform:rotate(90deg)}
+.gname{flex:0 1 auto}
+.gmeta{color:var(--fg-muted);font-weight:400;font-size:.82em}
+.vi{border:1px solid var(--border);border-radius:8px;margin:8px 0 0;background:var(--surface)}
+.vi>summary{cursor:pointer;list-style:none;padding:9px 12px;display:flex;align-items:center;gap:10px}
+.vi>summary::-webkit-details-marker{display:none}
+.vi>summary .tw{color:var(--fg-muted);transition:transform .12s ease;flex:0 0 auto}
+.vi[open]>summary .tw{transform:rotate(90deg)}
+.viname{font-weight:600;flex:0 0 auto}
+.virel{color:var(--fg-muted);font-size:.78em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;min-width:0}
+.sevdots{display:inline-flex;gap:4px;flex:0 0 auto}
+.sevdot{display:inline-flex;align-items:center;gap:3px;font-size:.74em;color:var(--fg-muted)}
+.sevdot .dot{width:9px;height:9px;border-radius:50%}
+.pill{flex:0 0 auto;background:var(--surface2);border:1px solid var(--border);border-radius:20px;
+  padding:1px 9px;font-size:.74em;color:var(--fg-muted)}
+.snapbtn{flex:0 0 auto;background:none;border:1px solid var(--border);color:var(--link);border-radius:6px;
+  padding:3px 9px;font:inherit;font-size:.76em;cursor:pointer}
+.snapbtn:hover{border-color:var(--link)}
+.vibody{padding:2px 12px 12px 30px}
+.rule-in-vi{margin:10px 0 0}
+.rule-in-vi .rh{display:flex;align-items:center;gap:8px;font-size:.86em;font-weight:600}
+.rule-in-vi .rh .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.rule-in-vi .cnt{color:var(--fg-muted);font-weight:400;font-size:.86em}
+.msgs{margin:4px 0 0;padding:0 0 0 18px}
+.msgs li{color:var(--fg-muted);font-size:.84em;margin:2px 0;line-height:1.45}
+
+/* by-rule view */
+.rule{border:1px solid var(--border);border-radius:8px;margin:8px 0 0;background:var(--surface)}
+.rule>summary{cursor:pointer;list-style:none;padding:9px 12px;display:flex;align-items:center;gap:10px}
+.rule>summary::-webkit-details-marker{display:none}
+.rule>summary .tw{color:var(--fg-muted);transition:transform .12s ease}
+.rule[open]>summary .tw{transform:rotate(90deg)}
+.rule .rtitle{font-weight:600}
+.rule .rbody{padding:2px 12px 12px 30px}
+.rv{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--row)}
+.rv:first-child{border-top:none}
+.rv .nm{font-weight:600;font-size:.86em}
+.rv .rl{color:var(--fg-muted);font-size:.78em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;min-width:0}
+
+.empty{color:var(--fg-muted);padding:30px;text-align:center}
+.hidden{display:none!important}
+
+/* snapshot drawer */
+#backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .15s;z-index:40}
+#backdrop.show{opacity:1;pointer-events:auto}
+#snap{position:fixed;top:0;right:0;height:100vh;width:min(70vw,860px);background:var(--bg);border-left:1px solid var(--border);
+  transform:translateX(100%);transition:transform .18s ease;z-index:41;display:flex;flex-direction:column}
+#snap.show{transform:none}
+#snaphead{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:12px}
+#snaphead .t{font-weight:600;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#snaphead a{font-size:.82em}
+#snaphead button{background:none;border:none;color:var(--fg);font-size:1.3em;cursor:pointer;line-height:1}
+#snapframe{flex:1;border:none;background:#fff;width:100%}
+#snapnote{padding:18px;color:var(--fg-muted);font-size:.86em;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>VI Analyzer Report</h1>
+  <div class="sub" id="sub"></div>
+  <div class="nav" id="nav"></div>
+
+  <div class="cards" id="cards"></div>
+  <div class="bar"><span id="barfill"></span></div>
+  <div class="barlabel" id="barlabel"></div>
+
+  <div class="errband hidden" id="errband"></div>
+
+  <div class="tabs">
+    <button data-tab="vi" class="active">By VI</button>
+    <button data-tab="rule">By Rule</button>
+  </div>
+
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="Filter by VI, rule, or message…">
+    <div class="chips" id="chips"></div>
+    <div class="tools"><button id="expand">Expand all</button><button id="collapse">Collapse all</button></div>
+    <span class="count" id="rescount"></span>
+  </div>
+
+  <div id="view-vi"></div>
+  <div id="view-rule" class="hidden"></div>
+</div>
+
+<div id="backdrop"></div>
+<aside id="snap">
+  <div id="snaphead">
+    <span class="t" id="snaptitle">VI</span>
+    <a id="snapopen" href="#" target="_blank">Open in VI Browser ↗</a>
+    <button id="snapclose" title="Close">×</button>
+  </div>
+  <iframe id="snapframe" title="VI snapshot"></iframe>
+  <div id="snapnote"></div>
+</aside>
+
+<script id="via-data" type="application/json">{"meta": {"sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1", "short": "d1705cb", "platform": "windows", "repo": "elijah286/LabVIEW-CI-with-Containers", "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers", "commit": {"message": "moved the send command button", "author": "Elijah Kerry", "date": "2026-05-29T05:27:27-07:00"}, "generated_utc": "2026-06-15 22:32 UTC", "analysis_date": "", "duration": ""}, "summary": {"vis_analyzed": 0, "tests_run": 0, "passed": 0, "failed": 0, "skipped": 0, "findings": 0, "vis_with_findings": 0}, "errors": {"vi_not_loadable": 0, "test_not_loadable": 0, "test_not_runnable": 0, "test_error_out": 0}, "categories": {"correctness": {"label": "Correctness", "color": "#da3633", "blurb": "Likely bugs, error-handling gaps, broken VIs"}, "performance": {"label": "Performance", "color": "#bb8009", "blurb": "Avoidable runtime / memory cost"}, "style": {"label": "Style", "color": "#1f6feb", "blurb": "Readability \u0026 diagram-convention issues"}, "documentation": {"label": "Docs", "color": "#6e7681", "blurb": "Missing descriptions, comments, spelling"}}, "category_order": ["correctness", "performance", "style", "documentation"], "vis": [], "rules": [], "testing_errors": []}</script>
+<script>
+const DATA = JSON.parse(document.getElementById('via-data').textContent);
+const META = DATA.meta, SUM = DATA.summary, ERR = DATA.errors;
+const CATS = DATA.categories, ORDER = DATA.category_order;
+const SNAP_BASE = '../../vi-snapshots/';
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// active severity filters (all on by default)
+const active = new Set(ORDER);
+let query = '';
+
+// ── header ───────────────────────────────────────────────────────────────
+(function header(){
+  const m = META;
+  const commitMsg = (m.commit && m.commit.message) ? esc(m.commit.message) : '';
+  const shaLink = m.repo && m.sha ? `https://github.com/${m.repo}/commit/${m.sha}` : '';
+  document.getElementById('sub').innerHTML =
+    (m.short ? `Commit ${shaLink?`<a href="${shaLink}">${esc(m.short)}</a>`:esc(m.short)} ` : '') +
+    (commitMsg ? `&middot; ${commitMsg} ` : '') +
+    (m.platform ? `&middot; ${esc(m.platform)} ` : '') +
+    (m.analysis_date ? `&middot; ${esc(m.analysis_date)} ` : '') +
+    (m.duration ? `&middot; ${esc(m.duration)} ` : '') +
+    `&middot; generated ${esc(m.generated_utc||'')}`;
+  const pages = m.pages_url || '../..';
+  document.getElementById('nav').innerHTML =
+    `<a href="${pages}/">CI Dashboard</a>` +
+    `<a href="${SNAP_BASE}index.html${m.sha?`?sha=${m.sha}`:''}">VI Browser</a>` +
+    `<a href="raw.html">Native report ↗</a>` +
+    (m.repo ? `<a href="https://github.com/${m.repo}">GitHub</a>` : '');
+
+  const pct = SUM.tests_run ? Math.round(SUM.passed/SUM.tests_run*1000)/10 : 0;
+  // "Failed tests" is VI Analyzer's official count of failed test instances; a
+  // single failed test can list several findings, so "Findings" (what this report
+  // enumerates, and what the severity chips count) is usually larger.
+  const cards = [
+    {n:SUM.vis_analyzed, l:'VIs Analyzed'},
+    {n:SUM.tests_run,    l:'Tests Run'},
+    {n:SUM.passed,       l:'Passed', c:'ok'},
+    {n:SUM.failed,       l:'Failed tests', c:'bad', sub:'test instances'},
+    {n:(SUM.findings!=null?SUM.findings:SUM.failed), l:'Findings', c:'bad', sub:'individual issues'},
+    {n:(SUM.vis_with_findings!=null?SUM.vis_with_findings:DATA.vis.length), l:'VIs w/ findings'},
+  ];
+  if(SUM.skipped) cards.push({n:SUM.skipped, l:'Skipped'});
+  document.getElementById('cards').innerHTML = cards.map(c=>
+    `<div class="card ${c.c||''}"><div class="n">${(c.n||0).toLocaleString()}</div><div class="l">${c.l}</div>`+
+    (c.sub?`<div class="l" style="text-transform:none;letter-spacing:0;opacity:.75;margin-top:1px">${c.sub}</div>`:'')+`</div>`).join('');
+  document.getElementById('barfill').style.width = pct+'%';
+  document.getElementById('barlabel').textContent = `${pct}% of ${ (SUM.tests_run||0).toLocaleString() } tests passed · ${(SUM.failed||0).toLocaleString()} failed tests reported ${((SUM.findings!=null?SUM.findings:SUM.failed)||0).toLocaleString()} findings`;
+})();
+
+// ── testing errors banner ────────────────────────────────────────────────
+(function errband(){
+  const te = DATA.testing_errors||[];
+  const totalErr = (ERR.vi_not_loadable+ERR.test_not_loadable+ERR.test_not_runnable+ERR.test_error_out)||0;
+  if(!te.length && !totalErr) return;
+  const el = document.getElementById('errband'); el.classList.remove('hidden');
+  let rows = '';
+  for(const blk of te){
+    for(const it of blk.items){
+      rows += `<tr><td>${esc(blk.test)}</td><td>${esc(it.vi_name)}</td><td>${esc(it.message)}</td></tr>`;
+    }
+  }
+  el.innerHTML =
+    `<h2>⚠ ${totalErr} testing error${totalErr===1?'':'s'} — these tests could not run (infrastructure, not code quality)</h2>`+
+    `<div style="font-size:.82em;color:var(--fg-muted)">VI not loadable: ${ERR.vi_not_loadable} &middot; Test not loadable: ${ERR.test_not_loadable} &middot; Test not runnable: ${ERR.test_not_runnable} &middot; Test error out: ${ERR.test_error_out}</div>`+
+    (rows?`<details><summary>Show details</summary><table><tr><th>Test</th><th>VI</th><th>Error</th></tr>${rows}</table></details>`:'');
+})();
+
+// ── severity chips ───────────────────────────────────────────────────────
+(function chips(){
+  const wrap = document.getElementById('chips');
+  // totals per severity across all findings
+  const totals = {}; for(const c of ORDER) totals[c]=0;
+  for(const v of DATA.vis) for(const c of ORDER) totals[c]+=(v.sev_counts[c]||0);
+  wrap.innerHTML = ORDER.map(c=>{
+    const meta = CATS[c];
+    return `<span class="chip on" data-sev="${c}" title="${esc(meta.blurb)}"><span class="dot" style="background:${meta.color}"></span>${esc(meta.label)} <b>${totals[c]}</b></span>`;
+  }).join('');
+  wrap.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{
+    const s = ch.dataset.sev;
+    if(active.has(s)){active.delete(s);ch.classList.remove('on');ch.classList.add('off');}
+    else{active.add(s);ch.classList.add('on');ch.classList.remove('off');}
+    apply();
+  }));
+})();
+
+// ── render: By VI ────────────────────────────────────────────────────────
+function sevDots(counts){
+  return `<span class="sevdots">`+ORDER.filter(c=>counts[c]).map(c=>
+    `<span class="sevdot"><span class="dot" style="background:${CATS[c].color}"></span>${counts[c]}</span>`).join('')+`</span>`;
+}
+function groupFailuresByTest(failures){
+  const m = new Map();
+  for(const f of failures){
+    if(!m.has(f.test)) m.set(f.test,{test:f.test,severity:f.severity,messages:[]});
+    m.get(f.test).messages.push(f.message);
+  }
+  return [...m.values()].sort((a,b)=> b.messages.length-a.messages.length || a.test.localeCompare(b.test));
+}
+function viCard(v){
+  const rules = groupFailuresByTest(v.failures).map(r=>`
+    <div class="rule-in-vi" data-sev="${r.severity}" data-text="${esc((r.test+' '+r.messages.join(' ')).toLowerCase())}">
+      <div class="rh"><span class="dot" style="background:${CATS[r.severity].color}"></span>${esc(r.test)} <span class="cnt">×${r.messages.length}</span></div>
+      <ul class="msgs">${r.messages.map(msg=>`<li>${esc(msg)}</li>`).join('')}</ul>
+    </div>`).join('');
+  return `<details class="vi" data-vi="${esc(v.vi_rel)}" data-vipath="${esc((v.vi_rel+' '+v.name).toLowerCase())}">
+    <summary>
+      <span class="tw">▶</span>
+      <span class="viname">${esc(v.name)}</span>
+      <span class="virel">${esc(v.vi_rel)}</span>
+      ${sevDots(v.sev_counts)}
+      <span class="pill">${v.total} finding${v.total===1?'':'s'}</span>
+      <button class="snapbtn" data-snap="${esc(v.vi_rel)}" data-name="${esc(v.name)}">Snapshot</button>
+    </summary>
+    <div class="vibody">${rules}</div>
+  </details>`;
+}
+function renderVI(){
+  const groups = new Map();
+  for(const v of DATA.vis){ if(!groups.has(v.group)) groups.set(v.group,[]); groups.get(v.group).push(v); }
+  const names = [...groups.keys()].sort((a,b)=>a.localeCompare(b));
+  const host = document.getElementById('view-vi');
+  host.innerHTML = names.map(g=>{
+    const vis = groups.get(g);
+    const total = vis.reduce((s,v)=>s+v.total,0);
+    return `<details class="group" open data-group="${esc(g)}">
+      <summary><span class="tw">▶</span><span class="gname">${esc(g)}</span><span class="gmeta">${vis.length} VI${vis.length===1?'':'s'} · ${total} findings</span></summary>
+      <div class="gbody">${vis.map(viCard).join('')}</div>
+    </details>`;
+  }).join('') || `<div class="empty">No failing VIs 🎉</div>`;
+}
+
+// ── render: By Rule ──────────────────────────────────────────────────────
+function ruleCard(r){
+  const vis = r.vis.map(v=>`
+    <div class="rv" data-text="${esc((v.vi_rel+' '+v.messages.join(' ')).toLowerCase())}">
+      <span class="nm">${esc(v.vi_name)}</span>
+      <span class="rl">${esc(v.vi_rel)}</span>
+      <span class="pill">×${v.count}</span>
+      <button class="snapbtn" data-snap="${esc(v.vi_rel)}" data-name="${esc(v.vi_name)}">Snapshot</button>
+    </div>`).join('');
+  return `<details class="rule" data-sev="${r.severity}" data-text="${esc(r.test.toLowerCase())}">
+    <summary>
+      <span class="tw">▶</span>
+      <span class="dot" style="width:9px;height:9px;border-radius:50%;background:${CATS[r.severity].color}"></span>
+      <span class="rtitle">${esc(r.test)}</span>
+      <span class="pill">${r.count} across ${r.vi_count} VI${r.vi_count===1?'':'s'}</span>
+    </summary>
+    <div class="rbody">${vis}</div>
+  </details>`;
+}
+function renderRule(){
+  document.getElementById('view-rule').innerHTML =
+    DATA.rules.map(ruleCard).join('') || `<div class="empty">No findings 🎉</div>`;
+}
+
+// ── filtering ────────────────────────────────────────────────────────────
+function apply(){
+  const q = query;
+  // By VI: a VI shows when its name/path matches the query (then all its
+  // severity-permitted rules show) or it has a rule whose text matches.
+  document.querySelectorAll('#view-vi .group').forEach(g=>{
+    let gVisible = 0;
+    g.querySelectorAll('.vi').forEach(vi=>{
+      const viHit = !q || vi.dataset.vipath.includes(q);
+      let any = 0;
+      vi.querySelectorAll('.rule-in-vi').forEach(r=>{
+        const show = active.has(r.dataset.sev) && (viHit || r.dataset.text.includes(q));
+        r.classList.toggle('hidden', !show);
+        if(show) any++;
+      });
+      vi.classList.toggle('hidden', any===0);
+      if(any>0) gVisible++;
+    });
+    g.classList.toggle('hidden', gVisible===0);
+  });
+  // By Rule: a rule shows when its name matches (then all VIs show) or it has a
+  // VI row whose path/message matches; severity must be enabled either way.
+  document.querySelectorAll('#view-rule .rule').forEach(r=>{
+    const okSev = active.has(r.dataset.sev);
+    const nameHit = !q || r.dataset.text.includes(q);
+    let any=0;
+    r.querySelectorAll('.rv').forEach(rv=>{
+      const show = okSev && (nameHit || rv.dataset.text.includes(q));
+      rv.classList.toggle('hidden', !show); if(show) any++;
+    });
+    r.classList.toggle('hidden', !(okSev && any>0));
+  });
+  // result count reflects the active tab
+  const tab = document.querySelector('.tabs button.active').dataset.tab;
+  if(tab==='vi'){
+    const n = [...document.querySelectorAll('#view-vi .vi')].filter(v=>!v.classList.contains('hidden')).length;
+    document.getElementById('rescount').textContent = `${n} VI${n===1?'':'s'} shown`;
+  } else {
+    const n = [...document.querySelectorAll('#view-rule .rule')].filter(r=>!r.classList.contains('hidden')).length;
+    document.getElementById('rescount').textContent = `${n} rule${n===1?'':'s'} shown`;
+  }
+}
+
+// ── snapshot drawer (resolves vi_rel -> by-blob HTML via manifest.json) ───
+let snapMap = null, snapFromSha = null;
+async function fetchJson(u){ const r = await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(r.status+' '+u); return r.json(); }
+async function ensureSnapshots(){
+  if(snapMap) return;
+  snapMap = {};
+  let m = META.sha ? await fetchJson(SNAP_BASE+META.sha+'/manifest.json').catch(()=>null) : null;
+  if(m) snapFromSha = META.sha;
+  if(!m){
+    const commits = await fetchJson(SNAP_BASE+'commits.json').catch(()=>[]);
+    if(commits && commits.length){
+      m = await fetchJson(SNAP_BASE+commits[0].sha+'/manifest.json').catch(()=>null);
+      if(m) snapFromSha = commits[0].sha;
+    }
+  }
+  if(m) for(const v of m) snapMap[v.vi_rel]=v.html;
+}
+async function openSnap(viRel, name){
+  const back=document.getElementById('backdrop'), snap=document.getElementById('snap');
+  const frame=document.getElementById('snapframe'), note=document.getElementById('snapnote');
+  document.getElementById('snaptitle').textContent = name||viRel;
+  document.getElementById('snapopen').href = SNAP_BASE+'index.html'+(META.sha?`?sha=${META.sha}`:'');
+  back.classList.add('show'); snap.classList.add('show');
+  frame.style.display='none'; note.style.display='block'; note.textContent='Resolving snapshot…';
+  try{ await ensureSnapshots(); }catch(e){}
+  const html = snapMap[viRel];
+  if(html){
+    frame.src = SNAP_BASE+html;
+    frame.style.display='block'; note.style.display='none';
+    if(snapFromSha && META.sha && snapFromSha!==META.sha){
+      note.style.display='block';
+      note.innerHTML=`<em>Showing the latest available snapshot (commit ${esc(snapFromSha.slice(0,7))}); this commit's snapshots may still be rendering.</em>`;
+    }
+  }else{
+    frame.style.display='none'; note.style.display='block';
+    note.innerHTML = `No snapshot found for <code>${esc(viRel)}</code>.<br>It may still be rendering, or this VI isn't in the snapshot gallery yet. Try the <a href="${SNAP_BASE}index.html${META.sha?`?sha=${META.sha}`:''}" target="_blank">VI Browser</a>.`;
+  }
+}
+function closeSnap(){
+  document.getElementById('backdrop').classList.remove('show');
+  document.getElementById('snap').classList.remove('show');
+  document.getElementById('snapframe').src='about:blank';
+}
+document.getElementById('snapclose').addEventListener('click',closeSnap);
+document.getElementById('backdrop').addEventListener('click',closeSnap);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSnap(); });
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.snapbtn'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  openSnap(b.dataset.snap, b.dataset.name);
+});
+
+// ── tabs / tools ─────────────────────────────────────────────────────────
+document.querySelectorAll('.tabs button').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const tab=btn.dataset.tab;
+  document.getElementById('view-vi').classList.toggle('hidden',tab!=='vi');
+  document.getElementById('view-rule').classList.toggle('hidden',tab!=='rule');
+  apply();
+}));
+document.getElementById('q').addEventListener('input',e=>{ query=e.target.value.trim().toLowerCase(); apply(); });
+document.getElementById('expand').addEventListener('click',()=>{
+  const sel = document.querySelector('.tabs button.active').dataset.tab==='vi' ? '#view-vi details' : '#view-rule details';
+  document.querySelectorAll(sel).forEach(d=>d.open=true);
+});
+document.getElementById('collapse').addEventListener('click',()=>{
+  const tab=document.querySelector('.tabs button.active').dataset.tab;
+  if(tab==='vi') document.querySelectorAll('#view-vi .vi, #view-vi .group').forEach(d=>d.open=false);
+  else document.querySelectorAll('#view-rule .rule').forEach(d=>d.open=false);
+});
+
+renderVI(); renderRule(); apply();
+</script>
+</body>
+</html>
