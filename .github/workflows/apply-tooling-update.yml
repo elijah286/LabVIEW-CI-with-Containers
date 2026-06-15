@@ -37,6 +37,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # A PAT with repo + workflow scope (added as TOOLING_UPDATE_TOKEN) lets the
+          # update push changes to .github/workflows/** — the default token cannot.
+          token: ${{ secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -135,7 +139,7 @@ jobs:
 
       - name: Open the upgrade pull request
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
           INSTALLED: ${{ steps.apply.outputs.installed }}
           LATEST: ${{ steps.apply.outputs.latest }}
           SOURCE_REPO: ${{ steps.apply.outputs.source_repo }}
@@ -171,7 +175,26 @@ jobs:
           } > /tmp/pr-body.md
 
           git commit -m "ci: adopt LabVIEW CI tooling v${LATEST} (full update)"
-          git push -u origin "$BRANCH" --force
+
+          if ! git push -u origin "$BRANCH" --force 2>/tmp/push-err; then
+            cat /tmp/push-err || true
+            if grep -qi 'workflow' /tmp/push-err; then
+              {
+                echo "## ⚠️ Full update needs a one-time token"
+                echo ""
+                echo "The update is ready (**${CHANGED} file(s)**, v${INSTALLED} → v${LATEST}) but it changes GitHub"
+                echo "**workflow files**, which the built-in token is not allowed to push. To finish automatically:"
+                echo ""
+                echo "1. Create a token with **repo + workflow** scope (classic PAT: \`repo\` + \`workflow\`; or fine-grained: **Contents** + **Workflows** = Read and write)."
+                echo "2. Add it as the repository secret **TOOLING_UPDATE_TOKEN** (Settings ▸ Secrets and variables ▸ Actions)."
+                echo "3. Re-run **Update now**."
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=Token needed::Full update needs a PAT (TOOLING_UPDATE_TOKEN) with workflow scope to push workflow-file changes."
+              exit 0
+            fi
+            echo "::error title=Push failed::Could not push the update branch."
+            exit 1
+          fi
 
           URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url // empty')
           if [ -n "$URL" ]; then
