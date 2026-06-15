@@ -42,7 +42,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: cfg
-        uses: ./actions/load-config
+        # Full repo path (not ./actions/...): inside a reusable workflow a ./ path
+        # resolves against the CALLER's checked-out workspace, which doesn't contain
+        # this repo's actions. Pin to the same major alias consumers use (@v1).
+        uses: elijah286/LabVIEW-CI-with-Containers/actions/load-config@v1
 
   # 2) Each activity job runs only when its capability is active AND the platform
   #    is selected. Changing either in Configure Workers flips these gates.
@@ -54,10 +57,11 @@ jobs:
       - name: Checkout caller repository
         uses: actions/checkout@v4
 
-      # Reference the composite action from THIS repo. Consumers get it transitively
-      # by pinning the reusable workflow @v1 — they never copy the script.
+      # Reference the composite action from THIS repo by full path @v1. Consumers
+      # get it transitively by pinning the reusable workflow @v1 — they never copy
+      # the script. A ./ path would resolve against the caller's workspace and fail.
       - name: Mass Compile
-        uses: ./actions/masscompile
+        uses: elijah286/LabVIEW-CI-with-Containers/actions/masscompile@v1
         with:
           labview-version: ${{ inputs.labview-version || needs.config.outputs.labview-version }}
           image: ${{ inputs.image }}
