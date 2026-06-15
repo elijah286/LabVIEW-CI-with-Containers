@@ -328,6 +328,13 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
     version = str(catalog.get("version", "0.0.0"))
     major = version.split(".")[0] if version else "1"
     alias = f"v{major}"
+    # The caller pins the reusable workflow at the major alias (@v1) — a stable
+    # orchestration "harness". The CAPABILITY version, however, is pinned to this
+    # exact release in the config below (source.ref). The reusable workflow checks
+    # out the tooling at that exact ref at runtime, so a consumer's capabilities
+    # never change version automatically — only when they click "Update now",
+    # which edits this config file (a token-free change; not a workflow file).
+    cap_ref = f"v{version}"
     now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     acts = [a for a in activities
             if a in {c["id"] for c in catalog.get("capabilities", []) if c.get("status") != "planned"}]
@@ -427,7 +434,7 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
         f"installedAt: {now}",
         "source:",
         f"  repo: {src_repo}",
-        f"  ref: {alias}",
+        f"  ref: {cap_ref}",
         "config:",
         f"  labviewVersion: \"{labview_version}\"",
         f"  os: [{os_csv}]",
@@ -442,8 +449,8 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
         log("Dry run (thin): re-run without --dry-run to write the files.")
         return 0
     repo = f"{owner}/{name}" if owner and name else "<owner>/<repo>"
-    log("Thin install complete — your repo references the shared tooling at "
-        f"@{alias} and updates automatically.")
+    log("Thin install complete — your repo references the shared reusable workflow "
+        f"at @{alias} and runs capabilities pinned to {cap_ref}.")
     log("")
     log("Next steps")
     log("  1. Review:  git status && git diff")
@@ -453,7 +460,9 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
     if "custom-image" in acts:
         log("  5. (vi-analyzer) Build the shared image once, or set vars.LABVIEW_IMAGE_NAME.")
     log("")
-    log(f"Updates: merge the weekly Dependabot PR, or just stay on @{alias} to get them automatically.")
+    log(f"Updates: capabilities stay on {cap_ref} until you opt in. When a newer "
+        "release ships, run the \"Update LabVIEW CI tooling\" workflow (the dashboard's "
+        "\"Update now\" button) to bump source.ref — a reviewable, token-free PR.")
     return 0
 
 

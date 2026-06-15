@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.6.0",
+        "date": "2026-06-15",
+        "title": "Opt-in, token-free version updates (the \"Update now\" button)",
+        "summary": "The version a repository runs is now pinned in its own config (.github/labview-ci.yml: source.ref), not baked into a workflow file. The shared reusable workflow reads that ref at runtime and checks out the capabilities at it, so a repository never changes versions automatically \u2014 it opts in by clicking 'Update now', which edits only the config file. Because a config file is not a workflow file, the built-in GITHUB_TOKEN can apply the change, so the whole flow needs no personal access token.",
+        "highlights": [
+          "The reusable workflow's config job now exposes the consumer's pinned capability version (source.ref); each capability job checks out the tooling at that exact ref and runs it, so versions are controlled by config, not by the workflow-file pin.",
+          "Rewrote the 'Update now' button to bump source.ref + installedVersion in .github/labview-ci.yml and open a reviewable PR \u2014 a single config-file change with no vendored files and no token (replaces the previous full re-pull that required a workflow-scoped PAT).",
+          "New capabilities arrive dormant: they appear gated on the config's activities list and only run once a repository opts in (via the button's 'enable new capabilities' option or the Configure page).",
+          "Thin installs now pin source.ref to the exact published version, so a freshly installed repository stays on its version until someone clicks 'Update now'."
+        ]
+      },
       {
         "version": "1.5.0",
         "date": "2026-06-15",

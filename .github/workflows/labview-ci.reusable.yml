@@ -39,6 +39,12 @@ jobs:
       has-vi-analyzer: ${{ steps.cfg.outputs.has-vi-analyzer }}
       has-vidiff:      ${{ steps.cfg.outputs.has-vidiff }}
       has-snapshots:   ${{ steps.cfg.outputs.has-snapshots }}
+      # The capability version this repo has OPTED INTO, read from the consumer's
+      # own .github/labview-ci.yml (source.ref). The capability jobs check out the
+      # tooling at this ref and run it, so a repo only changes versions when it
+      # edits that config file (via the token-free "Update now" button) — never
+      # automatically. Defaults to v1 when the config omits a ref.
+      tooling-ref:     ${{ steps.ref.outputs.ref }}
     steps:
       - uses: actions/checkout@v4
       - id: cfg
@@ -46,6 +52,12 @@ jobs:
         # resolves against the CALLER's checked-out workspace, which doesn't contain
         # this repo's actions. Pin to the same major alias consumers use (@v1).
         uses: elijah286/LabVIEW-CI-with-Containers/actions/load-config@v1
+      - id: ref
+        shell: bash
+        run: |
+          REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)
+          echo "ref=${REF:-v1}" >> "$GITHUB_OUTPUT"
+          echo "Capability version (source.ref) this repo opted into: ${REF:-v1}"
 
   # 2) Each activity job runs only when its capability is active AND the platform
   #    is selected. Changing either in Configure Workers flips these gates.
@@ -81,13 +93,19 @@ jobs:
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"description\":\"Mass Compile in progress\",\"context\":\"CI / Mass Compile\"}"
 
-      # Reference the composite action from THIS repo by full path @v1. Consumers
-      # get it transitively by pinning the reusable workflow @v1 — they never copy
-      # the script. A ./ path would resolve against the caller's workspace and fail.
+      # Reference the composite action at the version this repo OPTED INTO
+      # (config source.ref), checked out at runtime, so the capability never
+      # changes version automatically — only when the config is updated.
+      - name: Check out tooling (opted-in version)
+        uses: actions/checkout@v4
+        with:
+          repository: elijah286/LabVIEW-CI-with-Containers
+          ref: ${{ needs.config.outputs.tooling-ref }}
+          path: _lvci
       - name: Mass Compile
         id: compile
         continue-on-error: true
-        uses: elijah286/LabVIEW-CI-with-Containers/actions/masscompile@v1
+        uses: ./_lvci/actions/masscompile
         with:
           labview-version: ${{ inputs.labview-version || needs.config.outputs.labview-version }}
           image: ${{ inputs.image }}
@@ -211,11 +229,17 @@ jobs:
         run: docker pull "${{ steps.img.outputs.ref }}"
         continue-on-error: true
 
+      - name: Check out tooling (opted-in version)
+        uses: actions/checkout@v4
+        with:
+          repository: elijah286/LabVIEW-CI-with-Containers
+          ref: ${{ needs.config.outputs.tooling-ref }}
+          path: _lvci
       - name: Run VI Analyzer
         id: analyze
         if: steps.pull.outcome == 'success'
         continue-on-error: true
-        uses: elijah286/LabVIEW-CI-with-Containers/actions/vi-analyzer@v1
+        uses: ./_lvci/actions/vi-analyzer
         with:
           image: ${{ steps.img.outputs.ref }}
           labview-version: ${{ inputs.labview-version || needs.config.outputs.labview-version }}
@@ -357,10 +381,16 @@ jobs:
           if ($svc.Status -ne 'Running') { Start-Service docker }
           docker version
 
+      - name: Check out tooling (opted-in version)
+        uses: actions/checkout@v4
+        with:
+          repository: elijah286/LabVIEW-CI-with-Containers
+          ref: ${{ needs.config.outputs.tooling-ref }}
+          path: _lvci
       - name: VIDiff
         id: diff
         continue-on-error: true
-        uses: elijah286/LabVIEW-CI-with-Containers/actions/vidiff@v1
+        uses: ./_lvci/actions/vidiff
         with:
           image: ${{ inputs.image }}
           labview-version: ${{ inputs.labview-version || needs.config.outputs.labview-version }}
@@ -460,10 +490,16 @@ jobs:
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"description\":\"VI Snapshots in progress\",\"context\":\"CI / VI Snapshots\"}"
 
+      - name: Check out tooling (opted-in version)
+        uses: actions/checkout@v4
+        with:
+          repository: elijah286/LabVIEW-CI-with-Containers
+          ref: ${{ needs.config.outputs.tooling-ref }}
+          path: _lvci
       - name: VI Snapshots
         id: snap
         continue-on-error: true
-        uses: elijah286/LabVIEW-CI-with-Containers/actions/snapshots@v1
+        uses: ./_lvci/actions/snapshots
         with:
           image: ${{ inputs.image }}
           mode: head
