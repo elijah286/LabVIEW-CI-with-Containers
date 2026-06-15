@@ -78,6 +78,33 @@ $ConfigXml = $ConfigXml -replace '__WORKSPACE_PATH__', $WorkspaceRoot
 Write-Host "  Config out : $ConfigFile"
 Write-Host ""
 
+# ── Recompile the workspace to this image's LabVIEW version BEFORE analyzing ──
+# The VI Analyzer only analyzes VIs already saved in the running LabVIEW's
+# version; VIs saved in an OLDER version (e.g. the LV2019 example project) are
+# silently skipped, producing an empty "0 VIs analyzed" report even though the
+# VIs load fine. A headless MassCompile pass mutates every VI in the workspace up
+# to the current version in place, so the following RunVIAnalyzer sees and
+# analyzes them. Best-effort: a non-zero MassCompile exit (e.g. one library VI
+# that can't compile against the CI image) must not block analysis — we relax
+# ErrorActionPreference, log the exit code, and continue regardless.
+Write-Host "=== Pre-analysis MassCompile (upgrade VIs to image LabVIEW version) ==="
+$preStart = Get-Date
+$prevEAP  = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    & $CliExe `
+        -LogToConsole       TRUE `
+        -OperationName      MassCompile `
+        -DirectoryToCompile $WorkspaceRoot `
+        -LabVIEWPath        $LabVIEWPath `
+        -Headless 2>&1 | Out-Host
+    Write-Host ("  MassCompile exit={0} duration={1}s" -f $LASTEXITCODE, [math]::Round(((Get-Date) - $preStart).TotalSeconds, 1))
+} catch {
+    Write-Warning "  Pre-analysis MassCompile skipped: $($_.Exception.Message)"
+}
+$ErrorActionPreference = $prevEAP
+Write-Host ""
+
 $Start = Get-Date
 
 # NOTE: -Headless is REQUIRED for LabVIEW 2026+ inside Windows containers, otherwise
