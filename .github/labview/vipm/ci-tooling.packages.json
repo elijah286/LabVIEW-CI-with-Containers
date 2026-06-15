@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "name": "Base-image VIPM tooling",
+  "description": "Human-editable source of truth for the third-party LabVIEW tooling baked into the CI worker image by default. `build-tooling-vipc.py` turns the `vipmPackages` list below into `ci-tooling.vipc`, which the Dockerfile's existing VIPM hook applies at image-build time (vipm apply_vipc). Because this whole `.github/labview/vipm/` folder is part of the portability catalog's `custom-image` capability, editing this list + regenerating is all another repo needs to change its baked-in tooling.",
+
+  "target": {
+    "name": "LabVIEW",
+    "labviewVersion": "2026",
+    "comment": "labviewVersion must match the LabVIEW in the NI base image. The generator maps it to the .vipc Target <Version> (2026 -> '26.1 (64-bit)'); install-vipc.ps1 passes the same year to `vipm apply_vipc -labview_version`."
+  },
+
+  "vipmPackages": {
+    "comment": "Top-level packages only. Each is emitted as a <Package Included=false> entry, so `vipm apply_vipc` downloads it (and its dependencies, listed here for reference only) from the configured VIPM repository at build time. Pin `version` for reproducible images; set it to null to resolve to the latest available. `include:false` documents a package without baking it in.",
+    "packages": [
+      {
+        "name": "wovalab_lib_antidoc_cli",
+        "version": "3.3.0.117",
+        "include": true,
+        "summary": "Antidoc CLI by Wovalab - generate LabVIEW project documentation headlessly (the supported CI/CD path).",
+        "dependenciesAutoResolved": [
+          "wovalab_lib_antidoc",
+          "wovalab_lib_asciidoc_for_labview",
+          "wiresmith_technology_lib_g_cli"
+        ],
+        "note": "Doc generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default); only the doc-gen step needs that network, not the install."
+      },
+      {
+        "name": "jki_lib_caraya",
+        "version": "1.4.4.148",
+        "include": true,
+        "summary": "Caraya Unit Test Framework by JKI - assertion-based unit testing; 'your VI is your test'.",
+        "dependenciesAutoResolved": [
+          "labview_open_source_lib_epoch_datetime",
+          "oglib_array", "oglib_error", "oglib_file", "oglib_lvdata", "oglib_string",
+          "jki_lib_state_machine", "jki_rsc_toolkits_palette"
+        ]
+      },
+      {
+        "name": "jki_vi_tester",
+        "version": null,
+        "include": true,
+        "summary": "JKI VI Tester - the classic xUnit-style LabVIEW unit test framework.",
+        "note": "Package name taken from the JKI VI Tester toolkit namespace (__jki_vi_tester). Version left null (latest) because it could not be pinned from a verified source; pin it here once confirmed in VIPM."
+      }
+    ]
+  },
+
+  "alreadyBakedElsewhere": {
+    "comment": "Listed for completeness so this manifest is a full picture of the worker's tooling. These are NOT emitted into ci-tooling.vipc to avoid double-installing.",
+    "items": [
+      {
+        "what": "VI Analyzer full default test set",
+        "package": "ni-viawin-labview-support",
+        "kind": "nipkg",
+        "via": "labview-ci.Dockerfile installs it directly (nipkg); not a VIPM package."
+      },
+      {
+        "what": "OpenG libraries (oglib_*) + G Image",
+        "package": "oglib_file, oglib_array, oglib_error, oglib_lvdata, oglib_string, oglib_appcontrol, dataflow_g_lib_g_image",
+        "kind": "vipc",
+        "via": "COTC Dependencies.vipc (repo root) is staged + applied by the image build; OpenG is also pulled automatically as a Caraya dependency."
+      }
+    ]
+  },
+
+  "todo": {
+    "comment": "Items the user requested that need a non-VIPM install path. Tracked here rather than silently dropped.",
+    "items": [
+      {
+        "what": "NI Unit Test Framework (UTF) Toolkit",
+        "kind": "nipkg",
+        "status": "needs-package-name",
+        "note": "UTF is an NI product (not on VIPM). Baking it in needs the correct NI Package Manager package name for the 2026 feed and a best-effort nipkg install block in labview-ci.Dockerfile (mirroring the VI Analyzer support package). Deferred here to avoid editing the Dockerfile while the CI-image refactor is in flight; add the nipkg + name once verified."
+      }
+    ]
+  }
+}

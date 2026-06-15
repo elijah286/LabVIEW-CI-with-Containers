@@ -1,0 +1,86 @@
+name: VIDiff Backfill — Linux Container
+
+# Generates VIDiff reports for VI-touching commits across history in a single warm
+# container, so every changed VI in the VI Browser links to a true side-by-side
+# diff report (not just a snapshot). Resumable and incremental.
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_commits:
+        description: 'Cap to most recent N VI-touching commits (0 = all)'
+        required: false
+        default: '0'
+      time_budget_minutes:
+        description: 'Stop launching new diffs after N minutes (resume next run)'
+        required: false
+        default: '300'
+
+concurrency:
+  group: vidiff-backfill
+  cancel-in-progress: false
+
+env:
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-linux
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  vidiff-backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Seed the set of already-generated reports so we never redo a commit.
+      - name: Checkout deployed VIDiff (gh-pages) for incremental skip
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: _pages
+          sparse-checkout: vidiff
+          sparse-checkout-cone-mode: false
+
+      - name: Pull LabVIEW Linux container
+        run: docker pull "$LABVIEW_CONTAINER_IMAGE"
+
+      - name: Run VIDiff backfill (warm container, walks history)
+        id: backfill
+        run: |
+          bash .github/labview/vidiff-backfill.sh \
+            "${{ github.workspace }}" \
+            "${{ github.workspace }}/ci-out/vidiff-backfill" \
+            "$LABVIEW_CONTAINER_IMAGE" \
+            "${{ github.event.inputs.max_commits || '0' }}" \
+            "${{ github.workspace }}/_pages/vidiff" \
+            "${{ github.event.inputs.time_budget_minutes || '300' }}"
+        continue-on-error: true
+
+      - name: Verify backfill output
+        id: verify
+        run: |
+          if [ -n "$(find ci-out/vidiff-backfill -name changes.json 2>/dev/null | head -1)" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "Generated reports:"
+            find ci-out/vidiff-backfill -name changes.json | sed 's|/linux/vidiff/changes.json||;s|.*/push-|  push-|'
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "No new reports generated (all commits may already be done)."
+          fi
+
+      - name: Deploy VIDiff reports to GitHub Pages
+        if: steps.verify.outputs.ok == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ github.workspace }}/ci-out/vidiff-backfill
+          destination_dir: vidiff
+          keep_files: true   # preserve existing per-commit reports

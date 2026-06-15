@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "version": "1.0.0",
+  "name": "LabVIEW CI",
+  "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
+  "source": {
+    "comment": "Where the installer fetches tooling from and what the configurator links to. Point this at a dedicated tooling repo later without touching any other file.",
+    "repo": "elijah286/LabVIEW-CI-with-Containers",
+    "ref": "main",
+    "toolingDir": ".github"
+  },
+  "defaults": {
+    "labviewVersion": "2026",
+    "os": [
+      "windows",
+      "linux"
+    ],
+    "branch": "main"
+  },
+  "labviewVersions": [
+    "2021",
+    "2022",
+    "2023",
+    "2024",
+    "2025",
+    "2026"
+  ],
+  "substitutions": {
+    "comment": "The installer and the configurator's bundle generator replace these source-repo identifiers with the target repo's values in every copied TEXT file (workflows, scripts, pages). Order matters: most specific first. Functional wiring (image, Pages URL, LabVIEW version) is NOT listed here because it already derives at runtime from the GitHub context / Actions variables; only cosmetic branding is rewritten.",
+    "ordered": [
+      {
+        "find": "elijah286.github.io/challenge-of-champions",
+        "replaceWith": "{pagesHost}/{repoName}"
+      },
+      {
+        "find": "elijah286/challenge-of-champions",
+        "replaceWith": "{ownerRepo}"
+      },
+      {
+        "find": "challenge-of-champions",
+        "replaceWith": "{repoName}"
+      }
+    ]
+  },
+  "variables": {
+    "comment": "Optional GitHub Actions repository variables the workflows read at runtime (all have safe fallbacks, so zero-config still works). The installer prints `gh variable set` commands for these.",
+    "LABVIEW_VERSION": "LabVIEW year used for the container LabVIEW.exe path and image tag (fallback 2026).",
+    "LABVIEW_IMAGE_NAME": "Override the GHCR image name (fallback <repo>-labview).",
+    "PAGES_URL": "Override the published Pages base URL for custom domains (fallback https://<owner>.github.io/<repo>)."
+  },
+  "userConfig": {
+    "comment": "Files that belong to the CONSUMER, not the tooling. `install.py --update` never overwrites these, so re-pulling improvements preserves the repo's own choices (e.g. which VIPM packages are baked into the image).",
+    "files": [
+      ".github/labview/vipm/ci-tooling.packages.json",
+      ".github/labview/vipm/ci-tooling.vipc"
+    ]
+  },
+  "base": {
+    "comment": "Always installed: the self-describing tooling so the target repo can re-run, inspect, or upgrade the install.",
+    "files": [
+      ".github/labview-ci/catalog.json",
+      ".github/labview-ci/config.example.yml",
+      ".github/labview-ci/install.py",
+      ".github/labview-ci/install.sh",
+      ".github/labview-ci/install.ps1",
+      ".github/labview-ci/README.md"
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "dashboard",
+      "name": "CI Dashboard + VI Browser host",
+      "summary": "GitHub Pages dashboard that aggregates every commit's CI status, plus the report viewer and the \u201cIntegrate this CI pipeline\u201d configurator. Recommended for every install \u2014 most other capabilities surface their results here.",
+      "status": "stable",
+      "recommended": true,
+      "supportsOs": [
+        "linux"
+      ],
+      "requires": [],
+      "recommends": [],
+      "statusContext": null,
+      "files": {
+        "any": [
+          ".github/workflows/dashboard-pages.yml",
+          ".github/workflows/reconfigure.yml",
+          ".github/workflows/integrate-deploy.yml",
+          ".github/pages/index.html",
+          ".github/pages/report-viewer.html",
+          ".github/pages/integrate.html",
+          ".github/pages/configure.html"
+        ],
+        "windows": [],
+        "linux": []
+      },
+      "notes": "Runs on ubuntu-latest; no LabVIEW required. Reacts to the `status` event so it stays current for any present or future capability that posts a commit status \u2014 no per-workflow wiring."
+    },
+    {
+      "id": "masscompile",
+      "name": "Mass Compile",
+      "summary": "Compiles every VI in the project inside a LabVIEW container to catch broken / mutated code, and publishes a report showing the percentage of project VIs that compiled cleanly.",
+      "status": "stable",
+      "recommended": true,
+      "supportsOs": [
+        "windows"
+      ],
+      "requires": [],
+      "recommends": [
+        "dashboard"
+      ],
+      "statusContext": "CI / Mass Compile",
+      "files": {
+        "any": [],
+        "windows": [
+          ".github/workflows/masscompile-windows-container.yml",
+          ".github/labview/masscompile.ps1"
+        ],
+        "linux": []
+      },
+      "notes": "Runs on the NI base image \u2014 no custom image required."
+    },
+    {
+      "id": "vi-analyzer",
+      "name": "VI Analyzer",
+      "summary": "Runs the LabVIEW VI Analyzer test suite over the project and publishes both the native report and a friendly, parsed HTML summary.",
+      "status": "stable",
+      "recommended": true,
+      "supportsOs": [
+        "windows",
+        "linux"
+      ],
+      "requires": [],
+      "recommends": [
+        "dashboard",
+        "custom-image"
+      ],
+      "statusContext": "CI / VI Analyzer",
+      "files": {
+        "any": [
+          ".github/labview/build-analyzer-report.py"
+        ],
+        "windows": [
+          ".github/workflows/run-vi-analyzer-windows-container.yml",
+          ".github/labview/run-vi-analyzer.ps1"
+        ],
+        "linux": [
+          ".github/workflows/run-vi-analyzer-linux-container.yml",
+          ".github/labview/run-vi-analyzer.sh",
+          ".github/labview/via-configs/"
+        ]
+      },
+      "notes": "The full default test set (~90 tests) requires the custom image (enable \u201cShared LabVIEW image\u201d). On the bare NI base image the analyzer reports \u201c0 tests run\u201d."
+    },
+    {
+      "id": "vidiff",
+      "name": "VIDiff Comparison Reports",
+      "summary": "Generates side-by-side visual diff reports for every changed VI on a push or PR (and a history backfill), deploys them to Pages, and comments the link on the PR.",
+      "status": "stable",
+      "recommended": true,
+      "supportsOs": [
+        "windows",
+        "linux"
+      ],
+      "requires": [],
+      "recommends": [
+        "dashboard"
+      ],
+      "statusContext": "CI / VIDiff",
+      "files": {
+        "any": [
+          ".github/workflows/vidiff-deploy.yml",
+          ".github/labview/backfill-vidiff-statuses.sh",
+          ".github/labview/PrintToSingleFileHtml/"
+        ],
+        "windows": [
+          ".github/workflows/vidiff-windows-container.yml",
+          ".github/workflows/vidiff-backfill-windows.yml",
+          ".github/labview/vidiff.ps1",
+          ".github/labview/vidiff-backfill.ps1"
+        ],
+        "linux": [
+          ".github/workflows/vidiff-linux-container.yml",
+          ".github/workflows/vidiff-backfill.yml",
+          ".github/labview/vidiff.sh",
+          ".github/labview/vidiff-backfill.sh"
+        ]
+      },
+      "notes": "Runs on the NI base image. The deploy workflow (vidiff-deploy.yml) is shared by both platforms and is always installed with this capability."
+    },
+    {
+      "id": "snapshots",
+      "name": "VI Snapshots + VI Browser",
+      "summary": "Renders a browseable, blob-addressed gallery of every VI's block diagram across history (the VI Browser), so reviewers can inspect any VI without opening LabVIEW.",
+      "status": "stable",
+      "recommended": false,
+      "supportsOs": [
+        "windows"
+      ],
+      "requires": [],
+      "recommends": [
+        "dashboard"
+      ],
+      "statusContext": "CI / VI Snapshots",
+      "files": {
+        "any": [
+          ".github/pages/vi-browser.html",
+          ".github/pages/vi-interactive.html",
+          ".github/labview/build-gallery.py",
+          ".github/labview/PrintToSingleFileHtml/"
+        ],
+        "windows": [
+          ".github/workflows/vi-snapshots.yml",
+          ".github/labview/build-snapshots.ps1",
+          ".github/labview/render-snapshots.ps1",
+          ".github/labview/export-vi-snapshots.ps1"
+        ],
+        "linux": []
+      },
+      "notes": "Snapshot rendering currently runs on the Windows container."
+    },
+    {
+      "id": "custom-image",
+      "name": "Shared LabVIEW container image",
+      "summary": "Builds a LabVIEW CI container image (NI base + VI Analyzer support + any repo .vipc dependencies) and publishes it to GHCR, named after the repo. Built once, pulled by the other jobs.",
+      "status": "advanced",
+      "recommended": false,
+      "supportsOs": [
+        "windows",
+        "linux"
+      ],
+      "requires": [],
+      "recommends": [],
+      "statusContext": null,
+      "files": {
+        "any": [
+          ".github/labview/build-worker-manifest.py"
+        ],
+        "windows": [
+          ".github/workflows/build-labview-image.yml",
+          ".github/docker/labview-ci.Dockerfile",
+          ".github/labview/vipm/"
+        ],
+        "linux": [
+          ".github/workflows/build-labview-linux-image.yml",
+          ".github/docker/labview-ci-linux.Dockerfile"
+        ]
+      },
+      "notes": "Only required if you want the full VI Analyzer test set or to bake .vipc dependencies into the worker. Any repo-root *.vipc is detected and baked automatically. Non-2026 LabVIEW versions need a matching nipkg feed URL (build-arg)."
+    },
+    {
+      "id": "unit-tests",
+      "name": "Unit Tests",
+      "summary": "Run a LabVIEW unit-test framework (e.g. Caraya or VI Tester) in CI and publish pass/fail results to the dashboard.",
+      "status": "planned",
+      "recommended": false,
+      "supportsOs": [
+        "windows",
+        "linux"
+      ],
+      "requires": [],
+      "recommends": [
+        "dashboard"
+      ],
+      "statusContext": "CI / Unit Tests",
+      "files": {
+        "any": [],
+        "windows": [],
+        "linux": []
+      },
+      "notes": "Planned \u2014 not yet implemented. This entry demonstrates how the system scales: when the runner exists, add its workflow + script paths to the `files` map here and flip `status` to `stable`. It then appears automatically in both the configurator and the installer with no other code changes."
+    }
+  ]
+}

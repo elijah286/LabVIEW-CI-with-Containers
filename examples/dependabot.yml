@@ -1,0 +1,15 @@
+# Drop this at .github/dependabot.yml in a CONSUMER repo to auto-update the pinned
+# LabVIEW CI tooling. Dependabot opens a PR whenever the referenced action /
+# reusable-workflow tag (e.g. @v1) gets a new release — your "install an update"
+# button, as a reviewable pull request.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "labview-ci"

@@ -1,0 +1,20 @@
+# Thin CALLER workflow — this is all a consumer repo needs in .github/workflows/.
+# It owns the triggers (repo-local) and delegates the logic to the versioned
+# reusable workflow in the standalone tooling repo. Bump @v1 -> @v1.2.3 to pin,
+# or let Dependabot (see dependabot.yml) bump it for you.
+name: LabVIEW CI
+
+on:
+  pull_request:
+    paths: ['**.vi', '**.ctl', '**.lvproj', '**.lvlib', '**.lvclass']
+  push:
+    branches: [main]
+    paths: ['**.vi', '**.ctl', '**.lvproj', '**.lvlib', '**.lvclass']
+
+jobs:
+  labview-ci:
+    # Replace your-org/labview-ci with your standalone tooling repo.
+    uses: your-org/labview-ci/.github/workflows/labview-ci.reusable.yml@v1
+    with:
+      labview-version: "2026"
+    secrets: inherit

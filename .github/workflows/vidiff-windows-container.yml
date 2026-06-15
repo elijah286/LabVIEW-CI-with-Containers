@@ -1,0 +1,159 @@
+name: VIDiff Report — Windows Container
+
+on:
+  pull_request:
+    paths:
+      - '**.vi'
+      - '**.ctl'
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: 'Base commit SHA'
+        required: false
+        default: ''
+      head_sha:
+        description: 'Head commit SHA'
+        required: false
+        default: ''
+
+env:
+  # Base NI image already includes everything VIDiff needs (CreateComparisonReport /
+  # PrintToSingleFileHtml). The custom GHCR image build is not required here.
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-windows
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  vidiff:
+    runs-on: windows-2022   # windows-latest = Server 2025, broken Docker daemon
+
+    steps:
+      - name: Determine SHAs
+        id: shas
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          expand() {
+            local s="$1"
+            [ -z "$s" ] && echo "" && return
+            gh api "repos/${{ github.repository }}/commits/$s" --jq '.sha' 2>/dev/null || echo "$s"
+          }
+          if [ -n "${{ github.event.inputs.head_sha }}" ]; then
+            HEAD=$(expand "${{ github.event.inputs.head_sha }}")
+            BASE=$(expand "${{ github.event.inputs.base_sha }}")
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            HEAD="${{ github.sha }}"
+            BASE="${{ github.event.before }}"
+          fi
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.shas.outputs.head }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VIDiff in progress\",\"context\":\"CI / VIDiff (windows)\"}"
+
+      - name: Checkout head commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.shas.outputs.head }}
+          fetch-depth: 0
+          path: head
+
+      - name: Checkout base commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.shas.outputs.base }}
+          path: base
+
+      # Restore CI scripts from main when using manual dispatch
+      - name: Restore CI scripts from main
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        working-directory: head
+        run: git checkout origin/main -- .github/labview .github/workflows
+
+      - name: Get list of changed VI/CTL files
+        id: changed
+        shell: bash
+        run: |
+          cd head
+          if [ -n "${{ steps.shas.outputs.base }}" ]; then
+            FILES=$(git diff --name-only "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" -- '*.vi' '*.ctl' | tr '\n' '\n')
+          else
+            FILES=$(git diff-tree --no-commit-id -r --name-only "${{ steps.shas.outputs.head }}" -- '*.vi' '*.ctl' | tr '\n' '\n')
+          fi
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Pull LabVIEW container image
+        shell: powershell
+        run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
+
+      - name: Run VIDiff inside container
+        shell: powershell
+        id: diff
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: |
+          $workspace = '${{ github.workspace }}'
+          docker run --rm `
+            -v "${workspace}\head:C:\workspace" `
+            -v "${workspace}\base:C:\workspace-base" `
+            -e CHANGED_FILES=$Env:CHANGED_FILES `
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+            $Env:LABVIEW_CONTAINER_IMAGE `
+            powershell -NonInteractive -ExecutionPolicy Bypass `
+              -File "C:\workspace\.github\labview\vidiff.ps1" `
+              -BaseDir      "C:\workspace-base" `
+              -HeadDir      "C:\workspace" `
+              -ReportDir    "C:\workspace\ci-out\vidiff" `
+              -LabVIEWPath  "C:\Program Files\National Instruments\LabVIEW ${{ vars.LABVIEW_VERSION || '2026' }}\LabVIEW.exe"
+        continue-on-error: true
+
+      - name: Save metadata for deploy workflow
+        shell: bash
+        run: |
+          mkdir -p "${{ github.workspace }}/head/ci-out"
+          cat > "${{ github.workspace }}/head/ci-out/vidiff-meta.json" <<JSON
+          {
+            "head_sha":   "${{ steps.shas.outputs.head }}",
+            "base_sha":   "${{ steps.shas.outputs.base }}",
+            "pr_number":  "${{ steps.shas.outputs.pr_number }}",
+            "platform":   "windows",
+            "outcome":    "${{ steps.diff.outcome }}"
+          }
+          JSON
+
+      - name: Upload VIDiff report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidiff-windows-${{ steps.shas.outputs.head }}
+          path: |
+            ${{ github.workspace }}/head/ci-out/vidiff/
+            ${{ github.workspace }}/head/ci-out/vidiff-meta.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Fail if diff failed
+        if: steps.diff.outcome == 'failure'
+        run: exit 1

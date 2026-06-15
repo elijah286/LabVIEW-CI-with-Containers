@@ -1,0 +1,74 @@
+# Reusable workflow (lives at .github/workflows/ in the standalone labview-ci repo).
+# Consumers call this with `uses: your-org/labview-ci/.github/workflows/labview-ci.reusable.yml@v1`.
+#
+# This is where repo settings actually DRIVE behavior: a `config` job reads the
+# consumer's .github/labview-ci.yml via the load-config action, and each activity
+# job is gated on it + on the platform flags. So toggling an activity or platform
+# in "Configure Workers" turns the corresponding job on/off here — no per-repo
+# workflow edits. The consumer's thin caller owns only the triggers and Pages.
+name: LabVIEW CI (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      labview-version:
+        description: 'LabVIEW year (overrides labview-ci.yml when set)'
+        type: string
+        required: false
+        default: ''
+      windows-runner:
+        description: 'Runner label for Windows container jobs'
+        type: string
+        required: false
+        default: 'windows-2022'
+      image:
+        description: 'Container image to run in'
+        type: string
+        required: false
+        default: 'nationalinstruments/labview:latest-windows'
+
+jobs:
+  # 1) Read the repo's config once and expose it to the gated jobs below.
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      labview-version: ${{ steps.cfg.outputs.labview-version }}
+      os-windows:      ${{ steps.cfg.outputs.os-windows }}
+      os-linux:        ${{ steps.cfg.outputs.os-linux }}
+      has-masscompile: ${{ steps.cfg.outputs.has-masscompile }}
+      has-vi-analyzer: ${{ steps.cfg.outputs.has-vi-analyzer }}
+      has-vidiff:      ${{ steps.cfg.outputs.has-vidiff }}
+      has-snapshots:   ${{ steps.cfg.outputs.has-snapshots }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: cfg
+        uses: ./actions/load-config
+
+  # 2) Each activity job runs only when its capability is active AND the platform
+  #    is selected. Changing either in Configure Workers flips these gates.
+  mass-compile:
+    needs: config
+    if: ${{ needs.config.outputs.has-masscompile == 'true' && needs.config.outputs.os-windows == 'true' }}
+    runs-on: ${{ inputs.windows-runner }}
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+
+      # Reference the composite action from THIS repo. Consumers get it transitively
+      # by pinning the reusable workflow @v1 — they never copy the script.
+      - name: Mass Compile
+        uses: ./actions/masscompile
+        with:
+          labview-version: ${{ inputs.labview-version || needs.config.outputs.labview-version }}
+          image: ${{ inputs.image }}
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: masscompile-report
+          path: ci-out/masscompile/
+          if-no-files-found: warn
+
+  # Add vi-analyzer / vidiff / snapshots jobs the same way, each gated on its
+  # has-* output (+ platform). New capabilities slot in without touching consumers.

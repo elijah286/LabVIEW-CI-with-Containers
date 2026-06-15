@@ -1,0 +1,51 @@
+# .github/labview-ci.yml - LabVIEW CI configuration (example)
+#
+# This file is written by the installer to record what was installed, and is the
+# single place to review/repin the configuration for this repo. The workflows
+# themselves read their settings at runtime from the GitHub context and from
+# optional GitHub Actions *variables* (Settings > Secrets and variables >
+# Actions > Variables), all of which have safe fallbacks - so this file is a
+# human-facing record, not a hard dependency.
+#
+# Everything below is OPTIONAL. With nothing set, the pipeline uses sensible
+# defaults: LabVIEW 2026, an image named "<repo>-labview", and a Pages site at
+# https://<owner>.github.io/<repo>.
+
+schemaVersion: 1
+
+# Where the tooling was installed from. Used by `install.py` for re-runs/upgrades.
+source:
+  repo: elijah286/challenge-of-champions
+  ref: main
+
+config:
+  # LabVIEW year. Drives the in-container LabVIEW.exe path and the image tag.
+  # To pin it for CI, set the Actions variable LABVIEW_VERSION to the same value.
+  labviewVersion: "2026"
+
+  # Default branch the push-triggered workflows watch.
+  branch: main
+
+  # Operating systems the analysis jobs run on.
+  os: [windows, linux]
+
+  # Optional GHCR image name override (default: "<repo>-labview").
+  # To pin it for CI, set the Actions variable LABVIEW_IMAGE_NAME.
+  # imageName: my-labview-ci
+
+# Installed capabilities (see .github/labview-ci/catalog.json for the full list).
+activities:
+  - dashboard
+  - masscompile
+  - vi-analyzer
+  - vidiff
+
+# ----------------------------------------------------------------------------
+# Actions variables the workflows honor at runtime (set with `gh variable set`):
+#
+#   gh variable set LABVIEW_VERSION    -b 2026
+#   gh variable set LABVIEW_IMAGE_NAME -b my-labview-ci      # optional
+#   gh variable set PAGES_URL          -b https://ci.example.com   # custom domain
+#
+# None are required; each falls back to a value derived from the repository.
+# ----------------------------------------------------------------------------

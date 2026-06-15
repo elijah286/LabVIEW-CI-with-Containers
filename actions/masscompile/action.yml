@@ -1,0 +1,47 @@
+# Composite action: LabVIEW Mass Compile
+#
+# Demonstrates the pattern that makes centralized logic work for CONTAINER jobs:
+# the action mounts its OWN directory (github.action_path) into the container, so
+# the bundled script runs INSIDE the container without the consumer repo holding a
+# copy of it. Pin this action by tag (@v1) to receive updates.
+#
+# After extraction, copy the real script next to this file:
+#   cp <source>/.github/labview/masscompile.ps1 actions/masscompile/masscompile.ps1
+name: 'LabVIEW Mass Compile'
+description: 'Compile every VI in a LabVIEW project inside a container and publish an HTML report.'
+author: 'labview-ci'
+
+inputs:
+  labview-version:
+    description: 'LabVIEW year (drives the in-container LabVIEW.exe path).'
+    required: false
+    default: '2026'
+  image:
+    description: 'Container image to run in.'
+    required: false
+    default: 'nationalinstruments/labview:latest-windows'
+  report-dir:
+    description: 'Report output directory (relative to the workspace).'
+    required: false
+    default: 'ci-out/masscompile'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Mass Compile inside container
+      shell: powershell
+      run: |
+        docker pull "${{ inputs.image }}"
+        # Mount the workspace AND this action's directory (which carries the script)
+        # into the container. ${{ github.action_path }} is the checked-out action on
+        # the runner host; mounting it makes masscompile.ps1 available at C:\ci-action.
+        docker run --rm `
+          -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+          -v "${{ github.workspace }}:C:\workspace" `
+          -v "${{ github.action_path }}:C:\ci-action" `
+          "${{ inputs.image }}" `
+          powershell -NonInteractive -ExecutionPolicy Bypass `
+            -File "C:\ci-action\masscompile.ps1" `
+            -WorkspaceRoot "C:\workspace" `
+            -ReportDir     "C:\workspace\${{ inputs.report-dir }}" `
+            -LabVIEWPath   "C:\Program Files\National Instruments\LabVIEW ${{ inputs.labview-version }}\LabVIEW.exe"

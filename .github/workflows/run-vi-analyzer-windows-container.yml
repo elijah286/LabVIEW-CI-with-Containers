@@ -1,0 +1,289 @@
+name: Run VI Analyzer — Windows Container
+
+on:
+  pull_request:
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to analyze (leave blank for current HEAD)'
+        required: false
+        default: ''
+
+env:
+  # Custom CI image (built by build-labview-image.yml). Name derives from the repo
+  # so any repo pulls its own image; override with vars.LABVIEW_IMAGE_NAME / LABVIEW_VERSION.
+  LABVIEW_CONTAINER_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ vars.LABVIEW_IMAGE_NAME || format('{0}-labview', github.event.repository.name) }}:${{ vars.LABVIEW_VERSION || '2026' }}
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  statuses: write
+  packages: read
+
+# Serialize report deploys to gh-pages. peaceiris/actions-gh-pages clones, commits,
+# and pushes the branch; two report jobs pushing at once make the loser's push bounce
+# with "! [rejected] (fetch first)", so its report never deploys (dashboard 404).
+# A shared group across the report-deploy workflows (mass compile + VI Analyzer)
+# makes them queue instead of racing. cancel-in-progress:false so a queued run still
+# publishes rather than being dropped.
+concurrency:
+  group: report-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  vi-analyzer:
+    runs-on: windows-2022   # windows-latest = Server 2025, broken Docker daemon
+
+    steps:
+      - name: Determine target SHA
+        id: sha
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INPUT="${{ github.event.inputs.commit_sha }}"
+          if [ -n "$INPUT" ]; then
+            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha')
+            echo "sha=$FULL" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VI Analyzer in progress\",\"context\":\"CI / VI Analyzer\"}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Restore CI scripts from main
+        if: github.event.inputs.commit_sha != ''
+        shell: bash
+        run: git checkout origin/main -- .github/labview .github/workflows
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
+          if ($null -eq $svc) {
+            throw 'Docker service not found on this runner.'
+          }
+          if ($svc.Status -ne 'Running') {
+            Start-Service docker
+          }
+          docker version
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Ordering: if this push changed the worker image inputs (a .vipc, the
+      # Dockerfile, or the VIPM assets) then "Build LabVIEW CI Image" is
+      # rebuilding the worker for this same commit. Wait for that build to finish
+      # before pulling, so analysis runs on the freshly-built worker instead of a
+      # stale one. Bounded and best-effort — it never blocks CI indefinitely, and
+      # does nothing when no worker-affecting file changed.
+      - name: Wait for worker image build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ steps.sha.outputs.sha }}"
+          WF="Build LabVIEW CI Image"
+          BEFORE="${{ github.event.before }}"
+          changed=false
+          if [ -n "${BEFORE:-}" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            if git diff --name-only "$BEFORE" "$SHA" \
+                 | grep -Eq '(\.vipc$|^\.github/docker/labview-ci\.Dockerfile$|^\.github/labview/vipm/)'; then
+              changed=true
+            fi
+          fi
+          if [ "$changed" != "true" ]; then
+            echo "No worker-affecting change in this push; not waiting."
+            exit 0
+          fi
+          echo "Worker inputs changed - waiting for '$WF' to finish for $SHA."
+          appear_deadline=$(( $(date +%s) + 300 ))
+          overall_deadline=$(( $(date +%s) + 1800 ))
+          seen=false
+          api="repos/${{ github.repository }}/actions/runs?head_sha=$SHA&per_page=50"
+          while :; do
+            total=$(gh api "$api" --jq "[.workflow_runs[]|select(.name==\"$WF\")]|length" 2>/dev/null || echo 0)
+            pending=$(gh api "$api" --jq "[.workflow_runs[]|select(.name==\"$WF\")|select(.status!=\"completed\")]|length" 2>/dev/null || echo 0)
+            now=$(date +%s)
+            if [ "${total:-0}" -gt 0 ]; then seen=true; fi
+            if [ "$seen" = "true" ] && [ "${pending:-0}" -eq 0 ]; then echo "Worker image build complete."; break; fi
+            if [ "$seen" != "true" ] && [ "$now" -ge "$appear_deadline" ]; then echo "Build did not appear in time; proceeding."; break; fi
+            if [ "$now" -ge "$overall_deadline" ]; then echo "Timed out waiting; proceeding."; break; fi
+            echo "  ... still waiting (total=$total pending=$pending)"
+            sleep 20
+          done
+
+      - name: Pull LabVIEW container image
+        id: pull
+        shell: powershell
+        run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
+        continue-on-error: true
+
+      # Read the worker version stamped into the pulled image so the dashboard can
+      # link this revision to exactly the worker that analyzed it.
+      - name: Read worker version
+        id: worker
+        if: steps.pull.outcome == 'success'
+        shell: powershell
+        run: |
+          $img = $Env:LABVIEW_CONTAINER_IMAGE
+          $wv = ''
+          try {
+            $wv = (docker inspect --format '{{ index .Config.Labels "com.cotc.ci-worker.version" }}' $img 2>$null)
+          } catch {}
+          if (-not $wv -or $wv -eq '<no value>') { $wv = '' }
+          "version=$wv" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Worker version: $wv"
+
+      - name: Run VI Analyzer inside container
+        if: steps.pull.outcome == 'success'
+        shell: powershell
+        id: analyze
+        run: |
+          docker run --rm `
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+            -v "${{ github.workspace }}:C:\workspace" `
+            $Env:LABVIEW_CONTAINER_IMAGE `
+            powershell -NonInteractive -ExecutionPolicy Bypass `
+              -File "C:\workspace\.github\labview\run-vi-analyzer.ps1" `
+              -WorkspaceRoot  "C:\workspace" `
+              -ReportDir      "C:\workspace\ci-out\vi-analyzer" `
+              -LabVIEWPath    "C:\Program Files\National Instruments\LabVIEW ${{ vars.LABVIEW_VERSION || '2026' }}\LabVIEW.exe"
+        continue-on-error: true
+
+      - name: Check report directory
+        id: report
+        shell: bash
+        run: |
+          if [ -f "${{ github.workspace }}/ci-out/vi-analyzer/index.html" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build friendly report (parse native HTML + join snapshots)
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        continue-on-error: true   # a formatting hiccup must never block deploying the native report
+        run: |
+          # Transform the dense native VI Analyzer report into a navigable one:
+          # keeps the original as raw.html, writes summary.json, and replaces
+          # index.html with a grouped/filterable report whose per-VI snapshots are
+          # resolved client-side from the VI Browser gallery (vi-snapshots/<sha>/).
+          REPORT_DIR="${{ github.workspace }}/ci-out/vi-analyzer"
+          python .github/labview/build-analyzer-report.py \
+            --in        "$REPORT_DIR/index.html" \
+            --out       "$REPORT_DIR" \
+            --sha       "${{ steps.sha.outputs.sha }}" \
+            --platform  windows \
+            --repo      "${{ github.repository }}" \
+            --pages-url "${{ env.PAGES_URL }}" \
+            --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
+            --author     "$(git log -1 --pretty=%an  ${{ steps.sha.outputs.sha }})" \
+            --date       "$(git log -1 --pretty=%cI  ${{ steps.sha.outputs.sha }})"
+
+      - name: Upload report artifact
+        if: steps.report.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vi-analyzer-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/vi-analyzer/
+          if-no-files-found: warn
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        run: |
+          # peaceiris/actions-gh-pages clones the whole gh-pages branch on the
+          # Windows runner. That tree now holds deeply-nested VIDiff report paths
+          # that exceed Windows' 260-char MAX_PATH, so the clone checkout dies with
+          # "Filename too long" and the report never deploys (dashboard 404).
+          # Long-path support lets Git use extended-length paths and succeed.
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy report to GitHub Pages
+        if: steps.report.outputs.exists == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
+          destination_dir: vi-analyzer/${{ steps.sha.outputs.sha }}
+          keep_files: true
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.report.outputs.exists }}" = "true" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/vi-analyzer/${{ steps.sha.outputs.sha }}/index.html"
+          else
+            REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.analyze.outcome }}" = "success" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"VI Analyzer $STATE\",\"context\":\"CI / VI Analyzer\"}"
+
+      # Surface which worker ran this revision as its own commit status; the
+      # dashboard renders it as the "Win Worker" column linking to the manifest.
+      - name: Post worker version status
+        if: always() && steps.pull.outcome == 'success' && steps.worker.outputs.version != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WV="${{ steps.worker.outputs.version }}"
+          URL="${{ env.PAGES_URL }}/workers/windows/${WV}/manifest.html"
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"$WV\",\"context\":\"CI / Worker (windows)\"}"
+
+      - name: Fail the job if analysis failed
+        if: always() && (steps.pull.outcome != 'success' || steps.analyze.outcome != 'success')
+        run: exit 1

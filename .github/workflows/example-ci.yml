@@ -1,0 +1,48 @@
+# Example CI for the master repo's own example project (dogfooding).
+# Copy to .github/workflows/example-ci.yml in the master tooling repo.
+#
+# Unlike a consumer (which references the reusable workflow @v1), the master repo
+# runs its OWN actions by local path, so a change to the tooling is validated
+# against the example project — the integration test / reusable-path demo.
+#
+# Dispatch-only on purpose: the vendored container workflows (masscompile /
+# vi-analyzer / vidiff / snapshots) already run automatically on the example VIs
+# and produce the showcase dashboard. This one is the on-demand demonstration of
+# the composite-action (./actions) consumption path, so it doesn't double-run them.
+name: Example project CI (composite-action demo)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Read the example's labview-ci.yml so activity/platform toggles are honored
+  # exactly as they would be in a consumer repo.
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      has-masscompile: ${{ steps.cfg.outputs.has-masscompile }}
+      os-windows:      ${{ steps.cfg.outputs.os-windows }}
+      labview-version: ${{ steps.cfg.outputs.labview-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: cfg
+        uses: ./actions/load-config
+        with:
+          config-path: .github/labview-ci.yml
+
+  mass-compile:
+    needs: config
+    if: ${{ needs.config.outputs.has-masscompile == 'true' && needs.config.outputs.os-windows == 'true' }}
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mass Compile the example project
+        uses: ./actions/masscompile
+        with:
+          labview-version: ${{ needs.config.outputs.labview-version }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: example-masscompile
+          path: ci-out/masscompile/
+          if-no-files-found: warn

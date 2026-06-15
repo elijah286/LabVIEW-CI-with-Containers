@@ -1,0 +1,18 @@
+# .github/labview-ci.yml for the master repo's example project.
+# Copied to .github/labview-ci.yml at the repo root. Read at runtime by the
+# load-config action so the example exercises the same config path consumers use.
+schemaVersion: 1
+# installedVersion is stamped by the installer in real consumers; in the master
+# repo it mirrors the catalog version so the dashboard's "up to date" check is honest.
+installedVersion: 1.0.0
+config:
+  labviewVersion: "2026"
+  os: [windows, linux]
+  concurrency:
+    maxParallel: 2
+activities:
+  - dashboard
+  - masscompile
+  - vi-analyzer
+  - vidiff
+  - snapshots

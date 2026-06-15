@@ -1,0 +1,111 @@
+name: VIDiff Backfill — Windows Container
+
+# Windows-container counterpart of the Linux VIDiff backfill. Generates Windows
+# diff reports across history so the VI Browser can toggle Linux <-> Windows and
+# the two container renders can be compared. Resumable and incremental.
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_commits:
+        description: 'Cap to most recent N VI-touching commits (0 = all)'
+        required: false
+        default: '0'
+      time_budget_minutes:
+        description: 'Stop launching new diffs after N minutes (resume next run)'
+        required: false
+        default: '300'
+
+concurrency:
+  group: vidiff-backfill-windows
+  cancel-in-progress: false
+
+env:
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-windows
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  vidiff-backfill-windows:
+    runs-on: windows-2022   # windows-latest = Server 2025, broken Docker daemon
+    timeout-minutes: 350
+
+    steps:
+      - name: Enable long paths (Windows MAX_PATH workaround)
+        shell: powershell
+        run: |
+          git config --system core.longpaths true
+          New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' `
+            -Name 'LongPathsEnabled' -Value 1 -PropertyType DWORD -Force | Out-Null
+
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The deployed gh-pages vidiff/ tree contains very long Linux report paths
+      # that blow past Windows MAX_PATH if checked out. Instead, fetch the list of
+      # already-done Windows reports via the API (no filesystem) for incremental skip.
+      - name: List already-done Windows reports (for incremental skip)
+        id: done
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p _skip
+          gh api "repos/${{ github.repository }}/git/trees/gh-pages?recursive=1" \
+            --jq '.tree[].path | select(test("^vidiff/push-[0-9a-f]+/windows/vidiff/changes.json$"))' \
+            > _skip/done.txt 2>/dev/null || true
+          echo "Already-done Windows reports: $(wc -l < _skip/done.txt | tr -d ' ')"
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service docker -ErrorAction SilentlyContinue
+          if (-not $svc) { Write-Error 'Docker service not found on runner'; exit 1 }
+          if ($svc.Status -ne 'Running') { Start-Service docker; Start-Sleep -Seconds 5 }
+          docker version
+
+      - name: Run VIDiff backfill (warm Windows container, walks history)
+        id: backfill
+        shell: powershell
+        run: |
+          # Use a SHORT output root (C:\o). Deep per-VI report paths
+          # (…\<safe-vi-name>\index_files\support\unchecked-image.png) otherwise
+          # exceed Windows MAX_PATH (260) under the long workspace path, which
+          # makes the host unable to enumerate or deploy them.
+          New-Item -ItemType Directory -Force -Path 'C:\o' | Out-Null
+          & .github\labview\vidiff-backfill.ps1 `
+            -WorkspaceRoot     '${{ github.workspace }}' `
+            -OutRoot           'C:\o' `
+            -Image             "$Env:LABVIEW_CONTAINER_IMAGE" `
+            -MaxCommits        ${{ github.event.inputs.max_commits || '0' }} `
+            -SkipListPath      '${{ github.workspace }}\_skip\done.txt' `
+            -TimeBudgetMinutes ${{ github.event.inputs.time_budget_minutes || '300' }}
+        continue-on-error: true
+
+      - name: Verify backfill output
+        id: verify
+        shell: powershell
+        run: |
+          $found = Get-ChildItem -Path 'C:\o' -Recurse -Filter 'changes.json' -ErrorAction SilentlyContinue
+          if ($found) {
+            "ok=true" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding ascii -Append
+            Write-Host "Generated $($found.Count) report(s):"
+            $found | ForEach-Object { Write-Host "  $($_.FullName)" }
+          } else {
+            "ok=false" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding ascii -Append
+            Write-Host "No new reports generated (all commits may already be done)."
+          }
+
+      - name: Deploy VIDiff reports to GitHub Pages
+        if: steps.verify.outputs.ok == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: C:\o
+          destination_dir: vidiff
+          keep_files: true   # preserve existing reports (incl. all Linux ones)

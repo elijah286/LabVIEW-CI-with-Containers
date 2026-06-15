@@ -1,0 +1,94 @@
+# Composite action: load LabVIEW CI config
+#
+# Reads the consumer repo's .github/labview-ci.yml and exposes the settings as
+# step outputs, so reusable workflows can GATE jobs on them — this is what makes
+# "change a setting in Configure Workers" actually take effect at runtime
+# (activities turned off don't run; platforms not selected are skipped; runner
+# parallelism is read back).
+#
+# All outputs degrade safely: if the file or a field is missing, the defaults
+# below mean the full pipeline runs (backward compatible with no config file).
+#
+# Outputs:
+#   labview-version   e.g. "2026"
+#   os-windows        "true" | "false"   (windows selected?)
+#   os-linux          "true" | "false"   (linux selected?)
+#   max-parallel      integer string, e.g. "2"
+#   activities        comma list, e.g. "dashboard,masscompile,vi-analyzer"
+#   has-masscompile   "true" | "false"   (convenience per-activity flags)
+#   has-vi-analyzer   "true" | "false"
+#   has-vidiff        "true" | "false"
+#   has-snapshots     "true" | "false"
+#   has-unit-tests    "true" | "false"
+name: 'Load LabVIEW CI config'
+description: 'Parse .github/labview-ci.yml and expose settings as outputs for gating jobs.'
+author: 'labview-ci'
+
+inputs:
+  config-path:
+    description: 'Path to the config file, relative to the workspace.'
+    required: false
+    default: '.github/labview-ci.yml'
+
+outputs:
+  labview-version: { description: 'LabVIEW year', value: '${{ steps.cfg.outputs.labview-version }}' }
+  os-windows:      { description: 'Windows selected', value: '${{ steps.cfg.outputs.os-windows }}' }
+  os-linux:        { description: 'Linux selected', value: '${{ steps.cfg.outputs.os-linux }}' }
+  max-parallel:    { description: 'Max concurrent runners', value: '${{ steps.cfg.outputs.max-parallel }}' }
+  activities:      { description: 'Comma-separated active capability ids', value: '${{ steps.cfg.outputs.activities }}' }
+  has-masscompile: { description: 'masscompile active', value: '${{ steps.cfg.outputs.has-masscompile }}' }
+  has-vi-analyzer: { description: 'vi-analyzer active', value: '${{ steps.cfg.outputs.has-vi-analyzer }}' }
+  has-vidiff:      { description: 'vidiff active', value: '${{ steps.cfg.outputs.has-vidiff }}' }
+  has-snapshots:   { description: 'snapshots active', value: '${{ steps.cfg.outputs.has-snapshots }}' }
+  has-unit-tests:  { description: 'unit-tests active', value: '${{ steps.cfg.outputs.has-unit-tests }}' }
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Parse config
+      id: cfg
+      shell: bash
+      env:
+        CONFIG_PATH: ${{ inputs.config-path }}
+      run: |
+        python3 - <<'PY' >> "$GITHUB_OUTPUT"
+        import os, re, sys
+
+        path = os.environ.get('CONFIG_PATH', '.github/labview-ci.yml')
+        # Defaults: run everything (backward compatible when there is no config).
+        version = '2026'
+        os_list = ['windows', 'linux']
+        max_parallel = '2'
+        activities = ['dashboard', 'masscompile', 'vi-analyzer', 'vidiff', 'snapshots']
+
+        try:
+            text = open(path, encoding='utf-8').read()
+            in_acts = False
+            acts = []
+            for line in text.splitlines():
+                if re.match(r'^\s*activities:\s*$', line):
+                    in_acts = True; continue
+                if in_acts:
+                    m = re.match(r'^\s*-\s*(\S+)', line)
+                    if m: acts.append(m.group(1)); continue
+                    in_acts = False
+                m = re.match(r'^\s*labviewVersion:\s*"?([^"\s]+)"?', line)
+                if m: version = m.group(1)
+                m = re.match(r'^\s*os:\s*\[([^\]]*)\]', line)
+                if m: os_list = [x.strip() for x in m.group(1).split(',') if x.strip()]
+                m = re.match(r'^\s*maxParallel:\s*(\d+)', line)
+                if m: max_parallel = m.group(1)
+            if acts:
+                activities = acts
+        except FileNotFoundError:
+            print(f'No {path}; defaulting to full pipeline.', file=sys.stderr)
+
+        def b(x): return 'true' if x else 'false'
+        print(f'labview-version={version}')
+        print(f'os-windows={b("windows" in os_list)}')
+        print(f'os-linux={b("linux" in os_list)}')
+        print(f'max-parallel={max_parallel}')
+        print(f'activities={",".join(activities)}')
+        for a in ('masscompile', 'vi-analyzer', 'vidiff', 'snapshots', 'unit-tests'):
+            print(f'has-{a}={b(a in activities)}')
+        PY

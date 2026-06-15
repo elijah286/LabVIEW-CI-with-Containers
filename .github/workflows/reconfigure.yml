@@ -1,0 +1,180 @@
+name: Reconfigure LabVIEW CI
+
+# Applies a settings change from the Configure tool (or a manual dispatch) by
+# rewriting .github/labview-ci.yml + toggling container dependencies, then opening
+# a pull request. Nothing is applied until you review and merge the PR — and it
+# uses GitHub's own auth, so no tokens ever touch the browser.
+
+on:
+  workflow_dispatch:
+    inputs:
+      labview_version:
+        description: 'LabVIEW year (e.g. 2026)'
+        required: false
+        default: '2026'
+      operating_systems:
+        description: 'Which platforms the pipeline targets'
+        type: choice
+        options: [both, windows, linux]
+        default: both
+      antidoc:
+        description: 'Bake Antidoc (Wovalab doc generation) into the worker image'
+        type: boolean
+        default: true
+      concurrent_runners:
+        description: 'Max concurrent runners'
+        required: false
+        default: '2'
+      activities:
+        description: 'Comma-separated capability ids (blank = keep current)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: labview-ci-reconfigure
+  cancel-in-progress: false
+
+jobs:
+  reconfigure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Apply settings to config files
+        env:
+          IN_VERSION: ${{ inputs.labview_version }}
+          IN_OS: ${{ inputs.operating_systems }}
+          IN_ANTIDOC: ${{ inputs.antidoc }}
+          IN_RUNNERS: ${{ inputs.concurrent_runners }}
+          IN_ACTS: ${{ inputs.activities }}
+        run: |
+          python3 - <<'PY'
+          import os, re, json, datetime, pathlib
+
+          ver     = os.environ['IN_VERSION'].strip() or '2026'
+          oss     = os.environ['IN_OS'].strip() or 'both'
+          antidoc = os.environ['IN_ANTIDOC'].strip().lower() == 'true'
+          runners = os.environ['IN_RUNNERS'].strip()
+          acts_in = os.environ['IN_ACTS'].strip()
+
+          # Preserve provenance fields from any existing manifest.
+          mpath = pathlib.Path('.github/labview-ci.yml')
+          prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main'}
+          if mpath.exists():
+              in_acts = False
+              for line in mpath.read_text(encoding='utf-8').splitlines():
+                  if re.match(r'^\s*activities:\s*$', line):
+                      in_acts = True; continue
+                  if in_acts:
+                      m = re.match(r'^\s*-\s*(\S+)', line)
+                      if m: prev['activities'].append(m.group(1)); continue
+                      in_acts = False
+                  m = re.match(r'^\s*installedVersion:\s*(\S+)', line)
+                  if m: prev['installedVersion'] = m.group(1)
+                  m = re.match(r'^\s*repo:\s*(\S+)', line)
+                  if m and not prev['repo']: prev['repo'] = m.group(1)
+                  m = re.match(r'^\s*ref:\s*(\S+)', line)
+                  if m and prev['ref'] == 'main': prev['ref'] = m.group(1)
+
+          os_list = ['windows', 'linux'] if oss == 'both' else [oss]
+          acts = [a.strip() for a in acts_in.split(',') if a.strip()] \
+              or prev['activities'] or ['dashboard', 'masscompile', 'vi-analyzer', 'vidiff']
+          now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+          max_parallel = int(runners) if runners.isdigit() and int(runners) > 0 else 1
+
+          lines = [
+              '# .github/labview-ci.yml - LabVIEW CI configuration',
+              '# Updated by the Reconfigure workflow.',
+              'schemaVersion: 1',
+          ]
+          if prev['installedVersion']:
+              lines.append(f"installedVersion: {prev['installedVersion']}")
+          lines.append(f"configuredAt: {now}")
+          if prev['repo']:
+              lines += ['source:', f"  repo: {prev['repo']}", f"  ref: {prev['ref']}"]
+          lines += [
+              'config:',
+              f'  labviewVersion: "{ver}"',
+              f'  os: [{", ".join(os_list)}]',
+              '  concurrency:',
+              f'    maxParallel: {max_parallel}',
+              'activities:',
+          ] + [f'  - {a}' for a in acts] + ['']
+          mpath.parent.mkdir(parents=True, exist_ok=True)
+          mpath.write_text('\n'.join(lines), encoding='utf-8')
+          print('Wrote', mpath)
+
+          # Toggle Antidoc (a VIPM package) in the container dependency manifest.
+          ppath = pathlib.Path('.github/labview/vipm/ci-tooling.packages.json')
+          if ppath.exists():
+              obj = json.loads(ppath.read_text(encoding='utf-8'))
+              for p in obj.get('vipmPackages', {}).get('packages', []):
+                  if p.get('name') == 'wovalab_lib_antidoc_cli':
+                      p['include'] = bool(antidoc)
+              ppath.write_text(json.dumps(obj, indent=2) + '\n', encoding='utf-8')
+              print('Antidoc include ->', antidoc)
+          PY
+
+      - name: Regenerate container VIPC (best effort)
+        continue-on-error: true
+        run: |
+          GEN=.github/labview/vipm/build-tooling-vipc.py
+          PKG=.github/labview/vipm/ci-tooling.packages.json
+          OUT=.github/labview/vipm/ci-tooling.vipc
+          if [ -f "$GEN" ] && [ -f "$PKG" ]; then
+            python3 "$GEN" --manifest "$PKG" --out "$OUT" --labview-version "${{ inputs.labview_version }}"
+          else
+            echo "VIPC generator or manifest not present; skipping regeneration."
+          fi
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="labview-ci/reconfigure-${{ github.run_id }}"
+          git checkout -b "$BRANCH"
+
+          git add .github/labview-ci.yml
+          [ -f .github/labview/vipm/ci-tooling.packages.json ] && git add .github/labview/vipm/ci-tooling.packages.json || true
+          [ -f .github/labview/vipm/ci-tooling.vipc ] && git add .github/labview/vipm/ci-tooling.vipc || true
+
+          if git diff --cached --quiet; then
+            echo "No changes — current settings already match. No PR opened."
+            exit 0
+          fi
+
+          git commit -m "ci: reconfigure LabVIEW CI settings"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "Reconfigure LabVIEW CI" \
+            --base "${{ github.ref_name }}" \
+            --head "$BRANCH" \
+            --body "$(cat <<'BODY'
+          Automated settings change via the **Reconfigure** workflow.
+
+          | Setting | Value |
+          |---|---|
+          | LabVIEW version | ${{ inputs.labview_version }} |
+          | Operating systems | ${{ inputs.operating_systems }} |
+          | Antidoc | ${{ inputs.antidoc }} |
+          | Max concurrent runners | ${{ inputs.concurrent_runners }} |
+          | Activities | ${{ inputs.activities }} |
+
+          Review and merge to apply. Container-dependency and LabVIEW-version changes
+          take effect on the next image build; OS/runner settings apply where the
+          workflows are wired to read `labview-ci.yml`.
+          BODY
+          )"

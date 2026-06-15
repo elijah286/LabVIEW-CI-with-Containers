@@ -1,0 +1,187 @@
+name: Run VI Analyzer — Linux Container
+
+on:
+  pull_request:
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to analyze (leave blank for current HEAD)'
+        required: false
+        default: ''
+
+env:
+  # Use NI base Linux image until custom image build is fixed
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-linux
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  statuses: write
+  packages: read
+
+jobs:
+  vi-analyzer-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine target SHA
+        id: sha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INPUT="${{ github.event.inputs.commit_sha }}"
+          if [ -n "$INPUT" ]; then
+            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha')
+            echo "sha=$FULL" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VI Analyzer (Linux) in progress\",\"context\":\"CI / VI Analyzer (Linux)\"}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Restore CI scripts from main
+        if: github.event.inputs.commit_sha != ''
+        run: git checkout origin/main -- .github/labview .github/workflows
+
+      - name: Pull LabVIEW Linux container
+        run: docker pull ${{ env.LABVIEW_CONTAINER_IMAGE }}
+
+      # Describe the worker this revision actually ran on. Linux CI currently uses
+      # the NI base image (see env note), so the manifest is sourced here from the
+      # pulled image rather than from a custom build, keeping it honest. The
+      # version is derived from the image digest so it changes only when the base
+      # image does. Best-effort: failures never fail the analysis job.
+      - name: Generate worker manifest
+        id: worker
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          IMG="${{ env.LABVIEW_CONTAINER_IMAGE }}"
+          mkdir -p ci-out/worker "ci-out/workers-pages/workers/linux"
+          DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' "$IMG" 2>/dev/null || true)
+          HEX=$(printf '%s' "$DIGEST" | sed -n 's/.*sha256:\([0-9a-f]\{64\}\).*/\1/p')
+          if [ -z "$HEX" ]; then HEX=$(docker inspect --format '{{.Id}}' "$IMG" 2>/dev/null | sed 's/sha256://'); fi
+          if [ -z "$HEX" ]; then echo "No image digest; skipping worker manifest."; exit 0; fi
+          VERSION="linux-${HEX:0:12}"
+          docker run --rm "$IMG" bash -lc "nipkg list" > ci-out/worker/nipkg-list.txt 2>/dev/null || : > ci-out/worker/nipkg-list.txt
+          if python3 .github/labview/build-worker-manifest.py \
+               --platform linux \
+               --version "$VERSION" \
+               --labview-version "${{ vars.LABVIEW_VERSION || '2026' }}" \
+               --base-image "$IMG" \
+               --base-digest "$DIGEST" \
+               --image-ref "$IMG" \
+               --git-sha "${{ steps.sha.outputs.sha }}" \
+               --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+               --nipkg-list ci-out/worker/nipkg-list.txt \
+               --pages-url "${{ env.PAGES_URL }}" \
+               --out-dir "ci-out/workers-pages/workers/linux/$VERSION"; then
+            cat > "ci-out/workers-pages/workers/linux/latest.json" <<JSON
+          {
+            "version": "$VERSION",
+            "platform": "linux",
+            "manifest_url": "${{ env.PAGES_URL }}/workers/linux/$VERSION/manifest.html",
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_sha": "${{ steps.sha.outputs.sha }}"
+          }
+          JSON
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "Linux worker version: $VERSION"
+          else
+            echo "Worker manifest generation failed; continuing."
+          fi
+
+      - name: Run VI Analyzer inside Linux container
+        id: analyze
+        run: |
+          mkdir -p "${{ github.workspace }}/ci-out/vi-analyzer"
+          docker run --rm \
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" \
+            -v "${{ github.workspace }}:/workspace" \
+            ${{ env.LABVIEW_CONTAINER_IMAGE }} \
+            bash /workspace/.github/labview/run-vi-analyzer.sh \
+              /workspace \
+              /workspace/ci-out/vi-analyzer
+        continue-on-error: true
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vi-analyzer-linux-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/vi-analyzer/
+          if-no-files-found: warn
+
+      - name: Deploy report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
+          destination_dir: vi-analyzer-linux/${{ steps.sha.outputs.sha }}
+          keep_files: true
+
+      - name: Publish worker manifest to GitHub Pages
+        if: steps.worker.outputs.version != ''
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ci-out/workers-pages
+          destination_dir: .
+          keep_files: true
+
+      - name: Post worker version status
+        if: always() && steps.worker.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WV="${{ steps.worker.outputs.version }}"
+          URL="${{ env.PAGES_URL }}/workers/linux/${WV}/manifest.html"
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"$WV\",\"context\":\"CI / Worker (linux)\"}"
+
+      - name: Post commit status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPORT_URL="${{ env.PAGES_URL }}/vi-analyzer-linux/${{ steps.sha.outputs.sha }}/index.html"
+          STATE="${{ steps.analyze.outcome == 'success' && 'success' || 'failure' }}"
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"VI Analyzer (Linux) $STATE\",\"context\":\"CI / VI Analyzer (Linux)\"}"
+
+      - name: Fail if analysis failed
+        if: steps.analyze.outcome == 'failure'
+        run: exit 1

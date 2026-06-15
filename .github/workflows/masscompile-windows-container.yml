@@ -1,0 +1,209 @@
+name: Mass Compile — Windows Container
+
+on:
+  pull_request:
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to compile (leave blank for current HEAD)'
+        required: false
+        default: ''
+
+env:
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-windows
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  statuses: write
+  packages: read
+
+# Serialize report deploys to gh-pages. peaceiris/actions-gh-pages clones, commits,
+# and pushes the branch; two report jobs pushing at once make the loser's push bounce
+# with "! [rejected] (fetch first)", so its report never deploys (dashboard 404).
+# A shared group across the report-deploy workflows (mass compile + VI Analyzer)
+# makes them queue instead of racing. cancel-in-progress:false so a queued run still
+# publishes rather than being dropped.
+concurrency:
+  group: report-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  mass-compile:
+    runs-on: windows-2022   # windows-latest = Server 2025, broken Docker daemon
+
+    steps:
+      - name: Determine target SHA
+        id: sha
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INPUT="${{ github.event.inputs.commit_sha }}"
+          if [ -n "$INPUT" ]; then
+            # Expand abbreviated SHA to full 40-char SHA via API
+            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha')
+            echo "sha=$FULL" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"Mass Compile in progress\",\"context\":\"CI / Mass Compile\"}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          fetch-depth: 0
+
+      # When re-running against a historical commit the CI scripts may not
+      # exist in that commit — restore them from main.
+      - name: Restore CI scripts from main
+        if: github.event.inputs.commit_sha != ''
+        shell: bash
+        run: git checkout origin/main -- .github/labview .github/workflows
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
+          if ($null -eq $svc) {
+            throw 'Docker service not found on this runner.'
+          }
+          if ($svc.Status -ne 'Running') {
+            Start-Service docker
+          }
+          docker version
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull LabVIEW container image
+        id: pull
+        shell: powershell
+        run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
+        continue-on-error: true
+
+      - name: Run Mass Compile inside container
+        if: steps.pull.outcome == 'success'
+        shell: powershell
+        run: |
+          docker run --rm `
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+            -v "${{ github.workspace }}:C:\workspace" `
+            $Env:LABVIEW_CONTAINER_IMAGE `
+            powershell -NonInteractive -ExecutionPolicy Bypass `
+              -File "C:\workspace\.github\labview\masscompile.ps1" `
+              -WorkspaceRoot "C:\workspace" `
+              -ReportDir     "C:\workspace\ci-out\masscompile" `
+              -LabVIEWPath   "C:\Program Files\National Instruments\LabVIEW ${{ vars.LABVIEW_VERSION || '2026' }}\LabVIEW.exe"
+        # Allow step to fail so we can still upload the report
+        continue-on-error: true
+        id: compile
+
+      - name: Check report directory
+        id: report
+        shell: bash
+        run: |
+          if [ -f "${{ github.workspace }}/ci-out/masscompile/index.html" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload report artifact
+        if: steps.report.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: masscompile-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/masscompile/
+          if-no-files-found: warn
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        run: |
+          # peaceiris/actions-gh-pages clones the whole gh-pages branch on the
+          # Windows runner. That tree now holds deeply-nested VIDiff report paths
+          # that exceed Windows' 260-char MAX_PATH, so the clone checkout dies with
+          # "Filename too long" and the report never deploys (dashboard 404).
+          # Long-path support lets Git use extended-length paths and succeed.
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy report to GitHub Pages
+        if: steps.report.outputs.exists == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ github.workspace }}/ci-out/masscompile
+          destination_dir: masscompile/${{ steps.sha.outputs.sha }}
+          keep_files: true
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHORT_SHA="${{ steps.sha.outputs.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          if [ "${{ steps.report.outputs.exists }}" = "true" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/masscompile/${{ steps.sha.outputs.sha }}/index.html"
+          else
+            REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.compile.outcome }}" = "success" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
+          # Prefer a percentage-based description (the report shows % of project VIs
+          # that compiled); fall back to the plain state for runs without a summary.
+          PCT=""
+          SUMMARY="${{ github.workspace }}/ci-out/masscompile/summary.json"
+          if [ -f "$SUMMARY" ]; then
+            PCT=$(grep -o '"percent"[: ]*[0-9]*' "$SUMMARY" | grep -o '[0-9]*$' || true)
+          fi
+          if [ -n "$PCT" ]; then
+            DESC="${PCT}% of project VIs compiled"
+          else
+            DESC="Mass Compile $STATE"
+          fi
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"$DESC\",\"context\":\"CI / Mass Compile\"}"
+
+      - name: Fail the job if compile failed
+        if: always() && (steps.pull.outcome != 'success' || steps.compile.outcome != 'success')
+        run: exit 1

@@ -1,0 +1,144 @@
+name: VIDiff Report — Linux Container
+
+on:
+  pull_request:
+    paths:
+      - '**.vi'
+      - '**.ctl'
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: 'Base commit SHA'
+        required: false
+        default: ''
+      head_sha:
+        description: 'Head commit SHA'
+        required: false
+        default: ''
+
+env:
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-linux
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  vidiff-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine SHAs
+        id: shas
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          expand() {
+            local s="$1"
+            [ -z "$s" ] && echo "" && return
+            gh api "repos/${{ github.repository }}/commits/$s" --jq '.sha' 2>/dev/null || echo "$s"
+          }
+          if [ -n "${{ github.event.inputs.head_sha }}" ]; then
+            HEAD=$(expand "${{ github.event.inputs.head_sha }}")
+            BASE=$(expand "${{ github.event.inputs.base_sha }}")
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            HEAD="${{ github.sha }}"
+            BASE="${{ github.event.before }}"
+          fi
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Post pending status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.shas.outputs.head }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VIDiff in progress\",\"context\":\"CI / VIDiff (linux)\"}"
+
+      - name: Checkout head commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.shas.outputs.head }}
+          fetch-depth: 0
+          path: head
+
+      - name: Checkout base commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.shas.outputs.base }}
+          path: base
+
+      - name: Restore CI scripts from main
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: head
+        run: git checkout origin/main -- .github/labview .github/workflows
+
+      - name: Get list of changed VI/CTL files
+        id: changed
+        run: |
+          cd head
+          if [ -n "${{ steps.shas.outputs.base }}" ]; then
+            FILES=$(git diff --name-only "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" -- '*.vi' '*.ctl')
+          else
+            FILES=$(git diff-tree --no-commit-id -r --name-only "${{ steps.shas.outputs.head }}" -- '*.vi' '*.ctl')
+          fi
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Pull LabVIEW Linux container
+        run: docker pull ${{ env.LABVIEW_CONTAINER_IMAGE }}
+
+      - name: Run VIDiff inside Linux container
+        id: diff
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: |
+          mkdir -p "${{ github.workspace }}/head/ci-out/vidiff"
+          docker run --rm \
+            -v "${{ github.workspace }}/head:/workspace" \
+            -v "${{ github.workspace }}/base:/workspace-base" \
+            -e CHANGED_FILES \
+            ${{ env.LABVIEW_CONTAINER_IMAGE }} \
+            bash /workspace/.github/labview/vidiff.sh \
+              /workspace-base /workspace /workspace/ci-out/vidiff
+        continue-on-error: true
+
+      - name: Save metadata
+        run: |
+          mkdir -p "${{ github.workspace }}/head/ci-out"
+          cat > "${{ github.workspace }}/head/ci-out/vidiff-meta.json" <<JSON
+          {
+            "head_sha":  "${{ steps.shas.outputs.head }}",
+            "base_sha":  "${{ steps.shas.outputs.base }}",
+            "pr_number": "${{ steps.shas.outputs.pr_number }}",
+            "platform":  "linux",
+            "outcome":   "${{ steps.diff.outcome }}"
+          }
+          JSON
+
+      - name: Upload VIDiff report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vidiff-linux-${{ steps.shas.outputs.head }}
+          path: |
+            ${{ github.workspace }}/head/ci-out/vidiff/
+            ${{ github.workspace }}/head/ci-out/vidiff-meta.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Fail if diff failed
+        if: steps.diff.outcome == 'failure'
+        run: exit 1
