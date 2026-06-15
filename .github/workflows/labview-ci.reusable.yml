@@ -53,18 +53,47 @@ jobs:
     needs: config
     if: ${{ needs.config.outputs.has-masscompile == 'true' && needs.config.outputs.os-windows == 'true' }}
     runs-on: ${{ inputs.windows-runner }}
+    permissions:
+      contents: write    # peaceiris deploys the report to gh-pages
+      statuses: write     # post the CI / Mass Compile commit status
     steps:
       - name: Checkout caller repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve Pages URL
+        id: pages
+        shell: bash
+        run: |
+          if [ -n "${{ vars.PAGES_URL }}" ]; then
+            echo "url=${{ vars.PAGES_URL }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"description\":\"Mass Compile in progress\",\"context\":\"CI / Mass Compile\"}"
 
       # Reference the composite action from THIS repo by full path @v1. Consumers
       # get it transitively by pinning the reusable workflow @v1 — they never copy
       # the script. A ./ path would resolve against the caller's workspace and fail.
       - name: Mass Compile
+        id: compile
+        continue-on-error: true
         uses: elijah286/LabVIEW-CI-with-Containers/actions/masscompile@v1
         with:
           labview-version: ${{ inputs.labview-version || needs.config.outputs.labview-version }}
           image: ${{ inputs.image }}
+          sha: ${{ github.sha }}
+          repo: ${{ github.repository }}
+          pages-url: ${{ steps.pages.outputs.url }}
 
       - name: Upload report
         if: always()
@@ -73,6 +102,44 @@ jobs:
           name: masscompile-report
           path: ci-out/masscompile/
           if-no-files-found: warn
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.compile.outputs.report-exists == 'true'
+        shell: bash
+        run: |
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy report to GitHub Pages
+        if: steps.compile.outputs.report-exists == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ci-out/masscompile
+          destination_dir: masscompile/${{ github.sha }}
+          keep_files: true
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.compile.outputs.report-exists }}" = "true" ]; then
+            URL="${{ steps.pages.outputs.url }}/masscompile/${GITHUB_SHA}/index.html"
+          else
+            URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          fi
+          [ "${{ steps.compile.outcome }}" = "success" ] && STATE="success" || STATE="failure"
+          PCT="${{ steps.compile.outputs.percent }}"
+          if [ -n "$PCT" ]; then DESC="${PCT}% of project VIs compiled"; else DESC="Mass Compile $STATE"; fi
+          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"$DESC\",\"context\":\"CI / Mass Compile\"}"
+
+      - name: Fail the job if compile failed
+        if: always() && steps.compile.outcome != 'success'
+        run: exit 1
 
   # VI Analyzer (Windows container). Runs the analyzer over the project, publishes
   # the friendly report to the caller's Pages, and posts the "CI / VI Analyzer"
@@ -204,6 +271,232 @@ jobs:
         if: always() && (steps.pull.outcome != 'success' || steps.analyze.outcome != 'success')
         run: exit 1
 
-  # Add vidiff / snapshots jobs the same way, each gated on its has-* output (+
-  # platform). New capabilities slot in without touching consumers.
+  # VIDiff (Windows container). Renders visual diffs for changed VIs between the
+  # base and head commits, deploys them to the caller's Pages, and posts the
+  # "CI / VIDiff" status. Runs on the NI base image (no custom image needed).
+  vidiff:
+    needs: config
+    if: ${{ needs.config.outputs.has-vidiff == 'true' && needs.config.outputs.os-windows == 'true' }}
+    runs-on: ${{ inputs.windows-runner }}
+    permissions:
+      contents: write
+      statuses: write
+    steps:
+      - name: Determine SHAs
+        id: shas
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            BASE="${{ github.event.pull_request.base.sha }}"
+            PR="${{ github.event.pull_request.number }}"
+          else
+            HEAD="${{ github.sha }}"
+            BASE="${{ github.event.before }}"
+            PR=""
+          fi
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Pages URL
+        id: pages
+        shell: bash
+        run: |
+          if [ -n "${{ vars.PAGES_URL }}" ]; then
+            echo "url=${{ vars.PAGES_URL }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "${{ steps.shas.outputs.pr }}" ]; then
+            echo "dest=vidiff/pr-${{ steps.shas.outputs.pr }}/windows" >> "$GITHUB_OUTPUT"
+          else
+            echo "dest=vidiff/push-${{ steps.shas.outputs.head }}/windows" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${{ steps.shas.outputs.head }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"description\":\"VIDiff in progress\",\"context\":\"CI / VIDiff\"}"
+
+      - name: Checkout head commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.shas.outputs.head }}
+          fetch-depth: 0
+          path: head
+
+      - name: Checkout base commit
+        uses: actions/checkout@v4
+        if: steps.shas.outputs.base != ''
+        with:
+          ref: ${{ steps.shas.outputs.base }}
+          path: base
+
+      - name: Get changed VI/CTL files
+        id: changed
+        shell: bash
+        working-directory: head
+        run: |
+          if [ -n "${{ steps.shas.outputs.base }}" ]; then
+            FILES=$(git diff --name-only "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" -- '*.vi' '*.ctl')
+          else
+            FILES=$(git diff-tree --no-commit-id -r --name-only "${{ steps.shas.outputs.head }}" -- '*.vi' '*.ctl')
+          fi
+          { echo "files<<EOF"; echo "$FILES"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
+          if ($null -eq $svc) { throw 'Docker service not found on this runner.' }
+          if ($svc.Status -ne 'Running') { Start-Service docker }
+          docker version
+
+      - name: VIDiff
+        id: diff
+        continue-on-error: true
+        uses: elijah286/LabVIEW-CI-with-Containers/actions/vidiff@v1
+        with:
+          image: ${{ inputs.image }}
+          labview-version: ${{ inputs.labview-version || needs.config.outputs.labview-version }}
+          head-dir: head
+          base-dir: base
+          changed-files: ${{ steps.changed.outputs.files }}
+          report-dir: ci-out/vidiff
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.diff.outputs.report-exists == 'true'
+        shell: bash
+        run: |
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy VIDiff report to GitHub Pages
+        if: steps.diff.outputs.report-exists == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: head/ci-out/vidiff
+          destination_dir: ${{ steps.pages.outputs.dest }}
+          keep_files: true
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.diff.outputs.report-exists }}" = "true" ]; then
+            URL="${{ steps.pages.outputs.url }}/${{ steps.pages.outputs.dest }}/vidiff/index.html"
+            STATE="success"
+          else
+            URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            [ "${{ steps.diff.outcome }}" = "success" ] && STATE="success" || STATE="failure"
+          fi
+          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${{ steps.shas.outputs.head }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"VIDiff $STATE\",\"context\":\"CI / VIDiff\"}"
+
+      - name: Fail the job if diff failed
+        if: always() && steps.diff.outcome != 'success'
+        run: exit 1
+
+  # VI Snapshots + VI Browser (Windows container). Renders the block-diagram
+  # gallery, deploys it to the caller's Pages, and posts the "CI / VI Snapshots"
+  # status. Incremental: seeds from the already-deployed gallery so it only renders
+  # new VIs.
+  snapshots:
+    needs: config
+    if: ${{ needs.config.outputs.has-snapshots == 'true' && needs.config.outputs.os-windows == 'true' }}
+    runs-on: ${{ inputs.windows-runner }}
+    timeout-minutes: 350
+    permissions:
+      contents: write
+      statuses: write
+    steps:
+      - name: Checkout caller repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout deployed gallery (gh-pages) for incremental seeding
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: _pages
+          sparse-checkout: vi-snapshots/by-blob
+          sparse-checkout-cone-mode: false
+
+      - name: Resolve Pages URL
+        id: pages
+        shell: bash
+        run: |
+          if [ -n "${{ vars.PAGES_URL }}" ]; then
+            echo "url=${{ vars.PAGES_URL }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
+          if ($null -eq $svc) { throw 'Docker service not found on this runner.' }
+          if ($svc.Status -ne 'Running') { Start-Service docker }
+          docker version
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"description\":\"VI Snapshots in progress\",\"context\":\"CI / VI Snapshots\"}"
+
+      - name: VI Snapshots
+        id: snap
+        continue-on-error: true
+        uses: elijah286/LabVIEW-CI-with-Containers/actions/snapshots@v1
+        with:
+          image: ${{ inputs.image }}
+          mode: head
+          target-sha: ${{ github.sha }}
+          out-dir: ci-out/vi-snapshots
+          existing-by-blob-dir: ${{ github.workspace }}/_pages/vi-snapshots/by-blob
+
+      - name: Deploy snapshots to GitHub Pages
+        if: steps.snap.outputs.gallery-ok == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ci-out/vi-snapshots
+          destination_dir: vi-snapshots
+          keep_files: true
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          URL="${{ steps.pages.outputs.url }}/vi-snapshots/index.html"
+          if [ "${{ steps.snap.outcome }}" = "success" ] && [ "${{ steps.snap.outputs.gallery-ok }}" = "true" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
+          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"VI Snapshots $STATE\",\"context\":\"CI / VI Snapshots\"}"
+
+      - name: Fail the job if snapshots failed
+        if: always() && (steps.snap.outcome != 'success' || steps.snap.outputs.gallery-ok != 'true')
+        run: exit 1
 

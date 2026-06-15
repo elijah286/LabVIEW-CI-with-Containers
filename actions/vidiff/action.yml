@@ -1,0 +1,88 @@
+# Composite action: LabVIEW VIDiff
+#
+# Generates side-by-side visual diff reports for changed VIs between a base and a
+# head checkout, inside the NI base container. Mounts this action's own directory
+# (github.action_path) into the container so the bundled vidiff.ps1 + the
+# PrintToSingleFileHtml operation run WITHOUT the consumer repo holding a copy.
+# Pin by tag (@v1) to receive updates.
+#
+# Bundled alongside this file (kept in sync with .github/labview/):
+#   vidiff.ps1, PrintToSingleFileHtml/ (LabVIEW operation VIs)
+name: 'LabVIEW VIDiff'
+description: 'Generate visual diff reports for changed VIs between two commits, inside a container.'
+author: 'labview-ci'
+
+inputs:
+  image:
+    description: 'Container image to run in (the NI base image is sufficient).'
+    required: false
+    default: 'nationalinstruments/labview:latest-windows'
+  labview-version:
+    description: 'LabVIEW year (drives the in-container LabVIEW.exe path).'
+    required: false
+    default: '2026'
+  head-dir:
+    description: 'Path to the head checkout (relative to the workspace).'
+    required: false
+    default: 'head'
+  base-dir:
+    description: 'Path to the base checkout (relative to the workspace).'
+    required: false
+    default: 'base'
+  changed-files:
+    description: 'Newline-separated list of changed VI/CTL paths.'
+    required: false
+    default: ''
+  report-dir:
+    description: 'Report output directory (relative to the head checkout).'
+    required: false
+    default: 'ci-out/vidiff'
+
+outputs:
+  diff-outcome:
+    description: 'success | failure of the in-container diff.'
+    value: ${{ steps.diff.outcome }}
+  report-exists:
+    description: 'true when a diff report directory was produced.'
+    value: ${{ steps.check.outputs.exists }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Pull container image
+      shell: powershell
+      run: docker pull "${{ inputs.image }}"
+
+    - name: Run VIDiff inside container
+      id: diff
+      shell: powershell
+      env:
+        CHANGED_FILES: ${{ inputs.changed-files }}
+      run: |
+        $workspace = '${{ github.workspace }}'
+        # Mount head, base, AND this action's directory (which carries vidiff.ps1
+        # + the PrintToSingleFileHtml operation) so the consumer needs no copy.
+        docker run --rm `
+          -v "${workspace}\${{ inputs.head-dir }}:C:\workspace" `
+          -v "${workspace}\${{ inputs.base-dir }}:C:\workspace-base" `
+          -v "${{ github.action_path }}:C:\ci-action" `
+          -e CHANGED_FILES=$Env:CHANGED_FILES `
+          -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+          "${{ inputs.image }}" `
+          powershell -NonInteractive -ExecutionPolicy Bypass `
+            -File "C:\ci-action\vidiff.ps1" `
+            -BaseDir      "C:\workspace-base" `
+            -HeadDir      "C:\workspace" `
+            -ReportDir    "C:\workspace\${{ inputs.report-dir }}" `
+            -OpsDir       "C:\ci-action\PrintToSingleFileHtml" `
+            -LabVIEWPath  "C:\Program Files\National Instruments\LabVIEW ${{ inputs.labview-version }}\LabVIEW.exe"
+
+    - name: Check report directory
+      id: check
+      shell: bash
+      run: |
+        if [ -d "${{ github.workspace }}/${{ inputs.head-dir }}/${{ inputs.report-dir }}" ]; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi

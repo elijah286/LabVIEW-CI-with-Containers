@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.3.0",
+  "version": "1.4.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.4.0",
+        "date": "2026-06-15",
+        "title": "Mass Compile, VIDiff & Snapshots as shared (token-free) capabilities",
+        "summary": "Mass Compile, VIDiff, and VI Snapshots now run from the shared reusable workflow alongside VI Analyzer, so a repository gets them by referencing the tooling at the major tag (for example @v1) \u2014 no vendored workflow files and no token. Each publishes its report and posts its dashboard status just like the vendored workflows.",
+        "highlights": [
+          "Mass Compile (reusable) now deploys its friendly report to the caller's Pages and posts the 'CI / Mass Compile' status with the compile percentage \u2014 full parity, so the dashboard cell populates for thin consumers.",
+          "Added a VIDiff composite action and reusable job: renders changed-VI visual diffs between base and head, deploys them to the caller's Pages, and posts 'CI / VIDiff'.",
+          "Added a VI Snapshots composite action and reusable job: renders the content-addressed VI Browser gallery incrementally and posts 'CI / VI Snapshots'.",
+          "All four capabilities are delivered through the moving major-version alias, so thin-caller consumers receive them and future improvements automatically with no personal access token."
+        ]
+      },
       {
         "version": "1.3.0",
         "date": "2026-06-15",

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!--
+  .github/pages/vi-interactive.html
+  Standalone interactive VI viewer — renders a single exported VI snapshot
+  HTML inline. Accepts ?file=<relative-path-to-html> query parameter.
+
+  Used by the VI Browser for direct-link sharing of individual VI snapshots.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VI Viewer — LabVIEW-CI-with-Containers</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:#0d1117;color:#e6edf3;display:flex;flex-direction:column;height:100vh}
+    #toolbar{padding:8px 14px;background:#161b22;border-bottom:1px solid #30363d;
+             display:flex;align-items:center;gap:12px;font-size:.85em;flex-wrap:wrap}
+    #toolbar h1{font-size:1em;font-weight:600}
+    #toolbar a{color:#58a6ff;text-decoration:none}#toolbar a:hover{text-decoration:underline}
+    #frame-wrap{flex:1;overflow:hidden}
+    #frame-wrap iframe{width:100%;height:100%;border:none;background:#fff}
+    #error{padding:40px;text-align:center;color:#8b949e}
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <h1 id="vi-name">VI Viewer</h1>
+    <a href="javascript:history.back()">← Back</a>
+    <a id="raw-link" href="#" target="_blank">Open snapshot directly ↗</a>
+    <a href="index.html">VI Browser</a>
+    <a href="../">CI Dashboard</a>
+  </div>
+  <div id="frame-wrap">
+    <iframe id="viewer" title="VI Snapshot" allowfullscreen></iframe>
+  </div>
+  <div id="error" style="display:none">
+    <p>No VI file specified. Use <code>?file=path/to/snapshot.html</code></p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const file   = params.get('file');
+    if (file) {
+      const name = file.split('/').pop().replace('.html', '').replace(/-/g, '/');
+      document.getElementById('vi-name').textContent = name;
+      document.title = `${name} — VI Viewer`;
+      const src = new URL(file, window.location.href).href;
+      document.getElementById('viewer').src = src;
+      document.getElementById('raw-link').href = src;
+    } else {
+      document.getElementById('frame-wrap').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<!--
+  .github/pages/vi-browser.html
+  Deployed to: https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html
+
+  Reads manifest.json and commits.json from the same directory (vi-snapshots/)
+  on the gh-pages branch and renders a browseable gallery of VI snapshots.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VI Browser — LabVIEW-CI-with-Containers</title>
+  <style>
+    :root{
+      --bg:#0d1117;
+      --fg:#e6edf3;
+      --fg-muted:#8b949e;
+      --border:#30363d;
+      --sidebar:#161b22;
+      --sidebar-hover:#1c2128;
+      --sidebar-active:#1f6feb33;
+      --item:#c9d1d9;
+      --link:#58a6ff;
+      --viewer-bg:#ffffff;
+      --error:#da3633;
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#ffffff;
+        --fg:#1f2328;
+        --fg-muted:#57606a;
+        --border:#d0d7de;
+        --sidebar:#f6f8fa;
+        --sidebar-hover:#eef2f6;
+        --sidebar-active:#0969da22;
+        --item:#1f2328;
+        --link:#0969da;
+        --viewer-bg:#ffffff;
+        --error:#cf222e;
+      }
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:var(--bg);color:var(--fg);display:flex;height:100vh;overflow:hidden}
+
+    /* ── Sidebar ── */
+    #sidebar{width:280px;min-width:220px;background:var(--sidebar);border-right:1px solid var(--border);
+             display:flex;flex-direction:column;overflow:hidden}
+    #sidebar-header{padding:12px 14px;border-bottom:1px solid var(--border)}
+    #sidebar-header h1{font-size:1em;color:var(--fg);margin-bottom:8px}
+    #back-to-dashboard{display:inline-flex;align-items:center;gap:5px;margin-bottom:8px;
+                       font-size:.78em;color:var(--link);text-decoration:none}
+    #back-to-dashboard:hover{text-decoration:underline}
+    #commit-select{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);
+                   border-radius:6px;padding:5px 8px;font-size:.8em}
+    #search{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);
+            border-radius:6px;padding:5px 8px;font-size:.8em;margin-top:6px}
+    #vi-list{flex:1;overflow-y:auto;padding:4px 0}
+    .tree-controls{display:flex;gap:14px;margin-top:8px}
+    .tree-controls button{background:none;border:none;padding:0;font:inherit;font-size:.72em;
+                          color:var(--link);cursor:pointer}
+    .tree-controls button:hover{text-decoration:underline}
+    .tree-row{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 10px;font-size:.8em;
+              cursor:pointer;color:var(--item);white-space:nowrap;overflow:hidden;user-select:none}
+    .tree-row:hover{background:var(--sidebar-hover);color:var(--fg)}
+    .tree-row .twisty{flex:0 0 12px;width:12px;height:12px;display:inline-flex;align-items:center;
+                      justify-content:center;color:var(--fg-muted);transition:transform .12s ease}
+    .tree-row.folder.open>.twisty{transform:rotate(90deg)}
+    .tree-row .icon{flex:0 0 16px;display:inline-flex;align-items:center;justify-content:center;color:var(--fg-muted)}
+    .tree-row .label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+    .tree-row.folder>.label{font-weight:500;color:var(--fg)}
+    .tree-row.file.active{background:var(--sidebar-active);color:var(--link)}
+    .tree-row.file.active .icon{color:var(--link)}
+    .sidebar-note{padding:16px;color:var(--fg-muted);font-size:.8em}
+    /* change indicators sourced from the VIDiff changes.json for the selected commit */
+    .chg{flex:0 0 auto;font-size:.64em;font-weight:700;padding:1px 6px;border-radius:10px;
+         color:#fff;text-transform:uppercase;letter-spacing:.03em;cursor:pointer}
+    .chg.modified{background:#9a6700}.chg.added{background:#1a7f37}.chg.deleted{background:#cf222e}
+    .chg:hover{filter:brightness(1.15)}
+    .chg-dot{flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:#9a6700;opacity:.85}
+    /* "Changed only" toggle (shown only when the commit has VIDiff data) */
+    .changed-toggle{display:none;align-items:center;gap:6px;margin-top:8px;font-size:.74em;
+                    color:var(--fg-muted);cursor:pointer;user-select:none}
+    .changed-toggle input{margin:0;accent-color:var(--link)}
+    .changed-toggle .count{color:var(--fg-muted);font-weight:600}
+
+    /* ── Main panel ── */
+    #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    #toolbar{padding:8px 14px;border-bottom:1px solid var(--border);background:var(--sidebar);
+             font-size:.82em;color:var(--fg-muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    #vi-title{font-weight:600;color:var(--fg)}
+    /* Linux/Windows diff-report switch (shown when a VI has reports on both) */
+    #plat-toggle{display:none;align-items:center;border:1px solid var(--border);border-radius:7px;
+                 overflow:hidden;font-size:.92em}
+    #plat-toggle button{border:none;background:var(--bg);color:var(--fg-muted);cursor:pointer;
+                        padding:3px 10px;font:inherit;font-weight:600}
+    #plat-toggle button:hover:not(.active){background:var(--sidebar-hover);color:var(--fg)}
+    #plat-toggle button.active{background:var(--link);color:#fff}
+    #plat-toggle button:disabled{opacity:.4;cursor:default}
+    #plat-toggle .sep{width:1px;background:var(--border)}
+    #viewer{flex:1;overflow:hidden;position:relative}
+    #viewer iframe{width:100%;height:100%;border:none;background:var(--viewer-bg)}
+    #viewer-loading{position:absolute;inset:0;z-index:3;display:none;align-items:center;
+                    justify-content:center;gap:10px;background:var(--viewer-bg);
+                    color:var(--fg-muted);font-size:.85em}
+    #viewer-loading.show{display:flex}
+    #viewer-loading .spinner{width:18px;height:18px;border:2px solid var(--border);
+                    border-top-color:var(--link);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #viewer-hint{margin-left:auto;color:var(--fg-muted);font-size:.92em;display:none}
+    #viewer-hint kbd{font:inherit;background:var(--bg);border:1px solid var(--border);
+                     border-radius:4px;padding:0 4px}
+    #empty{flex:1;display:flex;align-items:center;justify-content:center;
+           flex-direction:column;color:var(--fg-muted);gap:10px}
+    #empty svg{opacity:.3}
+  </style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <a id="back-to-dashboard" href="../" title="Back to the CI Dashboard">&larr; CI Dashboard</a>
+    <h1>VI Browser</h1>
+    <select id="commit-select"><option value="">Loading commits…</option></select>
+    <input id="search" type="search" placeholder="Filter VIs…">
+    <div class="tree-controls">
+      <button id="expand-all" type="button">Expand all</button>
+      <button id="collapse-all" type="button">Collapse all</button>
+    </div>
+    <label class="changed-toggle" id="changed-toggle" for="changed-only">
+      <input type="checkbox" id="changed-only">
+      Changed VIs only <span class="count" id="changed-count"></span>
+    </label>
+  </div>
+  <div id="vi-list"></div>
+</div>
+
+<div id="main">
+  <div id="toolbar">
+    <span id="vi-title">Select a VI from the sidebar</span>
+    <a id="diff-link" href="#" style="color:var(--link);font-weight:600;display:none">View diff report &rarr;</a>
+    <span id="plat-toggle" title="Swap the diff report between the Linux and Windows container renders">
+      <button type="button" data-plat="linux">Linux</button>
+      <span class="sep"></span>
+      <button type="button" data-plat="windows">Windows</button>
+    </span>
+    <a id="open-link" href="#" target="_blank" style="color:var(--link);display:none">Open in new tab ↗</a>
+    <span id="viewer-hint">Drag to pan &middot; <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+scroll to zoom &middot; <kbd>◀</kbd><kbd>▶</kbd> to scroll a structure's cases</span>
+  </div>
+  <div id="empty">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+    </svg>
+    <span>Select a VI to view its front panel and block diagram</span>
+  </div>
+  <div id="viewer" style="display:none">
+    <iframe id="vi-frame" title="VI Snapshot"></iframe>
+    <div id="viewer-loading"><span class="spinner"></span><span>Rendering…</span></div>
+  </div>
+</div>
+
+<script>
+// Resolve the directory this page lives in. Stripping the trailing path segment
+// yields the same base whether the page is opened as ".../vi-snapshots/" or as
+// ".../vi-snapshots/index.html" (the dashboard deep-links use index.html?sha=).
+// The previous regex appended a slash to "index.html", which 404'd commits.json
+// and showed "No snapshots yet".
+const BASE = window.location.pathname.replace(/[^/]*$/, '');
+
+async function fetchJson(url) {
+  const r = await fetch(url, { cache: 'no-store' });
+  if (!r.ok) throw new Error(`${r.status} ${url}`);
+  return r.json();
+}
+
+let manifest = [];
+let treeRoot = null;             // hierarchical tree built from each VI's vi_rel path
+const expanded = new Set();      // folder paths currently expanded (persists across commits)
+let activeHtml = null;           // html of the currently-open VI (drives row highlight)
+let changeMap = {};              // vi_rel -> { type, url, isDiff } for VIs changed in this commit
+let changedFolders = new Set();  // folder paths that contain >=1 changed VI (for the folder dot)
+let changedOnly = new URLSearchParams(location.search).get('changed') === '1'; // down-filter to changed VIs
+let commitList = [];             // commits.json (newest first); used to find the previous revision
+const manifestCache = new Map(); // sha -> manifest (so diffing against the previous commit is cheap)
+// Diff reports are rendered by both the Linux and Windows containers; this is the
+// platform currently shown. The user can swap to compare container output. The
+// choice persists across VIs/commits via the URL (?plat=) and this variable.
+// Windows is the default render; pass ?plat=linux to open the Linux report instead.
+let diffPlatform = (new URLSearchParams(location.search).get('plat') === 'linux') ? 'linux' : 'windows';
+let commitPlatforms = new Set(); // which platforms published a report for the active commit
+let currentDiffVi = null;        // vi_rel of the diff currently shown (so the toggle can reload it)
+let currentDiffRow = null;       // the tree row backing the current view (for re-activation)
+
+const ICON = {
+  chevron: '<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M6 4l4 4-4 4z"/></svg>',
+  folder:  '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M1.5 4A1.5 1.5 0 013 2.5h2.8L7.3 4H13A1.5 1.5 0 0114.5 5.5v6A1.5 1.5 0 0113 13H3a1.5 1.5 0 01-1.5-1.5z"/></svg>',
+  vi:      '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3.2" y="2.2" width="9.6" height="11.6" rx="1.5"/><path d="M5.6 6h4.8M5.6 8.4h4.8M5.6 10.8h3"/></svg>',
+};
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// Build a folder tree from the flat manifest using each VI's on-disk relative path.
+function buildTree(items) {
+  const root = { name:'', path:'', dirs:new Map(), files:[] };
+  for (const v of items) {
+    const parts = v.vi_rel.split('/');
+    parts.pop();                       // drop the file name; the rest are folders
+    let node = root, acc = '';
+    for (const p of parts) {
+      acc = acc ? acc + '/' + p : p;
+      if (!node.dirs.has(p)) node.dirs.set(p, { name:p, path:acc, dirs:new Map(), files:[] });
+      node = node.dirs.get(p);
+    }
+    node.files.push(v);
+  }
+  return root;
+}
+
+function allFolderPaths(node, out = []) {
+  for (const child of node.dirs.values()) { out.push(child.path); allFolderPaths(child, out); }
+  return out;
+}
+
+// A VI passes the active filters when it matches the text query AND, if the
+// "Changed VIs only" toggle is on, has a VIDiff change entry for this commit.
+function fileVisible(v, f) {
+  if (changedOnly && !changeMap[v.vi_rel]) return false;
+  if (f && !(v.vi_name.toLowerCase().includes(f) || v.vi_rel.toLowerCase().includes(f))) return false;
+  return true;
+}
+
+// True if the folder (or any descendant) contains a VI that passes the filters.
+function nodeHasVisible(node, f) {
+  for (const v of node.files) if (fileVisible(v, f)) return true;
+  for (const child of node.dirs.values()) if (nodeHasVisible(child, f)) return true;
+  return false;
+}
+
+async function loadCommits() {
+  const commits = await fetchJson(BASE + 'commits.json').catch(() => []);
+  commitList = commits;
+  const sel = document.getElementById('commit-select');
+  sel.innerHTML = '';
+  if (!commits.length) {
+    sel.innerHTML = '<option value="">No snapshots yet</option>';
+    return;
+  }
+  for (const c of commits) {
+    const opt = document.createElement('option');
+    opt.value   = c.sha;
+    opt.textContent = `${c.short} — ${c.message.slice(0, 40)}`;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change', () => loadManifest(sel.value));
+  const initSha = new URLSearchParams(window.location.search).get('sha');
+  const startSha = (initSha && commits.find(c => c.sha === initSha)) ? initSha : commits[0].sha;
+  sel.value = startSha;
+  loadManifest(startSha);
+}
+
+// Fetch (and cache) the manifest for any commit — used both for the active view and
+// for diffing the active commit against the previous one.
+async function getManifest(sha) {
+  if (manifestCache.has(sha)) return manifestCache.get(sha);
+  const m = await fetchJson(BASE + sha + '/manifest.json').catch(() => []);
+  manifestCache.set(sha, m);
+  return m;
+}
+
+async function loadManifest(sha) {
+  manifest = await getManifest(sha);
+  treeRoot = buildTree(manifest);
+  activeHtml = null;
+  await loadChanges(sha);
+  updateChangedToggle();
+  renderList(document.getElementById('search').value);
+}
+
+// Always show the "Changed VIs only" toggle so the feature is discoverable. The
+// count reflects how many VIs changed in this revision; when zero, the toggle is
+// disabled with a hint instead of being hidden.
+function updateChangedToggle() {
+  const count = Object.keys(changeMap).length;
+  const wrap  = document.getElementById('changed-toggle');
+  const box   = document.getElementById('changed-only');
+  document.getElementById('changed-count').textContent = count ? `(${count})` : '(0)';
+  wrap.style.display = 'inline-flex';
+  wrap.title = count ? '' : 'This revision did not change any VIs.';
+  wrap.style.opacity = count ? '1' : '.5';
+  box.disabled = !count;
+  if (!count) changedOnly = false;
+  box.checked = changedOnly;
+}
+
+// Determine which VIs changed in this revision by comparing its content-addressed
+// snapshot manifest to the previous commit's (blob SHA == VI content identity).
+// This works for every commit in the dropdown, independent of whether a VIDiff run
+// exists. When a VIDiff side-by-side report IS available for a changed VI, the entry
+// links to it; otherwise it links to that VI's snapshot.
+async function loadChanges(sha) {
+  changeMap = {};
+  changedFolders = new Set();
+
+  // 1) Blob diff against the previous (older) revision in the dropdown.
+  const idx = commitList.findIndex(c => c.sha === sha);
+  const prev = idx >= 0 && idx + 1 < commitList.length ? commitList[idx + 1] : null;
+  const prevBlob = new Map();
+  if (prev) {
+    for (const v of await getManifest(prev.sha)) prevBlob.set(v.vi_rel, v.blob);
+  }
+  for (const v of manifest) {
+    let type = null;
+    if (!prev) { type = null; }                       // no baseline -> treat as unchanged
+    else if (!prevBlob.has(v.vi_rel)) type = 'added';
+    else if (prevBlob.get(v.vi_rel) !== v.blob) type = 'modified';
+    if (type) {
+      changeMap[v.vi_rel] = { type, url: BASE + v.html, isDiff: false };
+      const parts = v.vi_rel.split('/'); parts.pop();
+      let acc = '';
+      for (const p of parts) { acc = acc ? acc + '/' + p : p; changedFolders.add(acc); }
+    }
+  }
+
+  // 2) Enrich changed VIs with their VIDiff side-by-side reports. Each VI may have
+  //    a report from BOTH containers; we record per-platform URLs so the user can
+  //    toggle Linux <-> Windows. Manifest-diff stays authoritative for *which* VIs
+  //    changed; changes.json only adds report links to a flagged VI.
+  const root = BASE.replace(/vi-snapshots\/$/, '');
+  commitPlatforms = new Set();
+  for (const platform of ['linux', 'windows']) {
+    const dir = `${root}vidiff/push-${sha}/${platform}/vidiff/`;
+    let data = null;
+    try { data = await fetchJson(dir + 'changes.json'); } catch (e) { continue; }
+    if (data && Array.isArray(data.files) && data.files.length) {
+      commitPlatforms.add(platform);
+      for (const f of data.files) {
+        if (f.file && changeMap[f.file]) {
+          const chg = changeMap[f.file];
+          (chg.reports || (chg.reports = {}))[platform] = dir + f.report;
+          chg.isDiff = true;
+        }
+      }
+    }
+  }
+}
+
+// Resolve the diff-report URL for a VI, preferring the selected platform but
+// falling back to the other one if only it rendered this VI. Returns {url, platform}
+// or null when no side-by-side report exists (caller shows the snapshot instead).
+function diffReportFor(viRel) {
+  const chg = changeMap[viRel];
+  if (!chg || !chg.reports) return null;
+  if (chg.reports[diffPlatform]) return { url: chg.reports[diffPlatform], platform: diffPlatform };
+  const other = diffPlatform === 'linux' ? 'windows' : 'linux';
+  if (chg.reports[other]) return { url: chg.reports[other], platform: other };
+  return null;
+}
+
+// Render a tree node's folders (then files) into the fragment. When a filter is
+// active, non-matching branches are pruned and matching ones are force-expanded.
+function renderTree(node, depth, f, frag) {
+  const pad = (10 + depth * 14) + 'px';
+  const dirNames = [...node.dirs.keys()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity:'base' }));
+  for (const name of dirNames) {
+    const child = node.dirs.get(name);
+    if (!nodeHasVisible(child, f)) continue;
+    // Auto-expand while any filter (text or changed-only) is narrowing the tree.
+    const forceOpen = !!f || changedOnly;
+    const open = forceOpen ? true : expanded.has(child.path);
+    const row = document.createElement('div');
+    row.className = 'tree-row folder' + (open ? ' open' : '');
+    row.style.paddingLeft = pad;
+    row.title = child.path;
+    const dot = changedFolders.has(child.path) ? '<span class="chg-dot" title="contains changed VIs"></span>' : '';
+    row.innerHTML =
+      `<span class="twisty">${ICON.chevron}</span>` +
+      `<span class="icon">${ICON.folder}</span>` +
+      `<span class="label">${escapeHtml(name)}</span>` + dot;
+    row.addEventListener('click', () => {
+      if (expanded.has(child.path)) expanded.delete(child.path); else expanded.add(child.path);
+      renderList(document.getElementById('search').value);
+    });
+    frag.appendChild(row);
+    if (open) renderTree(child, depth + 1, f, frag);
+  }
+  const files = node.files.slice().sort((a, b) => a.vi_name.localeCompare(b.vi_name, undefined, { sensitivity:'base' }));
+  for (const v of files) {
+    if (!fileVisible(v, f)) continue;
+    const row = document.createElement('div');
+    row.className = 'tree-row file' + (v.html === activeHtml ? ' active' : '');
+    row.style.paddingLeft = pad;
+    row.title = v.vi_rel;
+    row.dataset.html = v.html;
+    row.dataset.name = v.vi_rel;
+    row.innerHTML =
+      `<span class="twisty"></span>` +
+      `<span class="icon">${ICON.vi}</span>` +
+      `<span class="label">${escapeHtml(v.vi_name)}</span>`;
+    row.addEventListener('click', () => openVI(row));
+    const chg = changeMap[v.vi_rel];
+    if (chg) {
+      const badge = document.createElement('span');
+      badge.className = 'chg ' + chg.type;
+      // "diff" only when a true side-by-side report exists; otherwise just the type.
+      badge.textContent = (chg.type === 'modified' && chg.isDiff) ? 'diff' : chg.type;
+      badge.title = chg.isDiff
+        ? `View side-by-side diff report (${chg.type})`
+        : `VI ${chg.type} in this revision`;
+      badge.addEventListener('click', (e) => { e.stopPropagation(); openDiff(v.vi_rel, chg.type, row); });
+      row.appendChild(badge);
+    }
+    frag.appendChild(row);
+  }
+}
+
+function renderList(filter) {
+  const f = (filter || '').trim().toLowerCase();
+  const container = document.getElementById('vi-list');
+  container.innerHTML = '';
+  if (!treeRoot || !manifest.length) {
+    container.innerHTML = '<div class="sidebar-note">No VIs in this revision.</div>';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  renderTree(treeRoot, 0, f, frag);
+  if (!frag.childNodes.length) {
+    const msg = changedOnly ? 'No changed VIs in this revision.' : 'No VIs match the filter.';
+    container.innerHTML = `<div class="sidebar-note">${msg}</div>`;
+    return;
+  }
+  container.appendChild(frag);
+}
+
+function setActiveRow(row) {
+  document.querySelectorAll('.tree-row.file.active').forEach(el => el.classList.remove('active'));
+  if (row) row.classList.add('active');
+}
+
+function setViewerLoading(on) {
+  const el = document.getElementById('viewer-loading');
+  if (el) el.classList.toggle('show', !!on);
+}
+
+function showInFrame(url, title) {
+  document.getElementById('vi-title').textContent = title;
+  const open = document.getElementById('open-link');
+  open.href = url; open.style.display = 'inline';
+  const hint = document.getElementById('viewer-hint');
+  if (hint) hint.style.display = 'inline-block';
+  document.getElementById('empty').style.display  = 'none';
+  document.getElementById('viewer').style.display = 'block';
+  const frame = document.getElementById('vi-frame');
+  setViewerLoading(true);
+  // The snapshot is same-origin (gh-pages), so we can restyle its DOM on load to
+  // make images fit/zoom and turn a Case/Event structure's frames into a stepper.
+  frame.onload = () => {
+    try { enhanceSnapshot(frame.contentDocument); }
+    catch (e) { /* cross-origin or unexpected DOM: fall back to the raw snapshot */ }
+    setViewerLoading(false);
+  };
+  frame.src = url;
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Snapshot viewer enhancements (run inside the same-origin snapshot iframe):
+//   • every diagram image scales to fit the viewer width
+//   • Connector Pane / Front Panel / Block Diagram / Hierarchy images become
+//     zoomable & pannable (toolbar, double-click, Ctrl/⌘+wheel, drag)
+//   • the top-level block diagram stays visible at the top, and each Case/Event/
+//     Sequence structure's extra cases (the consecutive Block Diagram images
+//     LabVIEW emits) are grouped into their own scrollable window so the user
+//     can page through one structure's cases in place, LabVIEW-style, instead of
+//     a single flat stack that mixes the diagram with every case
+// ───────────────────────────────────────────────────────────────────────────
+const ENHANCE_CSS = `
+*{box-sizing:border-box}
+html,body{margin:0}
+body{padding:18px 20px 64px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1f2328;background:#fff;max-width:1180px;margin:0 auto}
+h1,h2{font-size:1.2em;margin:.2em 0 .45em}
+h3{font-size:1.02em;margin:1.5em 0 .55em;padding-bottom:.3em;border-bottom:1px solid #d0d7de}
+hr{border:none;border-top:1px solid #eaeef2;margin:1.3em 0}
+img{max-width:100%;height:auto}
+table{border-collapse:collapse;max-width:100%}
+.vi-fig{position:relative;margin:.6em 0;border:1px solid #d0d7de;border-radius:10px;background:#fbfcfd;overflow:hidden}
+.vi-fig__view{overflow:hidden;max-height:none;text-align:center}
+.vi-fig__view.zoomed{cursor:grab;text-align:left}
+.vi-fig__view.grabbing{cursor:grabbing}
+.vi-img{display:block;max-width:100%;height:auto;margin:0 auto;-webkit-user-drag:none;user-select:none}
+.vi-fig__view.zoomed .vi-img{margin:0}
+.vi-fig__bar{position:absolute;top:8px;right:8px;display:flex;gap:1px;background:rgba(255,255,255,.93);border:1px solid #d0d7de;border-radius:7px;padding:2px;box-shadow:0 1px 4px rgba(31,35,40,.16);opacity:0;transition:opacity .15s}
+.vi-fig:hover .vi-fig__bar,.vi-fig__view.zoomed~.vi-fig__bar{opacity:1}
+.vi-fig__bar button{border:none;background:none;font:600 13px/1 system-ui,sans-serif;color:#1f2328;cursor:pointer;padding:5px 9px;border-radius:5px;min-width:34px}
+.vi-fig__bar button:hover{background:#eaeef2}
+.vi-stepper{margin:.6em 0}
+.vi-stepper__bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.55em;padding:7px 11px;background:#f6f8fa;border:1px solid #d0d7de;border-radius:9px;font-size:.9em}
+.vi-step-btn{border:1px solid #d0d7de;background:#fff;color:#1f2328;cursor:pointer;padding:4px 11px;border-radius:6px;font:600 .92em system-ui,sans-serif}
+.vi-step-btn:hover:not(:disabled){background:#eaeef2}
+.vi-step-btn:disabled{opacity:.4;cursor:default}
+.vi-step-label{font-weight:700;min-width:96px;text-align:center}
+.vi-step-hint{color:#8b949e;font-size:.82em;text-transform:uppercase;letter-spacing:.04em}
+.vi-step-range{flex:1 1 150px;max-width:340px;accent-color:#0969da}
+.vi-stepper{margin:0}
+.vi-stepper__stage .vi-frame{margin:0}
+.vi-bd{margin:.4em 0}
+.vi-cap{font-weight:700;color:#57606a;font-size:.82em;margin:.2em 0 .25em;text-transform:uppercase;letter-spacing:.04em}
+.vi-bd-intro{margin:1.2em 0 .6em;color:#57606a;font-size:.9em}
+.vi-structs{display:flex;flex-direction:column;gap:14px}
+.vi-struct{border:1px solid #d0d7de;border-radius:10px;background:#f6f8fa;padding:10px 12px}
+.vi-struct__title{display:flex;align-items:baseline;gap:10px;margin-bottom:.55em}
+.vi-struct__name{font-weight:700;color:#1f2328}
+.vi-struct__meta{color:#8b949e;font-size:.82em}
+.vi-struct .vi-fig{background:#fff}
+`;
+
+function enhanceSnapshot(doc) {
+  if (!doc || !doc.documentElement) return;
+  if (doc.documentElement.dataset.viEnhanced) return;   // each navigation loads a fresh doc
+  doc.documentElement.dataset.viEnhanced = '1';
+
+  // Only fully restyle/restructure genuine LabVIEW "Print to HTML" snapshots.
+  // Anything else (e.g. a VIDiff side-by-side report) just gets an image-fit rule
+  // so its images never overflow, leaving its own layout otherwise intact.
+  const isSnapshot = [...doc.querySelectorAll('meta')]
+    .some(m => /G Development Environment/i.test(m.getAttribute('content') || ''));
+
+  const style = doc.createElement('style');
+  style.textContent = isSnapshot ? ENHANCE_CSS : 'img{max-width:100%;height:auto}';
+  (doc.head || doc.documentElement).appendChild(style);
+
+  if (!isSnapshot) return;
+
+  const SINGLE = new Set(['connector pane', 'front panel', 'position in hierarchy']);
+  for (const h3 of [...doc.querySelectorAll('h3')]) {
+    const title  = (h3.textContent || '').trim().toLowerCase();
+    const frames = collectFrames(h3);
+    if (title === 'block diagram') {
+      if (frames.length > 1)        buildBlockDiagram(doc, h3, frames);
+      else if (frames.length === 1) frames[0].p.replaceWith(makeFigure(doc, frames[0].img));
+    } else if (SINGLE.has(title)) {
+      for (const fr of frames) fr.p.replaceWith(makeFigure(doc, fr.img));
+    }
+  }
+
+  // Arrow keys page through the active (or only) Block Diagram stepper.
+  doc.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const st = doc.__activeStepper || doc.querySelector('.vi-stepper');
+    if (!st || !st.__step) return;
+    st.__step(e.key === 'ArrowRight' ? 1 : -1);
+    e.preventDefault();
+  });
+}
+
+// Consecutive <P><IMG></P> siblings under a section heading, up to the next <HR>/<H3>.
+function collectFrames(h3) {
+  const out = [];
+  let n = h3.nextElementSibling;
+  while (n && n.tagName !== 'H3' && n.tagName !== 'HR') {
+    if (n.tagName === 'P') {
+      const img = n.querySelector('img');
+      if (img && n.children.length === 1) out.push({ p: n, img });
+    }
+    n = n.nextElementSibling;
+  }
+  return out;
+}
+
+// Wrap one diagram image in a zoom/pan figure with a small toolbar.
+function makeFigure(doc, img) {
+  const fig  = doc.createElement('div'); fig.className  = 'vi-fig';
+  const view = doc.createElement('div'); view.className = 'vi-fig__view';
+  img.classList.add('vi-img');
+  img.removeAttribute('width'); img.removeAttribute('height');
+  img.setAttribute('draggable', 'false');
+  view.appendChild(img);
+  const bar  = doc.createElement('div'); bar.className = 'vi-fig__bar';
+  const bOut = mkBtn(doc, '−', 'Zoom out');
+  const bFit = mkBtn(doc, 'Fit', 'Fit to width');
+  const bIn  = mkBtn(doc, '+', 'Zoom in');
+  bar.append(bOut, bFit, bIn);
+  fig.append(view, bar);
+  wireZoom(view, img, { bOut, bFit, bIn });
+  return fig;
+}
+
+function mkBtn(doc, label, title) {
+  const b = doc.createElement('button');
+  b.type = 'button'; b.textContent = label; b.title = title;
+  return b;
+}
+
+// Zoom by widening the image inside an overflow:auto viewport; pan = scroll.
+// At fit (zoom 1) the viewport grows to the image's height so the page scrolls
+// normally; once zoomed it becomes a bounded, pannable window.
+function wireZoom(view, img, btn) {
+  let zoom = 1, dragging = false, sx = 0, sy = 0, ssl = 0, sst = 0;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function fitWidth() {
+    const prev = img.style.width; img.style.width = '';
+    const w = img.offsetWidth; img.style.width = prev; return w;
+  }
+  function setMode() {
+    if (zoom > 1) {
+      view.style.maxHeight = '78vh'; view.style.overflow = 'auto'; view.classList.add('zoomed');
+    } else {
+      view.style.maxHeight = 'none'; view.style.overflow = 'hidden'; view.classList.remove('zoomed');
+      view.scrollLeft = 0; view.scrollTop = 0;
+    }
+  }
+  function relabel() { btn.bFit.textContent = zoom > 1 ? Math.round(zoom * 100) + '%' : 'Fit'; }
+  function apply(nz, ax, ay) {
+    nz = clamp(nz, 1, 8);
+    const vr = view.getBoundingClientRect();
+    if (ax == null) { ax = vr.left + vr.width / 2; ay = vr.top + vr.height / 2; }
+    const preW = img.offsetWidth || 1, preH = img.offsetHeight || 1;
+    const fx = (view.scrollLeft + (ax - vr.left)) / preW;
+    const fy = (view.scrollTop  + (ay - vr.top))  / preH;
+    zoom = nz;
+    if (zoom <= 1) img.style.width = '';
+    else           img.style.width = (zoom * fitWidth()) + 'px';
+    setMode();
+    if (zoom > 1) {
+      const postW = img.offsetWidth, postH = img.offsetHeight;
+      view.scrollLeft = fx * postW - (ax - vr.left);
+      view.scrollTop  = fy * postH - (ay - vr.top);
+    }
+    relabel();
+  }
+  btn.bIn.addEventListener('click',  () => apply(zoom * 1.4));
+  btn.bOut.addEventListener('click', () => apply(zoom / 1.4));
+  btn.bFit.addEventListener('click', () => apply(1));
+  view.addEventListener('dblclick', e => apply(zoom > 1 ? 1 : 2.5, e.clientX, e.clientY));
+  view.addEventListener('wheel', e => {
+    if (!(e.ctrlKey || e.metaKey)) return;          // plain wheel still scrolls the page
+    e.preventDefault();
+    apply(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY);
+  }, { passive: false });
+  view.addEventListener('pointerdown', e => {
+    if (zoom <= 1) return;
+    dragging = true; sx = e.clientX; sy = e.clientY; ssl = view.scrollLeft; sst = view.scrollTop;
+    view.classList.add('grabbing');
+    try { view.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  view.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    view.scrollLeft = ssl - (e.clientX - sx);
+    view.scrollTop  = sst - (e.clientY - sy);
+  });
+  const end = () => { dragging = false; view.classList.remove('grabbing'); };
+  view.addEventListener('pointerup', end);
+  view.addEventListener('pointercancel', end);
+  setMode(); relabel();
+}
+
+// Read a PNG's pixel size straight from its data-URI (IHDR width/height). LabVIEW
+// renders every case of one structure at that structure's fixed border size, so
+// equal sizes reliably identify cases that belong to the same structure — and the
+// snapshot HTML carries no other grouping/coordinate data to go on.
+function pngSize(img) {
+  const src = img.getAttribute('src') || '';
+  const k = src.indexOf('base64,');
+  if (k < 0) return null;
+  let b;
+  try { b = atob(src.slice(k + 7, k + 7 + 48)); } catch (_) { return null; }
+  if (b.length < 24 || b.charCodeAt(0) !== 0x89) return null;
+  const u32 = o => b.charCodeAt(o) * 16777216 + b.charCodeAt(o + 1) * 65536 +
+                   b.charCodeAt(o + 2) * 256 + b.charCodeAt(o + 3);
+  return u32(16) + 'x' + u32(20);   // IHDR: width x height
+}
+
+// A self-contained Prev/Next/slider stepper over a set of frames. Returns the
+// element; the caller places it. `unit` labels the counter ("Case" / "Frame").
+function makeStepper(doc, frames, unit) {
+  const N    = frames.length;
+  const wrap = doc.createElement('div'); wrap.className = 'vi-stepper';
+  const bar  = doc.createElement('div'); bar.className  = 'vi-stepper__bar';
+  const prev = doc.createElement('button'); prev.type = 'button'; prev.className = 'vi-step-btn'; prev.textContent = '◀ Prev';
+  const next = doc.createElement('button'); next.type = 'button'; next.className = 'vi-step-btn'; next.textContent = 'Next ▶';
+  const label = doc.createElement('span'); label.className = 'vi-step-label';
+  const hint  = doc.createElement('span'); hint.className  = 'vi-step-hint'; hint.textContent = (unit || 'Frame') + 's';
+  let slider = null;
+  if (N > 2) {
+    slider = doc.createElement('input');
+    slider.type = 'range'; slider.min = '1'; slider.max = String(N); slider.value = '1';
+    slider.className = 'vi-step-range'; slider.title = 'Scroll through ' + (unit || 'frame').toLowerCase() + 's';
+  }
+  const stage = doc.createElement('div'); stage.className = 'vi-stepper__stage';
+  const figs = frames.map(fr => {
+    const f = makeFigure(doc, fr.img); f.classList.add('vi-frame');
+    stage.appendChild(f); return f;
+  });
+  let idx = 0;
+  function show(i) {
+    idx = Math.max(0, Math.min(N - 1, i));
+    figs.forEach((f, k) => { f.style.display = k === idx ? 'block' : 'none'; });
+    label.textContent = `${unit || 'Frame'} ${idx + 1} / ${N}`;
+    if (slider) slider.value = String(idx + 1);
+    prev.disabled = idx === 0; next.disabled = idx === N - 1;
+  }
+  prev.addEventListener('click', () => show(idx - 1));
+  next.addEventListener('click', () => show(idx + 1));
+  if (slider) slider.addEventListener('input', () => show(parseInt(slider.value, 10) - 1));
+  wrap.addEventListener('pointerdown', () => { doc.__activeStepper = wrap; });
+  wrap.__step = d => show(idx + d);
+  bar.append(prev, label, next);
+  if (slider) bar.append(slider);
+  bar.append(hint);
+  wrap.append(bar, stage);
+  doc.__activeStepper = doc.__activeStepper || wrap;
+  show(0);
+  return wrap;
+}
+
+// Lay out a multi-image Block Diagram the way a user reads a VI: the top-level
+// diagram stays pinned and visible, and every Case/Event/Sequence structure's
+// extra cases get their own scrollable window (grouped by rendered size, since
+// that's the only signal the snapshot exposes — see pngSize). This replaces the
+// single flat stepper that forced a choice between the diagram and the cases.
+function buildBlockDiagram(doc, h3, frames) {
+  const container = doc.createElement('div'); container.className = 'vi-bd';
+
+  // First emitted image == the whole top-level diagram. Always shown, zoomable.
+  const topCap = doc.createElement('div'); topCap.className = 'vi-cap'; topCap.textContent = 'Top-level diagram';
+  const topFig = makeFigure(doc, frames[0].img); topFig.classList.add('vi-bd-top');
+  container.append(topCap, topFig);
+
+  // Remaining images are additional structure cases. Group by exact pixel size:
+  // all cases of one structure share its fixed border size, so equal sizes group
+  // together even when LabVIEW interleaves nested structures between them.
+  const rest = frames.slice(1);
+  if (rest.length) {
+    const groups = [];
+    const byKey  = new Map();
+    rest.forEach((fr, i) => {
+      const key = pngSize(fr.img) || ('u' + i);   // unknown size -> its own group
+      let g = byKey.get(key);
+      if (!g) { g = []; byKey.set(key, g); groups.push(g); }
+      g.push(fr);
+    });
+
+    const intro = doc.createElement('div'); intro.className = 'vi-bd-intro';
+    intro.textContent = groups.length === 1
+      ? 'One case / event structure — scroll its cases in the window below.'
+      : `${groups.length} case / event structures — scroll each one's cases in its window below.`;
+    container.appendChild(intro);
+
+    const structs = doc.createElement('div'); structs.className = 'vi-structs';
+    groups.forEach((g, i) => {
+      const panel = doc.createElement('div'); panel.className = 'vi-struct';
+      const title = doc.createElement('div'); title.className = 'vi-struct__title';
+      const name  = doc.createElement('span'); name.className = 'vi-struct__name'; name.textContent = `Structure ${i + 1}`;
+      const meta  = doc.createElement('span'); meta.className = 'vi-struct__meta';
+      meta.textContent = g.length === 1 ? '1 case' : `${g.length} cases`;
+      title.append(name, meta);
+      panel.appendChild(title);
+      if (g.length > 1) {
+        panel.appendChild(makeStepper(doc, g, 'Case'));
+      } else {
+        const f = makeFigure(doc, g[0].img); f.classList.add('vi-frame');
+        panel.appendChild(f);
+      }
+      structs.appendChild(panel);
+    });
+    container.appendChild(structs);
+  }
+
+  frames.forEach(fr => fr.p.remove());
+  h3.after(container);
+}
+
+// Configure the toolbar "View diff report" link. Shown only when a true side-by-side
+// VIDiff report exists for this VI (on the selected or the other platform).
+function setDiffLink(viRel) {
+  const chg = changeMap[viRel];
+  const diffLink = document.getElementById('diff-link');
+  const rep = diffReportFor(viRel);
+  if (chg && rep) {
+    diffLink.textContent = 'View diff report \u2192';
+    diffLink.href = rep.url;
+    diffLink.onclick = (e) => { e.preventDefault(); openDiff(viRel, chg.type, currentDiffRow); };
+    diffLink.style.display = 'inline';
+  } else {
+    diffLink.style.display = 'none';
+  }
+}
+
+// Show the Linux/Windows switch when this VI has a diff report and the commit
+// published reports on both containers; disable a button if its platform lacks
+// this particular VI's report. Lets the user compare container output side by side.
+function setPlatformToggle(viRel) {
+  const wrap = document.getElementById('plat-toggle');
+  const chg = changeMap[viRel];
+  const haveBoth = commitPlatforms.has('linux') && commitPlatforms.has('windows');
+  if (!chg || !chg.reports || !haveBoth) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'inline-flex';
+  const shown = diffReportFor(viRel);
+  for (const btn of wrap.querySelectorAll('button')) {
+    const p = btn.dataset.plat;
+    btn.disabled = !chg.reports[p];
+    btn.classList.toggle('active', !!shown && p === shown.platform);
+  }
+}
+
+function openVI(row) {
+  setActiveRow(row);
+  currentDiffRow = row;
+  currentDiffVi = null;
+  activeHtml = row.dataset.html;
+  // Snapshots are content-addressed and shared across commits, so the manifest's
+  // `html` is relative to the vi-snapshots base (e.g. "by-blob/ab/<blob>.html").
+  setDiffLink(row.dataset.name);
+  document.getElementById('plat-toggle').style.display = 'none';
+  showInFrame(`${BASE}${row.dataset.html}`, row.dataset.name);
+}
+
+// Open a changed VI's side-by-side diff report (from the selected container), or
+// its snapshot when no diff report exists. Wires the toolbar link + platform switch.
+function openDiff(viRel, type, row) {
+  setActiveRow(row || null);
+  currentDiffRow = row || null;
+  currentDiffVi = viRel;
+  activeHtml = row ? row.dataset.html : null;
+  setDiffLink(viRel);
+  setPlatformToggle(viRel);
+  const rep = diffReportFor(viRel);
+  if (rep) {
+    showInFrame(rep.url, `${viRel} \u2014 ${type === 'modified' ? 'diff' : type} \u00b7 ${rep.platform}`);
+  } else {
+    const chg = changeMap[viRel];
+    showInFrame(chg ? chg.url : `${BASE}`, `${viRel} \u2014 ${type}`);
+  }
+}
+
+document.getElementById('search').addEventListener('input', e => renderList(e.target.value));
+document.getElementById('changed-only').addEventListener('change', e => {
+  changedOnly = e.target.checked;
+  renderList(document.getElementById('search').value);
+});
+document.getElementById('expand-all').addEventListener('click', () => {
+  if (treeRoot) allFolderPaths(treeRoot).forEach(p => expanded.add(p));
+  renderList(document.getElementById('search').value);
+});
+document.getElementById('collapse-all').addEventListener('click', () => {
+  expanded.clear();
+  renderList(document.getElementById('search').value);
+});
+// Linux/Windows diff switch: change the selected container and reload the open diff.
+document.querySelectorAll('#plat-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled || btn.dataset.plat === diffPlatform) return;
+    diffPlatform = btn.dataset.plat;
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('plat', diffPlatform);
+      history.replaceState(null, '', u);
+    } catch (e) { /* non-fatal */ }
+    if (currentDiffVi) openDiff(currentDiffVi, (changeMap[currentDiffVi] || {}).type || 'modified', currentDiffRow);
+  });
+});
+
+loadCommits().catch(err => {
+  document.getElementById('vi-list').innerHTML =
+    `<div style="padding:16px;color:var(--error);font-size:.8em">Error loading gallery:<br>${err.message}</div>`;
+});
+</script>
+</body>
+</html>

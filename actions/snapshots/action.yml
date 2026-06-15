@@ -1,0 +1,83 @@
+# Composite action: LabVIEW VI Snapshots + VI Browser
+#
+# Renders a content-addressed gallery of every VI's block diagram and builds the
+# VI Browser. The bundled scripts + page assets live next to this file and are
+# pointed at via -OpsDir / -PagesDir, so the consumer repo needs no copy. Pin by
+# tag (@v1) to receive updates.
+#
+# Bundled alongside this file (kept in sync with .github/labview + .github/pages):
+#   build-snapshots.ps1, render-snapshots.ps1, build-gallery.py,
+#   vi-browser.html, vi-interactive.html
+name: 'LabVIEW VI Snapshots'
+description: 'Render the VI block-diagram gallery (VI Browser) for a repository, inside a container.'
+author: 'labview-ci'
+
+inputs:
+  image:
+    description: 'Container image to run in (the NI base image is sufficient).'
+    required: false
+    default: 'nationalinstruments/labview:latest-windows'
+  mode:
+    description: 'head = current commit only; backfill = walk history.'
+    required: false
+    default: 'head'
+  target-sha:
+    description: 'Commit SHA to snapshot (defaults to github.sha).'
+    required: false
+    default: ''
+  out-dir:
+    description: 'Gallery output directory (relative to the workspace).'
+    required: false
+    default: 'ci-out/vi-snapshots'
+  existing-by-blob-dir:
+    description: 'Path to a previously-deployed by-blob dir for incremental seeding.'
+    required: false
+    default: ''
+  max-commits:
+    description: 'backfill: cap to N most recent VI-touching commits (0 = all).'
+    required: false
+    default: '0'
+  max-vis:
+    description: 'cap NEW VIs rendered per commit (0 = all).'
+    required: false
+    default: '0'
+  time-budget-minutes:
+    description: 'backfill: stop launching new renders after N minutes.'
+    required: false
+    default: '300'
+
+outputs:
+  gallery-ok:
+    description: 'true when commits.json + by-blob/ were produced.'
+    value: ${{ steps.verify.outputs.ok }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build VI snapshots (incremental, content-addressed)
+      id: snapshots
+      shell: powershell
+      run: |
+        & "${{ github.action_path }}\build-snapshots.ps1" `
+          -Mode              '${{ inputs.mode }}' `
+          -WorkspaceRoot     '${{ github.workspace }}' `
+          -TargetSha         '${{ inputs.target-sha || github.sha }}' `
+          -OutDir            "${{ github.workspace }}\${{ inputs.out-dir }}" `
+          -ExistingByBlobDir '${{ inputs.existing-by-blob-dir }}' `
+          -OpsDir            "${{ github.action_path }}" `
+          -PagesDir          "${{ github.action_path }}" `
+          -Image             "${{ inputs.image }}" `
+          -MaxCommits        ${{ inputs.max-commits }} `
+          -MaxVIs            ${{ inputs.max-vis }} `
+          -TimeBudgetMinutes ${{ inputs.time-budget-minutes }}
+
+    - name: Verify gallery output
+      id: verify
+      shell: bash
+      run: |
+        OUT="${{ github.workspace }}/${{ inputs.out-dir }}"
+        if [ -f "$OUT/commits.json" ] && [ -d "$OUT/by-blob" ]; then
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+        fi

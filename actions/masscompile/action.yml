@@ -29,6 +29,14 @@ inputs:
     required: false
     default: ''
 
+outputs:
+  report-exists:
+    description: 'true when a report index.html was produced.'
+    value: ${{ steps.check.outputs.exists }}
+  percent:
+    description: 'Percentage of project VIs that compiled (from summary.json), or empty.'
+    value: ${{ steps.check.outputs.percent }}
+
 runs:
   using: 'composite'
   steps:
@@ -78,3 +86,19 @@ runs:
           --commit-msg "$(git log -1 --pretty=%s)" \
           --author     "$(git log -1 --pretty=%an)" \
           --date       "$(git log -1 --pretty=%cI)"
+
+    - name: Check report directory
+      id: check
+      shell: bash
+      run: |
+        REPORT_DIR="${{ github.workspace }}/${{ inputs.report-dir }}"
+        if [ -f "$REPORT_DIR/index.html" ]; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
+        PCT=""
+        if [ -f "$REPORT_DIR/summary.json" ]; then
+          PCT=$(grep -o '"percent"[: ]*[0-9]*' "$REPORT_DIR/summary.json" | grep -o '[0-9]*$' || true)
+        fi
+        echo "percent=$PCT" >> "$GITHUB_OUTPUT"
