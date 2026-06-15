@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.1",
+  "version": "1.2.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.2.0",
+        "date": "2026-06-15",
+        "title": "Mass Compile: friendly report & Linux support",
+        "summary": "Mass Compile now publishes a friendly, browseable report and can run on Linux as well as Windows.",
+        "highlights": [
+          "The Mass Compile report is now a full friendly page: problems grouped by VI, a snapshot drawer, and dashboard navigation.",
+          "Added a Windows / Linux toggle so compile results from each container can be reviewed side by side.",
+          "Added Linux Mass Compile: the project also compiles on the NI Linux base image, reporting under 'CI / Mass Compile (Linux)'.",
+          "VI Analyzer: reading the worker image version is now resilient and can no longer fail the analysis job."
+        ]
+      },
       {
         "version": "1.1.1",
         "date": "2026-06-15",
@@ -137,11 +149,12 @@
     {
       "id": "masscompile",
       "name": "Mass Compile",
-      "summary": "Compiles every VI in the project inside a LabVIEW container to catch broken / mutated code, and publishes a report showing the percentage of project VIs that compiled cleanly.",
+      "summary": "Compiles every VI in the project inside a LabVIEW container (Windows and/or Linux) to catch broken / mutated code, and publishes a friendly report that groups any problems by VI alongside the percentage of project VIs that compiled cleanly.",
       "status": "stable",
       "recommended": true,
       "supportsOs": [
-        "windows"
+        "windows",
+        "linux"
       ],
       "requires": [],
       "recommends": [
@@ -149,12 +162,17 @@
       ],
       "statusContext": "CI / Mass Compile",
       "files": {
-        "any": [],
+        "any": [
+          ".github/labview/build-masscompile-report.py"
+        ],
         "windows": [
           ".github/workflows/masscompile-windows-container.yml",
           ".github/labview/masscompile.ps1"
         ],
-        "linux": []
+        "linux": [
+          ".github/workflows/masscompile-linux-container.yml",
+          ".github/labview/masscompile.sh"
+        ]
       },
       "notes": "Runs on the NI base image \u2014 no custom image required."
     },
