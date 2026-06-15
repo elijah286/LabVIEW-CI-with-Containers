@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.2.2",
+        "date": "2026-06-15",
+        "title": "Update now pulls the full tooling",
+        "summary": "The 'Update now' button now performs a complete update \u2014 it re-pulls every tooling file at the latest version (bringing new capabilities, not just a version number) and opens a pull request to review.",
+        "highlights": [
+          "'Update now' runs the catalog-driven installer in update mode, so a client adopts all the latest workflows, scripts, and pages \u2014 including brand-new capabilities \u2014 in one reviewable pull request.",
+          "The client's own configuration (selected activities, LabVIEW version, runner concurrency) and baked dependencies are preserved across the update.",
+          "Fixed the installer's branding rules so files copied into a client repo are correctly rebranded to that repo instead of keeping the source repo's name."
+        ]
+      },
       {
         "version": "1.2.1",
         "date": "2026-06-15",
@@ -91,15 +102,15 @@
     "comment": "The installer and the configurator's bundle generator replace these source-repo identifiers with the target repo's values in every copied TEXT file (workflows, scripts, pages). Order matters: most specific first. Functional wiring (image, Pages URL, LabVIEW version) is NOT listed here because it already derives at runtime from the GitHub context / Actions variables; only cosmetic branding is rewritten.",
     "ordered": [
       {
-        "find": "elijah286.github.io/challenge-of-champions",
+        "find": "elijah286.github.io/LabVIEW-CI-with-Containers",
         "replaceWith": "{pagesHost}/{repoName}"
       },
       {
-        "find": "elijah286/challenge-of-champions",
+        "find": "elijah286/LabVIEW-CI-with-Containers",
         "replaceWith": "{ownerRepo}"
       },
       {
-        "find": "challenge-of-champions",
+        "find": "LabVIEW-CI-with-Containers",
         "replaceWith": "{repoName}"
       }
     ]
