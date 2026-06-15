@@ -9,7 +9,8 @@ config:
   labviewVersion: "2026"
   os: [windows, linux]
   concurrency:
-    maxParallel: 2
+    # Default to GitHub's free-tier concurrent-job limit (20).
+    maxParallel: 20
 activities:
   - dashboard
   - masscompile

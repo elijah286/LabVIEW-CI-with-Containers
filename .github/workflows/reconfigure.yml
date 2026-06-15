@@ -22,9 +22,9 @@ on:
         type: boolean
         default: true
       concurrent_runners:
-        description: 'Max concurrent runners'
+        description: 'Max concurrent runners (20 = GitHub Free limit)'
         required: false
-        default: '2'
+        default: '20'
       activities:
         description: 'Comma-separated capability ids (blank = keep current)'
         required: false
