@@ -390,6 +390,11 @@ jobs:
           refresh_note = ('Live — refreshing every 60 s while CI runs'
                           if running_flag['on'] else 'Auto-refreshes every 15 min')
 
+          # Title/header brand from the repo at runtime (just the repo name, no owner)
+          # so a client repo shows ITS own name — not the source repo's — and stays
+          # correct across tooling updates without any rebrand substitution.
+          repo_name = repo.split('/')[-1]
+
           # ── Version badge + update notification ─────────────────────
           # Read this repo's installed CI tooling version and the source repo it
           # pulls tooling from. The badge (left of the toolbar) shows the version.
@@ -462,7 +467,7 @@ jobs:
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <meta http-equiv="refresh" content="{refresh_secs}">
-            <title>CI Dashboard — LabVIEW-CI-with-Containers</title>
+            <title>CI Dashboard — {repo_name}</title>
             <style>
               :root{{
                 --bg:#0d1117;--surface:#161b22;--border:#30363d;
@@ -526,7 +531,7 @@ jobs:
               document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') lvciClose(); }});
             </script>
             {version_check_script}
-            <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
+            <h1>CI Dashboard — {repo_name}</h1>
             <div class="sub">Last updated: {now} &nbsp;|&nbsp; {refresh_note}</div>
             <div class="nav">
               <a href="{pages_url}/vi-snapshots/">VI Browser</a>
