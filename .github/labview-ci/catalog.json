@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.2.3",
+  "version": "1.3.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.3.0",
+        "date": "2026-06-15",
+        "title": "VI Analyzer as a shared (token-free) capability",
+        "summary": "VI Analyzer now runs from the shared reusable workflow, so a repository can get it by referencing the tooling at the major tag (for example @v1) \u2014 no vendored workflow files and no token. The analyzer publishes its report and posts the 'CI / VI Analyzer' status to the caller's dashboard just like before.",
+        "highlights": [
+          "Added a VI Analyzer composite action and a reusable-workflow job, so consumers run it via the shared @v1 reference instead of copying the workflow into their repo.",
+          "The reusable VI Analyzer job resolves the custom image, runs the analyzer, deploys the friendly report to the caller's GitHub Pages, and posts the commit status the dashboard reads \u2014 full parity with the vendored workflow.",
+          "Thin-caller consumers receive this and future VI Analyzer improvements automatically through the moving major-version alias, with no personal access token.",
+          "The caller grants the report-publish and status scopes; the example caller workflow shows the required permissions block."
+        ]
+      },
       {
         "version": "1.2.3",
         "date": "2026-06-15",

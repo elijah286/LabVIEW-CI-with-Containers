@@ -14,6 +14,13 @@ on:
 jobs:
   labview-ci:
     # Replace your-org/labview-ci with your standalone tooling repo.
+    # The reusable jobs publish reports to Pages and post commit statuses, so the
+    # caller grants those scopes (a reusable workflow can only use permissions the
+    # caller gives it).
+    permissions:
+      contents: write
+      statuses: write
+      packages: read
     uses: your-org/labview-ci/.github/workflows/labview-ci.reusable.yml@v1
     with:
       labview-version: "2026"

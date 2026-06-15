@@ -1,0 +1,102 @@
+# Composite action: LabVIEW VI Analyzer
+#
+# Mirrors actions/masscompile: the action mounts its OWN directory
+# (github.action_path) into the container, so the bundled analyzer script + config
+# template run INSIDE the container without the consumer repo holding a copy. The
+# friendly-report builder runs on the runner host afterwards. Pin by tag (@v1) to
+# receive updates with no copy in the consumer repo.
+#
+# Bundled alongside this file (kept in sync with .github/labview/):
+#   run-vi-analyzer.ps1, build-analyzer-report.py, via-config-default.viancfg
+name: 'LabVIEW VI Analyzer'
+description: 'Run the LabVIEW VI Analyzer over a project inside a container and publish a friendly HTML report.'
+author: 'labview-ci'
+
+inputs:
+  image:
+    description: 'Container image to run in (the custom LabVIEW CI image with VI Analyzer support).'
+    required: true
+  labview-version:
+    description: 'LabVIEW year (drives the in-container LabVIEW.exe path).'
+    required: false
+    default: '2026'
+  report-dir:
+    description: 'Report output directory (relative to the workspace).'
+    required: false
+    default: 'ci-out/vi-analyzer'
+  sha:
+    description: 'Commit SHA being analyzed (for report metadata).'
+    required: false
+    default: ''
+  repo:
+    description: 'owner/name of the repository being analyzed.'
+    required: false
+    default: ''
+  pages-url:
+    description: 'Base GitHub Pages URL (for report nav / snapshot links). Defaults to https://<owner>.github.io/<repo>.'
+    required: false
+    default: ''
+
+outputs:
+  report-exists:
+    description: 'true when a report index.html was produced.'
+    value: ${{ steps.check.outputs.exists }}
+  analyze-outcome:
+    description: 'success | failure of the in-container analysis.'
+    value: ${{ steps.analyze.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run VI Analyzer inside container
+      id: analyze
+      shell: powershell
+      run: |
+        # Mount the workspace (the project to analyze) AND this action's directory
+        # (which carries run-vi-analyzer.ps1 + the .viancfg template) into the
+        # container, so the consumer repo needs no copy of the script.
+        docker run --rm `
+          -e "GITHUB_REPOSITORY=${{ inputs.repo || github.repository }}" `
+          -v "${{ github.workspace }}:C:\workspace" `
+          -v "${{ github.action_path }}:C:\ci-action" `
+          "${{ inputs.image }}" `
+          powershell -NonInteractive -ExecutionPolicy Bypass `
+            -File "C:\ci-action\run-vi-analyzer.ps1" `
+            -WorkspaceRoot  "C:\workspace" `
+            -ReportDir      "C:\workspace\${{ inputs.report-dir }}" `
+            -ConfigTemplate "C:\ci-action\via-config-default.viancfg" `
+            -LabVIEWPath    "C:\Program Files\National Instruments\LabVIEW ${{ inputs.labview-version }}\LabVIEW.exe"
+
+    - name: Check report directory
+      id: check
+      shell: bash
+      run: |
+        if [ -f "${{ github.workspace }}/${{ inputs.report-dir }}/index.html" ]; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Build friendly report (parse native HTML + join snapshots)
+      if: steps.check.outputs.exists == 'true'
+      shell: bash
+      continue-on-error: true   # a formatting hiccup must never block deploying the native report
+      run: |
+        REPORT_DIR="${{ github.workspace }}/${{ inputs.report-dir }}"
+        REPO="${{ inputs.repo || github.repository }}"
+        SHA="${{ inputs.sha || github.sha }}"
+        PAGES="${{ inputs.pages-url }}"
+        if [ -z "$PAGES" ]; then
+          owner="${REPO%%/*}"; name="${REPO#*/}"
+          PAGES="https://${owner}.github.io/${name}"
+        fi
+        python "${{ github.action_path }}/build-analyzer-report.py" \
+          --in        "$REPORT_DIR/index.html" \
+          --out       "$REPORT_DIR" \
+          --sha       "$SHA" \
+          --platform  windows \
+          --repo      "$REPO" \
+          --pages-url "$PAGES" \
+          --commit-msg "$(git log -1 --pretty=%s   "$SHA" 2>/dev/null || echo '')" \
+          --author     "$(git log -1 --pretty=%an  "$SHA" 2>/dev/null || echo '')" \
+          --date       "$(git log -1 --pretty=%cI  "$SHA" 2>/dev/null || echo '')"

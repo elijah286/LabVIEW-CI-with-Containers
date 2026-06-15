@@ -74,5 +74,136 @@ jobs:
           path: ci-out/masscompile/
           if-no-files-found: warn
 
-  # Add vi-analyzer / vidiff / snapshots jobs the same way, each gated on its
-  # has-* output (+ platform). New capabilities slot in without touching consumers.
+  # VI Analyzer (Windows container). Runs the analyzer over the project, publishes
+  # the friendly report to the caller's Pages, and posts the "CI / VI Analyzer"
+  # commit status so the caller's dashboard shows the result. Requires the custom
+  # LabVIEW CI image (built by the consumer's build-labview-image workflow).
+  vi-analyzer:
+    needs: config
+    if: ${{ needs.config.outputs.has-vi-analyzer == 'true' && needs.config.outputs.os-windows == 'true' }}
+    runs-on: ${{ inputs.windows-runner }}
+    permissions:
+      contents: write    # peaceiris deploys the report to gh-pages
+      statuses: write     # post the CI / VI Analyzer commit status
+      packages: read      # pull the custom image from GHCR
+    steps:
+      - name: Resolve container image name (GHCR requires lowercase)
+        id: img
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          IMAGE_TAG: ${{ inputs.labview-version || needs.config.outputs.labview-version || '2026' }}
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          echo "ref=ghcr.io/${owner}/${name}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Pages URL
+        id: pages
+        shell: bash
+        run: |
+          if [ -n "${{ vars.PAGES_URL }}" ]; then
+            echo "url=${{ vars.PAGES_URL }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"description\":\"VI Analyzer in progress\",\"context\":\"CI / VI Analyzer\"}"
+
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
+          if ($null -eq $svc) { throw 'Docker service not found on this runner.' }
+          if ($svc.Status -ne 'Running') { Start-Service docker }
+          docker version
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull LabVIEW container image
+        id: pull
+        shell: powershell
+        run: docker pull "${{ steps.img.outputs.ref }}"
+        continue-on-error: true
+
+      - name: Run VI Analyzer
+        id: analyze
+        if: steps.pull.outcome == 'success'
+        continue-on-error: true
+        uses: elijah286/LabVIEW-CI-with-Containers/actions/vi-analyzer@v1
+        with:
+          image: ${{ steps.img.outputs.ref }}
+          labview-version: ${{ inputs.labview-version || needs.config.outputs.labview-version }}
+          sha: ${{ github.sha }}
+          repo: ${{ github.repository }}
+          pages-url: ${{ steps.pages.outputs.url }}
+
+      - name: Upload report artifact
+        if: steps.analyze.outputs.report-exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vi-analyzer-report-${{ github.sha }}
+          path: ci-out/vi-analyzer/
+          if-no-files-found: warn
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.analyze.outputs.report-exists == 'true'
+        shell: bash
+        run: |
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy report to GitHub Pages
+        if: steps.analyze.outputs.report-exists == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ci-out/vi-analyzer
+          destination_dir: vi-analyzer/${{ github.sha }}
+          keep_files: true
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.analyze.outputs.report-exists }}" = "true" ]; then
+            URL="${{ steps.pages.outputs.url }}/vi-analyzer/${GITHUB_SHA}/index.html"
+          else
+            URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          fi
+          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.analyze.outcome }}" = "success" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
+          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"VI Analyzer $STATE\",\"context\":\"CI / VI Analyzer\"}"
+
+      - name: Fail the job if analysis failed
+        if: always() && (steps.pull.outcome != 'success' || steps.analyze.outcome != 'success')
+        run: exit 1
+
+  # Add vidiff / snapshots jobs the same way, each gated on its has-* output (+
+  # platform). New capabilities slot in without touching consumers.
+
