@@ -316,6 +316,147 @@ def print_next_steps(catalog: dict, owner: str | None, name: str | None, activit
     log("Done. Open a pull request that changes a VI to see the pipeline run.")
 
 
+def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str | None,
+                 activities: list[str], os_list: list[str], labview_version: str,
+                 dry_run: bool) -> int:
+    """Write thin caller workflows + Dependabot + config that reference the source
+    repo's reusable workflow/actions at the major tag, instead of vendoring copies.
+    A thin consumer holds only these small files; updates arrive via the moving tag.
+    """
+    src = catalog.get("source", {}) or {}
+    src_repo = src.get("repo", "") or ""
+    version = str(catalog.get("version", "0.0.0"))
+    major = version.split(".")[0] if version else "1"
+    alias = f"v{major}"
+    now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    acts = [a for a in activities
+            if a in {c["id"] for c in catalog.get("capabilities", []) if c.get("status") != "planned"}]
+    os_csv = ", ".join(os_list)
+
+    def write(rel: str, content: str) -> None:
+        dst = target_root / rel
+        if dry_run:
+            log(f"  would write     {rel}")
+            return
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(content, encoding="utf-8")
+        log(f"  write           {rel}")
+
+    # 1) The CI caller — triggers + delegate to the reusable workflow @major.
+    write(".github/workflows/labview-ci.yml",
+        "# LabVIEW CI — thin caller. All logic lives in the shared reusable workflow;\n"
+        "# this file owns only the triggers. Updates arrive automatically through the\n"
+        f"# moving major tag (@{alias}); Dependabot can also bump it.\n"
+        "name: LabVIEW CI\n\n"
+        "on:\n"
+        "  pull_request:\n"
+        "    paths: ['**.vi', '**.ctl', '**.lvproj', '**.lvlib', '**.lvclass']\n"
+        "  push:\n"
+        "    branches: [main]\n"
+        "    paths: ['**.vi', '**.ctl', '**.lvproj', '**.lvlib', '**.lvclass']\n"
+        "  workflow_dispatch:\n\n"
+        "jobs:\n"
+        "  labview-ci:\n"
+        "    permissions:\n"
+        "      contents: write\n"
+        "      statuses: write\n"
+        "      packages: read\n"
+        f"    uses: {src_repo}/.github/workflows/labview-ci.reusable.yml@{alias}\n"
+        "    with:\n"
+        f"      labview-version: \"{labview_version}\"\n"
+        "    secrets: inherit\n")
+
+    # 2) The dashboard caller — meta-triggered; delegates to the dashboard action.
+    if "dashboard" in acts:
+        write(".github/workflows/dashboard.yml",
+            "# CI Dashboard — thin caller. Rebuilds on every commit status, after the\n"
+            "# LabVIEW CI workflow, and hourly. The build logic lives in the shared\n"
+            f"# dashboard action (@{alias}); this file owns the triggers + Pages deploy.\n"
+            "name: CI Dashboard\n\n"
+            "on:\n"
+            "  status:\n"
+            "  workflow_run:\n"
+            "    workflows: [\"LabVIEW CI\"]\n"
+            "    types: [completed]\n"
+            "  schedule:\n"
+            "    - cron: '0 * * * *'\n"
+            "  workflow_dispatch:\n\n"
+            "concurrency:\n"
+            "  group: dashboard-pages\n"
+            "  cancel-in-progress: true\n\n"
+            "permissions:\n"
+            "  contents: write\n"
+            "  statuses: read\n"
+            "  actions: read\n\n"
+            "jobs:\n"
+            "  dashboard:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - uses: actions/checkout@v4\n"
+            f"      - uses: {src_repo}/actions/dashboard@{alias}\n"
+            "        with:\n"
+            "          github-token: ${{ secrets.GITHUB_TOKEN }}\n"
+            "      - uses: peaceiris/actions-gh-pages@v4\n"
+            "        with:\n"
+            "          github_token: ${{ secrets.GITHUB_TOKEN }}\n"
+            "          publish_dir: ci-out/dashboard\n"
+            "          destination_dir: .\n"
+            "          keep_files: true\n")
+
+    # 3) Dependabot — auto-PRs to bump the @major pin (token-free updates).
+    write(".github/dependabot.yml",
+        "# Auto-update the pinned LabVIEW CI tooling. Dependabot opens a reviewable PR\n"
+        "# whenever the referenced reusable workflow / action tag gets a new release.\n"
+        "version: 2\n"
+        "updates:\n"
+        "  - package-ecosystem: \"github-actions\"\n"
+        "    directory: \"/\"\n"
+        "    schedule:\n"
+        "      interval: \"weekly\"\n"
+        "    commit-message:\n"
+        "      prefix: \"ci\"\n"
+        "    labels:\n"
+        "      - \"dependencies\"\n"
+        "      - \"labview-ci\"\n")
+
+    # 4) The consumer config the reusable workflow reads to gate activities.
+    cfg = [
+        "# .github/labview-ci.yml — LabVIEW CI consumer config (thin install).",
+        "schemaVersion: 1",
+        f"installedVersion: {version}",
+        f"installedAt: {now}",
+        "source:",
+        f"  repo: {src_repo}",
+        f"  ref: {alias}",
+        "config:",
+        f"  labviewVersion: \"{labview_version}\"",
+        f"  os: [{os_csv}]",
+        "  concurrency:",
+        "    maxParallel: 20",
+        "activities:",
+    ] + [f"  - {a}" for a in acts] + [""]
+    write(".github/labview-ci.yml", "\n".join(cfg))
+
+    log("")
+    if dry_run:
+        log("Dry run (thin): re-run without --dry-run to write the files.")
+        return 0
+    repo = f"{owner}/{name}" if owner and name else "<owner>/<repo>"
+    log("Thin install complete — your repo references the shared tooling at "
+        f"@{alias} and updates automatically.")
+    log("")
+    log("Next steps")
+    log("  1. Review:  git status && git diff")
+    log("  2. Commit:  git add .github && git commit -m \"Add LabVIEW CI (thin)\" && git push")
+    log("  3. Enable GitHub Pages from the 'gh-pages' branch (Settings > Pages).")
+    log("  4. Settings > Actions > General > Workflow permissions > Read and write.")
+    if "custom-image" in acts:
+        log("  5. (vi-analyzer) Build the shared image once, or set vars.LABVIEW_IMAGE_NAME.")
+    log("")
+    log(f"Updates: merge the weekly Dependabot PR, or just stay on @{alias} to get them automatically.")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Install LabVIEW CI capabilities into a repository.",
@@ -343,6 +484,11 @@ def main() -> int:
     parser.add_argument("--update", action="store_true",
                         help="Re-pull the latest tooling for an existing install (overwrites tooling, "
                              "preserves your config files). Reads the prior selection from the manifest.")
+    parser.add_argument("--thin", action="store_true",
+                        help="Thin install: write small caller workflows that reference the shared "
+                             "reusable workflow + composite actions at the source repo's major tag "
+                             "(e.g. @v1), plus Dependabot, instead of vendoring full copies. Updates "
+                             "then arrive automatically via the moving tag — no token, no re-install.")
     parser.add_argument("--no-vars", action="store_true", help="Do not print the optional 'gh variable set' steps.")
     args = parser.parse_args()
 
@@ -406,8 +552,12 @@ def main() -> int:
     log(f"  labview:    {labview_version}")
     if update and prev.get("installedVersion"):
         log(f"  version:    {prev.get('installedVersion')} -> {catalog.get('version', '0.0.0')}")
-    log(f"  mode:       {'dry-run ' if args.dry_run else ''}{'update' if update else 'install'}")
+    log(f"  mode:       {'dry-run ' if args.dry_run else ''}{'update' if update else ('thin install' if args.thin else 'install')}")
     log("")
+
+    if args.thin:
+        return thin_install(catalog, target_root, owner, name, activities, os_list,
+                            labview_version, args.dry_run)
 
     file_list = resolve_file_list(catalog, activities, os_list)
     stats = {"installed": 0, "updated": 0, "skipped": 0, "planned": 0, "preserved": 0}

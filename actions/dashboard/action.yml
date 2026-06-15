@@ -1,0 +1,53 @@
+# Composite action: LabVIEW CI Dashboard
+#
+# Builds the GitHub Pages status dashboard (and the tooling pages it links to:
+# VI Browser, report viewer, What's New, Configure, Apply) from a repository's
+# commit statuses + Pages content. Runs on the runner host (ubuntu, no container).
+# The generator + page assets are bundled next to this file, so a consumer needs
+# NO copy of them. Pin by tag (@v1) to receive updates.
+#
+# Bundled alongside this file (kept in sync with .github/labview/dashboard +
+# .github/pages):
+#   dashboard.py, vi-browser.html, vi-interactive.html, report-viewer.html,
+#   whats-new.html, configure.html, integrate.html
+name: 'LabVIEW CI Dashboard'
+description: 'Generate the LabVIEW CI status dashboard + tooling pages for a repository.'
+author: 'labview-ci'
+
+inputs:
+  repo:
+    description: 'owner/name of the repository to build the dashboard for.'
+    required: false
+    default: ''
+  pages-url:
+    description: 'Base GitHub Pages URL. Defaults to https://<owner>.github.io/<repo>.'
+    required: false
+    default: ''
+  github-token:
+    description: 'Token used to read commit statuses + run info.'
+    required: true
+
+outputs:
+  out-dir:
+    description: 'Directory the dashboard was written to.'
+    value: ci-out/dashboard
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build dashboard
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ inputs.repo || github.repository }}
+        PAGES_URL: ${{ inputs.pages-url }}
+        # Point the generator at this action's bundled pages + (if present) the
+        # consumer's own catalog.json; it falls back to .github/labview-ci.yml.
+        PAGES_SRC: ${{ github.action_path }}
+        CATALOG_PATH: .github/labview-ci/catalog.json
+      run: |
+        if [ -z "${PAGES_URL}" ]; then
+          owner="${GITHUB_REPOSITORY_OWNER}"; name="${REPO#*/}"
+          export PAGES_URL="https://${owner}.github.io/${name}"
+        fi
+        python3 "${{ github.action_path }}/dashboard.py"

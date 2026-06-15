@@ -1,0 +1,46 @@
+# Thin DASHBOARD caller — drop this in a consumer repo to get the CI dashboard.
+#
+# The dashboard rebuilds whenever any CI activity reports a commit status (the
+# `status` event), after the LabVIEW CI workflow runs, and on a schedule — so it
+# stays current with no per-workflow wiring. All the build logic lives in the
+# shared dashboard composite action (@v1); this caller owns only the triggers and
+# the Pages deploy, which must be repo-local. Bump @v1 (or let Dependabot do it).
+name: CI Dashboard
+
+on:
+  status:
+  workflow_run:
+    workflows: ["LabVIEW CI"]
+    types: [completed]
+  schedule:
+    - cron: '0 * * * *'   # hourly safety refresh
+  workflow_dispatch:
+
+concurrency:
+  group: dashboard-pages
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # deploy the dashboard to gh-pages
+  statuses: read
+  actions: read
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build dashboard
+        uses: elijah286/LabVIEW-CI-with-Containers/actions/dashboard@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy dashboard to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ci-out/dashboard
+          destination_dir: .
+          keep_files: true

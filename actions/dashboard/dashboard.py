@@ -1,0 +1,583 @@
+#!/usr/bin/env python3
+import json, os, re, sys, urllib.request, urllib.error
+
+token    = os.environ['GH_TOKEN']
+repo     = os.environ['REPO']
+pages_url = os.environ['PAGES_URL']
+
+def gh_get(path):
+    url = f"https://api.github.com/repos/{repo}/{path}"
+    req = urllib.request.Request(url, headers={
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+    })
+    try:
+        with urllib.request.urlopen(req) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        print(f"  HTTP {e.code} for {path}", file=sys.stderr)
+        return None
+
+# ── Fetch a JSON file straight from the deployed Pages site ─────
+# Used to read each commit's per-platform VIDiff changes.json so the
+# Snapshots column can report how many VIs were rendered on Windows vs
+# Linux. Returns None on any error (missing file, propagation lag, etc.).
+def http_json(url):
+    req = urllib.request.Request(url, headers={'Accept': 'application/json'})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.load(r)
+    except Exception:
+        return None
+
+_snap_cache = {}
+def snapshot_counts(sha):
+    # Map platform -> number of VIs whose snapshots/diffs were rendered for
+    # this revision, sourced from vidiff/push-<sha>/<platform>/vidiff/changes.json.
+    if sha in _snap_cache:
+        return _snap_cache[sha]
+    counts = {}
+    for plat in ('windows', 'linux'):
+        data = http_json(f"{pages_url}/vidiff/push-{sha}/{plat}/vidiff/changes.json")
+        if data and isinstance(data.get('files'), list):
+            counts[plat] = len(data['files'])
+    _snap_cache[sha] = counts
+    return counts
+
+_mc_cache = {}
+def masscompile_summary(sha):
+    # {total, ok, bad, percent, status, exit, duration} written by masscompile.ps1
+    # and deployed alongside the report at masscompile/<sha>/summary.json. Lets the
+    # Mass Compile column show the % of project VIs that compiled instead of a
+    # binary pass/fail (most VIs compile even when a few depend on libraries absent
+    # from the CI image).
+    if sha in _mc_cache:
+        return _mc_cache[sha]
+    data = http_json(f"{pages_url}/masscompile/{sha}/summary.json")
+    _mc_cache[sha] = data if isinstance(data, dict) else None
+    return _mc_cache[sha]
+
+# ── Fetch recent commits on main ────────────────────────────────
+# Pull a wide window so the actual LabVIEW project history is present,
+# not just a long tail of CI/tooling commits (which can easily fill the
+# most-recent slots during a pipeline sprint).
+commits_data = gh_get('commits?sha=main&per_page=100') or []
+
+# LabVIEW / NI source-file extensions. A revision that touches one of
+# these (outside the CI tooling — see below) is a change to the actual
+# project, as opposed to a CI/docs/tooling revision.
+LV_SOURCE_EXTS = (
+    '.vi', '.vit', '.ctl', '.ctt', '.lvclass', '.lvlib', '.lvlibp',
+    '.lvproj', '.xctl', '.xnode', '.vipc', '.vip', '.llb', '.mnu', '.lvtest',
+)
+
+import datetime as _dt
+def _stale_pending(s):
+    # A 'pending' status older than 2h is almost certainly orphaned
+    # (a cancelled/abandoned run) rather than one that is still running.
+    if not s or s.get('state') != 'pending':
+        return False
+    try:
+        ts = s.get('created_at', '').replace('Z', '+00:00')
+        age = _dt.datetime.now(_dt.timezone.utc) - _dt.datetime.fromisoformat(ts)
+        return age.total_seconds() > 2 * 3600
+    except Exception:
+        return False
+
+# A 'pending' commit status only means a run STARTED. If that run later
+# crashed or was cancelled WITHOUT posting a terminal status, the pending
+# lingers and the dashboard would otherwise show a perpetual "running" spinner
+# for a job that has actually stopped (often with an error). Verify the linked
+# workflow run is genuinely still active before trusting a pending as live.
+_run_active_cache = {}
+def run_is_active(url):
+    if not url:
+        return False
+    m = re.search(r'/actions/runs/(\d+)', url)
+    if not m:
+        return False
+    rid = m.group(1)
+    if rid in _run_active_cache:
+        return _run_active_cache[rid]
+    data = gh_get(f'actions/runs/{rid}')
+    active = bool(data) and data.get('status') in (
+        'queued', 'in_progress', 'requested', 'waiting', 'pending')
+    _run_active_cache[rid] = active
+    return active
+
+# Set as soon as any cell renders an actively-running activity; drives the
+# faster page auto-refresh so a live run (and its result) surfaces promptly.
+running_flag = {'on': False}
+
+rows_html = []
+for c in commits_data:
+    sha     = c['sha']
+    short   = sha[:7]
+    msg     = c['commit']['message'].splitlines()[0][:80]
+    author  = c['commit']['author']['name']
+    date    = c['commit']['author']['date']
+
+    # Classify the revision by scope. A "project change" touches at least
+    # one LabVIEW source file that lives in the project itself — i.e. NOT
+    # the helper VIs bundled with the CI tooling under .github/ (e.g.
+    # .github/labview/PrintToSingleFileHtml/*.vi). Everything else (CI
+    # workflows & scripts, docs, images, repo metadata, merges) is a
+    # non-project revision, hidden by default. Keying off the presence of
+    # project LabVIEW source — rather than "all files under .github/" —
+    # means a commit that changes a VI is always treated as a project
+    # change, and a CI commit that only touches the bundled helper VIs is
+    # not mistaken for one.
+    compare = gh_get(f'commits/{sha}') or {}
+    files   = [f['filename'] for f in (compare.get('files') or [])]
+    is_project = any(
+        f.lower().endswith(LV_SOURCE_EXTS) and not f.startswith('.github/')
+        for f in files
+    )
+    proj_flag = 'true' if is_project else 'false'
+
+    # Fetch commit statuses
+    statuses_data = gh_get(f'commits/{sha}/statuses') or []
+    status_map = {}
+    for s in statuses_data:
+        ctx = s['context']
+        if ctx not in status_map:          # keep latest per context
+            status_map[ctx] = s
+
+    def pick_status(*contexts):
+        # Gather the latest status for each candidate context (in priority order).
+        cands = [status_map[c] for c in contexts if c in status_map]
+        if not cands:
+            return None
+        # Prefer a terminal state (success/failure/error) over 'pending', then
+        # take the MOST RECENT one. This means a fresh Linux success wins over a
+        # stale Windows failure for the same logical check, and an orphaned
+        # 'pending' from a cancelled run never masks a completed result.
+        terminal = [c for c in cands if c['state'] in ('success', 'failure', 'error')]
+        pool = terminal if terminal else cands
+        chosen = max(pool, key=lambda s: s.get('created_at', ''))
+        # A 'pending' older than 2h is almost certainly orphaned (cancelled run) —
+        # show it as no-status rather than a perpetual spinner.
+        if _stale_pending(chosen):
+            return None
+        return chosen
+
+    EMPTY_CELL = '<td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>'
+
+    def fresh_pending(*contexts):
+        # Return the newest actively-running (fresh 'pending') status among the
+        # candidate contexts, or None. Detected separately from pick_status so a
+        # re-run in progress reads as "running" even when an older terminal status
+        # for the same logical check still exists.
+        best = None
+        for ctx in contexts:
+            s = status_map.get(ctx)
+            if not s or s.get('state') != 'pending' or _stale_pending(s):
+                continue
+            if best is None or s.get('created_at', '') > best.get('created_at', ''):
+                best = s
+        # A pending whose workflow run has already finished is stale (the run
+        # stopped without posting its terminal status) — don't render it live.
+        if best is not None and not run_is_active(best.get('target_url', '')):
+            return None
+        return best
+
+    def running_cell(label, url):
+        # A spinning "running" indicator linking straight to the live workflow run
+        # so the user can jump to it and see where it is.
+        running_flag['on'] = True
+        inner = f'<span class="run-spin"></span>{label}'
+        body  = (f'<a href="{url}" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">{inner}</a>'
+                 if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
+        return ('<td style="text-align:center">'
+                '<span class="run-badge" title="Running — click to view progress">'
+                f'{body}</span></td>')
+
+    def badge(label, *contexts, url_override=None):
+        if not is_project:
+            return EMPTY_CELL
+        run = fresh_pending(*contexts)
+        if run is not None:
+            return running_cell(label, run.get('target_url', ''))
+        s = pick_status(*contexts)
+        if not s:
+            return EMPTY_CELL
+        color  = {'success':'#2ea043','failure':'#da3633','pending':'#9a6700','error':'#da3633'}.get(s['state'],'#555')
+        emoji  = {'success':'✅','failure':'❌','pending':'⏳','error':'⚠️'}.get(s['state'],'?')
+        url    = url_override or s.get('target_url','')
+        link   = f'<a href="{url}" style="color:inherit">{emoji} {label}</a>' if url else f'{emoji} {label}'
+        return f'<td style="text-align:center"><span style="background:{color};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">{link}</span></td>'
+
+    def worker_cell(*contexts):
+        # Worker-version column: the version string the worker status posted
+        # (e.g. win-abc123def456) linked to its published manifest. EMPTY_CELL
+        # for non-project revisions or before the analyzer reported a worker.
+        if not is_project:
+            return EMPTY_CELL
+        s = pick_status(*contexts)
+        if not s:
+            return EMPTY_CELL
+        desc = (s.get('description') or '').strip()
+        m = re.search(r'(?:win|linux)-[0-9a-f]{6,}', desc)
+        ver = m.group(0) if m else (desc or 'manifest')
+        url = s.get('target_url', '')
+        inner = f'<a href="{url}" style="color:inherit">{ver}</a>' if url else ver
+        return ('<td style="text-align:center"><span style="font-family:monospace;'
+                f'font-size:.72em;color:var(--fg-muted)">{inner}</span></td>')
+
+    # Mass Compile column: show the % of project VIs that compiled (most VIs
+    # compile even when a few depend on libraries absent from the CI image),
+    # sourced from the run's summary.json. Falls back to the plain status badge
+    # for older runs that predate summary.json.
+    if not is_project:
+        mc_badge = EMPTY_CELL
+    else:
+        _mc_run = fresh_pending('CI / Mass Compile')
+        _mc = masscompile_summary(sha)
+        if _mc_run is not None:
+            mc_badge = running_cell('compile', _mc_run.get('target_url', ''))
+        elif _mc and isinstance(_mc.get('percent'), int):
+            _pct = _mc['percent']
+            _ok, _tot = _mc.get('ok', 0), _mc.get('total', 0)
+            # Yellow whenever SOME VIs failed (a partial compile); red is reserved
+            # for a true failure (0% — nothing compiled / LabVIEW errored); green
+            # only at a clean 100%. Prefer the run's own status word, falling back
+            # to the percentage for older summaries that predate it.
+            _st = _mc.get('status')
+            _failed = (_st == 'failed') or (_st is None and _pct <= 0)
+            _passed = (_st == 'passed') or (_st is None and _pct >= 100)
+            _col = '#2ea043' if _passed else ('#da3633' if _failed else '#bb8009')
+            _emoji = '✅' if _passed else ('❌' if _failed else '⚠️')
+            # The Mass Compile report is now a full friendly page — problems
+            # grouped by VI, a Windows/Linux toggle, a snapshot drawer, and its
+            # own dashboard nav — so link straight to it (no iframe wrapper).
+            _url = f'{pages_url}/masscompile/{sha}/index.html'
+            mc_badge = (f'<td style="text-align:center"><span title="{_ok}/{_tot} project VIs compiled" '
+                        f'style="background:{_col};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">'
+                        f'<a href="{_url}" style="color:inherit">{_emoji} {_pct}%</a></span></td>')
+        else:
+            mc_badge = badge('compile', 'CI / Mass Compile')
+    # Consider both analyzer platforms (mirrors the diff badge): a revision
+    # analyzed only on Linux still surfaces its VI Analyzer result instead of
+    # showing nothing because the Windows-only context is absent.
+    via_badge = badge('analyze',   'CI / VI Analyzer', 'CI / VI Analyzer (Linux)')
+    # The diff badge opens the unified VI Browser filtered to this commit's
+    # changed VIs (each links to its diff report), rather than a separate table.
+    diff_badge= badge('diff',      'CI / VIDiff (windows)', 'CI / VIDiff (linux)',
+                       url_override=f'{pages_url}/vi-snapshots/index.html?sha={sha}&changed=1')
+    # Snapshots column: per-platform count of VIs rendered for this revision
+    # (from each container's VIDiff changes.json), each a deep link into the VI
+    # Browser with that platform preselected and the view filtered to changes.
+    if not is_project:
+        snap_badge = '<td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>'
+    else:
+        _snap_run = fresh_pending('CI / VI Snapshots')
+        _counts = snapshot_counts(sha)
+        if _snap_run is not None:
+            snap_badge = running_cell('snapshots', _snap_run.get('target_url', ''))
+        elif not _counts:
+            snap_badge = '<td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>'
+        else:
+            _links = []
+            for _plat, _label in (('windows', 'Win'), ('linux', 'Linux')):
+                _n = _counts.get(_plat)
+                if _n is None:
+                    _links.append(f'<span style="color:var(--fg-muted)">{_label}(–)</span>')
+                else:
+                    _href = f'{pages_url}/vi-snapshots/index.html?sha={sha}&plat={_plat}&changed=1'
+                    _links.append(f'<a href="{_href}" style="color:var(--link)">{_label}({_n})</a>')
+            snap_badge = f'<td style="text-align:center;font-size:.78em;white-space:nowrap">{" / ".join(_links)}</td>'
+
+    # Worker columns: which CI worker image analyzed this revision, each
+    # linking to that worker's published manifest (what's installed + VIPC).
+    win_worker   = worker_cell('CI / Worker (windows)')
+    linux_worker = worker_cell('CI / Worker (linux)')
+
+    rows_html.append(f"""
+    <tr data-project="{proj_flag}">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://github.com/{repo}/commit/{sha}" style="color:var(--link)">{short}</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{msg}"><a href="{pages_url}/vi-snapshots/index.html?sha={sha}" style="color:var(--fg)">{msg}</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">{author}</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">{date[:10]}</td>
+      {mc_badge}
+      {via_badge}
+      {diff_badge}
+      {snap_badge}
+      {win_worker}
+      {linux_worker}
+    </tr>""")
+
+rows = '\n'.join(rows_html)
+now  = __import__('datetime').datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+
+# The "Include CI-only revisions" toggle is de-selected by default, so the
+# dashboard opens on project revisions (those that change LabVIEW source).
+# The toggle is honored strictly: while it is de-selected, CI-only revisions
+# stay hidden — there is no automatic override. If that leaves the table
+# empty (e.g. during a long CI/tooling sprint where the recent commits don't
+# touch VIs), an inline empty-state prompt invites enabling the toggle, so
+# the page is never a silently blank table (see the filter script below).
+
+# While something is actively running, poll faster so the live indicator
+# (and its eventual result) surfaces promptly; otherwise refresh lazily.
+refresh_secs = 60 if running_flag['on'] else 900
+refresh_note = ('Live — refreshing every 60 s while CI runs'
+                if running_flag['on'] else 'Auto-refreshes every 15 min')
+
+# Title/header brand from the repo at runtime (just the repo name, no owner)
+# so a client repo shows ITS own name — not the source repo's — and stays
+# correct across tooling updates without any rebrand substitution.
+repo_name = repo.split('/')[-1]
+
+# ── Version badge + update notification ─────────────────────
+# Read this repo's installed CI tooling version and the source repo it
+# pulls tooling from. The badge (left of the toolbar) shows the version.
+# Client repos (whose source repo differs from this repo) get a live
+# check against the source's catalog and a notification glyph + What's
+# New dialog when a newer release exists. The source repo itself always
+# runs the latest version, so it needs no check.
+_cat = {}
+try:
+    with open(os.environ.get('CATALOG_PATH', '.github/labview-ci/catalog.json'), encoding='utf-8') as _cf:
+        _cat = json.load(_cf)
+except Exception:
+    _cat = {}
+lvci_version   = str(_cat.get('version', '') or '')
+_src           = _cat.get('source', {}) or {}
+lvci_src_repo  = str(_src.get('repo', '') or '')
+lvci_src_ref   = str(_src.get('ref', 'main') or 'main')
+# Thin consumers have no catalog.json — fall back to the install manifest
+# (.github/labview-ci.yml) for the installed version + source pointer so the
+# version badge still works.
+if not lvci_version:
+    try:
+        import re as _re
+        _in_src = False
+        for _line in open('.github/labview-ci.yml', encoding='utf-8'):
+            _m = _re.match(r'^\s*installedVersion:\s*(\S+)', _line)
+            if _m: lvci_version = _m.group(1).strip()
+            if _re.match(r'^\s*source:\s*$', _line): _in_src = True; continue
+            if _in_src:
+                _m = _re.match(r'^\s*repo:\s*(\S+)', _line)
+                if _m and not lvci_src_repo: lvci_src_repo = _m.group(1).strip()
+                _m = _re.match(r'^\s*ref:\s*(\S+)', _line)
+                if _m: lvci_src_ref = _m.group(1).strip()
+                if _line and not _line[0].isspace(): _in_src = False
+    except Exception:
+        pass
+lvci_is_source = (not lvci_src_repo) or (lvci_src_repo.lower() == repo.lower())
+lvci_cfg_json  = json.dumps({
+    'version': lvci_version, 'sourceRepo': lvci_src_repo,
+    'sourceRef': lvci_src_ref, 'isSource': bool(lvci_is_source), 'repo': repo,
+})
+version_badge_html = ''
+version_check_script = ''
+if lvci_version:
+    _badge_title = ('Latest LabVIEW CI tooling version' if lvci_is_source
+                    else 'Installed LabVIEW CI tooling version')
+    version_badge_html = (
+        '<div id="lvci-version" title="' + _badge_title + '" '
+        'style="position:relative;display:inline-flex;align-items:center;gap:6px;'
+        'background:rgba(110,118,129,.15);color:var(--fg-muted);'
+        'border:1px solid rgba(110,118,129,.35);padding:8px 12px;border-radius:6px;'
+        'font-size:.78em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;'
+        'user-select:none"><span>v' + lvci_version + '</span>'
+        '<span id="lvci-update-dot" aria-hidden="true"></span></div>'
+    )
+    version_check_script = (
+        '<style>'
+        '#lvci-version.lvci-has-update{cursor:pointer;color:var(--fg);'
+        'border-color:#d29922;background:rgba(210,153,34,.13)}'
+        '#lvci-version.lvci-has-update:hover{background:rgba(210,153,34,.22)}'
+        '#lvci-update-dot{display:none}'
+        '#lvci-update-dot.on{display:block;position:absolute;top:-5px;right:-5px;'
+        'width:11px;height:11px;border-radius:50%;background:#d29922;'
+        'box-shadow:0 0 0 2px var(--bg);animation:lvci-pulse 1.7s ease-out infinite}'
+        '@keyframes lvci-pulse{0%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,.5)}'
+        '70%{box-shadow:0 0 0 2px var(--bg),0 0 0 7px rgba(210,153,34,0)}'
+        '100%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,0)}}'
+        '</style>'
+        '<script>(function(){'
+        'var C=' + lvci_cfg_json + ';'
+        'function cmp(a,b){var p=String(a||"0").split("."),q=String(b||"0").split(".");'
+        'for(var i=0;i<Math.max(p.length,q.length);i++){var d=(parseInt(p[i],10)||0)-(parseInt(q[i],10)||0);if(d)return d;}return 0;}'
+        'if(!C.version||C.isSource||!C.sourceRepo)return;'
+        'var u="https://raw.githubusercontent.com/"+C.sourceRepo+"/"+C.sourceRef+"/.github/labview-ci/catalog.json";'
+        'fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(cat){'
+        'if(!cat||!cat.version||cmp(cat.version,C.version)<=0)return;'
+        'var b=document.getElementById("lvci-version"),d=document.getElementById("lvci-update-dot");'
+        'if(!b)return;b.classList.add("lvci-has-update");if(d)d.classList.add("on");'
+        'b.title="Update available: v"+C.version+" \\u2192 v"+cat.version+" \\u2014 click to see what\\u2019s new";'
+        'b.setAttribute("role","button");b.setAttribute("tabindex","0");'
+        'var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(C.sourceRepo)+"&ref="+encodeURIComponent(C.sourceRef),"What\\u2019s New");};'
+        'b.addEventListener("click",go);'
+        'b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});'
+        '}).catch(function(){});})();</scr' + 'ipt>'
+    )
+
+html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="refresh" content="{refresh_secs}">
+  <title>CI Dashboard — {repo_name}</title>
+  <style>
+    :root{{
+      --bg:#0d1117;--surface:#161b22;--border:#30363d;
+      --fg:#e6edf3;--fg-muted:#8b949e;--row-border:#21262d;
+      --hover:#1c2128;--link:#58a6ff;
+    }}
+    @media(prefers-color-scheme:light){{
+      :root{{
+        --bg:#ffffff;--surface:#f6f8fa;--border:#d0d7de;
+        --fg:#1f2328;--fg-muted:#57606a;--row-border:#eaeef2;
+        --hover:#f3f4f6;--link:#0969da;
+      }}
+    }}
+    *{{box-sizing:border-box}}
+    body{{margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg)}}
+    h1{{font-size:1.4em;margin:0 0 4px}}
+    .sub{{color:var(--fg-muted);font-size:.85em;margin-bottom:20px}}
+    table{{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}}
+    th{{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);color:var(--fg-muted);font-size:.8em;white-space:nowrap}}
+    td{{border-bottom:1px solid var(--row-border);vertical-align:middle}}
+    tr:last-child td{{border-bottom:none}}
+    tr:hover{{background:var(--hover)}}
+    a{{color:var(--link);text-decoration:none}}a:hover{{text-decoration:underline}}
+    .nav{{margin-bottom:16px;font-size:.9em}}
+    .nav a{{margin-right:16px;color:var(--link)}}
+    .controls{{margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--fg-muted);font-size:.85em}}
+    .controls input{{margin:0;accent-color:var(--link)}}
+    .run-badge{{display:inline-flex;align-items:center;background:#1f6feb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600}}
+    .run-badge a:hover{{text-decoration:underline}}
+    .run-spin{{width:9px;height:9px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:cidash-spin .7s linear infinite}}
+    @keyframes cidash-spin{{to{{transform:rotate(360deg)}}}}
+  </style>
+</head>
+<body>
+  <div style="position:fixed;top:14px;right:16px;z-index:30;display:flex;align-items:center;gap:8px">
+    {version_badge_html}
+    <button onclick="lvciOpen('configure.html','Configure Workers')" title="Configure the behavior of this repository's automated CI activities" style="background:#1f6feb;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">⚙ Configure Workers</button>
+    <button onclick="lvciOpen('integrate.html','Apply to New Repo')" title="Install these CI capabilities into another repository" style="background:#238636;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">➕ Apply to New Repo</button>
+  </div>
+  <div id="lvci-modal" onclick="if(event.target===this)lvciClose()" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55)">
+    <div style="position:absolute;inset:24px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+        <strong id="lvci-modal-title" style="font-size:.95em">Configure Workers</strong>
+        <button onclick="lvciClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">✕ Close</button>
+      </div>
+      <iframe id="lvci-frame" title="LabVIEW CI dialog" src="about:blank" style="border:0;width:100%;flex:1;min-height:0"></iframe>
+    </div>
+  </div>
+  <script>
+    function lvciOpen(src, title) {{
+      document.getElementById('lvci-frame').src = src;
+      document.getElementById('lvci-modal-title').textContent = title;
+      document.getElementById('lvci-modal').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }}
+    function lvciClose() {{
+      document.getElementById('lvci-modal').style.display = 'none';
+      document.getElementById('lvci-frame').src = 'about:blank';
+      document.body.style.overflow = '';
+    }}
+    document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') lvciClose(); }});
+  </script>
+  {version_check_script}
+  <h1>CI Dashboard — {repo_name}</h1>
+  <div class="sub">Last updated: {now} &nbsp;|&nbsp; {refresh_note}</div>
+  <div class="nav">
+    <a href="{pages_url}/vi-snapshots/">VI Browser</a>
+    <a href="https://github.com/{repo}">GitHub</a>
+    <a href="https://github.com/{repo}/actions">Actions</a>
+  </div>
+  <label class="controls" for="show-nonproject">
+    <input type="checkbox" id="show-nonproject">
+    Include CI-only revisions
+  </label>
+  <table>
+    <thead>
+      <tr>
+        <th>Commit</th><th>Message</th><th>Author</th><th>Date</th>
+        <th style="text-align:center">Mass Compile</th>
+        <th style="text-align:center">VI Analyzer</th>
+        <th style="text-align:center">VIDiff</th>
+        <th style="text-align:center">Snapshots</th>
+        <th style="text-align:center">Win Worker</th>
+        <th style="text-align:center">Linux Worker</th>
+      </tr>
+    </thead>
+    <tbody>{rows}</tbody>
+  </table>
+  <div id="empty-state" style="display:none;padding:18px;text-align:center;color:var(--fg-muted);font-size:.9em">
+    No project revisions in the recent window. <a href="#" onclick="document.getElementById('show-nonproject').click();return false" style="color:var(--link)">Include CI-only revisions</a> to see CI&nbsp;/&nbsp;tooling commits.
+  </div>
+  <script>
+    (() => {{
+      const checkbox = document.getElementById('show-nonproject');
+      const rows = document.querySelectorAll('tbody tr[data-project]');
+      const emptyState = document.getElementById('empty-state');
+      // Honor the toggle strictly: while "Include CI-only revisions" is
+      // unchecked, only project revisions show. If that hides every row,
+      // reveal an inline prompt (rather than silently showing CI-only rows
+      // or leaving a blank table) inviting the user to enable the toggle.
+      const applyFilter = () => {{
+        const showNonProject = checkbox.checked;
+        let visible = 0;
+        rows.forEach((row) => {{
+          const isProject = row.getAttribute('data-project') === 'true';
+          const show = isProject || showNonProject;
+          row.style.display = show ? '' : 'none';
+          if (show) visible++;
+        }});
+        if (emptyState) emptyState.style.display = visible ? 'none' : '';
+      }};
+      checkbox.addEventListener('change', applyFilter);
+      applyFilter();
+    }})();
+  </script>
+</body>
+</html>"""
+
+os.makedirs('ci-out/dashboard', exist_ok=True)
+with open('ci-out/dashboard/index.html', 'w', encoding='utf-8') as f:
+    # Dedent the heredoc indentation
+    import textwrap
+    f.write(textwrap.dedent(html))
+
+# Ensure VI Browser route exists so dashboard commit links do not 404.
+os.makedirs('ci-out/dashboard/vi-snapshots', exist_ok=True)
+# Framed report viewer (chrome + back-nav) that the Mass Compile badge links to.
+os.makedirs('ci-out/dashboard/report', exist_ok=True)
+# Tooling pages come from PAGES_SRC (a composite action passes its own bundled
+# dir so thin consumers need no copy); default to the in-repo location.
+_pages_src = os.environ.get('PAGES_SRC', '.github/pages')
+def _stage(src, dst):
+    try:
+        with open(src, 'r', encoding='utf-8') as sf, open(dst, 'w', encoding='utf-8') as df:
+            df.write(sf.read())
+    except FileNotFoundError:
+        pass
+for _name, _dst in [
+    ('vi-browser.html', 'ci-out/dashboard/vi-snapshots/index.html'),
+    ('vi-interactive.html', 'ci-out/dashboard/vi-snapshots/vi-interactive.html'),
+    ('report-viewer.html', 'ci-out/dashboard/report/index.html'),
+    ('whats-new.html', 'ci-out/dashboard/whats-new.html'),
+    ('configure.html', 'ci-out/dashboard/configure.html'),
+    ('integrate.html', 'ci-out/dashboard/integrate.html'),
+]:
+    _stage(os.path.join(_pages_src, _name), _dst)
+# Deploy a catalog.json at the Pages root so the version badge + What's New can
+# read the installed version. Prefer the consumer's own catalog; else synthesize
+# one from the manifest values resolved above.
+_client_cat = os.environ.get('CATALOG_PATH', '.github/labview-ci/catalog.json')
+if os.path.isfile(_client_cat):
+    _stage(_client_cat, 'ci-out/dashboard/catalog.json')
+elif lvci_version:
+    with open('ci-out/dashboard/catalog.json', 'w', encoding='utf-8') as f:
+        json.dump({'version': lvci_version,
+                   'source': {'repo': lvci_src_repo, 'ref': lvci_src_ref}}, f, indent=2)
+print(f"Dashboard built with {len(commits_data)} commits.")

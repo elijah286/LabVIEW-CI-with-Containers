@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.4.0",
+  "version": "1.5.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.5.0",
+        "date": "2026-06-15",
+        "title": "Dashboard as a shared capability + thin (token-free) install",
+        "summary": "The status dashboard now runs from a shared composite action, and a new thin install mode wires a repository to the tooling with only a few small caller files \u2014 every capability, including the dashboard and the version badge, comes from the shared tag (for example @v1) with no vendored workflows and no token.",
+        "highlights": [
+          "Added a CI Dashboard composite action that builds the dashboard and stages all tooling pages (VI Browser, report viewer, What's New, Configure, Apply) from the shared tag \u2014 consumers need no copy.",
+          "The dashboard reads the installed version from the consumer's own config when no catalog is vendored, so the version badge and 'update available' notification work for thin consumers too.",
+          "Added 'install --thin': writes the LabVIEW CI caller, the dashboard caller, Dependabot, and the config \u2014 four small files that reference the shared reusable workflow + actions at the major tag.",
+          "A thin consumer gets the whole pipeline and all future improvements through the moving major-version alias, with no personal access token and nothing to re-install."
+        ]
+      },
       {
         "version": "1.4.0",
         "date": "2026-06-15",
