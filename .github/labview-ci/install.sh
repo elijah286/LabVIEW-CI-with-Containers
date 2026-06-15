@@ -49,7 +49,9 @@ if [ -z "$SRC_DIR" ]; then
   else
     TMP="$(mktemp -d)"
     trap 'rm -rf "$TMP"' EXIT
-    URL="https://codeload.github.com/${SOURCE_REPO}/tar.gz/refs/heads/${SOURCE_REF}"
+    # Bare ref form so --source-ref accepts a branch, a release tag (e.g. v1.2.0),
+    # or a commit SHA; codeload resolves all three.
+    URL="https://codeload.github.com/${SOURCE_REPO}/tar.gz/${SOURCE_REF}"
     echo "Fetching LabVIEW CI tooling from ${SOURCE_REPO}@${SOURCE_REF} ..."
     if ! curl -fsSL "$URL" | tar -xz -C "$TMP"; then
       echo "ERROR: failed to download tooling from $URL" >&2

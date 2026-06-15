@@ -54,7 +54,9 @@ if (-not $SrcDir) {
         $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('lvci-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
         New-Item -ItemType Directory -Force -Path $tmp | Out-Null
         $archive = Join-Path $tmp 'tooling.tar.gz'
-        $url = "https://codeload.github.com/$SourceRepo/tar.gz/refs/heads/$SourceRef"
+        # Bare ref form so --source-ref accepts a branch, a release tag (e.g. v1.2.0),
+        # or a commit SHA; codeload resolves all three.
+        $url = "https://codeload.github.com/$SourceRepo/tar.gz/$SourceRef"
         Write-Host "Fetching LabVIEW CI tooling from $SourceRepo@$SourceRef ..."
         Invoke-WebRequest -Uri $url -OutFile $archive -UseBasicParsing
         tar -xzf $archive -C $tmp
