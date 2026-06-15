@@ -1,0 +1,6 @@
+{
+  "platform": "linux",
+  "files": [
+    {"file": "example/Graph Popup.vi", "type": "modified", "report": "example-Graph_Popup.vi/index.html"}
+  ]
+}

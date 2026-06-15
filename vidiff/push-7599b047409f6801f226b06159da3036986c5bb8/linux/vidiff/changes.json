@@ -1,0 +1,27 @@
+{
+  "platform": "linux",
+  "files": [
+    {"file": "example/Controller Commands.ctl", "type": "added", "report": "example-Controller_Commands.ctl/index.html"},
+    {"file": "example/Curriculum Launcher.vi", "type": "added", "report": "example-Curriculum_Launcher.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/Generator Lesson 1.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-Generator_Lesson_1.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/Generator Lesson 2.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-Generator_Lesson_2.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/Generator Lesson 3.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-Generator_Lesson_3.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/Generator Lesson 4.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-Generator_Lesson_4.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/Generator Lesson 5.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-Generator_Lesson_5.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/Generator Lesson 6.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-Generator_Lesson_6.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/Generator Lesson 7.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-Generator_Lesson_7.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/subVIs/Command with Return Value.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-subVIs-Command_with_Return_Value.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/subVIs/Confirm USB Devices and IO.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-subVIs-Confirm_USB_Devices_and_IO.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/subVIs/Generator High Speed PIDDW.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-subVIs-Generator_High_Speed_PIDDW.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/subVIs/Get All Values.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-subVIs-Get_All_Values.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/subVIs/USB Device Filter.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-subVIs-USB_Device_Filter.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/subVIs/balance grid.vi", "type": "added", "report": "example-Curriculum-Generator_Lessons-subVIs-balance_grid.vi/index.html"},
+    {"file": "example/Curriculum/Main Power Grid/Main Power Grid.vi", "type": "added", "report": "example-Curriculum-Main_Power_Grid-Main_Power_Grid.vi/index.html"},
+    {"file": "example/Curriculum/Solar Lessons/Solar Example.vi", "type": "added", "report": "example-Curriculum-Solar_Lessons-Solar_Example.vi/index.html"},
+    {"file": "example/Find Curriculum.vi", "type": "added", "report": "example-Find_Curriculum.vi/index.html"},
+    {"file": "example/Graph Popup.vi", "type": "added", "report": "example-Graph_Popup.vi/index.html"},
+    {"file": "example/Simple Solar Tracker v4.vi", "type": "added", "report": "example-Simple_Solar_Tracker_v4.vi/index.html"},
+    {"file": "example/Status String Update.vi", "type": "added", "report": "example-Status_String_Update.vi/index.html"},
+    {"file": "example/main.vi", "type": "added", "report": "example-main.vi/index.html"}
+  ]
+}

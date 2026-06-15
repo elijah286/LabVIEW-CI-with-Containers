@@ -1,0 +1,29 @@
+{
+  "platform": "linux",
+  "files": [
+    {"file": "example/Curriculum Launcher.vi", "type": "modified", "report": "example-Curriculum_Launcher.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/Generator Driver Template 1.vi", "type": "added", "report": "example-Curriculum-Generator_API-Generator_Driver_Template_1.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/Generator Driver Template 2.vi", "type": "added", "report": "example-Curriculum-Generator_API-Generator_Driver_Template_2.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/Generator Driver Template 3.vi", "type": "added", "report": "example-Curriculum-Generator_API-Generator_Driver_Template_3.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/Generator Driver Template 4.vi", "type": "added", "report": "example-Curriculum-Generator_API-Generator_Driver_Template_4.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/Generator Driver Template 5.vi", "type": "added", "report": "example-Curriculum-Generator_API-Generator_Driver_Template_5.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Demo/Demo PID Control.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Demo-Demo_PID_Control.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Private/Default Instrument Setup.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Private-Default_Instrument_Setup.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Action-Status/Init.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Action-Status-Init.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Action-Status/Motor Off.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Action-Status-Motor_Off.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Action-Status/Motor On.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Action-Status-Motor_On.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Close.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Close.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Configure/Set Load.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Configure-Set_Load.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Configure/Set Speed.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Configure-Set_Speed.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Data/Get KW.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Data-Get_KW.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Data/Get Value.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Data-Get_Value.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Initialize.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Initialize.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Utility/Error Query.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Utility-Error_Query.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Utility/Reset.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Utility-Reset.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Utility/Revision Query.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Utility-Revision_Query.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Utility/Self-Test.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-Utility-Self-Test.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/VI Tree.vi", "type": "added", "report": "example-Curriculum-Generator_API-subVIs-Public-VI_Tree.vi/index.html"},
+    {"file": "example/Find Curriculum.vi", "type": "modified", "report": "example-Find_Curriculum.vi/index.html"},
+    {"file": "example/main.vi", "type": "modified", "report": "example-main.vi/index.html"}
+  ]
+}

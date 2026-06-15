@@ -1,0 +1,10 @@
+{
+  "platform": "linux",
+  "files": [
+    {"file": "example/Curriculum Launcher.vi", "type": "modified", "report": "example-Curriculum_Launcher.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Action-Status/Motor On.vi", "type": "modified", "report": "example-Curriculum-Generator_API-subVIs-Public-Action-Status-Motor_On.vi/index.html"},
+    {"file": "example/Find Curriculum.vi", "type": "modified", "report": "example-Find_Curriculum.vi/index.html"},
+    {"file": "example/Status String Update.vi", "type": "modified", "report": "example-Status_String_Update.vi/index.html"},
+    {"file": "example/main.vi", "type": "modified", "report": "example-main.vi/index.html"}
+  ]
+}
