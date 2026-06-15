@@ -27,20 +27,33 @@ $LabVIEWVersion   = if ($Env:LABVIEW_VERSION)    { $Env:LABVIEW_VERSION }    els
 $VipmInstallerUrl = if ($Env:VIPM_INSTALLER_URL) { $Env:VIPM_INSTALLER_URL } else { 'https://vipm.jki.net/l/download/vipm_2024_x64.exe' }
 
 # -- 1. Install VIPM if not already present -----------------------------------
+# VIPM is an OPTIONAL CI add-on (used only to bake in VIPM-distributed packages
+# such as Antidoc). It is fetched from an external, vendor-controlled installer
+# URL that can move or 404 at any time, so a download/install failure must NOT
+# brick the core CI image (LabVIEW + VI Analyzer were installed above). Treat this
+# section as best-effort: on failure, warn and skip the add-ons (exit 0) instead
+# of failing the whole image build.
 if (-not (Test-Path $VipmExe)) {
     Write-Host 'VIPM not found - downloading installer...'
     $InstallerFile = Join-Path $Env:TEMP 'vipm-installer.exe'
-    Invoke-WebRequest -Uri $VipmInstallerUrl -OutFile $InstallerFile -UseBasicParsing
+    try {
+        Invoke-WebRequest -Uri $VipmInstallerUrl -OutFile $InstallerFile -UseBasicParsing
 
-    Write-Host 'Running VIPM installer silently...'
-    $p = Start-Process -FilePath $InstallerFile `
-        -ArgumentList '/SILENT', '/NORESTART' `
-        -Wait -PassThru
-    if ($p.ExitCode -ne 0) {
-        Write-Error "VIPM installer exited with code $($p.ExitCode)"
-        exit 1
+        Write-Host 'Running VIPM installer silently...'
+        $p = Start-Process -FilePath $InstallerFile `
+            -ArgumentList '/SILENT', '/NORESTART' `
+            -Wait -PassThru
+        if ($p.ExitCode -ne 0) {
+            throw "VIPM installer exited with code $($p.ExitCode)"
+        }
+        Write-Host "VIPM installed to: $VipmDir"
     }
-    Write-Host "VIPM installed to: $VipmDir"
+    catch {
+        Write-Warning ("VIPM add-on install SKIPPED: could not install VIPM from '" + $VipmInstallerUrl + "' (" + $_.Exception.Message + "). " +
+            "Core image (LabVIEW + VI Analyzer) is unaffected; VIPM-only add-ons such as Antidoc are NOT baked in. " +
+            "Provide a reachable VIPM_INSTALLER_URL to enable them.")
+        exit 0
+    }
 }
 
 # -- 2. Apply each .vipc file -------------------------------------------------
