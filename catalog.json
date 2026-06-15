@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.2.2",
+  "version": "1.2.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.2.3",
+        "date": "2026-06-15",
+        "title": "Token-free automatic updates",
+        "summary": "Publishing a release now moves the major-version alias, so any repository that uses the tooling at the major tag (for example @v1) receives non-breaking updates automatically \u2014 no token and no manual step.",
+        "highlights": [
+          "Added release automation: each new version is tagged and published, and the v<major> and v<major>.<minor> aliases are moved to it, so consumers pinned at the major alias get improvements automatically.",
+          "This is the recommended way for many repositories to adopt the tooling and stay current: reference the reusable workflows/actions at the major tag and optionally enable Dependabot \u2014 GitHub opens a reviewable pull request for new versions with no personal access token required.",
+          "The full file re-pull (the installer's update mode) remains available for repositories that vendor a complete copy of the tooling."
+        ]
+      },
       {
         "version": "1.2.2",
         "date": "2026-06-15",
