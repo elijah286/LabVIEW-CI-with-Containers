@@ -182,14 +182,22 @@ jobs:
         if: steps.pull.outcome == 'success'
         shell: powershell
         run: |
+          # Best-effort telemetry: read the worker-version label baked into the image
+          # so the dashboard can link this revision to its worker manifest. Parse the
+          # inspect JSON with PowerShell instead of a `docker inspect --format` Go
+          # template -- Windows PowerShell 5.1 mangles the template's embedded double
+          # quotes, which made the command fail (empty result + non-zero exit) and took
+          # the whole job down with it. This step must NEVER fail CI, hence `exit 0`.
           $img = $Env:LABVIEW_CONTAINER_IMAGE
           $wv = ''
           try {
-            $wv = (docker inspect --format '{{ index .Config.Labels "com.cotc.ci-worker.version" }}' $img 2>$null)
+            $info = docker inspect $img 2>$null | ConvertFrom-Json
+            if ($info) { $wv = [string]$info[0].Config.Labels.'com.cotc.ci-worker.version' }
           } catch {}
           if (-not $wv -or $wv -eq '<no value>') { $wv = '' }
           "version=$wv" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Worker version: $wv"
+          exit 0
 
       - name: Run VI Analyzer inside container
         if: steps.pull.outcome == 'success'
