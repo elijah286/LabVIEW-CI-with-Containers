@@ -375,15 +375,13 @@ jobs:
           rows = '\n'.join(rows_html)
           now  = __import__('datetime').datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
 
-          # The "Include CI-only revisions" toggle is de-selected by default, so
-          # the dashboard opens on project revisions (those that change LabVIEW
-          # source). If barely any are present in the fetched window — e.g. during
-          # a long CI/tooling sprint where the recent commits don't touch VIs — the
-          # filter falls back to revealing every revision so the table is never
-          # blank, *without* checking the box (see the scarce-project fallback in
-          # the filter script below).
-          project_count = sum(1 for r in rows_html if 'data-project="true"' in r)
-          few_projects = 'true' if project_count < 3 else 'false'
+          # The "Include CI-only revisions" toggle is de-selected by default, so the
+          # dashboard opens on project revisions (those that change LabVIEW source).
+          # The toggle is honored strictly: while it is de-selected, CI-only revisions
+          # stay hidden — there is no automatic override. If that leaves the table
+          # empty (e.g. during a long CI/tooling sprint where the recent commits don't
+          # touch VIs), an inline empty-state prompt invites enabling the toggle, so
+          # the page is never a silently blank table (see the filter script below).
 
           # While something is actively running, poll faster so the live indicator
           # (and its eventual result) surfaces promptly; otherwise refresh lazily.
@@ -484,21 +482,28 @@ jobs:
               </thead>
               <tbody>{rows}</tbody>
             </table>
+            <div id="empty-state" style="display:none;padding:18px;text-align:center;color:var(--fg-muted);font-size:.9em">
+              No project revisions in the recent window. <a href="#" onclick="document.getElementById('show-nonproject').click();return false" style="color:var(--link)">Include CI-only revisions</a> to see CI&nbsp;/&nbsp;tooling commits.
+            </div>
             <script>
               (() => {{
                 const checkbox = document.getElementById('show-nonproject');
                 const rows = document.querySelectorAll('tbody tr[data-project]');
-                // When the fetched window has too few project revisions, fall back to
-                // showing every revision so the table is never blank — even though the
-                // checkbox stays unchecked. The user can still toggle it; once checked,
-                // all rows show regardless of the fallback.
-                const fewProjects = {few_projects};
+                const emptyState = document.getElementById('empty-state');
+                // Honor the toggle strictly: while "Include CI-only revisions" is
+                // unchecked, only project revisions show. If that hides every row,
+                // reveal an inline prompt (rather than silently showing CI-only rows
+                // or leaving a blank table) inviting the user to enable the toggle.
                 const applyFilter = () => {{
-                  const showNonProject = checkbox.checked || fewProjects;
+                  const showNonProject = checkbox.checked;
+                  let visible = 0;
                   rows.forEach((row) => {{
                     const isProject = row.getAttribute('data-project') === 'true';
-                    row.style.display = (isProject || showNonProject) ? '' : 'none';
+                    const show = isProject || showNonProject;
+                    row.style.display = show ? '' : 'none';
+                    if (show) visible++;
                   }});
+                  if (emptyState) emptyState.style.display = visible ? 'none' : '';
                 }};
                 checkbox.addEventListener('change', applyFilter);
                 applyFilter();
