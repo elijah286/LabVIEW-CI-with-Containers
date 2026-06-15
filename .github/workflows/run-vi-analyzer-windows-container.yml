@@ -169,22 +169,6 @@ jobs:
             sleep 20
           done
 
-      # GHCR/Docker image references must be all-lowercase, but the owner/repo name
-      # can contain uppercase letters (e.g. "LabVIEW-CI-with-Containers"). Normalize
-      # to lowercase here — matching build-labview-image.yml — so this pull resolves to
-      # exactly the name that workflow pushed. GitHub Actions expressions have no
-      # lower(), so we do it in a shell step that overrides the env var.
-      - name: Resolve container image name
-        shell: bash
-        env:
-          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
-          IMAGE_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
-        run: |
-          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
-          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
-          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
-          echo "LABVIEW_CONTAINER_IMAGE=ghcr.io/${owner}/${name}:${IMAGE_TAG}" >> "$GITHUB_ENV"
-
       - name: Pull LabVIEW container image
         id: pull
         shell: powershell
