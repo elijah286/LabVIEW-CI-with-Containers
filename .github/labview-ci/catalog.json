@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.2.1",
+        "date": "2026-06-15",
+        "title": "One-click tooling updates",
+        "summary": "Updating the CI tooling no longer needs a terminal: the What's New dialog now has an Update now button that opens the upgrade pull request for you.",
+        "highlights": [
+          "Added an 'Update now' button to the What's New dialog that runs the new 'Apply LabVIEW CI update' workflow \u2014 it opens a pull request adopting the latest version, with no commands to copy or tokens to manage.",
+          "The command-line update is preserved under a 'Prefer the command line?' section for power users.",
+          "The upgrade workflow is resilient: if a repository has not enabled Actions to open pull requests, it still pushes the branch and links a one-click page to open the pull request manually."
+        ]
+      },
       {
         "version": "1.2.0",
         "date": "2026-06-15",
@@ -135,6 +146,7 @@
           ".github/workflows/dashboard-pages.yml",
           ".github/workflows/reconfigure.yml",
           ".github/workflows/integrate-deploy.yml",
+          ".github/workflows/apply-tooling-update.yml",
           ".github/pages/index.html",
           ".github/pages/report-viewer.html",
           ".github/pages/integrate.html",

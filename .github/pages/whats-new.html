@@ -115,29 +115,39 @@
 
     <section id="updateSec" style="display:none">
       <h2>Update your CI tooling</h2>
-      <p class="hint">Run this from the root of your repository. <code>--update</code> re-pulls the tooling and
-        preserves your configuration files (<code>.github/labview-ci.yml</code> and baked dependencies).
-        Review with <code>git diff</code> before committing.</p>
-      <div class="row">
-        <div class="field">
-          <label class="fl" for="target">Update to</label>
-          <select id="target"></select>
-        </div>
-      </div>
-      <div class="tabs" id="tabs">
-        <div class="tab active" data-tab="bash">macOS / Linux / Git Bash</div>
-        <div class="tab" data-tab="pwsh">Windows PowerShell</div>
-      </div>
-      <div class="codebox">
-        <button class="copy" id="copyCmd">Copy</button>
-        <pre id="cmd"></pre>
-      </div>
-      <div class="actions">
+      <p class="hint" id="updateLead">One click opens a pull request that adopts the update for you &mdash;
+        no terminal, no tokens.</p>
+      <div class="actions" style="margin-bottom:8px">
+        <a class="primary" id="updateNowBtn" target="_blank" rel="noopener"
+           style="text-decoration:none;display:inline-flex;align-items:center;gap:7px">&#11014; Update now</a>
         <button class="ghost" id="viewRelease">View this release in the source repo</button>
         <span class="status" id="cmdStatus"></span>
       </div>
-      <p class="hint" style="margin-top:12px">After it finishes, commit and push the changed <code>.github/</code> files
-        — your pipeline keeps running with the updated capabilities.</p>
+      <p class="hint" id="updateHowto"></p>
+      <details id="cliDetails" style="margin-top:14px">
+        <summary style="cursor:pointer">Prefer the command line?</summary>
+        <div style="margin-top:12px">
+          <p class="hint">Run this from the root of your repository. <code>--update</code> re-pulls the tooling and
+            preserves your configuration files (<code>.github/labview-ci.yml</code> and baked dependencies).
+            Review with <code>git diff</code> before committing.</p>
+          <div class="row">
+            <div class="field">
+              <label class="fl" for="target">Update to</label>
+              <select id="target"></select>
+            </div>
+          </div>
+          <div class="tabs" id="tabs">
+            <div class="tab active" data-tab="bash">macOS / Linux / Git Bash</div>
+            <div class="tab" data-tab="pwsh">Windows PowerShell</div>
+          </div>
+          <div class="codebox">
+            <button class="copy" id="copyCmd">Copy</button>
+            <pre id="cmd"></pre>
+          </div>
+        </div>
+      </details>
+      <p class="hint" style="margin-top:12px">After the pull request merges, your dashboard badge turns green and
+        the pipeline runs the updated capabilities.</p>
     </section>
   </div>
 
@@ -270,7 +280,21 @@
 
     function renderCommand() {
       $("cmd").textContent = commandText();
+      renderUpdateButton();
       $("updateSec").style.display = "";
+    }
+
+    function renderUpdateButton() {
+      const btn = $("updateNowBtn");
+      if (!btn) return;
+      const ver = state.latest || state.target || "";
+      btn.href = `https://github.com/${state.repo}/actions/workflows/apply-tooling-update.yml`;
+      btn.textContent = "\u2B06 Update to v" + ver;
+      $("updateHowto").innerHTML =
+        `Opens the <strong>Apply LabVIEW CI update</strong> workflow on GitHub. Click the green ` +
+        `<strong>Run workflow</strong> button and a pull request adopting <code>v${esc(ver)}</code> ` +
+        `is created for you &mdash; review and merge it to finish. GitHub only shows the run button to ` +
+        `people with write access, so no tokens are needed here.`;
     }
 
     function showUpToDate() {

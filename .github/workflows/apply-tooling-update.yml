@@ -1,0 +1,212 @@
+# Apply LabVIEW CI update — one-click upgrade target for the dashboard.
+#
+# The "Update now" button in the What's New dialog (.github/pages/whats-new.html)
+# deep-links here. Dispatching this workflow opens a pull request that adopts the
+# latest tooling version published by the source repo (.github/labview-ci.yml:
+# source.repo): it bumps installedVersion and (optionally) enables any newly
+# published stable capabilities. Review + merge to finish — no terminal, no
+# tokens. GitHub's own "Run workflow" gate limits this to write-access users.
+name: Apply LabVIEW CI update
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Version to adopt (blank = latest published by the source repo)'
+        required: false
+        default: ''
+      enable_new_capabilities:
+        description: 'Also enable newly published capabilities in this repo'
+        type: boolean
+        default: true
+
+concurrency:
+  group: apply-tooling-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Resolve update and write config
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_VERSION: ${{ inputs.target_version }}
+          ENABLE_NEW: ${{ inputs.enable_new_capabilities }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re, json, base64, subprocess, sys
+
+          CFG = '.github/labview-ci.yml'
+          installed, src_repo, src_ref = '', '', 'main'
+          activities, in_acts = [], False
+          try:
+              text = open(CFG, encoding='utf-8').read()
+          except FileNotFoundError:
+              print(f'::error::{CFG} not found — this repo is not configured as a consumer.', file=sys.stderr)
+              sys.exit(1)
+          for line in text.splitlines():
+              if re.match(r'^\s*activities:\s*$', line):
+                  in_acts = True; continue
+              if in_acts:
+                  m = re.match(r'^\s*-\s*(\S+)', line)
+                  if m: activities.append(m.group(1)); continue
+                  in_acts = False
+              m = re.match(r'^\s*installedVersion:\s*(\S+)', line)
+              if m: installed = m.group(1).strip()
+              m = re.match(r'^\s*repo:\s*(\S+)', line)
+              if m and not src_repo: src_repo = m.group(1).strip()
+              m = re.match(r'^\s*ref:\s*(\S+)', line)
+              if m and src_ref == 'main': src_ref = m.group(1).strip()
+          if not src_repo:
+              src_repo = 'elijah286/LabVIEW-CI-with-Containers'
+
+          # Latest published version + stable capabilities from the source catalog.
+          raw = subprocess.check_output(
+              ['gh', 'api', f'repos/{src_repo}/contents/.github/labview-ci/catalog.json',
+               '--jq', '.content'], text=True)
+          cat = json.loads(base64.b64decode(raw).decode('utf-8'))
+          latest = str(cat.get('version', '') or '')
+          stable = [c['id'] for c in cat.get('capabilities', []) if c.get('status') == 'stable']
+
+          target = (os.environ.get('TARGET_VERSION', '').strip() or latest)
+
+          def parse(v):
+              p = re.findall(r'\d+', v or '')[:3]
+              return tuple(int(x) for x in p) + (0,) * (3 - len(p))
+
+          out = open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8')
+          def setout(k, v): out.write(f'{k}={v}\n')
+
+          if not target or parse(target) <= parse(installed):
+              setout('update', 'false')
+              setout('installed', installed or 'unknown')
+              setout('target', target or installed or 'unknown')
+              print(f'Already at v{installed}; nothing newer to adopt (target v{target}).')
+              sys.exit(0)
+
+          enable_new = os.environ.get('ENABLE_NEW', 'true').lower() == 'true'
+          new_caps = [c for c in stable if c not in activities] if enable_new else []
+
+          lines = text.splitlines()
+          res, done = [], False
+          for line in lines:
+              if re.match(r'^\s*installedVersion:\s*', line):
+                  res.append(f'installedVersion: {target}'); done = True
+              else:
+                  res.append(line)
+          if not done:
+              ins = []
+              for line in res:
+                  ins.append(line)
+                  if re.match(r'^\s*schemaVersion:\s*', line):
+                      ins.append(f'installedVersion: {target}')
+              res = ins
+          if new_caps:
+              merged, ia, acts = [], False, []
+              for line in res:
+                  if re.match(r'^\s*activities:\s*$', line):
+                      ia = True; merged.append(line); continue
+                  if ia:
+                      m = re.match(r'^\s*-\s*(\S+)', line)
+                      if m: acts.append(m.group(1)); merged.append(line); continue
+                      for c in new_caps:
+                          if c not in acts: merged.append(f'  - {c}'); acts.append(c)
+                      ia = False
+                  merged.append(line)
+              if ia:
+                  for c in new_caps:
+                      if c not in acts: merged.append(f'  - {c}')
+              res = merged
+          open(CFG, 'w', encoding='utf-8').write('\n'.join(res) + '\n')
+
+          body = [f'Adopts LabVIEW CI tooling **v{installed} -> v{target}** from `{src_repo}`.', '',
+                  '- Bumps `installedVersion` in `.github/labview-ci.yml`.']
+          if new_caps:
+              body.append(f'- Enables newly published capabilities: `{", ".join(new_caps)}`')
+          body += ['', 'Triggered from the dashboard **Update now** button. Review and merge to finish — '
+                   'the version badge turns green and the pipeline runs the updated capabilities.']
+          open('/tmp/pr-body.md', 'w', encoding='utf-8').write('\n'.join(body) + '\n')
+
+          setout('update', 'true')
+          setout('installed', installed)
+          setout('target', target)
+          setout('new_caps', ','.join(new_caps))
+          print(f'Will adopt v{installed} -> v{target}' + (f' (+caps: {", ".join(new_caps)})' if new_caps else ''))
+          PY
+
+      - name: Open the upgrade pull request
+        if: ${{ steps.resolve.outputs.update == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INSTALLED: ${{ steps.resolve.outputs.installed }}
+          TARGET: ${{ steps.resolve.outputs.target }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="ci/adopt-tooling-v${TARGET}"
+          git checkout -B "$BRANCH"
+
+          if git diff --quiet -- .github/labview-ci.yml; then
+            echo "No change to apply."; exit 0
+          fi
+          git add .github/labview-ci.yml
+          git commit -m "ci: adopt LabVIEW CI tooling v${TARGET}"
+          git push -u origin "$BRANCH" --force
+
+          URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url // empty')
+          if [ -n "$URL" ]; then
+            gh pr edit "$URL" --body-file /tmp/pr-body.md >/dev/null || true
+            echo "Updated existing PR: $URL"
+          elif URL=$(gh pr create --title "ci: adopt LabVIEW CI tooling v${TARGET}" \
+                       --base "${{ github.ref_name }}" --head "$BRANCH" \
+                       --body-file /tmp/pr-body.md 2>/tmp/pr-err); then
+            echo "Opened PR: $URL"
+          else
+            cat /tmp/pr-err || true
+            URL="${{ github.server_url }}/${{ github.repository }}/compare/${{ github.ref_name }}...${BRANCH}?expand=1"
+            echo "::warning title=Open the PR manually::GitHub Actions is not permitted to open PRs in this repo. Enable Settings > Actions > General > 'Allow GitHub Actions to create and approve pull requests', or use the link in the summary. The branch is already pushed."
+            {
+              echo "## &#11014; Upgrade branch ready &mdash; open the pull request"
+              echo ""
+              echo "Adopts LabVIEW CI tooling **v${INSTALLED} &rarr; v${TARGET}** (committed to branch \`${BRANCH}\`)."
+              echo ""
+              echo "**[Open the pull request](${URL})** to review and merge."
+              echo ""
+              echo "> To make this fully one-click next time, enable **Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests'**."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Manual PR link: $URL"
+            exit 0
+          fi
+          {
+            echo "## &#9989; Upgrade pull request ready"
+            echo ""
+            echo "Adopts LabVIEW CI tooling **v${INSTALLED} &rarr; v${TARGET}**."
+            echo ""
+            echo "**[Review &amp; merge the pull request](${URL})** to finish the update."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "PR: $URL"
+
+      - name: Already up to date
+        if: ${{ steps.resolve.outputs.update != 'true' }}
+        run: |
+          {
+            echo "## ✅ Already up to date"
+            echo ""
+            echo "This repository already runs **v${{ steps.resolve.outputs.installed }}** — the latest published version. No pull request was opened."
+          } >> "$GITHUB_STEP_SUMMARY"
