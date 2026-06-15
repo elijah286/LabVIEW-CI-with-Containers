@@ -14,7 +14,8 @@
         "highlights": [
           "'Update now' runs the catalog-driven installer in update mode, so a client adopts all the latest workflows, scripts, and pages \u2014 including brand-new capabilities \u2014 in one reviewable pull request.",
           "The client's own configuration (selected activities, LabVIEW version, runner concurrency) and baked dependencies are preserved across the update.",
-          "Fixed the installer's branding rules so files copied into a client repo are correctly rebranded to that repo instead of keeping the source repo's name."
+          "Fixed the installer's branding rules so files copied into a client repo are correctly rebranded to that repo instead of keeping the source repo's name.",
+          "Because a full update changes workflow files, add a token with repo + workflow scope as the TOOLING_UPDATE_TOKEN secret so the update can open its pull request automatically."
         ]
       },
       {
