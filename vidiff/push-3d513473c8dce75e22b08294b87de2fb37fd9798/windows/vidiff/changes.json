@@ -1,0 +1,7 @@
+{
+  "platform": "windows",
+  "files": [
+    {"file": "example/Curriculum Launcher.vi", "type": "modified", "report": "example-Curriculum_Launcher.vi/index.html"},
+    {"file": "example/Curriculum/Generator Lessons/subVIs/Generator High Speed PIDDW.vi", "type": "deleted", "report": "example-Curriculum-Generator_Lessons-subVIs-Generator_High_Speed_PIDDW.vi/index.html"}
+  ]
+}

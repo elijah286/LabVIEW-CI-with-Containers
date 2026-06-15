@@ -1,0 +1,10 @@
+{
+  "platform": "windows",
+  "files": [
+    {"file": "example/Curriculum/Generator API/Generator Driver Template 1.vi", "type": "modified", "report": "example-Curriculum-Generator_API-Generator_Driver_Template_1.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/Generator Driver Template 3.vi", "type": "modified", "report": "example-Curriculum-Generator_API-Generator_Driver_Template_3.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/Generator Driver Template 5.vi", "type": "modified", "report": "example-Curriculum-Generator_API-Generator_Driver_Template_5.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Action-Status/Motor Off.vi", "type": "modified", "report": "example-Curriculum-Generator_API-subVIs-Public-Action-Status-Motor_Off.vi/index.html"},
+    {"file": "example/Curriculum/Generator API/subVIs/Public/Action-Status/Motor On.vi", "type": "modified", "report": "example-Curriculum-Generator_API-subVIs-Public-Action-Status-Motor_On.vi/index.html"}
+  ]
+}
