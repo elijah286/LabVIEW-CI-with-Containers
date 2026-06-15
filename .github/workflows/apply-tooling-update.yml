@@ -134,8 +134,32 @@ jobs:
               res = merged
           open(CFG, 'w', encoding='utf-8').write('\n'.join(res) + '\n')
 
+          # Bump the consumer's catalog.json too: the dashboard version badge reads
+          # catalog.json:version, and version-guard requires version == releases[0].
+          # Sync the release history from the source (filtered to <= target), but keep
+          # this repo's own `source` pointer so it stays a client of the source repo.
+          catp = '.github/labview-ci/catalog.json'
+          try:
+              ccat = json.load(open(catp, encoding='utf-8'))
+              ccat['version'] = target
+              src_hist = cat.get('history')
+              src_rel = src_hist.get('releases') if isinstance(src_hist, dict) else src_hist
+              if isinstance(src_rel, list) and src_rel:
+                  kept = [r for r in src_rel if r.get('version') and parse(r['version']) <= parse(target)]
+                  if kept:
+                      if isinstance(ccat.get('history'), dict):
+                          ccat['history']['releases'] = kept
+                      else:
+                          ccat['history'] = kept
+              json.dump(ccat, open(catp, 'w', encoding='utf-8'), indent=2)
+              open(catp, 'a', encoding='utf-8').write('\n')
+              print(f'Bumped {catp} version -> {target}')
+          except FileNotFoundError:
+              print(f'::warning::{catp} not found; badge version not updated.')
+
           body = [f'Adopts LabVIEW CI tooling **v{installed} -> v{target}** from `{src_repo}`.', '',
-                  '- Bumps `installedVersion` in `.github/labview-ci.yml`.']
+                  '- Bumps `installedVersion` in `.github/labview-ci.yml`.',
+                  '- Bumps `version` in `.github/labview-ci/catalog.json` (the dashboard badge reads this).']
           if new_caps:
               body.append(f'- Enables newly published capabilities: `{", ".join(new_caps)}`')
           body += ['', 'Triggered from the dashboard **Update now** button. Review and merge to finish — '
@@ -162,10 +186,10 @@ jobs:
           BRANCH="ci/adopt-tooling-v${TARGET}"
           git checkout -B "$BRANCH"
 
-          if git diff --quiet -- .github/labview-ci.yml; then
+          if git diff --quiet -- .github/labview-ci.yml .github/labview-ci/catalog.json; then
             echo "No change to apply."; exit 0
           fi
-          git add .github/labview-ci.yml
+          git add .github/labview-ci.yml .github/labview-ci/catalog.json
           git commit -m "ci: adopt LabVIEW CI tooling v${TARGET}"
           git push -u origin "$BRANCH" --force
 
