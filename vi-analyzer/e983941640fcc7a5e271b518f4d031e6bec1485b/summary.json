@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "sha": "e983941640fcc7a5e271b518f4d031e6bec1485b",
+    "short": "e983941",
+    "platform": "windows",
+    "repo": "elijah286/LabVIEW-CI-with-Containers",
+    "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers",
+    "commit": {
+      "message": "feat: masscompile parity + vidiff + snapshots as shared reusable capabilities [release: minor]",
+      "author": "elijah286",
+      "date": "2026-06-15T17:37:45-05:00"
+    },
+    "generated_utc": "2026-06-15 23:11 UTC",
+    "analysis_date": "",
+    "duration": ""
+  },
+  "summary": {
+    "vis_analyzed": 0,
+    "tests_run": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "findings": 0,
+    "vis_with_findings": 0
+  },
+  "errors": {
+    "vi_not_loadable": 0,
+    "test_not_loadable": 0,
+    "test_not_runnable": 0,
+    "test_error_out": 0
+  },
+  "rule_counts": []
+}
