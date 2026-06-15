@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.1.1",
+        "date": "2026-06-15",
+        "title": "Dashboard: 'Include CI-only revisions' toggle fix",
+        "summary": "The dashboard's 'Include CI-only revisions' toggle is now honored strictly, so CI and tooling-only commits stay hidden until you choose to show them.",
+        "highlights": [
+          "Fixed the 'Include CI-only revisions' toggle being ignored: CI-only commits no longer appear while it is unchecked.",
+          "Removed a fallback that revealed every revision whenever the recent window had only a few project commits, which made the toggle look broken on CI-heavy repositories.",
+          "When no project revisions are in the recent window, the table shows an inline prompt to include CI-only revisions instead of appearing empty."
+        ]
+      },
       {
         "version": "1.1.0",
         "date": "2026-06-15",
