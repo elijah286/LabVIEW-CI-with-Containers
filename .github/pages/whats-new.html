@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<!--
+  .github/pages/whats-new.html
+  "What's New" / update dialog, published next to the dashboard and opened from the
+  dashboard's version badge when a consumer repo is behind the source repo.
+
+  It reads the consumer's own catalog.json (same-origin, deployed next to this page)
+  for the source pointer + installed version, then reads the SOURCE repo's catalog.json
+  (raw.githubusercontent.com) for the latest version + release history. It shows every
+  release the consumer does not yet have, lets them pick a specific version to update to,
+  and prints the matching `install.sh ... --update` command. Pure static page, no backend.
+
+  Query params (all optional — sensible fallbacks):
+    repo  owner/name of the consumer repo being updated (for display + commands)
+    from  the version the consumer is currently running
+    src   owner/name of the tooling SOURCE repo
+    ref   branch/tag of the tooling SOURCE repo (default: main)
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>What's New — LabVIEW CI</title>
+  <style>
+    :root{
+      --bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;
+      --fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;
+      --chip:#21262d;--code:#010409;--warn:#9a6700;
+    }
+    @media(prefers-color-scheme:light){
+      :root{
+        --bg:#ffffff;--surface:#f6f8fa;--surface2:#fff;--border:#d0d7de;
+        --fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--accent:#1f883d;--accent-fg:#fff;
+        --chip:#eaeef2;--code:#f6f8fa;--warn:#9a6700;
+      }
+    }
+    *{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:var(--bg);color:var(--fg);line-height:1.5}
+    a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+    .wrap{max-width:900px;margin:0 auto;padding:24px 20px 64px}
+    header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+    h1{font-size:1.5em;margin:0}
+    .sub{color:var(--fg-muted);font-size:.9em;margin:4px 0 24px}
+    .back{font-size:.85em}
+    section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:18px}
+    section h2{font-size:1.02em;margin:0 0 4px}
+    section .hint{color:var(--fg-muted);font-size:.82em;margin:0 0 14px}
+    .row{display:flex;gap:18px;flex-wrap:wrap}
+    .field{flex:1 1 220px;min-width:200px}
+    label.fl{display:block;font-size:.8em;color:var(--fg-muted);margin-bottom:5px}
+    select{width:100%;padding:8px 10px;background:var(--surface2);color:var(--fg);
+         border:1px solid var(--border);border-radius:6px;font-size:.92em;font-family:inherit}
+    .vline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.95em;margin-top:6px}
+    .vpill{display:inline-flex;align-items:center;gap:5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+         font-size:.82em;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid var(--border);
+         color:var(--fg-muted);background:var(--chip)}
+    .vpill.new{color:#fff;background:var(--accent);border-color:transparent}
+    .arrow{color:var(--fg-muted)}
+    .rel{border:1px solid var(--border);border-radius:8px;background:var(--surface2);padding:12px 14px;margin-bottom:10px}
+    .rel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .rel-title{font-weight:600;font-size:.95em}
+    .rel-date{color:var(--fg-muted);font-size:.78em;margin-left:auto}
+    .rel-sum{color:var(--fg);font-size:.88em;margin:8px 0 6px}
+    .rel-hi{margin:0;padding-left:20px;font-size:.86em;color:var(--fg-muted)}
+    .rel-hi li{margin-bottom:3px}
+    .pickbtn{font-size:.74em;border:1px solid var(--border);border-radius:6px;background:var(--surface);
+         color:var(--fg);padding:4px 9px;cursor:pointer;white-space:nowrap}
+    .pickbtn:hover{border-color:var(--link)}
+    details{margin-top:6px}
+    summary{cursor:pointer;font-size:.86em;color:var(--link);user-select:none;margin-bottom:8px}
+    .tabs{display:flex;gap:4px;margin-bottom:0;margin-top:6px}
+    .tab{padding:7px 14px;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;
+         background:var(--chip);cursor:pointer;font-size:.85em;color:var(--fg-muted)}
+    .tab.active{background:var(--code);color:var(--fg);font-weight:600}
+    .codebox{position:relative;background:var(--code);border:1px solid var(--border);border-radius:0 8px 8px 8px;padding:14px}
+    pre{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82em;white-space:pre-wrap;word-break:break-word;color:var(--fg)}
+    .copy{position:absolute;top:8px;right:8px;padding:4px 10px;font-size:.74em;border:1px solid var(--border);
+         border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
+    .copy:hover{border-color:var(--link)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+    button.ghost{padding:9px 16px;font-size:.9em;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);cursor:pointer}
+    code{background:var(--chip);padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+    .status{font-size:.82em;color:var(--fg-muted);margin-top:8px;min-height:1.2em}
+    .status.err{color:#cf222e}.status.ok{color:var(--accent)}
+    .uptodate{display:flex;align-items:center;gap:8px;font-size:.92em;color:var(--accent);font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>What's new in LabVIEW CI</h1>
+        <p class="sub" id="sub">Checking for updates&hellip;</p>
+      </div>
+      <a class="back" id="backLink" href="./">&larr; Back to dashboard</a>
+    </header>
+
+    <section>
+      <h2>Update status</h2>
+      <p class="hint" id="statusHint">Comparing the version this repository runs against the latest published by the source repository.</p>
+      <div class="vline" id="versionLine"></div>
+      <div class="status" id="loadStatus"></div>
+    </section>
+
+    <section id="notesSec" style="display:none">
+      <h2>What's changed</h2>
+      <p class="hint">Release notes between your version and the latest, newest first.</p>
+      <div id="latestNote"></div>
+      <details id="allNotes" style="display:none">
+        <summary id="allNotesSummary"></summary>
+        <div id="allNotesBody"></div>
+      </details>
+    </section>
+
+    <section id="updateSec" style="display:none">
+      <h2>Update your CI tooling</h2>
+      <p class="hint">Run this from the root of your repository. <code>--update</code> re-pulls the tooling and
+        preserves your configuration files (<code>.github/labview-ci.yml</code> and baked dependencies).
+        Review with <code>git diff</code> before committing.</p>
+      <div class="row">
+        <div class="field">
+          <label class="fl" for="target">Update to</label>
+          <select id="target"></select>
+        </div>
+      </div>
+      <div class="tabs" id="tabs">
+        <div class="tab active" data-tab="bash">macOS / Linux / Git Bash</div>
+        <div class="tab" data-tab="pwsh">Windows PowerShell</div>
+      </div>
+      <div class="codebox">
+        <button class="copy" id="copyCmd">Copy</button>
+        <pre id="cmd"></pre>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="viewRelease">View this release in the source repo</button>
+        <span class="status" id="cmdStatus"></span>
+      </div>
+      <p class="hint" style="margin-top:12px">After it finishes, commit and push the changed <code>.github/</code> files
+        — your pipeline keeps running with the updated capabilities.</p>
+    </section>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+    const SOURCE_FALLBACK = { repo: "elijah286/LabVIEW-CI-with-Containers", ref: "main" };
+    const qp = new URLSearchParams(location.search);
+    const $ = (id) => document.getElementById(id);
+
+    let activeTab = "bash";
+    const state = { repo: "", from: "", srcRepo: "", srcRef: "main", latest: "", releases: [], missing: [], target: "" };
+
+    // ---- helpers ---------------------------------------------------------
+    function cmpVer(a, b) {
+      const pa = String(a || "0").split(".").map(n => parseInt(n, 10) || 0);
+      const pb = String(b || "0").split(".").map(n => parseInt(n, 10) || 0);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const d = (pa[i] || 0) - (pb[i] || 0);
+        if (d) return d;
+      }
+      return 0;
+    }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g,
+        c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    }
+    function rawUrl(repo, ref, path) { return `https://raw.githubusercontent.com/${repo}/${ref}/${path}`; }
+    async function fetchJson(url) {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }
+
+    // The consumer's own catalog is deployed next to this page (same origin); it
+    // carries the source pointer and the installed version. Source repo's catalog
+    // (the source of truth for "latest" + history) is read cross-origin from raw.
+    async function loadConsumerCatalog() {
+      for (const u of ["./catalog.json", "./labview-ci/catalog.json"]) {
+        try { return await fetchJson(u); } catch (_) { /* try next */ }
+      }
+      return null;
+    }
+    async function loadSourceCatalog(repo, ref) {
+      try { return await fetchJson(rawUrl(repo, ref, ".github/labview-ci/catalog.json")); }
+      catch (_) { return null; }
+    }
+
+    function releases(cat) {
+      const h = cat && cat.history;
+      if (!h) return [];
+      const list = Array.isArray(h) ? h : (h.releases || []);
+      return list.filter(r => r && r.version).slice().sort((a, b) => cmpVer(b.version, a.version));
+    }
+
+    // ---- detect repo / source context ------------------------------------
+    function detectRepoFromUrl() {
+      // https://<owner>.github.io/<repo>/whats-new.html  ->  owner/repo
+      const host = location.hostname || "";
+      const owner = host.endsWith(".github.io") ? host.slice(0, -".github.io".length) : "";
+      const seg = location.pathname.split("/").filter(Boolean)[0] || "";
+      return owner && seg ? `${owner}/${seg}` : "";
+    }
+
+    // ---- rendering -------------------------------------------------------
+    function releaseCard(rel) {
+      const hi = (rel.highlights || []).map(h => `<li>${esc(h)}</li>`).join("");
+      return `<div class="rel">
+        <div class="rel-head">
+          <span class="vpill new">v${esc(rel.version)}</span>
+          ${rel.title ? `<span class="rel-title">${esc(rel.title)}</span>` : ""}
+          ${rel.date ? `<span class="rel-date">${esc(rel.date)}</span>` : ""}
+        </div>
+        ${rel.summary ? `<p class="rel-sum">${esc(rel.summary)}</p>` : ""}
+        ${hi ? `<ul class="rel-hi">${hi}</ul>` : ""}
+      </div>`;
+    }
+
+    function renderVersionLine() {
+      const cur = state.from || "?";
+      const latest = state.latest || "?";
+      $("versionLine").innerHTML =
+        `<span class="vpill">This repo&nbsp; v${esc(cur)}</span>` +
+        `<span class="arrow">&rarr;</span>` +
+        `<span class="vpill new">Latest&nbsp; v${esc(latest)}</span>` +
+        (state.repo ? `<span style="color:var(--fg-muted);font-size:.82em">&nbsp; (${esc(state.repo)})</span>` : "");
+    }
+
+    function renderNotes() {
+      const m = state.missing;
+      $("notesSec").style.display = "";
+      $("latestNote").innerHTML = releaseCard(m[0]);
+      if (m.length > 1) {
+        const det = $("allNotes");
+        det.style.display = "";
+        $("allNotesSummary").textContent = `Show all ${m.length} updates (v${state.from || "?"} \u2192 v${state.latest})`;
+        $("allNotesBody").innerHTML = m.map(releaseCard).join("");
+      }
+    }
+
+    function renderPicker() {
+      const sel = $("target");
+      sel.innerHTML = "";
+      state.missing.forEach((r, i) => {
+        const o = document.createElement("option");
+        o.value = r.version;
+        o.textContent = "v" + r.version + (i === 0 ? "  (latest)" : "");
+        sel.appendChild(o);
+      });
+      state.target = state.missing[0].version;
+      sel.value = state.target;
+    }
+
+    function targetRef() {
+      // Every published version is tagged v<version> in the source repo (the
+      // version guard cuts the tag on release), so pin the exact version picked.
+      return "v" + state.target;
+    }
+
+    function commandText() {
+      const src = state.srcRepo;
+      const ref = targetRef();
+      if (activeTab === "pwsh") {
+        return `& ([scriptblock]::Create((irm ${rawUrl(src, state.srcRef, ".github/labview-ci/install.ps1")}))) \`\n` +
+               `    --update --source-repo ${src} --source-ref ${ref}`;
+      }
+      return `curl -fsSL ${rawUrl(src, state.srcRef, ".github/labview-ci/install.sh")} \\\n` +
+             `  | bash -s -- --update --source-repo ${src} --source-ref ${ref}`;
+    }
+
+    function renderCommand() {
+      $("cmd").textContent = commandText();
+      $("updateSec").style.display = "";
+    }
+
+    function showUpToDate() {
+      $("sub").innerHTML = `This repository is running the latest LabVIEW CI tooling.`;
+      $("versionLine").innerHTML =
+        `<span class="uptodate">&#10003; Up to date &mdash; v${esc(state.from || state.latest)} is the latest version.</span>`;
+    }
+
+    // ---- wiring ----------------------------------------------------------
+    function wireTabs() {
+      document.querySelectorAll("#tabs .tab").forEach(t =>
+        t.addEventListener("click", () => {
+          document.querySelectorAll("#tabs .tab").forEach(x => x.classList.remove("active"));
+          t.classList.add("active");
+          activeTab = t.dataset.tab;
+          renderCommand();
+        }));
+    }
+    function wirePicker() {
+      $("target").addEventListener("change", () => { state.target = $("target").value; renderCommand(); });
+    }
+    function wireButtons() {
+      $("copyCmd").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText($("cmd").textContent);
+          $("copyCmd").textContent = "Copied!";
+          setTimeout(() => $("copyCmd").textContent = "Copy", 1400);
+        } catch (_) { /* clipboard blocked */ }
+      });
+      $("viewRelease").addEventListener("click", () => {
+        const tag = "v" + state.target;
+        const url = `https://github.com/${state.srcRepo}/releases/tag/${encodeURIComponent(tag)}`;
+        window.open(url, "_blank", "noopener");
+      });
+    }
+
+    // ---- init ------------------------------------------------------------
+    (async function init() {
+      state.repo = qp.get("repo") || detectRepoFromUrl();
+      state.from = qp.get("from") || "";
+      state.srcRepo = qp.get("src") || "";
+      state.srcRef = qp.get("ref") || "";
+
+      const consumer = await loadConsumerCatalog();
+      if (consumer) {
+        if (!state.from) state.from = consumer.version || "";
+        const cs = consumer.source || {};
+        if (!state.srcRepo) state.srcRepo = cs.repo || "";
+        if (!state.srcRef) state.srcRef = cs.ref || "";
+      }
+      if (!state.srcRepo) state.srcRepo = SOURCE_FALLBACK.repo;
+      if (!state.srcRef) state.srcRef = SOURCE_FALLBACK.ref;
+
+      const ls = $("loadStatus");
+      const source = await loadSourceCatalog(state.srcRepo, state.srcRef);
+      if (!source) {
+        ls.className = "status err";
+        ls.innerHTML = `Could not reach the source repository (<code>${esc(state.srcRepo)}</code>) to check for updates. ` +
+          `Try again later, or view it on <a href="https://github.com/${esc(state.srcRepo)}" target="_blank" rel="noopener">GitHub</a>.`;
+        $("sub").textContent = "Could not check for updates.";
+        renderVersionLine();
+        return;
+      }
+
+      state.latest = source.version || "";
+      state.releases = releases(source);
+      state.missing = state.from
+        ? state.releases.filter(r => cmpVer(r.version, state.from) > 0)
+        : state.releases.slice();
+
+      renderVersionLine();
+
+      if (!state.missing.length) {
+        showUpToDate();
+        ls.className = "status ok";
+        ls.textContent = "No newer releases are available.";
+        return;
+      }
+
+      const n = state.missing.length;
+      $("sub").innerHTML = `${n} newer release${n > 1 ? "s are" : " is"} available from ` +
+        `<code>${esc(state.srcRepo)}</code>. Review the changes, then update.`;
+      ls.className = "status";
+      ls.textContent = "";
+
+      renderNotes();
+      renderPicker();
+      renderCommand();
+      wireTabs();
+      wirePicker();
+      wireButtons();
+    })();
+  })();
+  </script>
+</body>
+</html>

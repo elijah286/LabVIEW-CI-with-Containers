@@ -1,8 +1,36 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
+  "history": {
+    "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
+    "releases": [
+      {
+        "version": "1.1.0",
+        "date": "2026-06-15",
+        "title": "Version badge & update notifications",
+        "summary": "The dashboard now shows which version of the LabVIEW CI tooling a repository is running, and tells client repositories when this source repository has published a newer release.",
+        "highlights": [
+          "Added a version badge to the dashboard toolbar showing the installed tooling version.",
+          "Client repositories show a notification glyph over the version when this source repository publishes a newer release.",
+          "Added a What's New dialog listing the changes between the installed version and the latest, with a one-click update command.",
+          "When several versions behind, the dialog lists every intermediate release and lets a client update to a specific version."
+        ]
+      },
+      {
+        "version": "1.0.0",
+        "date": "2026-06-01",
+        "title": "Initial LabVIEW CI release",
+        "summary": "First packaged release of the portable LabVIEW CI capabilities, driven by this catalog.",
+        "highlights": [
+          "Mass Compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and the status dashboard.",
+          "Catalog-driven installer and configurator so capabilities install and update consistently across repositories.",
+          "Per-repository LabVIEW container worker images with a versioned manifest."
+        ]
+      }
+    ]
+  },
   "source": {
     "comment": "Where the installer fetches tooling from and what the configurator links to. Point this at a dedicated tooling repo later without touching any other file.",
     "repo": "elijah286/LabVIEW-CI-with-Containers",
@@ -87,7 +115,8 @@
           ".github/pages/index.html",
           ".github/pages/report-viewer.html",
           ".github/pages/integrate.html",
-          ".github/pages/configure.html"
+          ".github/pages/configure.html",
+          ".github/pages/whats-new.html"
         ],
         "windows": [],
         "linux": []

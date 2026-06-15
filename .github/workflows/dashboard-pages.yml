@@ -389,6 +389,72 @@ jobs:
           refresh_note = ('Live — refreshing every 60 s while CI runs'
                           if running_flag['on'] else 'Auto-refreshes every 15 min')
 
+          # ── Version badge + update notification ─────────────────────
+          # Read this repo's installed CI tooling version and the source repo it
+          # pulls tooling from. The badge (left of the toolbar) shows the version.
+          # Client repos (whose source repo differs from this repo) get a live
+          # check against the source's catalog and a notification glyph + What's
+          # New dialog when a newer release exists. The source repo itself always
+          # runs the latest version, so it needs no check.
+          try:
+              with open('.github/labview-ci/catalog.json', encoding='utf-8') as _cf:
+                  _cat = json.load(_cf)
+          except Exception:
+              _cat = {}
+          lvci_version   = str(_cat.get('version', '') or '')
+          _src           = _cat.get('source', {}) or {}
+          lvci_src_repo  = str(_src.get('repo', '') or '')
+          lvci_src_ref   = str(_src.get('ref', 'main') or 'main')
+          lvci_is_source = (not lvci_src_repo) or (lvci_src_repo.lower() == repo.lower())
+          lvci_cfg_json  = json.dumps({
+              'version': lvci_version, 'sourceRepo': lvci_src_repo,
+              'sourceRef': lvci_src_ref, 'isSource': bool(lvci_is_source), 'repo': repo,
+          })
+          version_badge_html = ''
+          version_check_script = ''
+          if lvci_version:
+              _badge_title = ('Latest LabVIEW CI tooling version' if lvci_is_source
+                              else 'Installed LabVIEW CI tooling version')
+              version_badge_html = (
+                  '<div id="lvci-version" title="' + _badge_title + '" '
+                  'style="position:relative;display:inline-flex;align-items:center;gap:6px;'
+                  'background:rgba(110,118,129,.15);color:var(--fg-muted);'
+                  'border:1px solid rgba(110,118,129,.35);padding:8px 12px;border-radius:6px;'
+                  'font-size:.78em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;'
+                  'user-select:none"><span>v' + lvci_version + '</span>'
+                  '<span id="lvci-update-dot" aria-hidden="true"></span></div>'
+              )
+              version_check_script = (
+                  '<style>'
+                  '#lvci-version.lvci-has-update{cursor:pointer;color:var(--fg);'
+                  'border-color:#d29922;background:rgba(210,153,34,.13)}'
+                  '#lvci-version.lvci-has-update:hover{background:rgba(210,153,34,.22)}'
+                  '#lvci-update-dot{display:none}'
+                  '#lvci-update-dot.on{display:block;position:absolute;top:-5px;right:-5px;'
+                  'width:11px;height:11px;border-radius:50%;background:#d29922;'
+                  'box-shadow:0 0 0 2px var(--bg);animation:lvci-pulse 1.7s ease-out infinite}'
+                  '@keyframes lvci-pulse{0%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,.5)}'
+                  '70%{box-shadow:0 0 0 2px var(--bg),0 0 0 7px rgba(210,153,34,0)}'
+                  '100%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,0)}}'
+                  '</style>'
+                  '<script>(function(){'
+                  'var C=' + lvci_cfg_json + ';'
+                  'function cmp(a,b){var p=String(a||"0").split("."),q=String(b||"0").split(".");'
+                  'for(var i=0;i<Math.max(p.length,q.length);i++){var d=(parseInt(p[i],10)||0)-(parseInt(q[i],10)||0);if(d)return d;}return 0;}'
+                  'if(!C.version||C.isSource||!C.sourceRepo)return;'
+                  'var u="https://raw.githubusercontent.com/"+C.sourceRepo+"/"+C.sourceRef+"/.github/labview-ci/catalog.json";'
+                  'fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(cat){'
+                  'if(!cat||!cat.version||cmp(cat.version,C.version)<=0)return;'
+                  'var b=document.getElementById("lvci-version"),d=document.getElementById("lvci-update-dot");'
+                  'if(!b)return;b.classList.add("lvci-has-update");if(d)d.classList.add("on");'
+                  'b.title="Update available: v"+C.version+" \\u2192 v"+cat.version+" \\u2014 click to see what\\u2019s new";'
+                  'b.setAttribute("role","button");b.setAttribute("tabindex","0");'
+                  'var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(C.sourceRepo)+"&ref="+encodeURIComponent(C.sourceRef),"What\\u2019s New");};'
+                  'b.addEventListener("click",go);'
+                  'b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});'
+                  '}).catch(function(){});})();</scr' + 'ipt>'
+              )
+
           html = f"""<!DOCTYPE html>
           <html lang="en">
           <head>
@@ -430,7 +496,8 @@ jobs:
             </style>
           </head>
           <body>
-            <div style="position:fixed;top:14px;right:16px;z-index:30;display:flex;gap:8px">
+            <div style="position:fixed;top:14px;right:16px;z-index:30;display:flex;align-items:center;gap:8px">
+              {version_badge_html}
               <button onclick="lvciOpen('configure.html','Configure Workers')" title="Configure the behavior of this repository's automated CI activities" style="background:#1f6feb;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">⚙ Configure Workers</button>
               <button onclick="lvciOpen('integrate.html','Apply to New Repo')" title="Install these CI capabilities into another repository" style="background:#238636;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">➕ Apply to New Repo</button>
             </div>
@@ -457,6 +524,7 @@ jobs:
               }}
               document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') lvciClose(); }});
             </script>
+            {version_check_script}
             <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
             <div class="sub">Last updated: {now} &nbsp;|&nbsp; {refresh_note}</div>
             <div class="nav">

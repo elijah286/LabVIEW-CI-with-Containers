@@ -1,9 +1,9 @@
 name: Integrate Configurator — Pages
 
 # Publishes the "Integrate this CI pipeline" configurator (integrate.html), the
-# settings editor (configure.html), and the capability catalog (catalog.json) to
-# the Pages root, so the dashboard buttons have targets and the pages can load the
-# catalog same-origin.
+# settings editor (configure.html), the What's New / update dialog (whats-new.html),
+# and the capability catalog (catalog.json) to the Pages root, so the dashboard
+# buttons + version badge have targets and the pages can load the catalog same-origin.
 #
 # Kept separate from dashboard-pages.yml on purpose: this rarely changes, and a
 # standalone deploy keeps the configurator publishing independent of the dashboard
@@ -15,6 +15,7 @@ on:
     paths:
       - '.github/pages/integrate.html'
       - '.github/pages/configure.html'
+      - '.github/pages/whats-new.html'
       - '.github/labview-ci/catalog.json'
       - '.github/labview/vipm/ci-tooling.packages.json'
       - '.github/workflows/integrate-deploy.yml'
@@ -40,6 +41,7 @@ jobs:
           mkdir -p out
           cp .github/pages/integrate.html out/integrate.html
           cp .github/pages/configure.html out/configure.html
+          cp .github/pages/whats-new.html out/whats-new.html
           cp .github/labview-ci/catalog.json out/catalog.json
           cp .github/labview/vipm/ci-tooling.packages.json out/ci-tooling.packages.json
 
