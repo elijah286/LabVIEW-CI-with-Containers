@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mass Compile â€” LabVIEW-CI-with-Containers</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3}
+    .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:16px}
+    h1{margin:0 0 12px;font-size:1.3em}
+    .badge{display:inline-block;padding:3px 10px;border-radius:4px;font-weight:700;font-size:.85em;color:#fff;background:#bb8009}
+    .meta{margin-top:10px;font-size:.82em;color:#8b949e;display:flex;flex-wrap:wrap;gap:16px}
+    pre{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:14px;font-size:.75em;white-space:pre-wrap;word-break:break-all;overflow-y:auto;max-height:65vh;margin:0}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Mass Compile â€” LabVIEW-CI-with-Containers</h1>
+    <span class="badge">98% compiled</span>
+    <div class="meta">
+      <span>Date: 2026-06-15 19:17:19 UTC</span>
+      <span>Duration: 31.5s</span>
+      <span>Project VIs: 41</span>
+      <span>Compiled OK: 40</span>
+      <span>Bad: 1</span>
+    </div>
+  </div>
+  <pre>LabVIEWCLI started logging in file:  C:\Users\ContainerAdministrator\AppData\Local\Temp\lvtemporary_586279.log
+Using LabVIEW: "C:\Program Files\National Instruments\LabVIEW 2026\LabVIEW.exe"
+LabVIEW launched successfully.
+Connection established with LabVIEW at port number 3363.
+
+LabVIEWCLI.exe : Operation output: 
+At C:\workspace\.github\labview\masscompile.ps1:81 char:1
++ &amp; $CliExe `
++ ~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Operation output: :String) [], Re 
+   moteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+#### Starting Mass Compile: Mon, Jun 15, 2026 7:17:07 PM
+  Directory: "C:\workspace"
+C:\workspace\.github\labview\PrintToSingleFileHtml\PrintToSingleFileHtml.lvclas
+s (PrintToSingleFileHtml.lvclass)
+    - The class expected to be at 
+"C:\workspace\.github\labview\CoreOperation\CoreOperation.lvclass" was loaded 
+from "C:\Program Files (x86)\National Instruments\Shared\LabVIEW 
+CLI\Operations\CoreOperation\CoreOperation.lvclass".
+  ### Bad VI:    "Revidyne Generator.lvlib:VI Tree.vi"	
+Path="C:\workspace\example\Curriculum\Generator API\subVIs\Public\VI Tree.vi" 
+Search failed to find "Trim Whitespace (string).vi" previously from 
+"&lt;vilib&gt;:\Utility\error.llb\Trim Whitespace (string).vi"  +=+   Caller: 
+"main.vi"
+#### Finished Mass Compile: Mon, Jun 15, 2026 7:17:19 PM
+
+MassCompile operation failed.
+
+</pre>
+</body>
+</html>
