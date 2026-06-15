@@ -26,9 +26,9 @@ $VipcDir          = 'C:\vipm'
 $LabVIEWVersion   = if ($Env:LABVIEW_VERSION)    { $Env:LABVIEW_VERSION }    else { '2026' }  # match the LabVIEW version in the NI base image
 $VipmInstallerUrl = if ($Env:VIPM_INSTALLER_URL) { $Env:VIPM_INSTALLER_URL } else { 'https://vipm.jki.net/l/download/vipm_2024_x64.exe' }
 
-# ── 1. Install VIPM if not already present ───────────────────────────────────
+# -- 1. Install VIPM if not already present -----------------------------------
 if (-not (Test-Path $VipmExe)) {
-    Write-Host 'VIPM not found — downloading installer...'
+    Write-Host 'VIPM not found - downloading installer...'
     $InstallerFile = Join-Path $Env:TEMP 'vipm-installer.exe'
     Invoke-WebRequest -Uri $VipmInstallerUrl -OutFile $InstallerFile -UseBasicParsing
 
@@ -43,10 +43,10 @@ if (-not (Test-Path $VipmExe)) {
     Write-Host "VIPM installed to: $VipmDir"
 }
 
-# ── 2. Apply each .vipc file ─────────────────────────────────────────────────
+# -- 2. Apply each .vipc file -------------------------------------------------
 $vipcFiles = @(Get-ChildItem $VipcDir -Filter '*.vipc')
 if ($vipcFiles.Count -eq 0) {
-    Write-Host 'No .vipc files found — nothing to apply.'
+    Write-Host 'No .vipc files found - nothing to apply.'
     exit 0
 }
 
@@ -57,7 +57,7 @@ foreach ($vipc in $vipcFiles) {
         -labview_version    $LabVIEWVersion `
         -accept_agreements  true
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "VIPM failed to apply '$($vipc.Name)' — exit code $LASTEXITCODE"
+        Write-Error "VIPM failed to apply '$($vipc.Name)' - exit code $LASTEXITCODE"
         exit 1
     }
 }

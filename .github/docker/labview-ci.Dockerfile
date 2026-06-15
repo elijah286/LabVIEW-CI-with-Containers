@@ -48,7 +48,7 @@ COPY .github/labview/vipm/ C:/vipm/
 RUN if (-not (Get-Command nipkg -ErrorAction SilentlyContinue)) { throw 'nipkg was not found in the LabVIEW base image.' }; `
     nipkg feed-add --name=$env:NIPM_FEED_NAME $env:NIPM_FEED_URL; `
     nipkg update; `
-    nipkg install --accept-eulas -y --passive $env:VIA_SUPPORT_PACKAGE; `
+    nipkg install --accept-eulas -y $env:VIA_SUPPORT_PACKAGE; `
     if (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
       Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
     }
