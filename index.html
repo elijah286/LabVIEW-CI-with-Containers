@@ -39,7 +39,8 @@
   </style>
 </head>
 <body>
-  <div style="position:fixed;top:14px;right:16px;z-index:30;display:flex;gap:8px">
+  <div style="position:fixed;top:14px;right:16px;z-index:30;display:flex;align-items:center;gap:8px">
+    <div id="lvci-version" title="Latest LabVIEW CI tooling version" style="position:relative;display:inline-flex;align-items:center;gap:6px;background:rgba(110,118,129,.15);color:var(--fg-muted);border:1px solid rgba(110,118,129,.35);padding:8px 12px;border-radius:6px;font-size:.78em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;user-select:none"><span>v1.1.0</span><span id="lvci-update-dot" aria-hidden="true"></span></div>
     <button onclick="lvciOpen('configure.html','Configure Workers')" title="Configure the behavior of this repository's automated CI activities" style="background:#1f6feb;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">⚙ Configure Workers</button>
     <button onclick="lvciOpen('integrate.html','Apply to New Repo')" title="Install these CI capabilities into another repository" style="background:#238636;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">➕ Apply to New Repo</button>
   </div>
@@ -66,8 +67,9 @@
     }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lvciClose(); });
   </script>
+  <style>#lvci-version.lvci-has-update{cursor:pointer;color:var(--fg);border-color:#d29922;background:rgba(210,153,34,.13)}#lvci-version.lvci-has-update:hover{background:rgba(210,153,34,.22)}#lvci-update-dot{display:none}#lvci-update-dot.on{display:block;position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:#d29922;box-shadow:0 0 0 2px var(--bg);animation:lvci-pulse 1.7s ease-out infinite}@keyframes lvci-pulse{0%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,.5)}70%{box-shadow:0 0 0 2px var(--bg),0 0 0 7px rgba(210,153,34,0)}100%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,0)}}</style><script>(function(){var C={"version": "1.1.0", "sourceRepo": "elijah286/LabVIEW-CI-with-Containers", "sourceRef": "main", "isSource": true, "repo": "elijah286/LabVIEW-CI-with-Containers"};function cmp(a,b){var p=String(a||"0").split("."),q=String(b||"0").split(".");for(var i=0;i<Math.max(p.length,q.length);i++){var d=(parseInt(p[i],10)||0)-(parseInt(q[i],10)||0);if(d)return d;}return 0;}if(!C.version||C.isSource||!C.sourceRepo)return;var u="https://raw.githubusercontent.com/"+C.sourceRepo+"/"+C.sourceRef+"/.github/labview-ci/catalog.json";fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(cat){if(!cat||!cat.version||cmp(cat.version,C.version)<=0)return;var b=document.getElementById("lvci-version"),d=document.getElementById("lvci-update-dot");if(!b)return;b.classList.add("lvci-has-update");if(d)d.classList.add("on");b.title="Update available: v"+C.version+" \u2192 v"+cat.version+" \u2014 click to see what\u2019s new";b.setAttribute("role","button");b.setAttribute("tabindex","0");var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(C.sourceRepo)+"&ref="+encodeURIComponent(C.sourceRef),"What\u2019s New");};b.addEventListener("click",go);b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});}).catch(function(){});})();</script>
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-15 19:17 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-15 19:27 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/">VI Browser</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
@@ -90,6 +92,36 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/commit/798b66cf2a1844b0a103eab7b800bf654622dafc" style="color:var(--link)">798b66c</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(dashboard): version badge + update notifications   [release: minor]"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=798b66cf2a1844b0a103eab7b800bf654622dafc" style="color:var(--fg)">feat(dashboard): version badge + update notifications   [release: minor]</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/commit/84321876a223cbf424d6c378f6c0d130fa34736f" style="color:var(--link)">8432187</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(reusable): reference composite actions by full repo path @v1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=84321876a223cbf424d6c378f6c0d130fa34736f" style="color:var(--fg)">fix(reusable): reference composite actions by full repo path @v1</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/commit/9c532b497ad071fcaac131d5fa73d8bc07281dd0" style="color:var(--link)">9c532b4</a>
@@ -187,7 +219,7 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="resized the graph"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=38c17ff60bf7c3c2b9ff6f1daa585685ab99a8fb" style="color:var(--fg)">resized the graph</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-01</td>
-      <td style="text-align:center"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/38c17ff60bf7c3c2b9ff6f1daa585685ab99a8fb/index.html" style="color:inherit">✅ compile</a></span></td>
+      <td style="text-align:center"><span title="40/41 project VIs compiled" style="background:#bb8009;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?title=Mass%20Compile%20%C2%B7%2038c17ff&src=..%2Fmasscompile%2F38c17ff60bf7c3c2b9ff6f1daa585685ab99a8fb%2Findex.html&sha=38c17ff60bf7c3c2b9ff6f1daa585685ab99a8fb" style="color:inherit">⚠️ 98%</a></span></td>
       <td style="text-align:center"><span style="background:#da3633;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/27567774006" style="color:inherit">❌ analyze</a></span></td>
       <td style="text-align:center"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=38c17ff60bf7c3c2b9ff6f1daa585685ab99a8fb&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=38c17ff60bf7c3c2b9ff6f1daa585685ab99a8fb&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=38c17ff60bf7c3c2b9ff6f1daa585685ab99a8fb&plat=linux&changed=1" style="color:var(--link)">Linux(42)</a></td>
