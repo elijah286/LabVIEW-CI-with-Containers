@@ -89,17 +89,21 @@ try {
     if (Test-Path $testsRoot) {
         $llbs = @(Get-ChildItem -LiteralPath $testsRoot -Recurse -Filter '*.llb' -File -ErrorAction SilentlyContinue)
         if ($llbs.Count -gt 0) {
+            # [char]34 is a double-quote, sourced as a variable so the XML lines
+            # below need no literal or escaped quotes (kept pure-ASCII and free of
+            # backtick-quote escaping, which keeps the parser unambiguous).
+            $q  = [char]34
             $sb = New-Object System.Text.StringBuilder
             [void]$sb.AppendLine('<TestConfigData>')
             foreach ($llb in ($llbs | Sort-Object FullName)) {
                 $name = [System.IO.Path]::GetFileNameWithoutExtension($llb.Name)
                 $rel  = $llb.FullName.Substring($lvDir.Length).TrimStart('\', '/').Replace('\', '/')
                 [void]$sb.AppendLine("`t`t<Test>")
-                [void]$sb.AppendLine("`t`t`t<Name>`"$name`"</Name>")
+                [void]$sb.AppendLine("`t`t`t<Name>${q}$name${q}</Name>")
                 [void]$sb.AppendLine("`t`t`t<Ranking>1</Ranking>")
                 [void]$sb.AppendLine("`t`t`t<MaxFailures>1000</MaxFailures>")
-                [void]$sb.AppendLine("`t`t`t<BasePath>`"LabVIEW`"</BasePath>")
-                [void]$sb.AppendLine("`t`t`t<RelativePath>`"$rel`"</RelativePath>")
+                [void]$sb.AppendLine("`t`t`t<BasePath>${q}LabVIEW${q}</BasePath>")
+                [void]$sb.AppendLine("`t`t`t<RelativePath>${q}$rel${q}</RelativePath>")
                 [void]$sb.AppendLine("`t`t`t<Selected>TRUE</Selected>")
                 [void]$sb.AppendLine("`t`t`t<Controls>")
                 [void]$sb.AppendLine("`t`t`t</Controls>")
@@ -118,16 +122,16 @@ try {
                 $ConfigXml = $ConfigXml.Substring(0, $si) + $newBlock + $ConfigXml.Substring($ei + $endTag.Length)
                 Write-Host ("  Test suite : selected {0} tests (full default suite from {1})" -f $llbs.Count, $testsRoot)
             } else {
-                Write-Warning "  Test suite : could not locate <TestConfigData> in template — using committed fallback tests"
+                Write-Warning "  Test suite : could not locate <TestConfigData> in template - using committed fallback tests"
             }
         } else {
-            Write-Warning "  Test suite : no *.llb tests found under '$testsRoot' — using committed fallback tests"
+            Write-Warning "  Test suite : no *.llb tests found under '$testsRoot' - using committed fallback tests"
         }
     } else {
-        Write-Warning "  Test suite : '$testsRoot' not found — using committed fallback tests"
+        Write-Warning "  Test suite : '$testsRoot' not found - using committed fallback tests"
     }
 } catch {
-    Write-Warning "  Test suite enumeration failed ($($_.Exception.Message)) — using committed fallback tests"
+    Write-Warning ("  Test suite enumeration failed (" + $_.Exception.Message + ") - using committed fallback tests")
 }
 
 [System.IO.File]::WriteAllText($ConfigFile, $ConfigXml, [System.Text.UTF8Encoding]::new($false))
