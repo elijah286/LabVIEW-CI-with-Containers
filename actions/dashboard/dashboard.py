@@ -332,7 +332,17 @@ for c in commits_data:
         emoji  = {'success':'✅','failure':'❌','pending':'⏳','error':'⚠️'}.get(s['state'],'?')
         url    = url_override or s.get('target_url','')
         link   = f'<a href="{url}" style="color:inherit">{emoji} {label}</a>' if url else f'{emoji} {label}'
-        return f'<td style="text-align:center"><span style="background:{color};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">{link}</span></td>'
+        # When this column has a re-run workflow, tag the result cell with its
+        # cap/sha (+ the result's timestamp) so a re-run dispatched from elsewhere
+        # (the report's "Re-run analysis" button) can overlay a "Queued" spinner on
+        # it via the same lvci_queued_runs bridge the empty-cell Run now uses. The
+        # data-ts lets the overlay self-clear once a NEWER result lands.
+        cap_attrs = ''
+        if cap:
+            cap_attrs = (f' class="cidash-cap-cell" data-cap="{cap}" data-sha="{sha}"'
+                         f' data-parent="{parent}" data-short="{short}" data-ts="{s.get("created_at","")}"')
+        return (f'<td style="text-align:center"{cap_attrs}>'
+                f'<span style="background:{color};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">{link}</span></td>')
 
     def worker_cell(*contexts):
         # Worker-version column: the version string the worker status posted
@@ -770,14 +780,19 @@ run_dialog = (r"""
       delete o[c+'|'+sha]; qSave(o);
       var td = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
       if(td){
-        var parent = (entry && entry.parent) || '';
-        var short = (entry && entry.short) || sha.slice(0,7);
-        var label = (RT[c] && RT[c].label) || c;
         td.classList.remove('cidash-queued-cell');
         td.removeAttribute('data-qcap'); td.removeAttribute('data-qsha');
-        td.innerHTML = '<a href="#" class="cidash-run" data-cap="'+esc(c)+'" data-sha="'+esc(sha)+'" '
-          + 'data-parent="'+esc(parent)+'" data-short="'+esc(short)+'" '
-          + 'title="Run '+esc(label)+' for commit '+esc(short)+'">\u25B7</a>';
+        if(entry && entry.orig){
+          // Result cell (re-run overlay) — restore its original status badge.
+          td.innerHTML = entry.orig;
+        } else {
+          var parent = (entry && entry.parent) || '';
+          var short = (entry && entry.short) || sha.slice(0,7);
+          var label = (RT[c] && RT[c].label) || c;
+          td.innerHTML = '<a href="#" class="cidash-run" data-cap="'+esc(c)+'" data-sha="'+esc(sha)+'" '
+            + 'data-parent="'+esc(parent)+'" data-short="'+esc(short)+'" '
+            + 'title="Run '+esc(label)+' for commit '+esc(short)+'">\u25B7</a>';
+        }
       }
       qRenumber();
     }
@@ -862,7 +877,19 @@ run_dialog = (r"""
         var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
         if(painted){ live++; }
         else if(a){ qPaint(a.closest('td'), c, sha); live++; }
-        else { delete o[key]; changed = true; }   // real status took over — done
+        else {
+          // The cell may already hold a RESULT (re-run from the report, not an
+          // empty cell). Overlay "Queued" on it until a NEWER result lands. A
+          // server-side running spinner has no data-cap, so it falls through to
+          // the delete branch below (the server has taken over).
+          var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+          if(rc){
+            var rts = Date.parse(rc.getAttribute('data-ts')||'') || 0;
+            if(rts && rts > (e.ts||0)){ delete o[key]; changed = true; }   // re-run finished
+            else { if(!e.orig){ e.orig = rc.innerHTML; changed = true; } qPaint(rc, c, sha); live++; }
+          }
+          else { delete o[key]; changed = true; }   // real status / spinner took over
+        }
       });
       if(changed) qSave(o);
       if(live > 0) qArmReload();
