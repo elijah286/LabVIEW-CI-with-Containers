@@ -248,26 +248,6 @@
       }
     }
 
-    // Shown when the repo is already current: the badge is always clickable, so
-    // give it something worthwhile — the full release history, newest first.
-    function renderHistory() {
-      const all = state.releases || [];
-      if (!all.length) return;
-      const sec = $("notesSec");
-      sec.style.display = "";
-      const h2 = sec.querySelector("h2");
-      if (h2) h2.textContent = "Release history";
-      const hint = sec.querySelector(".hint");
-      if (hint) hint.textContent = "Every published release, newest first.";
-      $("latestNote").innerHTML = releaseCard(all[0]);
-      if (all.length > 1) {
-        const det = $("allNotes");
-        det.style.display = "";
-        $("allNotesSummary").textContent = `Show all ${all.length} releases`;
-        $("allNotesBody").innerHTML = all.map(releaseCard).join("");
-      }
-    }
-
     function renderPicker() {
       const sel = $("target");
       sel.innerHTML = "";
@@ -391,7 +371,6 @@
         showUpToDate();
         ls.className = "status ok";
         ls.textContent = "No newer releases are available.";
-        renderHistory();
         return;
       }
 
