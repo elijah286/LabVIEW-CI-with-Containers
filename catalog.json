@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.2",
+  "version": "1.7.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.3",
+        "date": "2026-06-15",
+        "title": "Keep CI and project work correctly separated",
+        "summary": "Two fixes to how the dashboard tells project revisions from CI/tooling commits. It now scans deep enough into history to keep your LabVIEW project revisions visible even after a long run of CI/tooling commits (previously a busy tooling sprint could push the last project commit out of the window and the table would say 'no project revisions'). And tooling VIs that ship inside the CI actions themselves (for example the PrintToSingleFileHtml helpers under actions/) no longer count as project work, so a tooling commit is not mistaken for a project change.",
+        "highlights": [
+          "The dashboard pages through history until it has collected enough project revisions (recent window kept for badges, then project-only beyond it, with a scan cap), so project rows stay visible during a CI sprint.",
+          "Commit classification and the VI Browser file tree now exclude tooling directories (.github/, actions/, _lvci/, ci-out/, build/), so the tooling's own helper VIs are never counted as project files.",
+          "Fixes the 'No project revisions in the recent window' empty state appearing on repositories whose recent commits were all CI/tooling."
+        ]
+      },
       {
         "version": "1.7.2",
         "date": "2026-06-15",
