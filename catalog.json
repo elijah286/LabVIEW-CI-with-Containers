@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.8",
+  "version": "1.7.9",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.9",
+        "date": "2026-06-16",
+        "title": "The version badge shows when an upgrade is in flight",
+        "summary": "While a tooling upgrade is being applied, the version badge turns into a live 'Updating…' indicator (a spinner) that links straight to the action in progress, instead of silently showing the old version until the rebuild lands. It covers both windows: the moment you click Update now (links to the running 'Apply LabVIEW CI update' workflow), and the gap after you merge the update PR while the dashboard is rebuilding and deploying (links to that build). It clears itself automatically once the new version is live.",
+        "highlights": [
+          "When the update workflow is running, the badge reads 'Updating…' and clicking it opens the running workflow run.",
+          "After the update PR is merged, the badge reads 'Updating to vX…' until the rebuilt dashboard deploys, linking to the in-flight build — no more wondering why the version still looks old.",
+          "Uses a read-only check against the repo's own Actions + committed config; reuses the Run-now token if present for a higher rate limit, otherwise an unauthenticated public read. No new permissions required."
+        ]
+      },
       {
         "version": "1.7.8",
         "date": "2026-06-15",
