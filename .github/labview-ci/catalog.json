@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.3",
+  "version": "1.7.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.4",
+        "date": "2026-06-15",
+        "title": "Clearer token setup for Run now (fixes the 403)",
+        "summary": "When 'Run now' fails, the dialog now says exactly why and how to fix it. The most common cause is a fine-grained token that was given repository access but no permissions — a 403. The error now reads '403: the token is missing the Actions: Read and write permission' and points at Permissions → Repository permissions → Actions → Read and write, with an 'Update token' shortcut. The one-time setup panel is now a numbered checklist that calls out the permission step (selecting the repo alone is not enough).",
+        "highlights": [
+          "A 403 now explains it means the token lacks the Actions: Read and write permission, with the exact menu path to add it; a 404 explains the token cannot see the repository.",
+          "The token-setup panel is a 4-step checklist (create token, grant repository access, add Actions: Read and write, paste) so the required permission is not missed.",
+          "Added an 'Update token' link on dispatch errors that reopens the setup panel."
+        ]
+      },
       {
         "version": "1.7.3",
         "date": "2026-06-15",

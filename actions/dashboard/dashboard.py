@@ -646,8 +646,16 @@ run_dialog = (r"""
           var n=results.length;
           setStatus('\u2713 Queued '+n+' run'+(n>1?'s':'')+'. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
         } else {
-          var parts = results.map(function(r){ return (RT[state.cap].platforms[r.plat]&&Object.keys(RT[state.cap].platforms).length>1?cap(r.plat)+': ':'') + (r.ok?'queued':('HTTP '+r.status)); });
-          setStatus(parts.join(' \u00b7 ') + ' \u2014 a 403/404 usually means the token lacks <strong>Actions: write</strong> or access to this repo.', 'err');
+          var multi = Object.keys(RT[state.cap].platforms).length > 1;
+          var parts = results.map(function(r){ return (multi?cap(r.plat)+': ':'') + (r.ok?'queued':('HTTP '+r.status)); });
+          var has403 = results.some(function(r){return r.status===403;});
+          var has404 = results.some(function(r){return r.status===404;});
+          var hint;
+          if (has403) hint = ' \u2014 <strong>403</strong>: the token is missing the <strong>Actions: Read and write</strong> permission. On the token page open <strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong> (selecting the repository is not enough), then <strong>Update</strong> and run again.';
+          else if (has404) hint = ' \u2014 <strong>404</strong>: the token cannot see <code>'+esc(REPO)+'</code>. Grant it <strong>Repository access</strong> to this repo AND the <strong>Actions: Read and write</strong> permission.';
+          else hint = ' \u2014 check the token has <strong>Actions: Read and write</strong> on this repository.';
+          setStatus(parts.join(' \u00b7 ') + hint + ' <a href="#" id="cidash-fixtok" style="color:var(--link);white-space:nowrap">Update token \u2192</a>', 'err');
+          var ft=$("cidash-fixtok"); if(ft) ft.addEventListener('click', function(e){ e.preventDefault(); showTokenPanel(); });
         }
       });
     }
@@ -671,7 +679,14 @@ run_dialog = (r"""
       }
       // One-time token setup panel (hidden until needed).
       h += '<div id="cidash-tok-panel" style="display:none;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);margin:0 0 12px">';
-      h += '<div style="font-size:.8em;color:var(--fg-muted);margin-bottom:8px">One-time setup. Paste a GitHub token with <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code>. It is stored only in this browser and sent only to api.github.com. <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--link)">Create a fine-grained token \u2197</a></div>';
+      h += '<div style="font-size:.82em;color:var(--fg);font-weight:600;margin-bottom:6px">One-time setup \u2014 a token to queue runs</div>';
+      h += '<ol style="font-size:.8em;color:var(--fg-muted);margin:0 0 8px;padding-left:18px;line-height:1.6">';
+      h += '<li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--link)">Create a fine-grained token \u2197</a></li>';
+      h += '<li><strong>Repository access</strong> \u2192 Only select repositories \u2192 add <code>'+esc(REPO)+'</code>.</li>';
+      h += '<li><strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong>. Required \u2014 selecting the repo alone gives a 403.</li>';
+      h += '<li>Generate, then paste it below.</li>';
+      h += '</ol>';
+      h += '<div style="font-size:.76em;color:var(--fg-muted);margin-bottom:8px">Stored only in this browser (localStorage); sent only to api.github.com \u2014 never to the repo, the page, or CI.</div>';
       h += '<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="cidash-tok-input" type="password" autocomplete="off" placeholder="github_pat_\u2026 or ghp_\u2026" style="flex:1 1 240px;min-width:180px;padding:7px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.8em">';
       h += '<button class="cidash-btn cidash-go" id="cidash-tok-save">Save &amp; run</button>';
       h += '<button class="cidash-btn cidash-ghost" id="cidash-tok-cancel">Cancel</button></div></div>';
