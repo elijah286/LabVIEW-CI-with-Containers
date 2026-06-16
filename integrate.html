@@ -88,6 +88,14 @@
     .tokpanel input{flex:1 1 240px;min-width:180px;padding:8px 10px;background:var(--bg);color:var(--fg);
          border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.82em}
     #insNext{margin-top:14px}
+    .insopts{display:grid;gap:9px;margin:2px 0 14px}
+    .insopt{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:.9em;cursor:pointer}
+    .insopt input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px}
+    .insopt small{display:block;color:var(--fg-muted);font-size:.84em;margin-top:2px}
+    .insdone{list-style:none;margin:14px 0 0;padding:0}
+    .insdone li{position:relative;padding:0 0 0 24px;margin:0 0 7px;font-size:.88em;color:var(--fg);line-height:1.5}
+    .insdone li::before{content:"\2713";position:absolute;left:0;top:1px;color:var(--accent);font-weight:700}
+    .insdone small{display:block;color:var(--fg-muted);font-size:.86em;margin-top:1px}
     details.altinstall>summary{cursor:pointer;font-size:.86em;color:var(--link);user-select:none}
     details.altinstall>summary:hover{text-decoration:underline}
   </style>
@@ -132,14 +140,23 @@
 
     <section>
       <h2>3. Install</h2>
-      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; nothing to download, unzip, or commit by hand. The first time, you paste a one-time fine-grained token; the panel walks you through creating it with the permissions pre-filled.</p>
+      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a one-time fine-grained token; the panel walks you through creating it with the permissions pre-filled.</p>
+
+      <div class="insopts">
+        <label class="insopt"><input type="checkbox" id="optReadme" checked>
+          <span><strong>Add a CI dashboard link to the README</strong><small>Adds a dashboard badge and link to your README in the same pull request (only if it isn&rsquo;t already there).</small></span>
+        </label>
+        <label class="insopt"><input type="checkbox" id="optPages" checked>
+          <span><strong>Turn on GitHub Pages &amp; set Workflow permissions for me</strong><small>Sets Actions to read/write and enables Pages (<code class="inl">gh-pages</code>) so the dashboard goes live with no manual settings. Needs a broader token &mdash; Administration + Pages &mdash; and falls back to manual steps if you decline them.</small></span>
+        </label>
+      </div>
 
       <div class="tokpanel" id="insTokPanel" style="display:none">
         <h3>One-time setup &mdash; a token to open the install pull request</h3>
         <ol>
           <li><a id="insTokLink" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a> &mdash; the required permissions are pre-filled.</li>
           <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code class="inl" id="insTokRepo">your-org/your-repo</code>.</li>
-          <li>Confirm <strong>Permissions</strong>: <strong>Contents</strong>, <strong>Pull requests</strong>, and <strong>Workflows</strong> each set to <strong>Read and write</strong> (Workflows is what lets the install add files under <code class="inl">.github/workflows/</code>).</li>
+          <li id="insTokPerms"></li>
           <li>Generate, then paste it below.</li>
         </ol>
         <p class="note">Stored only in this browser (localStorage); sent only to api.github.com &mdash; never to the page or to CI. Revoke it any time once the pull request is open.</p>
@@ -156,11 +173,9 @@
         <span class="status" id="insStatus"></span>
       </div>
 
-      <ol class="steps" id="insNext" style="display:none">
-        <li>Review and merge pull request <a id="insPrLink" target="_blank" rel="noopener">#&hellip;</a>.</li>
-        <li>Set <strong>Workflow permissions</strong> to <em>Read and write</em> (<a id="insPermLink" target="_blank" rel="noopener">Settings &rsaquo; Actions &rsaquo; General</a>).</li>
-        <li>After the first run publishes the <code class="inl">gh-pages</code> branch, enable <strong>GitHub Pages</strong> from it (<a id="insPagesLink" target="_blank" rel="noopener">Settings &rsaquo; Pages</a>).</li>
-      </ol>
+      <ul class="insdone" id="insDone" style="display:none"></ul>
+      <ol class="steps" id="insNext" style="display:none"></ol>
+      <p class="hint" id="insNote" style="display:none"></p>
 
       <details class="altinstall">
         <summary>Other ways to install (command line or download)</summary>
@@ -357,6 +372,7 @@
       const ib = $("installBtn"); if (ib) ib.disabled = noneReal;
       const tl = $("insTokLink"); if (tl) tl.href = tokenUrl();
       const tr = $("insTokRepo"); if (tr) tr.textContent = $("repo").value.trim() || "your-org/your-repo";
+      renderTokPanel();
     }
 
     // ---- bundle download --------------------------------------------------
@@ -446,16 +462,24 @@
 
     // Pre-filled fine-grained token creation link (GitHub honours these query
     // params), so the user lands on the form with the right scopes selected.
+    function wantsPages() { const c = $("optPages"); return !!(c && c.checked); }
     function tokenUrl() {
       const repo = $("repo").value.trim();
       const owner = repo.includes("/") ? repo.split("/")[0] : "";
-      const p = new URLSearchParams({
+      const perms = { contents: "write", pull_requests: "write", workflows: "write" };
+      if (wantsPages()) { perms.administration = "write"; perms.pages = "write"; }
+      const p = new URLSearchParams(Object.assign({
         name: "LabVIEW CI installer",
-        description: "Opens a pull request that installs the LabVIEW CI pipeline" + (repo ? " into " + repo : "") + ".",
-        contents: "write", pull_requests: "write", workflows: "write"
-      });
+        description: "Installs the LabVIEW CI pipeline" + (repo ? " into " + repo : "") + " and opens a pull request."
+      }, perms));
       if (owner) p.set("target_name", owner);
       return "https://github.com/settings/personal-access-tokens/new?" + p.toString();
+    }
+    function renderTokPanel() {
+      const li = $("insTokPerms"); if (!li) return;
+      let html = `Confirm <strong>Permissions</strong> &mdash; <strong>Contents</strong>, <strong>Pull requests</strong>, and <strong>Workflows</strong> set to <strong>Read and write</strong> (Workflows is what lets the install add files under <code class="inl">.github/workflows/</code>)`;
+      if (wantsPages()) html += `, plus <strong>Administration</strong> and <strong>Pages</strong> (Read and write) so the configurator can set Workflow permissions and turn on Pages for you`;
+      li.innerHTML = html + `.`;
     }
 
     function setInsStatus(html, kind) { const s = $("insStatus"); if (!s) return; s.className = "status" + (kind ? " " + kind : ""); s.innerHTML = html || ""; }
@@ -487,6 +511,91 @@
       return btoa(bin);
     }
     const b64text = (str) => b64bytes(new TextEncoder().encode(str));
+    function b64decodeText(b64) {
+      const bin = atob(String(b64 || "").replace(/\s+/g, ""));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    // The published dashboard URL for a repo (owner.github.io/repo, or the bare
+    // host for a user/org <owner>.github.io pages repo).
+    function dashboardUrl(repo) {
+      const [owner, name] = repo.split("/");
+      const host = owner.toLowerCase() + ".github.io";
+      return name.toLowerCase() === host ? `https://${host}/` : `https://${host}/${name}/`;
+    }
+
+    // The README snippet linking the dashboard. Marked so re-installs don't duplicate it.
+    function readmeSection(repo) {
+      const url = dashboardUrl(repo);
+      return [
+        "<!-- labview-ci:dashboard -->",
+        "## LabVIEW CI",
+        "",
+        `[![LabVIEW CI dashboard](https://img.shields.io/badge/LabVIEW%20CI-dashboard-2ea44f)](${url})`,
+        "",
+        `LabVIEW CI runs on every pull request. See the [**CI dashboard**](${url}) for build status, VI Analyzer results, VI diffs, and mass-compile reports.`,
+        ""
+      ].join("\n");
+    }
+
+    // Fetch the repo's README (if any) and return a {path, content} that adds the
+    // dashboard section — or null when it already links the dashboard.
+    async function buildReadmeFile(repo) {
+      let path = "README.md", existing = null;
+      const r = await gh(`/repos/${repo}/readme`);
+      if (r.ok) { const j = await r.json(); path = j.path || "README.md"; existing = b64decodeText(j.content || ""); }
+      else if (r.status !== 404) await ghJson(r);
+      if (existing != null) {
+        if (/labview-ci:dashboard/.test(existing) || existing.includes(dashboardUrl(repo))) return null;
+        const sep = existing.endsWith("\n") ? "\n" : "\n\n";
+        return { path, content: existing + sep + readmeSection(repo), isText: true };
+      }
+      return { path: "README.md", content: `# ${repo.split("/")[1]}\n\n` + readmeSection(repo), isText: true };
+    }
+
+    // Create an orphan gh-pages branch with a placeholder, so Pages can be enabled
+    // before the first dashboard build exists (the build later overwrites it).
+    async function ensureGhPagesBranch(repo) {
+      const ref = await gh(`/repos/${repo}/git/ref/heads/gh-pages`);
+      if (ref.ok) return;
+      if (ref.status !== 404) await ghJson(ref);
+      const html = `<!doctype html><meta charset="utf-8"><title>LabVIEW CI \u2014 setting up</title>` +
+        `<meta http-equiv="refresh" content="30">` +
+        `<body style="font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;display:grid;place-items:center;min-height:100vh;margin:0">` +
+        `<div style="text-align:center"><h1>LabVIEW CI dashboard</h1>` +
+        `<p>Publishing\u2026 this page appears after the first CI run completes.</p></div>`;
+      const blob = await ghJson(await gh(`/repos/${repo}/git/blobs`, { method: "POST", body: { content: b64text(html), encoding: "base64" } }));
+      const tree = await ghJson(await gh(`/repos/${repo}/git/trees`, { method: "POST", body: { tree: [{ path: "index.html", mode: "100644", type: "blob", sha: blob.sha }] } }));
+      const commit = await ghJson(await gh(`/repos/${repo}/git/commits`, { method: "POST", body: { message: "chore: initialize gh-pages for the LabVIEW CI dashboard", tree: tree.sha, parents: [] } }));
+      const cr = await gh(`/repos/${repo}/git/refs`, { method: "POST", body: { ref: "refs/heads/gh-pages", sha: commit.sha } });
+      if (!cr.ok && cr.status !== 422) await ghJson(cr);
+    }
+
+    // Best-effort publish setup: set workflow permissions to write, and (if the
+    // dashboard is part of this install) enable Pages on gh-pages. Records outcomes
+    // in `setup`; a token missing Administration/Pages just marks steps "manual".
+    async function runPublishSetup(repo, setup) {
+      try {
+        await ghJson(await gh(`/repos/${repo}/actions/permissions/workflow`,
+          { method: "PUT", body: { default_workflow_permissions: "write", can_approve_pull_request_reviews: false } }));
+        setup.workflowPerms = "done";
+      } catch (e) { setup.workflowPerms = "manual"; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
+
+      if (!setup.hasDashboard) return;
+      try {
+        const pg = await gh(`/repos/${repo}/pages`);
+        if (pg.ok) { setup.pages = "exists"; }
+        else if (pg.status === 404) {
+          await ensureGhPagesBranch(repo);
+          const cr = await gh(`/repos/${repo}/pages`, { method: "POST", body: { source: { branch: "gh-pages", path: "/" } } });
+          if (cr.ok) setup.pages = "done";
+          else if (cr.status === 409) setup.pages = "exists";
+          else await ghJson(cr);
+        } else await ghJson(pg);
+      } catch (e) { setup.pages = "manual"; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
+    }
 
     function installBusy(b) {
       const ib = $("installBtn"); if (!ib) return;
@@ -507,19 +616,41 @@
         "| Files added | " + fileCount + " |",
         "| Tooling source | `" + s.repo + "@" + s.ref + "` |", "",
         "### After you merge", "",
-        "1. Set **Workflow permissions** to *Read and write* (Settings \u203a Actions \u203a General).",
-        "2. After the first run publishes the `gh-pages` branch, enable **GitHub Pages** from it (Settings \u203a Pages).",
+        "1. **Workflow permissions** must be *Read and write* (Settings \u203a Actions \u203a General) \u2014 the configurator may have already set this for you.",
+        "2. **GitHub Pages** must be enabled on the `gh-pages` branch (Settings \u203a Pages) \u2014 the configurator may have already enabled this for you; otherwise turn it on after the first run creates the branch.",
         "3. Open a pull request that changes a VI \u2014 the pipeline runs and reports back on the dashboard.", "",
         "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", ""
       ].join("\n");
     }
 
-    function installSuccess(pr, repo) {
+    function installSuccess(pr, repo, setup) {
+      setup = setup || {};
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
-      const next = $("insNext"); if (next) next.style.display = "";
-      const pl = $("insPrLink"); if (pl) { pl.href = pr.html_url; pl.textContent = "#" + pr.number; }
-      const perm = $("insPermLink"); if (perm) perm.href = `https://github.com/${repo}/settings/actions`;
-      const pages = $("insPagesLink"); if (pages) pages.href = `https://github.com/${repo}/settings/pages`;
+      const url = dashboardUrl(repo);
+
+      const done = [];
+      if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
+      if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
+      if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a><small>It goes live after the first CI run; until then it shows a &ldquo;publishing&hellip;&rdquo; placeholder.</small>`);
+      else if (setup.pages === "exists") done.push(`<strong>GitHub Pages</strong> is already on &mdash; dashboard at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>.`);
+      const doneEl = $("insDone");
+      if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = done.length ? "" : "none"; }
+
+      const steps = [];
+      steps.push(`Review and merge pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>.`);
+      if (setup.workflowPerms !== "done") steps.push(`Set <strong>Workflow permissions</strong> to <em>Read and write</em> (<a href="https://github.com/${esc(repo)}/settings/actions" target="_blank" rel="noopener">Settings &rsaquo; Actions &rsaquo; General</a>).`);
+      if (setup.hasDashboard && setup.pages !== "done" && setup.pages !== "exists")
+        steps.push(`After the first run publishes the <code class="inl">gh-pages</code> branch, enable <strong>GitHub Pages</strong> from it (<a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a>).`);
+      const nextEl = $("insNext");
+      if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
+
+      const note = $("insNote");
+      if (note) {
+        if (setup.adminMissing) {
+          note.innerHTML = `Heads up: your token didn&rsquo;t include <strong>Administration</strong> + <strong>Pages</strong>, so those two settings were left for you above. Re-create the token with those permissions (re-open the token panel) to have the configurator do it for you next time.`;
+          note.style.display = "";
+        } else { note.style.display = "none"; }
+      }
     }
 
     function installError(e, repo) {
@@ -544,6 +675,7 @@
       installBusy(true);
       setInsStatus("Preparing&hellip;", null);
       try {
+        const setup = {};
         const osList = [...osSel];
         const wanted = resolveFiles([...selected], osList);
         const subs = buildSubs();
@@ -571,6 +703,15 @@
           else files.push({ path, bytes: new Uint8Array(await resp.arrayBuffer()), isText: false });
         }
         files.push({ path: ".github/labview-ci.yml", content: manifestYaml([...selected], osList, $("version").value), isText: true });
+
+        // The dashboard link + auto-Pages only make sense when the dashboard is
+        // part of this install (its publish workflow is in the resolved set).
+        setup.hasDashboard = [...paths].some(p => p.endsWith("dashboard-pages.yml"));
+        if ($("optReadme") && $("optReadme").checked && setup.hasDashboard) {
+          setInsStatus("Preparing the README link&hellip;", null);
+          try { const rf = await buildReadmeFile(repo); if (rf) { files.push(rf); setup.readme = true; } }
+          catch (_) { /* non-fatal: skip the README edit, keep installing */ }
+        }
 
         // Resolve the target repo's default branch + base tree.
         setInsStatus("Reading your repository&hellip;", null);
@@ -623,7 +764,15 @@
           }
           if (!pr) await ghJson(prResp); // still nothing -> throw a typed error
         }
-        installSuccess(pr, repo);
+
+        // Best-effort: optionally flip Workflow permissions to write and enable
+        // Pages so the dashboard publishes with no manual settings. Never fails the
+        // install — records what it could/couldn't do in `setup` for the summary.
+        if ($("optPages") && $("optPages").checked) {
+          setInsStatus("Configuring repository settings&hellip;", null);
+          await runPublishSetup(repo, setup);
+        }
+        installSuccess(pr, repo, setup);
       } catch (e) {
         setInsStatus(installError(e, repo), "err");
       } finally {
@@ -645,6 +794,7 @@
       });
       $("repo").addEventListener("input", update);
       $("version").addEventListener("change", update);
+      ["optReadme", "optPages"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", update); });
       document.querySelectorAll(".tab").forEach(t => {
         t.addEventListener("click", () => {
           document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
