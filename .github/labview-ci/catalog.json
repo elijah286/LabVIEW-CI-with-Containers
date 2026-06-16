@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.9.1",
+  "version": "1.9.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.9.2",
+        "date": "2026-06-16",
+        "title": "VI Analyzer reports were empty - the CI worker now ships and runs the full analyzer test suite",
+        "summary": "Every VI Analyzer report came back empty (0 VIs, 0 tests, no findings). Root cause: the Windows CI worker image is built on a base where the VI Analyzer Toolkit is registered as installed but its default test libraries (~90 tests) had been stripped, so the analyzer loaded but ran zero tests. The worker image build now reinstalls the VI Analyzer support package when those test libraries are missing and fails the build if they are still absent, so a worker that cannot analyze anything can never be published. The analyzer configuration and runner were also fixed to select the full default test suite (an empty test list previously meant 'run nothing'), and the runner script was made ASCII-clean so Windows PowerShell parses it reliably.",
+        "highlights": [
+          "Worker image now verifies the VI Analyzer default test suite is actually on disk after install - it reinstalls the support package if the tests are missing and fails the build if they still are, so a test-less worker is never published.",
+          "Analyzer configuration ships a populated test list (an empty test list made LabVIEW run zero tests); the runner auto-selects the full installed suite and falls back to a known-good set.",
+          "Runner script kept pure-ASCII so Windows PowerShell 5.1 parses it - a stray non-ASCII character had broken the analysis step."
+        ]
+      },
       {
         "version": "1.9.1",
         "date": "2026-06-16",
