@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.10.1",
+  "version": "1.10.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.10.2",
+        "date": "2026-06-16",
+        "title": "One-click install is reliable for a full-capability repo (no more “Load failed”)",
+        "summary": "Installing the pipeline into a repo from Apply to New Repo could fail partway through with “Load failed”. Since 1.10.1 pre-selects every capability, the install uploaded ~60 files as a separate blob request each, in a tight burst that trips GitHub's secondary rate limit (whose CORS-less response surfaces in the browser as a bare “Load failed”). The install now commits all text files in a single tree request (so only a handful of binary VIs are uploaded individually) and retries transient network / rate-limit hiccups with backoff, with a clear message and command-line fallback if anything still fails. Re-running the install is now a dependable way to put a repo's CI tooling back into a known-good state.",
+        "highlights": [
+          "Text files are committed in one git/trees request instead of one blob upload each — ~60 back-to-back API writes drop to ~13 — so a full-capability install no longer trips GitHub's secondary rate limit.",
+          "Every GitHub call retries network rejections and secondary-rate-limit / 5xx responses with backoff (honouring Retry-After); a persistent failure shows a clear “wait a minute and retry, or use the command line” message instead of “Load failed”.",
+          "Re-installing into a repo that already has the tooling reliably converges it to the current known-good state (the existing install branch / pull request is reused)."
+        ]
+      },
       {
         "version": "1.10.1",
         "date": "2026-06-16",
