@@ -408,6 +408,13 @@
       const latest = (catalog && catalog.version) || "";
       const installed = m.installedVersion || "";
       const src = source();
+      // The source repo can't update from itself: when this dialog is configuring
+      // the catalog's own source repo, the catalog version IS this repo's version
+      // (its committed labview-ci.yml carries only a placeholder installedVersion),
+      // so any "update available from <self>" / "new capabilities from <self>"
+      // notice is meaningless. Never show the banner in that case.
+      const norm = (s) => String(s || "").trim().toLowerCase();
+      if (repo && src.repo && norm(repo) === norm(src.repo)) { banner.style.display = "none"; return; }
       const newer = latest && installed && cmpVer(latest, installed) > 0;
       const newCaps = (catalog.capabilities || [])
         .filter(c => c.status !== "planned" && !(m.activities || []).includes(c.id))
