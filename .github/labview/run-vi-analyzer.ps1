@@ -105,17 +105,26 @@ try {
         }
     }
 
-    # Fallback: scoped recursive search for *.llb whose path contains "_VI Analyzer".
-    # Scoped to the dirs that can hold add-on libraries so we never walk the huge
-    # examples tree; the *.llb filter is applied by the filesystem so this is bounded.
+    # Fallback: scoped recursive search for *.llb whose path mentions the VI
+    # Analyzer (flexible: "_VI Analyzer", "VI Analyzer", "VIAnalyzer", "analyzer").
+    # Scoped first to the dirs that can hold add-on libraries; the *.llb filter is
+    # applied by the filesystem so this is bounded.
     if ($llbs.Count -eq 0) {
         foreach ($r in @('vi.lib', 'project', 'resource')) {
             $base = Join-Path $lvDir $r
             if (-not (Test-Path $base)) { continue }
             $hits = @(Get-ChildItem -LiteralPath $base -Recurse -Filter '*.llb' -File -ErrorAction SilentlyContinue |
-                      Where-Object { $_.FullName -match '_VI Analyzer' })
+                      Where-Object { $_.FullName -match 'analy' })
             if ($hits.Count -gt 0) { $llbs = $hits; $testsRoot = $base; break }
         }
+    }
+
+    # Last resort: search the WHOLE LabVIEW dir for analyzer test libraries. Only
+    # reached when the scoped probes all miss, so the one-time full walk is worth it.
+    if ($llbs.Count -eq 0) {
+        $hits = @(Get-ChildItem -LiteralPath $lvDir -Recurse -Filter '*.llb' -File -ErrorAction SilentlyContinue |
+                  Where-Object { $_.FullName -match 'analy' })
+        if ($hits.Count -gt 0) { $llbs = $hits; $testsRoot = $lvDir }
     }
 
     if ($llbs.Count -gt 0) {
@@ -159,12 +168,26 @@ try {
         }
     } else {
         Write-Warning "  Test suite : no VI Analyzer test libraries found under LabVIEW - using committed fallback tests"
-        # Diagnostic (only on the not-found path): surface the real layout so the
-        # correct location can be wired into the probe list above.
-        Write-Host "  Test suite : (diagnostic) _tests folders under $lvDir :"
-        Get-ChildItem -LiteralPath $lvDir -Recurse -Directory -Filter '_tests' -ErrorAction SilentlyContinue |
-            Select-Object -First 20 |
-            ForEach-Object { Write-Host ("      {0}" -f $_.FullName) }
+        # Comprehensive diagnostic (only on the not-found path): reveal the real
+        # layout so the correct test location can be wired into the probe list.
+        try {
+            Write-Host "  Test suite : (diag) top-level of $lvDir :"
+            Get-ChildItem -LiteralPath $lvDir -Force -ErrorAction SilentlyContinue |
+                Select-Object -First 60 |
+                ForEach-Object { Write-Host ("      [{0}] {1}" -f ($(if ($_.PSIsContainer) { 'D' } else { 'F' })), $_.Name) }
+
+            $allLlb = @(Get-ChildItem -LiteralPath $lvDir -Recurse -Filter '*.llb' -File -ErrorAction SilentlyContinue)
+            Write-Host ("  Test suite : (diag) total *.llb under LabVIEW = {0}; first 25:" -f $allLlb.Count)
+            $allLlb | Select-Object -First 25 | ForEach-Object { Write-Host ("      {0}" -f $_.FullName) }
+
+            Write-Host "  Test suite : (diag) paths matching 'analy' (first 30):"
+            Get-ChildItem -LiteralPath $lvDir -Recurse -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -match 'analy' } |
+                Select-Object -First 30 |
+                ForEach-Object { Write-Host ("      {0}" -f $_.FullName) }
+        } catch {
+            Write-Host ("  Test suite : (diag) listing failed: " + $_.Exception.Message)
+        }
     }
 } catch {
     Write-Warning ("  Test suite enumeration failed (" + $_.Exception.Message + ") - using committed fallback tests")
