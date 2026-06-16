@@ -402,6 +402,11 @@
       }).then((r) => {
         if (btn) btn.disabled = false;
         if (r.status === 204) {
+          // Optimistically flag the in-flight update so the dashboard's version
+          // badge shows "Updating…" immediately and across its auto-refresh — the
+          // update workflow is too brief to be caught by the badge's on-load poll.
+          try { localStorage.setItem("lvci_updating", JSON.stringify({ v: ver, ts: Date.now() })); } catch (_) {}
+          try { if (window.parent && window.parent !== window && window.parent.lvciMarkUpdating) window.parent.lvciMarkUpdating(ver); } catch (_) {}
           setCmdStatus(`&#10003; Update started &mdash; opening a pull request to adopt <code>v${esc(ver)}</code>. ` +
             `Two steps remain (see above): <strong>approve the PR&rsquo;s checks</strong> &mdash; GitHub marks them ` +
             `&ldquo;Action required&rdquo; &mdash; then <strong>merge</strong> it to finish.`, "ok");

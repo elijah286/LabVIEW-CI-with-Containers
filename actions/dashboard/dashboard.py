@@ -564,6 +564,17 @@ if lvci_version:
         'b.textContent="";var sp=document.createElement("span");sp.className="lvci-spin";'
         'var tx=document.createElement("span");tx.textContent=label;b.appendChild(sp);b.appendChild(tx);'
         'b.title=tip;act=function(){window.open(url,"_blank","noopener");};}'
+        # Optimistic "Updating" indicator. The apply-tooling-update workflow runs for
+        # only a few seconds, so polling for it on a 15-min auto-refresh almost never
+        # catches it. When the What's New dialog dispatches the update it records a flag
+        # in localStorage (and calls window.lvciMarkUpdating below), so we paint the
+        # badge immediately and keep it across refreshes until this build reaches the
+        # target version or a 30-min TTL elapses.
+        'function updGet(){try{var s=localStorage.getItem("lvci_updating");if(!s)return null;var o=JSON.parse(s);'
+        'if(!o||!o.v||Date.now()-o.ts>18e5||cmp(C.version,o.v)>=0){localStorage.removeItem("lvci_updating");return null;}return o;}catch(e){return null;}}'
+        'function paintUpd(v){inflight("Updating\\u2026","https://github.com/"+C.repo+"/pulls","Updating to v"+v+" \\u2014 click to review or merge the update pull request");}'
+        'window.lvciMarkUpdating=function(v){try{localStorage.setItem("lvci_updating",JSON.stringify({v:v,ts:Date.now()}));}catch(e){}paintUpd(v);};'
+        'var _upd=updGet();if(_upd){paintUpd(_upd.v);return;}'
         # 1) Is the update workflow itself running (just clicked Update now / the PR is
         #    being opened)? -> "Updating..." linking to that run.
         'api("/actions/workflows/apply-tooling-update.yml/runs?per_page=5").then(function(j){'

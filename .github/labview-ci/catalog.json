@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.13",
+  "version": "1.7.14",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.14",
+        "date": "2026-06-16",
+        "title": "The 'Updating…' badge now appears the moment you click Update now",
+        "summary": "The version badge's in-flight 'Updating…' indicator was easy to miss: it was only detected by polling GitHub when the dashboard loaded, but the update workflow finishes in a few seconds while the dashboard auto-refreshes only every 15 minutes — so a refresh almost never landed while the workflow was running. Now, clicking 'Update now' in What's New paints the badge as 'Updating…' immediately and records it in the browser, so it persists across the dashboard's auto-refreshes until the new version is actually deployed (or 30 minutes pass). Clicking it opens the update's pull request, where you approve and merge to finish.",
+        "highlights": [
+          "'Update now' optimistically flags the update (localStorage 'lvci_updating') and immediately switches the badge to 'Updating…' — no longer dependent on catching the brief workflow run by chance.",
+          "The badge stays 'Updating…' across the 15-minute auto-refresh and clears itself once this dashboard rebuilds at the new version, or after a 30-minute safety timeout.",
+          "Clicking the 'Updating…' badge opens the repo's pull requests so you can approve the checks and merge the update PR that finishes the upgrade."
+        ]
+      },
       {
         "version": "1.7.13",
         "date": "2026-06-16",
