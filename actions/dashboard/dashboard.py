@@ -655,7 +655,7 @@ run_dialog_css = (
 # A "Run on GitHub" link is offered as a no-token fallback, and the equivalent
 # `gh` command is tucked away for CLI users.
 run_dialog = (r"""
-  <div id="cidash-run-modal" onclick="if(event.target===this)cidashRunClose()" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55)">
+  <div id="cidash-run-modal" onclick="if(event.target===this)cidashRunClose()" style="display:none;position:fixed;inset:0;z-index:310;background:rgba(0,0,0,.55)">
     <div role="dialog" aria-modal="true" aria-labelledby="cidash-run-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
         <strong id="cidash-run-title" style="font-size:.95em">Run</strong>
@@ -664,7 +664,7 @@ run_dialog = (r"""
       <div id="cidash-run-body" style="padding:16px"></div>
     </div>
   </div>
-  <div id="cidash-q-modal" onclick="if(event.target===this)cidashQClose()" style="display:none;position:fixed;inset:0;z-index:61;background:rgba(0,0,0,.55)">
+  <div id="cidash-q-modal" onclick="if(event.target===this)cidashQClose()" style="display:none;position:fixed;inset:0;z-index:311;background:rgba(0,0,0,.55)">
     <div role="dialog" aria-modal="true" aria-labelledby="cidash-q-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(480px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
         <strong id="cidash-q-title" style="font-size:.95em">Queued run</strong>
@@ -1161,9 +1161,12 @@ html = f"""<!DOCTYPE html>
       }}
     }}
     *{{box-sizing:border-box}}
-    body{{margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg)}}
+    body{{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg)}}
+    .lvci-main{{padding:20px}}
+    .lvci-tablewrap{{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
     h1{{font-size:1.4em;margin:0 0 4px}}
     .sub{{color:var(--fg-muted);font-size:.85em;margin-bottom:20px}}
+    @media(max-width:820px){{.lvci-main{{padding:14px}}h1{{font-size:1.2em}}}}
     table{{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}}
     th{{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);color:var(--fg-muted);font-size:.8em;white-space:nowrap}}
     td{{border-bottom:1px solid var(--row-border);vertical-align:middle}}
@@ -1185,12 +1188,9 @@ html = f"""<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <div style="position:fixed;top:14px;right:16px;z-index:30;display:flex;align-items:center;gap:8px">
-    {version_badge_html}
-    <button onclick="lvciOpen('configure.html?repo={repo}','Configure Workers')" title="Configure the behavior of this repository's automated CI activities" style="background:#1f6feb;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">⚙ Configure Workers</button>
-    <button onclick="lvciOpen('integrate.html','Apply to New Repo')" title="Install these CI capabilities into another repository" style="background:#238636;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">➕ Apply to New Repo</button>
-  </div>
-  <div id="lvci-modal" onclick="if(event.target===this)lvciClose()" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55)">
+  <script>window.LVCI={{context:'dashboard',repo:'{repo}',pagesUrl:'{pages_url}'}};</script>
+  <script src="lvci-header.js" defer></script>
+  <div id="lvci-modal" onclick="if(event.target===this)lvciClose()" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55)">
     <div style="position:absolute;inset:24px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.5)">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
         <strong id="lvci-modal-title" style="font-size:.95em">Configure Workers</strong>
@@ -1213,12 +1213,11 @@ html = f"""<!DOCTYPE html>
     }}
     document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') lvciClose(); }});
   </script>
-  {version_check_script}
   {run_dialog}
+  <main class="lvci-main">
   <h1>CI Dashboard — {repo_name}</h1>
   <div class="sub">Last updated: {now} &nbsp;|&nbsp; {refresh_note}</div>
   <div class="nav">
-    <a href="{pages_url}/vi-snapshots/">VI Browser</a>
     <a href="https://github.com/{repo}">GitHub</a>
     <a href="https://github.com/{repo}/actions">Actions</a>
   </div>
@@ -1226,6 +1225,7 @@ html = f"""<!DOCTYPE html>
     <input type="checkbox" id="show-nonproject">
     Include CI-only revisions
   </label>
+  <div class="lvci-tablewrap">
   <table>
     <thead>
       <tr>
@@ -1240,9 +1240,11 @@ html = f"""<!DOCTYPE html>
     </thead>
     <tbody>{rows}</tbody>
   </table>
+  </div>
   <div id="empty-state" style="display:none;padding:18px;text-align:center;color:var(--fg-muted);font-size:.9em">
     No project revisions in the recent window. <a href="#" onclick="document.getElementById('show-nonproject').click();return false" style="color:var(--link)">Include CI-only revisions</a> to see CI&nbsp;/&nbsp;tooling commits.
   </div>
+  </main>
   <script>
     (() => {{
       const checkbox = document.getElementById('show-nonproject');
@@ -1290,6 +1292,7 @@ def _stage(src, dst):
     except FileNotFoundError:
         pass
 for _name, _dst in [
+    ('lvci-header.js', 'ci-out/dashboard/lvci-header.js'),
     ('vi-browser.html', 'ci-out/dashboard/vi-snapshots/index.html'),
     ('vi-interactive.html', 'ci-out/dashboard/vi-snapshots/vi-interactive.html'),
     ('report-viewer.html', 'ci-out/dashboard/report/index.html'),

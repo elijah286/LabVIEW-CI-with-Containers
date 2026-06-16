@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.10.2",
+  "version": "1.11.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.11.0",
+        "date": "2026-06-16",
+        "title": "A consistent navigation header across the whole CI site",
+        "summary": "Every page the pipeline publishes \u2014 the dashboard, VI Analyzer reports, the VI Browser, and the Configure / Apply to New Repo pages \u2014 now shares one navigation header instead of each page carrying its own ad-hoc buttons in a corner. The header gives you the LabVIEW CI brand, links to the main areas, and context-aware actions for the page you're on: the dashboard surfaces Configure Workers and Apply to New Repo, while a VI Analyzer report surfaces Re-run analysis, Native report, and This commit. It is fully responsive (the links and actions collapse into a single menu on phones and narrow windows) and is deployed once as a shared asset, so it stays identical everywhere and survives as individual reports are added or regenerated. The version badge and these What's New notes now live in the header too.",
+        "highlights": [
+          "One shared header on every page \u2014 dashboard, VI Analyzer reports, VI Browser, Configure, Apply to New Repo, and What's New \u2014 so you can move between areas from anywhere with a consistent brand and navigation.",
+          "Context-aware actions live in the header: the dashboard offers Configure Workers and Apply to New Repo; a VI Analyzer report offers Re-run analysis (for that exact revision), Native report, and This commit.",
+          "Fully responsive \u2014 the navigation and actions collapse into a single menu button on phones and narrow windows, so the whole site is usable on mobile.",
+          "The header is a single asset deployed once at the site root, so it stays identical across pages, survives as reports come and go, and hides itself automatically when a report is embedded inside another page."
+        ]
+      },
       {
         "version": "1.10.2",
         "date": "2026-06-16",
@@ -486,6 +498,7 @@
           ".github/workflows/integrate-deploy.yml",
           ".github/workflows/apply-tooling-update.yml",
           ".github/pages/index.html",
+          ".github/pages/lvci-header.js",
           ".github/pages/report-viewer.html",
           ".github/pages/integrate.html",
           ".github/pages/configure.html",
