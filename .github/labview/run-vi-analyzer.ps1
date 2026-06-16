@@ -74,6 +74,62 @@ Write-Host "  Config src : $ConfigTemplate"
 # ── Patch config: replace __WORKSPACE_PATH__ with the actual container path ──
 $ConfigXml = Get-Content $ConfigTemplate -Raw
 $ConfigXml = $ConfigXml -replace '__WORKSPACE_PATH__', $WorkspaceRoot
+
+# ── Select the FULL default test suite ───────────────────────────────────────
+# The native VI Analyzer requires <TestConfigData> to explicitly enumerate every
+# test to run; an EMPTY <TestConfigData> makes LabVIEW run ZERO tests and report a
+# misleading "VIs Analyzed 1 / Total Tests Run 0" (the empty-report bug). Rather
+# than hard-code ~56 test paths that drift between LabVIEW versions, enumerate the
+# analyzer's own test libraries (*.llb) shipped with THIS LabVIEW and select them
+# all. Best-effort: on any failure (or none found) we keep the known-good fallback
+# tests already committed in the config template, so the report is never empty.
+try {
+    $lvDir     = (Split-Path $LabVIEWPath).TrimEnd('\', '/')
+    $testsRoot = Join-Path $lvDir 'project\_VI Analyzer\_tests'
+    if (Test-Path $testsRoot) {
+        $llbs = @(Get-ChildItem -LiteralPath $testsRoot -Recurse -Filter '*.llb' -File -ErrorAction SilentlyContinue)
+        if ($llbs.Count -gt 0) {
+            $sb = New-Object System.Text.StringBuilder
+            [void]$sb.AppendLine('<TestConfigData>')
+            foreach ($llb in ($llbs | Sort-Object FullName)) {
+                $name = [System.IO.Path]::GetFileNameWithoutExtension($llb.Name)
+                $rel  = $llb.FullName.Substring($lvDir.Length).TrimStart('\', '/').Replace('\', '/')
+                [void]$sb.AppendLine("`t`t<Test>")
+                [void]$sb.AppendLine("`t`t`t<Name>`"$name`"</Name>")
+                [void]$sb.AppendLine("`t`t`t<Ranking>1</Ranking>")
+                [void]$sb.AppendLine("`t`t`t<MaxFailures>1000</MaxFailures>")
+                [void]$sb.AppendLine("`t`t`t<BasePath>`"LabVIEW`"</BasePath>")
+                [void]$sb.AppendLine("`t`t`t<RelativePath>`"$rel`"</RelativePath>")
+                [void]$sb.AppendLine("`t`t`t<Selected>TRUE</Selected>")
+                [void]$sb.AppendLine("`t`t`t<Controls>")
+                [void]$sb.AppendLine("`t`t`t</Controls>")
+                [void]$sb.AppendLine("`t`t</Test>")
+            }
+            [void]$sb.Append("`t</TestConfigData>")
+            $newBlock = $sb.ToString()
+
+            # Replace the template's <TestConfigData>...</TestConfigData> wholesale
+            # (substring, not regex, to avoid metacharacter pitfalls in test paths).
+            $startTag = '<TestConfigData>'
+            $endTag   = '</TestConfigData>'
+            $si = $ConfigXml.IndexOf($startTag)
+            $ei = $ConfigXml.IndexOf($endTag)
+            if ($si -ge 0 -and $ei -gt $si) {
+                $ConfigXml = $ConfigXml.Substring(0, $si) + $newBlock + $ConfigXml.Substring($ei + $endTag.Length)
+                Write-Host ("  Test suite : selected {0} tests (full default suite from {1})" -f $llbs.Count, $testsRoot)
+            } else {
+                Write-Warning "  Test suite : could not locate <TestConfigData> in template — using committed fallback tests"
+            }
+        } else {
+            Write-Warning "  Test suite : no *.llb tests found under '$testsRoot' — using committed fallback tests"
+        }
+    } else {
+        Write-Warning "  Test suite : '$testsRoot' not found — using committed fallback tests"
+    }
+} catch {
+    Write-Warning "  Test suite enumeration failed ($($_.Exception.Message)) — using committed fallback tests"
+}
+
 [System.IO.File]::WriteAllText($ConfigFile, $ConfigXml, [System.Text.UTF8Encoding]::new($false))
 Write-Host "  Config out : $ConfigFile"
 Write-Host ""
