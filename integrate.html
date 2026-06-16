@@ -501,6 +501,22 @@
     function showInsTokPanel() { const p = $("insTokPanel"); if (p) { p.style.display = ""; const i = $("insTokInput"); if (i) i.focus(); } }
     function hideInsTokPanel() { const p = $("insTokPanel"); if (p) p.style.display = "none"; }
 
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    // fetch() that retries ONLY transient network rejections (DNS blips, dropped
+    // connections, and — notably — the CORS-less responses GitHub's edge returns
+    // when a secondary rate limit kicks in, which surface in WebKit as a bare
+    // "Load failed" TypeError). HTTP error *statuses* are returned untouched so
+    // callers can inspect them; a persistent rejection re-throws after backoff.
+    async function fetchNet(url, init) {
+      let wait = 800, lastErr;
+      for (let i = 0; i < 4; i++) {
+        try { return await fetch(url, init); }
+        catch (e) { lastErr = e; if (i < 3) { await sleep(wait); wait *= 2; } }
+      }
+      throw lastErr;
+    }
+
     // Authenticated call to the target repo (token attached). Source-repo reads
     // stay unauthenticated on purpose: the install token is scoped to the target.
     function gh(path, opts) {
@@ -510,7 +526,7 @@
       if (tok) headers["Authorization"] = "Bearer " + tok;
       let body = opts.body;
       if (body && typeof body !== "string") { body = JSON.stringify(body); headers["Content-Type"] = "application/json"; }
-      return fetch("https://api.github.com" + path, { method: opts.method || "GET", headers, body, cache: "no-store" });
+      return fetchNet("https://api.github.com" + path, { method: opts.method || "GET", headers, body, cache: "no-store" });
     }
     async function ghJson(resp) {
       if (resp.ok) return resp.status === 204 ? null : resp.json();
@@ -518,6 +534,63 @@
       const err = new Error(msg || ("HTTP " + resp.status));
       err.status = resp.status; err.ghMessage = msg;
       throw err;
+    }
+
+    // Is a non-OK GitHub response *transient* (worth waiting + retrying)? Secondary
+    // / abuse rate limits come back as 403 or 429 with a tell-tale message; 5xx are
+    // server hiccups. A plain 403 (missing permission) is NOT transient — it must
+    // surface immediately so installError can tell the user to fix the token.
+    async function transientInfo(resp) {
+      if (resp.status >= 500) return { retry: true };
+      if (resp.status === 429) return { retry: true };
+      if (resp.status === 403) {
+        let msg = ""; try { msg = (await resp.clone().json()).message || ""; } catch (_) {}
+        if (/secondary rate limit|abuse|\brate limit\b/i.test(msg)) return { retry: true };
+      }
+      return { retry: false };
+    }
+
+    // Authenticated read/write with backoff. Retries network rejections and
+    // secondary-rate-limit / 5xx responses, honouring Retry-After; returns parsed
+    // JSON on success and throws the normal typed error (via ghJson) for real
+    // failures (401 / 403-permission / 404 / 422) so installError can map them.
+    // `label` describes the step for a friendly final message.
+    async function ghWrite(path, opts, label) {
+      let wait = 1200;
+      for (let attempt = 0; ; attempt++) {
+        let resp;
+        try { resp = await gh(path, opts); }
+        catch (e) {                                  // exhausted network retries inside gh()
+          if (attempt < 4) { await sleep(wait); wait *= 2; continue; }
+          const err = new Error("Couldn’t " + (label || "reach GitHub") + " — the network request kept failing (connection or a brief rate limit). Wait a minute and click Install again, or use the command-line install below.");
+          err.network = true; throw err;
+        }
+        if (resp.ok) return resp.status === 204 ? null : resp.json();
+        const t = await transientInfo(resp);
+        if (t.retry && attempt < 4) {
+          const ra = parseFloat(resp.headers.get("retry-after") || "");
+          await sleep(isFinite(ra) ? Math.max(ra * 1000, 1000) : wait); wait *= 2; continue;
+        }
+        return ghJson(resp);                         // real error → typed throw
+      }
+    }
+
+    // Resilient GET for the PUBLIC source reads (the recursive tree listing and the
+    // per-file raw downloads). Retries network rejections and 5xx and gives a clear
+    // message instead of a bare "Load failed"; definitive 4xx are returned as-is so
+    // the caller can branch (e.g. skip a 404 file).
+    async function getResilient(url, label) {
+      let wait = 700, lastErr;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          const r = await fetch(url, { cache: "no-store" });
+          if (r.ok || (r.status >= 400 && r.status < 500)) return r;
+          lastErr = new Error("HTTP " + r.status);
+        } catch (e) { lastErr = e; }
+        if (attempt < 3) { await sleep(wait); wait *= 2; }
+      }
+      const err = new Error("Couldn’t " + (label || "fetch from the source repository") + " (network, CORS, or a GitHub rate limit). Check your connection and retry, or use the command-line install below.");
+      err.network = true; err.cause = lastErr; throw err;
     }
     function b64bytes(bytes) {
       let bin = ""; const CH = 0x8000;
@@ -760,6 +833,11 @@
     function installError(e, repo) {
       const st = e && e.status;
       const gm = e && e.ghMessage ? ` <span style="opacity:.8">(${esc(e.ghMessage)})</span>` : "";
+      if (!st) {
+        const m = (e && e.message) || "";
+        if ((e && e.network) || /load failed|failed to fetch|networkerror|network request|the network connection was lost/i.test(m))
+          return (e && e.network && m ? esc(m) : "Couldn’t reach GitHub (network, CORS, or a brief secondary rate limit). Wait a minute and click Install again, or use the command-line install below.");
+      }
       if (st === 401) {
         clearInsTok(); refreshInsForget(); showInsTokPanel();
         return "That token was rejected (401). Create a new one above and paste it.";
@@ -786,8 +864,9 @@
 
         // Enumerate the source tree (public; unauthenticated) to expand dir entries.
         setInsStatus("Listing tooling files&hellip;", null);
-        const tree = await fetch(`https://api.github.com/repos/${s.repo}/git/trees/${s.ref}?recursive=1`, { cache: "no-store" })
-          .then(r => { if (!r.ok) throw new Error("Could not list the tooling files (GitHub API rate limit?). Try the command-line option below."); return r.json(); });
+        const treeResp = await getResilient(`https://api.github.com/repos/${s.repo}/git/trees/${s.ref}?recursive=1`, "list the tooling files");
+        if (!treeResp.ok) throw new Error("Could not list the tooling files — GitHub's unauthenticated API rate limit (60/hour per IP) looks exhausted. Wait a few minutes, or use the command-line install below.");
+        const tree = await treeResp.json();
         const allPaths = (tree.tree || []).filter(t => t.type === "blob").map(t => t.path);
         const paths = new Set();
         wanted.forEach(entry => {
@@ -801,10 +880,17 @@
         let n = 0; const total = paths.size;
         for (const path of paths) {
           setInsStatus(`Fetching ${++n}/${total}: ${esc(path.split("/").pop())}`, null);
-          const resp = await fetch(rawUrl(path), { cache: "no-store" });
+          const resp = await getResilient(rawUrl(path), "fetch " + path.split("/").pop());
           if (!resp.ok) continue;
-          if (shouldSub(path)) files.push({ path, content: applySubs(await resp.text(), subs), isText: true });
-          else files.push({ path, bytes: new Uint8Array(await resp.arrayBuffer()), isText: false });
+          // Any UTF-8 text file (whether or not it gets branding substitutions) is
+          // kept as text so it can be inlined into the tree request; only true
+          // binaries (.vi/.lvclass/.vipc, etc.) are read as bytes for a blob upload.
+          if (TEXT_EXTS.has(ext(path))) {
+            const text = await resp.text();
+            files.push({ path, content: shouldSub(path) ? applySubs(text, subs) : text, isText: true });
+          } else {
+            files.push({ path, bytes: new Uint8Array(await resp.arrayBuffer()), isText: false });
+          }
         }
         files.push({ path: ".github/labview-ci.yml", content: manifestYaml([...selected], osList, $("version").value), isText: true });
 
@@ -820,12 +906,12 @@
 
         // Resolve the target repo's default branch + base tree.
         setInsStatus("Reading your repository&hellip;", null);
-        const meta = await ghJson(await gh(`/repos/${repo}`));
+        const meta = await ghWrite(`/repos/${repo}`, null, "read your repository");
         const branch = meta && meta.default_branch;
         if (!branch) throw new Error("Your repository has no commits yet. Push an initial commit (e.g. a README) first, then install.");
-        const headRef = await ghJson(await gh(`/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`));
+        const headRef = await ghWrite(`/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, null, "read the default branch");
         const headSha = headRef.object.sha;
-        const baseCommit = await ghJson(await gh(`/repos/${repo}/git/commits/${headSha}`));
+        const baseCommit = await ghWrite(`/repos/${repo}/git/commits/${headSha}`, null, "read the base commit");
         const baseTree = baseCommit.tree.sha;
 
         // Replace the vendored source dashboard workflow (which runs ./actions/
@@ -837,20 +923,29 @@
           if (di >= 0) files[di] = { path: files[di].path, content: dashboardWorkflowYaml(branch), isText: true };
         }
 
-        // Upload every file as a blob, then assemble one tree + commit.
-        const treeItems = []; n = 0;
-        for (const f of files) {
-          setInsStatus(`Uploading ${++n}/${files.length}: ${esc(f.path.split("/").pop())}`, null);
-          const content = f.isText ? b64text(f.content) : b64bytes(f.bytes);
-          const blob = await ghJson(await gh(`/repos/${repo}/git/blobs`, { method: "POST", body: { content, encoding: "base64" } }));
+        // Assemble the new tree. Text files are inlined directly into the single
+        // git/trees request (GitHub creates the blobs server-side) instead of one
+        // blob POST each — a ~60-file install used to fire ~60 back-to-back POSTs,
+        // which trips GitHub's secondary rate limit (whose CORS-less 403 surfaces
+        // as "Load failed"). Only true binary files (.vi/.lvclass/.vipc) still need
+        // a base64 blob upload, and those go through ghWrite (backoff + retry).
+        const treeItems = [];
+        const binFiles = files.filter(f => !f.isText);
+        let bn = 0;
+        for (const f of binFiles) {
+          setInsStatus(`Uploading asset ${++bn}/${binFiles.length}: ${esc(f.path.split("/").pop())}`, null);
+          const blob = await ghWrite(`/repos/${repo}/git/blobs`, { method: "POST", body: { content: b64bytes(f.bytes), encoding: "base64" } }, "upload " + f.path.split("/").pop());
           treeItems.push({ path: f.path, mode: "100644", type: "blob", sha: blob.sha });
         }
+        files.filter(f => f.isText).forEach(f => {
+          treeItems.push({ path: f.path, mode: "100644", type: "blob", content: f.content });
+        });
 
         setInsStatus("Creating the commit&hellip;", null);
-        const newTree = await ghJson(await gh(`/repos/${repo}/git/trees`, { method: "POST", body: { base_tree: baseTree, tree: treeItems } }));
+        const newTree = await ghWrite(`/repos/${repo}/git/trees`, { method: "POST", body: { base_tree: baseTree, tree: treeItems } }, "create the file tree");
         const acts = [...selected].filter(id => { const c = byId(id); return c && c.status !== "planned"; });
         const commitMsg = `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})\n\nAdded by the LabVIEW CI configurator from ${s.repo}@${s.ref}.`;
-        const commit = await ghJson(await gh(`/repos/${repo}/git/commits`, { method: "POST", body: { message: commitMsg, tree: newTree.sha, parents: [headSha] } }));
+        const commit = await ghWrite(`/repos/${repo}/git/commits`, { method: "POST", body: { message: commitMsg, tree: newTree.sha, parents: [headSha] } }, "create the commit");
 
         // Create the install branch, or fast-forward it if a prior attempt left one.
         setInsStatus("Pushing the install branch&hellip;", null);
