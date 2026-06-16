@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  VI Analyzer configuration for LabVIEW-CI-with-Containers
+  C:\workspace is replaced at runtime by the bash CI script
+  with the absolute container path (/workspace on Linux).
+  NOTE: LabVIEW requires path values to be wrapped in double-quotes inside the XML.
+-->
+<Config>
+	<FileFormatVersion>1</FileFormatVersion>
+	<AnalyzeProject>FALSE</AnalyzeProject>
+	<ProjectPath>""</ProjectPath>
+	<TargetIndex>0</TargetIndex>
+	<ItemsToAnalyze>
+		<Item>
+			<Path>"C:\workspace"</Path>
+			<Removed>FALSE</Removed>
+		</Item>
+	</ItemsToAnalyze>
+	<!--
+	  TestConfigData MUST explicitly enumerate every test to run. An EMPTY
+	  <TestConfigData> makes the LabVIEW VI Analyzer run ZERO tests, producing an
+	  empty "VIs Analyzed 1 / Total Tests Run 0" report. The entries below are a
+	  known-good baseline; run-vi-analyzer.ps1 upgrades this to the full default
+	  suite at runtime by enumerating the analyzer's test libraries, and falls
+	  back to exactly these tests if that enumeration finds nothing.
+	-->
+	<TestConfigData>
+		<Test>
+			<Name>"Broken VI"</Name>
+			<Ranking>1</Ranking>
+			<MaxFailures>1000</MaxFailures>
+			<BasePath>"LabVIEW"</BasePath>
+			<RelativePath>"project/_VI Analyzer/_tests/General/VI Properties/Broken VI.llb"</RelativePath>
+			<Selected>TRUE</Selected>
+			<Controls>
+			</Controls>
+		</Test>
+		<Test>
+			<Name>"Separate Compiled Code Setting"</Name>
+			<Ranking>1</Ranking>
+			<MaxFailures>1000</MaxFailures>
+			<BasePath>"LabVIEW"</BasePath>
+			<RelativePath>"project/_VI Analyzer/_tests/General/VI Properties/Separate Compiled Code Setting.llb"</RelativePath>
+			<Selected>TRUE</Selected>
+			<Controls>
+			</Controls>
+		</Test>
+		<Test>
+			<Name>"Platform Portability"</Name>
+			<Ranking>1</Ranking>
+			<MaxFailures>1000</MaxFailures>
+			<BasePath>"LabVIEW"</BasePath>
+			<RelativePath>"project/_VI Analyzer/_tests/General/VI Properties/Platform Portability.llb"</RelativePath>
+			<Selected>TRUE</Selected>
+			<Controls>
+			</Controls>
+		</Test>
+		<Test>
+			<Name>"Toolkit Usage"</Name>
+			<Ranking>1</Ranking>
+			<MaxFailures>1000</MaxFailures>
+			<BasePath>"LabVIEW"</BasePath>
+			<RelativePath>"project/_VI Analyzer/_tests/General/VI Properties/Toolkit Usage.llb"</RelativePath>
+			<Selected>TRUE</Selected>
+			<Controls>
+			</Controls>
+		</Test>
+		<Test>
+			<Name>"Error Cluster Wired"</Name>
+			<Ranking>1</Ranking>
+			<MaxFailures>1000</MaxFailures>
+			<BasePath>"LabVIEW"</BasePath>
+			<RelativePath>"project/_VI Analyzer/_tests/Block Diagram/Warnings/Error Cluster Wired.llb"</RelativePath>
+			<Selected>TRUE</Selected>
+			<Controls>
+			</Controls>
+		</Test>
+		<Test>
+			<Name>"Enabled Debugging"</Name>
+			<Ranking>1</Ranking>
+			<MaxFailures>1000</MaxFailures>
+			<BasePath>"LabVIEW"</BasePath>
+			<RelativePath>"project/_VI Analyzer/_tests/Block Diagram/Performance/Enabled Debugging.llb"</RelativePath>
+			<Selected>TRUE</Selected>
+			<Controls>
+			</Controls>
+		</Test>
+	</TestConfigData>
+	<ExclusionData>
+	</ExclusionData>
+</Config>
