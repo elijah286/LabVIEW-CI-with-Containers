@@ -43,12 +43,40 @@ ARG CI_WORKER_VERSION=dev
 # .vipc staged the VIPM hook below is a no-op.
 COPY .github/labview/vipm/ C:/vipm/
 
-# Install the VI Analyzer support package at image build-time. nipkg install is
-# idempotent — if the package is already present it exits cleanly.
-RUN if (-not (Get-Command nipkg -ErrorAction SilentlyContinue)) { throw 'nipkg was not found in the LabVIEW base image.' }; `
+# Install the VI Analyzer support package AND verify its default TEST SUITE is on
+# disk. The prebuilt nationalinstruments/labview base image registers
+# ni-viawin-labview-support as "already installed" in the NIPKG database but has
+# had the analyzer test libraries (project\_VI Analyzer\_tests\**\*.llb, ~90 tests)
+# stripped to slim the image. A plain `nipkg install` then no-ops, the test files
+# never materialize, and every VI Analyzer run reports "0 tests run" (empty report).
+# So: install normally; if the test suite is not on disk, force the package to
+# re-lay its files (reinstall, then remove+install as a fallback); finally VERIFY
+# the tests are present and FAIL the build if not — we must never publish a worker
+# that silently cannot analyze anything.
+RUN $ErrorActionPreference = 'Stop'; `
+    if (-not (Get-Command nipkg -ErrorAction SilentlyContinue)) { throw 'nipkg was not found in the LabVIEW base image.' }; `
     nipkg feed-add --name=$env:NIPM_FEED_NAME $env:NIPM_FEED_URL; `
     nipkg update; `
     nipkg install --accept-eulas -y $env:VIA_SUPPORT_PACKAGE; `
+    $lvDir = (Get-ChildItem 'C:\Program Files\National Instruments' -Directory -Filter 'LabVIEW *' | Sort-Object Name -Descending | Select-Object -First 1).FullName; `
+    $testsDir = Join-Path $lvDir 'project\_VI Analyzer\_tests'; `
+    $count = if (Test-Path $testsDir) { @(Get-ChildItem -LiteralPath $testsDir -Recurse -Filter '*.llb' -ErrorAction SilentlyContinue).Count } else { 0 }; `
+    Write-Host ('VI Analyzer test libraries after install: {0} (under {1})' -f $count, $testsDir); `
+    if ($count -lt 1) { `
+      Write-Host 'Test suite not on disk - forcing reinstall of the VI Analyzer support package...'; `
+      cmd /c ('nipkg install --reinstall --accept-eulas -y {0}' -f $env:VIA_SUPPORT_PACKAGE) 2>&1 | Out-Host; `
+      $count = if (Test-Path $testsDir) { @(Get-ChildItem -LiteralPath $testsDir -Recurse -Filter '*.llb' -ErrorAction SilentlyContinue).Count } else { 0 }; `
+      Write-Host ('VI Analyzer test libraries after --reinstall: {0}' -f $count); `
+    }; `
+    if ($count -lt 1) { `
+      Write-Host 'Still missing - removing then reinstalling the package...'; `
+      cmd /c ('nipkg remove -y {0}' -f $env:VIA_SUPPORT_PACKAGE) 2>&1 | Out-Host; `
+      nipkg install --accept-eulas -y $env:VIA_SUPPORT_PACKAGE; `
+      $count = if (Test-Path $testsDir) { @(Get-ChildItem -LiteralPath $testsDir -Recurse -Filter '*.llb' -ErrorAction SilentlyContinue).Count } else { 0 }; `
+      Write-Host ('VI Analyzer test libraries after remove+install: {0}' -f $count); `
+    }; `
+    if ($count -lt 1) { throw ('VI Analyzer test suite not found under ' + $testsDir + ' after install/reinstall - the worker would run 0 tests, so failing the build.') }; `
+    Write-Host ('VI Analyzer test suite present: {0} test libraries.' -f $count); `
     if (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
       Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
     }
