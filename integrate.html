@@ -159,7 +159,7 @@
           <li id="insTokPerms"></li>
           <li>Generate, then paste it below.</li>
         </ol>
-        <p class="note">Stored only in this browser (localStorage); sent only to api.github.com &mdash; never to the page or to CI. Revoke it any time once the pull request is open.</p>
+        <p class="note">Kept only in this browser tab (sessionStorage) and sent only to api.github.com &mdash; never to the page host or to CI. It is discarded automatically the moment the pull request opens; you can also revoke it on GitHub at any time.</p>
         <div class="tokrow">
           <input id="insTokInput" type="password" autocomplete="off" placeholder="github_pat_&hellip;">
           <button type="button" class="primary" id="insTokSave">Save &amp; install</button>
@@ -169,7 +169,7 @@
 
       <div class="actions">
         <button class="primary" id="installBtn">&#11014; Install into your repo</button>
-        <button class="ghost" id="insTokForget" style="display:none" title="Remove the token saved in this browser">Forget token</button>
+        <button class="ghost" id="insTokForget" style="display:none" title="Remove the token from this browser tab">Forget token</button>
         <span class="status" id="insStatus"></span>
       </div>
 
@@ -382,6 +382,11 @@
       return new Promise((resolve, reject) => {
         const s = document.createElement("script");
         s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+        // Pin the third-party script so a compromised CDN can't run arbitrary JS in
+        // this origin (defense-in-depth: this page can hold a token in sessionStorage).
+        s.integrity = "sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==";
+        s.crossOrigin = "anonymous";
+        s.referrerPolicy = "no-referrer";
         s.onload = () => resolve(window.JSZip);
         s.onerror = () => reject(new Error("Could not load the zip library (offline?). Use the install command instead."));
         document.head.appendChild(s);
@@ -458,9 +463,13 @@
     // Workflows (write): the workflow files require the Workflows permission.
     const INSTALL_TOK_KEY = "lvci_install_token";
     const INSTALL_BRANCH = "ci/install-labview-ci";
-    const getInsTok = () => { try { return localStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
-    const setInsTok = (v) => { try { localStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
-    const clearInsTok = () => { try { localStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
+    // Ephemeral by design: the token lives in sessionStorage (scoped to this browser
+    // tab/device, never shared with other visitors) and is cleared the moment the
+    // install pull request opens (see installSuccess). It is only ever sent to
+    // api.github.com via gh() — never to the page host that serves this file.
+    const getInsTok = () => { try { return sessionStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
+    const setInsTok = (v) => { try { sessionStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
+    const clearInsTok = () => { try { sessionStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
 
     // Pre-filled fine-grained token creation link (GitHub honours these query
     // params), so the user lands on the form with the right scopes selected.
@@ -535,9 +544,10 @@
     // its source-repo references. Instead the consumer checks out the tooling at
     // its opted-in ref into _lvci/ and runs ./_lvci/actions/dashboard at runtime
     // (mirrors install.py --thin), so the generator is always the source's own.
-    function dashboardWorkflowYaml() {
+    function dashboardWorkflowYaml(branch) {
       const s = source();
       const ref = s.ref || "main";
+      const br = branch || "main";
       return [
         "# CI Dashboard \u2014 GitHub Pages. Thin caller installed by the LabVIEW CI configurator.",
         "# The dashboard build logic lives in the shared composite action, pulled at the tooling",
@@ -547,6 +557,13 @@
         "name: CI Dashboard \u2014 GitHub Pages",
         "",
         "on:",
+        "  # Build on the install merge + whenever the config changes, so the dashboard",
+        "  # publishes itself the first time without waiting for the hourly schedule.",
+        "  push:",
+        "    branches: [" + br + "]",
+        "    paths:",
+        "      - '.github/labview-ci.yml'",
+        "      - '.github/workflows/dashboard-pages.yml'",
         "  status:",
         "  workflow_run:",
         "    workflows:",
@@ -707,7 +724,12 @@
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
       const url = dashboardUrl(repo);
 
+      // The token did its one job (opening the PR); discard it now so nothing
+      // sensitive lingers in this browser. The user re-pastes for any later install.
+      clearInsTok(); refreshInsForget();
+
       const done = [];
+      done.push(`Discarded your install token from this browser &mdash; it was used only to open this pull request.`);
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
       if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a><small>It goes live after the first CI run; until then it shows a &ldquo;publishing&hellip;&rdquo; placeholder.</small>`);
@@ -787,14 +809,6 @@
         // part of this install (its publish workflow is in the resolved set).
         setup.hasDashboard = [...paths].some(p => p.endsWith("dashboard-pages.yml"));
 
-        // Replace the vendored source dashboard workflow (which runs ./actions/
-        // dashboard — a local path absent from a consumer) with a thin caller that
-        // checks out the tooling at runtime. See dashboardWorkflowYaml().
-        if (setup.hasDashboard) {
-          const di = files.findIndex(f => f.path.endsWith(".github/workflows/dashboard-pages.yml"));
-          if (di >= 0) files[di] = { path: files[di].path, content: dashboardWorkflowYaml(), isText: true };
-        }
-
         if ($("optReadme") && $("optReadme").checked && setup.hasDashboard) {
           setInsStatus("Preparing the README link&hellip;", null);
           try { const rf = await buildReadmeFile(repo); if (rf) { files.push(rf); setup.readme = true; } }
@@ -810,6 +824,15 @@
         const headSha = headRef.object.sha;
         const baseCommit = await ghJson(await gh(`/repos/${repo}/git/commits/${headSha}`));
         const baseTree = baseCommit.tree.sha;
+
+        // Replace the vendored source dashboard workflow (which runs ./actions/
+        // dashboard — a local path absent from a consumer) with a thin caller that
+        // checks the tooling out at runtime and builds on push to the default branch
+        // (so the install merge publishes the dashboard). See dashboardWorkflowYaml().
+        if (setup.hasDashboard) {
+          const di = files.findIndex(f => f.path.endsWith(".github/workflows/dashboard-pages.yml"));
+          if (di >= 0) files[di] = { path: files[di].path, content: dashboardWorkflowYaml(branch), isText: true };
+        }
 
         // Upload every file as a blob, then assemble one tree + commit.
         const treeItems = []; n = 0;
