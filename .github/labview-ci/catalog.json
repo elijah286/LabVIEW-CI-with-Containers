@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "1.11.0",
+  "version": "1.11.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.11.1",
+        "date": "2026-06-16",
+        "title": "Jump from a VI Analyzer report straight to that commit's VI snapshots",
+        "summary": "On a VI Analyzer report, the commit hash at the top now links to that exact revision's VI snapshots in the VI Browser, so you can go from a finding to seeing the VIs as they were at that commit in one click. The GitHub commit itself is still one click away \u2014 a 'commit on GitHub' link sits alongside the metadata (and the header's 'This commit' action still opens it on a standalone report).",
+        "highlights": [
+          "The commit hash on a VI Analyzer report links to that commit's VI snapshots in the VI Browser (it previously pointed at GitHub, which the report header's 'This commit' action already covers).",
+          "A 'commit on GitHub' link is kept in the report's metadata line so the commit is still reachable even when the report is viewed embedded (where the shared header hides itself)."
+        ]
+      },
       {
         "version": "1.11.0",
         "date": "2026-06-16",

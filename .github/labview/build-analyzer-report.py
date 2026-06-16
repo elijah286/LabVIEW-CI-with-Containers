@@ -569,14 +569,20 @@ let query = '';
 (function header(){
   const m = META;
   const commitMsg = (m.commit && m.commit.message) ? esc(m.commit.message) : '';
-  const shaLink = m.repo && m.sha ? `https://github.com/${m.repo}/commit/${m.sha}` : '';
+  // The commit hash opens this revision's VI snapshots in the VI Browser; the
+  // GitHub commit stays available via the trailing "commit on GitHub" link (and,
+  // on a standalone report, the header's "This commit" action — which the shared
+  // header suppresses when the report is embedded in the report-viewer iframe).
+  const snapLink = m.sha ? SNAP_BASE + 'index.html?sha=' + encodeURIComponent(m.sha) : '';
+  const ghLink   = m.repo && m.sha ? `https://github.com/${m.repo}/commit/${m.sha}` : '';
   document.getElementById('sub').innerHTML =
-    (m.short ? `Commit ${shaLink?`<a href="${shaLink}">${esc(m.short)}</a>`:esc(m.short)} ` : '') +
+    (m.short ? `Commit ${snapLink?`<a href="${snapLink}" target="_blank" rel="noopener" title="Browse this commit's VI snapshots in the VI Browser">${esc(m.short)}</a>`:esc(m.short)} ` : '') +
     (commitMsg ? `&middot; ${commitMsg} ` : '') +
     (m.platform ? `&middot; ${esc(m.platform)} ` : '') +
     (m.analysis_date ? `&middot; ${esc(m.analysis_date)} ` : '') +
     (m.duration ? `&middot; ${esc(m.duration)} ` : '') +
-    `&middot; generated ${esc(m.generated_utc||'')}`;
+    `&middot; generated ${esc(m.generated_utc||'')}` +
+    (ghLink ? ` &middot; <a href="${ghLink}" target="_blank" rel="noopener" title="View this commit on GitHub">commit on GitHub &#8599;</a>` : '');
 
   const pct = SUM.tests_run ? Math.round(SUM.passed/SUM.tests_run*1000)/10 : 0;
   // "Failed tests" is VI Analyzer's official count of failed test instances; a
