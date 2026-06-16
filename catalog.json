@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.0",
+        "date": "2026-06-15",
+        "title": "Run a capability straight from an empty dashboard cell",
+        "summary": "Empty cells in the dashboard now carry a small run glyph. Clicking it opens a dialog that enqueues that capability for that exact commit — with a Windows/Linux picker for capabilities that have both — by surfacing a copyable `gh workflow run` command (pre-filled with the commit SHA) and a link to the workflow's Run page. It uses your own GitHub auth, so no tokens ever touch the browser. The dashboard's 'Include CI-only revisions' toggle is also honored strictly again.",
+        "highlights": [
+          "Each empty, re-runnable cell (Mass Compile, VI Analyzer, VIDiff, VI Snapshots) shows an unobtrusive play glyph that brightens on hover.",
+          "Capabilities with separate Windows and Linux workers show a platform picker so you can launch one or both; single-target capabilities skip straight to the command.",
+          "The dialog generates a ready-to-run `gh workflow run <workflow> -f commit_sha=<sha>` command (VIDiff uses head + base SHAs) plus a direct link to the workflow's Run page — token-free, using your own GitHub login.",
+          "Fixed the 'Include CI-only revisions' toggle so CI/tooling commits stay hidden while it is unchecked, even during a long tooling sprint."
+        ]
+      },
       {
         "version": "1.6.0",
         "date": "2026-06-15",
