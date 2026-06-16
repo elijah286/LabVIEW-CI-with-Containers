@@ -82,7 +82,9 @@
   var CSS = [
     ':root{--lvh-h:54px}',
     '.lvci-hdr,.lvci-hdr *{box-sizing:border-box}',
-    '.lvci-hdr{position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:14px;',
+    // flex-shrink:0 keeps the bar full-height when <body> is itself a flex
+    // column (see the mount logic for full-height flex/grid pages).
+    '.lvci-hdr{position:sticky;top:0;z-index:200;flex-shrink:0;display:flex;align-items:center;gap:14px;',
       'height:var(--lvh-h);padding:0 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;',
       'background:rgba(22,27,34,.86);-webkit-backdrop-filter:saturate(160%) blur(10px);backdrop-filter:saturate(160%) blur(10px);',
       'border-bottom:1px solid #30363d;color:#e6edf3}',
@@ -419,7 +421,34 @@
     var status = document.createElement('div'); status.id = 'lvci-status'; status.className = 'lvci-status';
     var tokp = document.createElement('div'); tokp.id = 'lvci-tok'; tokp.className = 'lvci-tok';
 
-    // Mount at the very top of <body>.
+    // ── Mount at the very top of <body> ──────────────────────────────────────
+    // Some pages use <body> ITSELF as a full-height flex/grid layout container
+    // (e.g. the VI Browser: `body{display:flex;height:100vh}` for a sidebar +
+    // main pane). Inserting the header as a plain sibling would make it a flex/
+    // grid ITEM laid out *beside* that content instead of above it. Detect that
+    // and move the page's content into a wrapper that inherits the original
+    // layout, so <body> becomes a vertical stack (header on top, content below).
+    var cs = getComputedStyle(document.body);
+    if (cs.display.indexOf('flex') >= 0 || cs.display.indexOf('grid') >= 0) {
+      var wrap = document.createElement('div');
+      wrap.className = 'lvci-content';
+      // Re-home the page's own layout onto the wrapper (copy BEFORE mutating
+      // <body>, since `cs` is a live computed-style reference).
+      ['display', 'flexDirection', 'flexWrap', 'gap', 'rowGap', 'columnGap',
+       'alignItems', 'alignContent', 'justifyContent', 'justifyItems',
+       'gridTemplateColumns', 'gridTemplateRows', 'gridTemplateAreas',
+       'gridAutoFlow', 'gridAutoRows', 'gridAutoColumns',
+       'overflowX', 'overflowY'
+      ].forEach(function (p) { wrap.style[p] = cs[p]; });
+      wrap.style.flex = '1 1 auto';
+      wrap.style.minHeight = '0';
+      wrap.style.minWidth = '0';
+      while (document.body.firstChild) wrap.appendChild(document.body.firstChild);
+      document.body.appendChild(wrap);
+      document.body.style.display = 'flex';
+      document.body.style.flexDirection = 'column';
+    }
+
     var first = document.body.firstChild;
     document.body.insertBefore(tokp, first);
     document.body.insertBefore(status, tokp);

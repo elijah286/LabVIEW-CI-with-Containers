@@ -432,7 +432,7 @@ for c in commits_data:
     rows_html.append(f"""
     <tr data-project="{proj_flag}">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
-        <a href="https://github.com/{repo}/commit/{sha}" style="color:var(--link)">{short}</a>
+        <a href="{pages_url}/vi-snapshots/index.html?sha={sha}" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">{short}</a>
       </td>
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{msg}"><a href="{pages_url}/vi-snapshots/index.html?sha={sha}" style="color:var(--fg)">{msg}</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">{author}</td>
