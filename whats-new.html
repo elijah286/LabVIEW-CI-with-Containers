@@ -397,9 +397,11 @@
             "X-GitHub-Api-Version": "2022-11-28",
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ ref: branch, inputs: { target_version: ver } })
+          // The workflow accepts `source_ref` (the source ref/tag to pull); pin
+          // it to the advertised release tag so the PR adopts exactly that version.
+          body: JSON.stringify({ ref: branch, inputs: { source_ref: "v" + ver } })
         });
-      }).then((r) => {
+      }).then(async (r) => {
         if (btn) btn.disabled = false;
         if (r.status === 204) {
           // Optimistically flag the in-flight update so the dashboard's version
@@ -414,10 +416,12 @@
           return;
         }
         if (r.status === 401) { clearTok(); refreshTokForget(); setCmdStatus("That token was rejected (401). Paste a valid one.", "err"); showTokenPanel(); return; }
+        let ghMsg = ""; try { const j = await r.json(); ghMsg = (j && j.message) || ""; } catch (_) {}
         let hint;
         if (r.status === 403) hint = `<strong>403</strong>: the token is missing the <strong>Actions: Read and write</strong> permission. On the token page open <strong>Permissions &rarr; Repository permissions &rarr; Actions &rarr; Read and write</strong> (selecting the repository is not enough), then <strong>Update</strong> and try again.`;
         else if (r.status === 404) hint = `<strong>404</strong>: the token cannot see <code>${esc(state.repo)}</code> (or the update workflow is not installed). Grant it <strong>Repository access</strong> to this repo AND the <strong>Actions: Read and write</strong> permission.`;
-        else hint = `HTTP ${r.status} &mdash; check the token has <strong>Actions: Read and write</strong> on this repository.`;
+        else if (r.status === 422) hint = `<strong>422</strong>: GitHub couldn&rsquo;t start the update${ghMsg ? ` &mdash; <em>${esc(ghMsg)}</em>` : ""}. This is a workflow issue, not your token &mdash; make sure this repo&rsquo;s update workflow is current (re-run the installer to refresh the tooling), then try again.`;
+        else hint = `HTTP ${r.status}${ghMsg ? ` &mdash; ${esc(ghMsg)}` : ""}. If this persists, check the token has <strong>Actions: Read and write</strong> on this repository.`;
         setCmdStatus(hint + ` <a href="#" id="cmdFixTok">Update token &rarr;</a>`, "err");
         const ft = $("cmdFixTok"); if (ft) ft.addEventListener("click", (e) => { e.preventDefault(); showTokenPanel(); });
       }).catch((e) => {
