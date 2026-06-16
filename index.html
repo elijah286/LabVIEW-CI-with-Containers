@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="refresh" content="900">
+  <meta http-equiv="refresh" content="60">
   <title>CI Dashboard — LabVIEW-CI-with-Containers</title>
   <style>
     :root{
@@ -34,6 +34,9 @@
     .controls input{margin:0;accent-color:var(--link)}
     .run-badge{display:inline-flex;align-items:center;background:#1f6feb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600}
     .run-badge a:hover{text-decoration:underline}
+    /* Optimistic "just queued from this browser" cue: a dashed ring distinguishes
+       a client-side queued badge from a server-confirmed running one. */
+    .run-badge.cidash-queued{outline:1px dashed rgba(255,255,255,.6);outline-offset:1px}
     .run-spin{width:9px;height:9px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:cidash-spin .7s linear infinite}
     @keyframes cidash-spin{to{transform:rotate(360deg)}}
     .cidash-run{display:inline-block;color:var(--fg-muted);font-size:.95em;line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}tr:hover .cidash-run{opacity:.85}.cidash-btn{border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:.85em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-go{background:#238636;color:#fff;border-color:transparent}.cidash-go:hover{background:#2ea043}.cidash-go:disabled{opacity:.6;cursor:default}.cidash-ghost{background:var(--bg);color:var(--fg)}.cidash-ghost:hover{border-color:var(--link)}
@@ -41,7 +44,7 @@
 </head>
 <body>
   <div style="position:fixed;top:14px;right:16px;z-index:30;display:flex;align-items:center;gap:8px">
-    <div id="lvci-version" title="Latest LabVIEW CI tooling version" style="position:relative;display:inline-flex;align-items:center;gap:6px;background:rgba(110,118,129,.15);color:var(--fg-muted);border:1px solid rgba(110,118,129,.35);padding:8px 12px;border-radius:6px;font-size:.78em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;user-select:none"><span>v1.7.4</span><span id="lvci-update-dot" aria-hidden="true"></span></div>
+    <div id="lvci-version" title="Latest LabVIEW CI tooling version" style="position:relative;display:inline-flex;align-items:center;gap:6px;background:rgba(110,118,129,.15);color:var(--fg-muted);border:1px solid rgba(110,118,129,.35);padding:8px 12px;border-radius:6px;font-size:.78em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;user-select:none"><span>v1.7.5</span><span id="lvci-update-dot" aria-hidden="true"></span></div>
     <button onclick="lvciOpen('configure.html','Configure Workers')" title="Configure the behavior of this repository's automated CI activities" style="background:#1f6feb;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">⚙ Configure Workers</button>
     <button onclick="lvciOpen('integrate.html','Apply to New Repo')" title="Install these CI capabilities into another repository" style="background:#238636;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">➕ Apply to New Repo</button>
   </div>
@@ -68,7 +71,7 @@
     }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lvciClose(); });
   </script>
-  <style>#lvci-version.lvci-clickable{cursor:pointer;color:var(--fg)}#lvci-version.lvci-clickable:hover{background:rgba(110,118,129,.25)}#lvci-version.lvci-has-update{cursor:pointer;color:var(--fg);border-color:#d29922;background:rgba(210,153,34,.13)}#lvci-version.lvci-has-update:hover{background:rgba(210,153,34,.22)}#lvci-update-dot{display:none}#lvci-update-dot.on{display:block;position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:#d29922;box-shadow:0 0 0 2px var(--bg);animation:lvci-pulse 1.7s ease-out infinite}@keyframes lvci-pulse{0%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,.5)}70%{box-shadow:0 0 0 2px var(--bg),0 0 0 7px rgba(210,153,34,0)}100%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,0)}}</style><script>(function(){var C={"version": "1.7.4", "sourceRepo": "elijah286/LabVIEW-CI-with-Containers", "sourceRef": "main", "isSource": true, "repo": "elijah286/LabVIEW-CI-with-Containers"};function cmp(a,b){var p=String(a||"0").split("."),q=String(b||"0").split(".");for(var i=0;i<Math.max(p.length,q.length);i++){var d=(parseInt(p[i],10)||0)-(parseInt(q[i],10)||0);if(d)return d;}return 0;}if(!C.version)return;var b=document.getElementById("lvci-version");if(!b)return;var src=C.sourceRepo||C.repo;var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(src)+"&ref="+encodeURIComponent(C.sourceRef),"What\u2019s New");};b.classList.add("lvci-clickable");b.setAttribute("role","button");b.setAttribute("tabindex","0");b.title="LabVIEW CI v"+C.version+" \u2014 click for release notes";b.addEventListener("click",go);b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});if(C.isSource||!C.sourceRepo)return;var u="https://raw.githubusercontent.com/"+C.sourceRepo+"/"+C.sourceRef+"/.github/labview-ci/catalog.json";fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(cat){if(!cat||!cat.version||cmp(cat.version,C.version)<=0)return;var d=document.getElementById("lvci-update-dot");b.classList.remove("lvci-clickable");b.classList.add("lvci-has-update");if(d)d.classList.add("on");b.title="Update available: v"+C.version+" \u2192 v"+cat.version+" \u2014 click to see what\u2019s new";}).catch(function(){});})();</script>
+  <style>#lvci-version.lvci-clickable{cursor:pointer;color:var(--fg)}#lvci-version.lvci-clickable:hover{background:rgba(110,118,129,.25)}#lvci-version.lvci-has-update{cursor:pointer;color:var(--fg);border-color:#d29922;background:rgba(210,153,34,.13)}#lvci-version.lvci-has-update:hover{background:rgba(210,153,34,.22)}#lvci-update-dot{display:none}#lvci-update-dot.on{display:block;position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:#d29922;box-shadow:0 0 0 2px var(--bg);animation:lvci-pulse 1.7s ease-out infinite}@keyframes lvci-pulse{0%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,.5)}70%{box-shadow:0 0 0 2px var(--bg),0 0 0 7px rgba(210,153,34,0)}100%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,0)}}</style><script>(function(){var C={"version": "1.7.5", "sourceRepo": "elijah286/LabVIEW-CI-with-Containers", "sourceRef": "main", "isSource": true, "repo": "elijah286/LabVIEW-CI-with-Containers"};function cmp(a,b){var p=String(a||"0").split("."),q=String(b||"0").split(".");for(var i=0;i<Math.max(p.length,q.length);i++){var d=(parseInt(p[i],10)||0)-(parseInt(q[i],10)||0);if(d)return d;}return 0;}if(!C.version)return;var b=document.getElementById("lvci-version");if(!b)return;var src=C.sourceRepo||C.repo;var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(src)+"&ref="+encodeURIComponent(C.sourceRef),"What\u2019s New");};b.classList.add("lvci-clickable");b.setAttribute("role","button");b.setAttribute("tabindex","0");b.title="LabVIEW CI v"+C.version+" \u2014 click for release notes";b.addEventListener("click",go);b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});if(C.isSource||!C.sourceRepo)return;var u="https://raw.githubusercontent.com/"+C.sourceRepo+"/"+C.sourceRef+"/.github/labview-ci/catalog.json";fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(cat){if(!cat||!cat.version||cmp(cat.version,C.version)<=0)return;var d=document.getElementById("lvci-update-dot");b.classList.remove("lvci-clickable");b.classList.add("lvci-has-update");if(d)d.classList.add("on");b.title="Update available: v"+C.version+" \u2192 v"+cat.version+" \u2014 click to see what\u2019s new";}).catch(function(){});})();</script>
 
   <div id="cidash-run-modal" onclick="if(event.target===this)cidashRunClose()" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55)">
     <div role="dialog" aria-modal="true" aria-labelledby="cidash-run-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
@@ -121,6 +124,62 @@
       }).then(function(r){ return { wf:wf, ok:r.status===204, status:r.status }; })
         .catch(function(e){ return { wf:wf, ok:false, status:0, err:String(e&&e.message||e) }; });
     }
+    // ── Optimistic "queued" overlay ──────────────────────────────
+    // A successful dispatch returns 204 with no body, and the server-rendered
+    // "running" badge only appears once the run posts a pending commit status AND
+    // the Pages site rebuilds — minutes later. So the dispatched cell would keep
+    // showing its empty run-glyph, making it look like nothing happened. Paint the
+    // cell as "Queued" immediately and remember it per-browser (localStorage) so it
+    // survives the page's auto-refresh until the real status takes over. Entries
+    // self-expire so a run that never reports a status can't wedge a fake spinner.
+    var QKEY = "lvci_queued_runs";
+    var QTTL = 20*60*1000;   // forget an unconfirmed entry after 20 min
+    var QFAST = 60*1000;     // re-check this often while a queued run is unconfirmed
+    var qReloadArmed = false;
+    function qLoad(){ try{ return JSON.parse(localStorage.getItem(QKEY)||"{}")||{}; }catch(e){ return {}; } }
+    function qSave(o){ try{ localStorage.setItem(QKEY, JSON.stringify(o)); }catch(e){} }
+    function qPaint(td, c, sha){
+      // Overlay a spinning "Queued" badge onto the cell, replacing its run glyph.
+      if(!td) return;
+      td.classList.add('cidash-queued-cell');
+      td.setAttribute('data-qcap', c); td.setAttribute('data-qsha', sha);
+      td.innerHTML = '<span class="run-badge cidash-queued" title="Queued from this browser \u2014 the live status appears once the run starts and the dashboard rebuilds">'
+        + '<a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">'
+        + '<span class="run-spin"></span>Queued</a></span>';
+    }
+    function qArmReload(){
+      // While a queued run is still unconfirmed, reload sooner than the lazy
+      // meta-refresh so the real status surfaces promptly (mirrors the server's
+      // own faster cadence while CI is live).
+      if(qReloadArmed) return; qReloadArmed = true;
+      setTimeout(function(){ location.reload(); }, QFAST);
+    }
+    function markQueued(c, sha, plats){
+      var o = qLoad(); o[c+'|'+sha] = { ts: Date.now(), plats: plats||[] }; qSave(o);
+      var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
+      var td = a ? (a.closest ? a.closest('td') : null)
+                 : document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+      qPaint(td, c, sha);
+      qArmReload();
+    }
+    function applyQueued(){
+      // Re-apply remembered queued badges after each (auto-)reload. An entry is
+      // dropped once the server renders a real status for that cell (its run glyph
+      // is gone) or once it ages out — so the overlay is a short, self-clearing
+      // bridge, never a permanent fake.
+      var o = qLoad(); var now = Date.now(); var changed = false; var live = 0;
+      Object.keys(o).forEach(function(key){
+        var e = o[key]; var i = key.indexOf('|'); var c = key.slice(0,i); var sha = key.slice(i+1);
+        if(!e || (now - (e.ts||0)) > QTTL){ delete o[key]; changed = true; return; }
+        var painted = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+        var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
+        if(painted){ live++; }
+        else if(a){ qPaint(a.closest('td'), c, sha); live++; }
+        else { delete o[key]; changed = true; }   // real status took over — done
+      });
+      if(changed) qSave(o);
+      if(live > 0) qArmReload();
+    }
     function runNow(){
       var def = RT[state.cap]; if(!def) return;
       var sel = selectedPlats(def);
@@ -135,6 +194,10 @@
         if(results.some(function(r){return r.status===401;})){
           clearTok(); setStatus('That token was rejected (401). Paste a valid one.', 'err'); showTokenPanel(); return;
         }
+        // Reflect any successful dispatch on the dashboard right away, before the
+        // server-side status/Pages rebuild catches up (covers partial success too).
+        var okPlats = results.filter(function(r){return r.ok;}).map(function(r){return r.plat;});
+        if(okPlats.length){ markQueued(state.cap, state.sha, okPlats); }
         if(results.every(function(r){return r.ok;})){
           var n=results.length;
           setStatus('\u2713 Queued '+n+' run'+(n>1?'s':'')+'. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
@@ -227,10 +290,14 @@
       openRun(a.getAttribute('data-cap'), a.getAttribute('data-sha'), a.getAttribute('data-parent'), a.getAttribute('data-short'));
     });
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') cidashRunClose(); });
+    // Re-apply optimistic "Queued" badges once the table exists (this script runs
+    // before the table is parsed), and after every auto-refresh thereafter.
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', applyQueued); }
+    else { applyQueued(); }
   })();
   </script>
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-16 03:54 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-16 03:58 UTC &nbsp;|&nbsp; Live — refreshing every 60 s while CI runs</div>
   <div class="nav">
     <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/">VI Browser</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
@@ -253,6 +320,21 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/commit/22d63b8f9f761e27b53e2de484875cb95aa07578" style="color:var(--link)">22d63b8</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(dashboard): show a cell as Queued the moment Run now dispatches (1.7.5)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=22d63b8f9f761e27b53e2de484875cb95aa07578" style="color:var(--fg)">feat(dashboard): show a cell as Queued the moment Run now dispatches (1.7.5)</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/commit/ca68d3a34b0cdb2dc960ee63d91e434eb69dbdf1" style="color:var(--link)">ca68d3a</a>
@@ -772,7 +854,7 @@
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-05-29</td>
       <td style="text-align:center"><span title="40/41 project VIs compiled" style="background:#bb8009;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1/index.html" style="color:inherit">⚠️ 98%</a></span></td>
       <td style="text-align:center"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-analyzer/d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1/index.html" style="color:inherit">✅ analyze</a></span></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-parent="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-short="d1705cb" title="Run VIDiff for commit d1705cb">&#9655;</a></td>
+      <td style="text-align:center"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/27593109260" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&plat=linux&changed=1" style="color:var(--link)">Linux(1)</a></td>
       <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
