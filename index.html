@@ -109,6 +109,18 @@
       return s;
     }
     function actionsUrl(wf){ return "https://github.com/" + REPO + "/actions/workflows/" + wf; }
+    // Pre-fill the fine-grained token form: name, resource owner, and the one
+    // permission a workflow_dispatch needs (Actions: write). GitHub provides no
+    // URL param to pre-select the specific repo, so "Repository access" stays a
+    // manual step. Same token (lvci_dispatch_token) the report header + What's New use.
+    function tokenSetupUrl(){
+      var owner = (REPO.split("/")[0]) || "";
+      var qp = "name=" + encodeURIComponent("LabVIEW CI dispatch")
+        + "&description=" + encodeURIComponent("Queue LabVIEW CI runs for " + REPO + " (Run now / Re-run / Update).")
+        + (owner ? "&target_name=" + encodeURIComponent(owner) : "")
+        + "&actions=write";
+      return "https://github.com/settings/personal-access-tokens/new?" + qp;
+    }
     function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
     function selectedPlats(def){
       var keys = Object.keys(def.platforms);
@@ -378,8 +390,8 @@
       h += '<div id="cidash-tok-panel" style="display:none;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);margin:0 0 12px">';
       h += '<div style="font-size:.82em;color:var(--fg);font-weight:600;margin-bottom:6px">One-time setup \u2014 a token to queue runs</div>';
       h += '<ol style="font-size:.8em;color:var(--fg-muted);margin:0 0 8px;padding-left:18px;line-height:1.6">';
-      h += '<li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--link)">Create a fine-grained token \u2197</a></li>';
-      h += '<li><strong>Repository access</strong> \u2192 Only select repositories \u2192 add <code>'+esc(REPO)+'</code>.</li>';
+      h += '<li><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create a fine-grained token \u2197</a> \u2014 opens with the name, owner, and <strong>Actions: Read and write</strong> already set.</li>';
+      h += '<li><strong>Repository access</strong> \u2192 Only select repositories \u2192 add <code>'+esc(REPO)+'</code>. <span style="opacity:.8">(the one step a link can\u2019t pre-fill)</span></li>';
       h += '<li><strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong>. Required \u2014 selecting the repo alone gives a 403.</li>';
       h += '<li>Generate, then paste it below.</li>';
       h += '</ol>';
@@ -558,7 +570,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-16 23:05 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-16 23:26 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -581,6 +593,21 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=1d117bbd788ce6cbcd4009f7e19875f92642af98" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">1d117bb</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Pre-fill the token-creation links for Run now + Update now (1.12.1)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=1d117bbd788ce6cbcd4009f7e19875f92642af98" style="color:var(--fg)">Pre-fill the token-creation links for Run now + Update now (1.12.1)</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=cce0fa619b11c080215fd468cf95430d5bc42d2f" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">cce0fa6</a>
@@ -1623,7 +1650,7 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="moved the send command button"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" style="color:var(--fg)">moved the send command button</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-05-29</td>
-      <td style="text-align:center"><span title="40/41 project VIs compiled" style="background:#bb8009;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1/index.html" style="color:inherit">⚠️ 98%</a></span></td>
+      <td style="text-align:center"><span title="0/0 project VIs compiled" style="background:#da3633;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1/index.html" style="color:inherit">❌ 0%</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-parent="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-short="d1705cb" data-ts="2026-06-15T22:32:40Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-analyzer/d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1/index.html" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-parent="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-short="d1705cb" data-ts="2026-06-16T04:10:56Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&plat=linux&changed=1" style="color:var(--link)">Linux(1)</a></td>
@@ -1638,7 +1665,7 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fixed errors in motor VIs"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1a86a8741bec13cfa11446d0e72d12479a209ae" style="color:var(--fg)">fixed errors in motor VIs</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2024-11-21</td>
-      <td style="text-align:center"><span title="40/41 project VIs compiled" style="background:#bb8009;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/d1a86a8741bec13cfa11446d0e72d12479a209ae/index.html" style="color:inherit">⚠️ 98%</a></span></td>
+      <td style="text-align:center"><span title="0/0 project VIs compiled" style="background:#da3633;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/d1a86a8741bec13cfa11446d0e72d12479a209ae/index.html" style="color:inherit">❌ 0%</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-parent="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-short="d1a86a8" data-ts="2026-06-15T22:46:35Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-analyzer/d1a86a8741bec13cfa11446d0e72d12479a209ae/index.html" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-parent="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-short="d1a86a8" data-ts="2026-06-16T04:43:42Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1a86a8741bec13cfa11446d0e72d12479a209ae&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1a86a8741bec13cfa11446d0e72d12479a209ae&plat=windows&changed=1" style="color:var(--link)">Win(5)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1a86a8741bec13cfa11446d0e72d12479a209ae&plat=linux&changed=1" style="color:var(--link)">Linux(5)</a></td>
@@ -1653,7 +1680,7 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Minor refinements"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" style="color:var(--fg)">Minor refinements</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2024-11-21</td>
-      <td style="text-align:center"><span title="40/41 project VIs compiled" style="background:#bb8009;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6/index.html" style="color:inherit">⚠️ 98%</a></span></td>
+      <td style="text-align:center"><span title="0/0 project VIs compiled" style="background:#da3633;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6/index.html" style="color:inherit">❌ 0%</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-parent="3d513473c8dce75e22b08294b87de2fb37fd9798" data-short="2b5f1aa" data-ts="2026-06-15T23:26:38Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-analyzer/2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6/index.html" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-parent="3d513473c8dce75e22b08294b87de2fb37fd9798" data-short="2b5f1aa" data-ts="2026-06-16T04:43:16Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6&plat=windows&changed=1" style="color:var(--link)">Win(5)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6&plat=linux&changed=1" style="color:var(--link)">Linux(5)</a></td>
@@ -1743,7 +1770,7 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Windows bug"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abb3a165d423dff26829fa296e1039bbc3903ece" style="color:var(--fg)">Windows bug</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2024-11-04</td>
-      <td style="text-align:center"><span title="20/21 project VIs compiled" style="background:#bb8009;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/abb3a165d423dff26829fa296e1039bbc3903ece/index.html" style="color:inherit">⚠️ 95%</a></span></td>
+      <td style="text-align:center"><span title="0/0 project VIs compiled" style="background:#da3633;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/abb3a165d423dff26829fa296e1039bbc3903ece/index.html" style="color:inherit">❌ 0%</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="abb3a165d423dff26829fa296e1039bbc3903ece" data-parent="7599b047409f6801f226b06159da3036986c5bb8" data-short="abb3a16" data-ts="2026-06-16T01:02:08Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-analyzer/abb3a165d423dff26829fa296e1039bbc3903ece/index.html" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="abb3a165d423dff26829fa296e1039bbc3903ece" data-parent="7599b047409f6801f226b06159da3036986c5bb8" data-short="abb3a16" data-ts="2026-06-16T05:00:47Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abb3a165d423dff26829fa296e1039bbc3903ece&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abb3a165d423dff26829fa296e1039bbc3903ece&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abb3a165d423dff26829fa296e1039bbc3903ece&plat=linux&changed=1" style="color:var(--link)">Linux(1)</a></td>
@@ -1758,7 +1785,7 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="debugging the assignment of visa resources to curriculum code"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8" style="color:var(--fg)">debugging the assignment of visa resources to curriculum code</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2024-11-04</td>
-      <td style="text-align:center"><span title="20/21 project VIs compiled" style="background:#bb8009;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/7599b047409f6801f226b06159da3036986c5bb8/index.html" style="color:inherit">⚠️ 95%</a></span></td>
+      <td style="text-align:center"><span title="0/0 project VIs compiled" style="background:#da3633;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/masscompile/7599b047409f6801f226b06159da3036986c5bb8/index.html" style="color:inherit">❌ 0%</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" data-ts="2026-06-16T01:17:20Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-analyzer/7599b047409f6801f226b06159da3036986c5bb8/index.html" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" data-ts="2026-06-16T05:00:24Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8&plat=windows&changed=1" style="color:var(--link)">Win(22)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8&plat=linux&changed=1" style="color:var(--link)">Linux(22)</a></td>
