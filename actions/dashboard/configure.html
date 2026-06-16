@@ -90,28 +90,17 @@
       <a class="back" id="backLink" href="./">&larr; Back to dashboard</a>
     </header>
 
-    <section>
-      <h2>1. Repository</h2>
-      <p class="hint">Load a repo's current settings, or just edit the defaults below and download the result.</p>
-      <div class="row">
-        <div class="field">
-          <label class="fl" for="repo">Repo (owner/name)</label>
-          <input type="text" id="repo" placeholder="your-org/your-lv-repo" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="field">
-          <label class="fl" for="branch">Branch</label>
-          <input type="text" id="branch" value="main" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="field" style="display:flex;align-items:flex-end">
-          <button class="ghost" id="loadBtn" style="width:100%">Load current settings</button>
-        </div>
-      </div>
+    <section id="targetBar">
+      <h2>Configuring <code class="inl" id="targetRepo">this repository</code></h2>
+      <p class="hint">These settings apply only to the repository you opened this dialog from — detected automatically from the dashboard you launched it from.</p>
+      <input type="hidden" id="repo">
+      <input type="hidden" id="branch" value="main">
       <div class="status" id="loadStatus"></div>
       <div id="updateBanner" style="display:none;margin-top:10px;padding:10px 14px;border:1px solid var(--warn);border-radius:8px;background:rgba(154,103,0,.12);font-size:.86em"></div>
     </section>
 
     <section>
-      <h2>2. Pipeline settings</h2>
+      <h2>1. Pipeline settings</h2>
       <p class="hint">These are written to <code class="inl">.github/labview-ci.yml</code>.</p>
       <div class="row">
         <div class="field">
@@ -136,7 +125,7 @@
     </section>
 
     <section>
-      <h2>3. Container dependencies</h2>
+      <h2>2. Container dependencies</h2>
       <p class="hint">VIPM packages baked into the CI worker image. Written to <code class="inl">.github/labview/vipm/ci-tooling.packages.json</code>; the image rebuilds when this changes.</p>
       <label class="toggle" style="margin-bottom:10px;display:inline-flex">
         <input type="checkbox" id="antidoc"> Use Antidoc (Wovalab doc generation)
@@ -150,7 +139,7 @@
     </section>
 
     <section>
-      <h2>4. Review &amp; apply</h2>
+      <h2>3. Review &amp; apply</h2>
       <p class="hint">Two apply paths. Both are reviewable before anything runs.</p>
 
       <div class="subhead">Option A — open a pull request (recommended)</div>
@@ -361,6 +350,29 @@
       URL.revokeObjectURL(a.href);
     }
 
+    // Resolve the repo this dialog configures. The dialog is always scoped to the
+    // repository whose dashboard launched it; the user never picks it. Priority:
+    //   1. ?repo=owner/name (passed by the dashboard launcher / explicit deep-link)
+    //   2. the GitHub Pages URL this page is served from (<owner>.github.io/<repo>/…)
+    //   3. catalog.source (only when this IS the source repo's own dashboard)
+    function detectTarget() {
+      const params = new URLSearchParams(location.search);
+      const qRepo = (params.get("repo") || "").trim();
+      let ref = (params.get("ref") || "").trim();
+      let repo = qRepo.includes("/") ? qRepo : "";
+      if (!repo) {
+        const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+        if (m) {
+          const owner = m[1];
+          // Project Pages serve at /<repo>/…; user/org root Pages at /… (repo = <owner>.github.io).
+          const dir = location.pathname.split("/").filter(s => s && !s.includes("."));
+          repo = dir.length ? owner + "/" + dir[0] : owner + "/" + owner + ".github.io";
+        }
+      }
+      if (!repo.includes("/")) { const s = source(); repo = s.repo; if (!ref) ref = s.ref; }
+      return { repo, ref: ref || "main" };
+    }
+
     // ---- load current settings from a repo --------------------------------
     async function loadCurrent() {
       const repo = $("repo").value.trim(); const ref = $("branch").value.trim() || "main";
@@ -421,7 +433,6 @@
         cb.addEventListener("change", () => { cb.checked ? osSel.add(cb.value) : osSel.delete(cb.value); update(); }));
       $("version").addEventListener("change", update);
       $("runners").addEventListener("input", update);
-      $("repo").addEventListener("input", update);
       $("antidoc").addEventListener("change", () => {
         const p = pkgList().find(x => x.name === ANTIDOC_PKG);
         if (p) { p.include = $("antidoc").checked; renderPackages(); update(); }
@@ -436,9 +447,6 @@
         $("newPkgName").value = ""; $("newPkgVer").value = "";
         renderPackages(); update();
       });
-      $("loadBtn").addEventListener("click", () => loadCurrent().catch(e => {
-        const st = $("loadStatus"); st.className = "status err"; st.textContent = e.message || String(e);
-      }));
       $("dlYaml").addEventListener("click", () => { download("labview-ci.yml", genYaml()); flash("labview-ci.yml downloaded — place at .github/labview-ci.yml"); });
       $("dlJson").addEventListener("click", () => { download("ci-tooling.packages.json", genJson()); flash("ci-tooling.packages.json downloaded — place at .github/labview/vipm/"); });
       const copy = (btn, src) => $(btn).addEventListener("click", async () => {
@@ -462,18 +470,15 @@
       pkgObj = await loadDefaultPackages();
       renderPackages(); wire(); update();
 
-      // Central-hosted model: a consumer dashboard links here with ?repo=owner/name
-      // (and optional &ref=branch). Pre-fill and auto-load so the page reflects that
-      // repo's current settings and any available update, while still installing
-      // from the source-of-truth repo (catalog.source).
-      const params = new URLSearchParams(location.search);
-      const qRepo = params.get("repo");
-      const qRef = params.get("ref");
-      if (qRepo) {
-        $("repo").value = qRepo;
-        if (qRef) $("branch").value = qRef;
-        loadCurrent().catch(() => {});
-      }
+      // The dialog is scoped to the repo whose dashboard launched it (never asked).
+      // Auto-detect it, reflect it read-only, and load that repo's current settings
+      // and any available update. Install still comes from the source repo (catalog.source).
+      const tgt = detectTarget();
+      $("repo").value = tgt.repo;
+      $("branch").value = tgt.ref;
+      const tr = $("targetRepo");
+      if (tr && tgt.repo) tr.textContent = tgt.repo;
+      if (tgt.repo.includes("/")) loadCurrent().catch(() => {});
     })();
   })();
   </script>
