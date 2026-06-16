@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VI Analyzer Report — LabVIEW-CI-with-Containers</title>
+<script>window.LVCI={"context": "vi-analyzer-report", "repo": "elijah286/LabVIEW-CI-with-Containers", "pagesUrl": "https://elijah286.github.io/LabVIEW-CI-with-Containers", "sha": "3d513473c8dce75e22b08294b87de2fb37fd9798", "short": "3d51347", "platform": "windows", "rawUrl": "raw.html"};</script>
+<script src="../../lvci-header.js" defer></script>
 <style>
 :root{
   --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;--row:#21262d;
@@ -22,19 +24,6 @@ h1{font-size:1.35em;margin:0 0 2px}
 .sub{color:var(--fg-muted);font-size:.84em;margin-bottom:16px}
 .sub a{color:var(--link)}
 .nav{margin-bottom:16px;font-size:.86em}.nav a{margin-right:16px}
-/* re-run analysis control */
-.rerun{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-6px 0 18px}
-.rerun button#rerun-btn{display:inline-flex;align-items:center;gap:6px;background:#1f6feb;color:#fff;border:0;border-radius:6px;padding:6px 12px;font-size:.82em;font-weight:600;cursor:pointer}
-.rerun button#rerun-btn:hover{background:#388bfd}
-.rerun button#rerun-btn:disabled{opacity:.55;cursor:default}
-.rerun-status{font-size:.82em;color:var(--fg-muted)}
-.rerun-status a{color:var(--link)}
-.rerun-panel{flex-basis:100%;max-width:660px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:.82em;line-height:1.5}
-.rerun-panel.hidden{display:none}
-.rerun-panel code{background:var(--surface2);padding:1px 5px;border-radius:4px}
-.rerun-panel input{width:100%;box-sizing:border-box;margin:8px 0 6px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-family:monospace}
-.rerun-panel button{background:#238636;color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:.95em;font-weight:600;cursor:pointer}
-.rerun-panel button:hover{background:#2ea043}
 
 /* summary band */
 .cards{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
@@ -139,13 +128,6 @@ h1{font-size:1.35em;margin:0 0 2px}
 <div class="wrap">
   <h1>VI Analyzer Report</h1>
   <div class="sub" id="sub"></div>
-  <div class="nav" id="nav"></div>
-
-  <div class="rerun" id="rerun" hidden>
-    <button id="rerun-btn" type="button" title="Dispatch a fresh VI Analyzer run for this commit">&#8635; Re-run analysis for this revision</button>
-    <span class="rerun-status" id="rerun-status"></span>
-    <div class="rerun-panel hidden" id="rerun-panel"></div>
-  </div>
 
   <div class="cards" id="cards"></div>
   <div class="bar"><span id="barfill"></span></div>
@@ -180,7 +162,7 @@ h1{font-size:1.35em;margin:0 0 2px}
   <div id="snapnote"></div>
 </aside>
 
-<script id="via-data" type="application/json">{"meta": {"sha": "3d513473c8dce75e22b08294b87de2fb37fd9798", "short": "3d51347", "platform": "windows", "repo": "elijah286/LabVIEW-CI-with-Containers", "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers", "commit": {"message": "Excercise manual correction", "author": "Elijah Kerry", "date": "2024-11-21T11:25:43-06:00"}, "generated_utc": "2026-06-16 20:46 UTC", "analysis_date": "", "duration": ""}, "summary": {"vis_analyzed": 0, "tests_run": 0, "passed": 0, "failed": 0, "skipped": 0, "findings": 0, "vis_with_findings": 0}, "errors": {"vi_not_loadable": 0, "test_not_loadable": 0, "test_not_runnable": 0, "test_error_out": 0}, "categories": {"correctness": {"label": "Correctness", "color": "#da3633", "blurb": "Likely bugs, error-handling gaps, broken VIs"}, "performance": {"label": "Performance", "color": "#bb8009", "blurb": "Avoidable runtime / memory cost"}, "style": {"label": "Style", "color": "#1f6feb", "blurb": "Readability \u0026 diagram-convention issues"}, "documentation": {"label": "Docs", "color": "#6e7681", "blurb": "Missing descriptions, comments, spelling"}}, "category_order": ["correctness", "performance", "style", "documentation"], "vis": [], "rules": [], "testing_errors": []}</script>
+<script id="via-data" type="application/json">{"meta": {"sha": "3d513473c8dce75e22b08294b87de2fb37fd9798", "short": "3d51347", "platform": "windows", "repo": "elijah286/LabVIEW-CI-with-Containers", "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers", "commit": {"message": "Excercise manual correction", "author": "Elijah Kerry", "date": "2024-11-21T11:25:43-06:00"}, "generated_utc": "2026-06-16 21:30 UTC", "analysis_date": "", "duration": ""}, "summary": {"vis_analyzed": 0, "tests_run": 0, "passed": 0, "failed": 0, "skipped": 0, "findings": 0, "vis_with_findings": 0}, "errors": {"vi_not_loadable": 0, "test_not_loadable": 0, "test_not_runnable": 0, "test_error_out": 0}, "categories": {"correctness": {"label": "Correctness", "color": "#da3633", "blurb": "Likely bugs, error-handling gaps, broken VIs"}, "performance": {"label": "Performance", "color": "#bb8009", "blurb": "Avoidable runtime / memory cost"}, "style": {"label": "Style", "color": "#1f6feb", "blurb": "Readability \u0026 diagram-convention issues"}, "documentation": {"label": "Docs", "color": "#6e7681", "blurb": "Missing descriptions, comments, spelling"}}, "category_order": ["correctness", "performance", "style", "documentation"], "vis": [], "rules": [], "testing_errors": []}</script>
 <script>
 const DATA = JSON.parse(document.getElementById('via-data').textContent);
 const META = DATA.meta, SUM = DATA.summary, ERR = DATA.errors;
@@ -204,12 +186,6 @@ let query = '';
     (m.analysis_date ? `&middot; ${esc(m.analysis_date)} ` : '') +
     (m.duration ? `&middot; ${esc(m.duration)} ` : '') +
     `&middot; generated ${esc(m.generated_utc||'')}`;
-  const pages = m.pages_url || '../..';
-  document.getElementById('nav').innerHTML =
-    `<a href="${pages}/">CI Dashboard</a>` +
-    `<a href="${SNAP_BASE}index.html${m.sha?`?sha=${m.sha}`:''}">VI Browser</a>` +
-    `<a href="raw.html">Native report ↗</a>` +
-    (m.repo ? `<a href="https://github.com/${m.repo}">GitHub</a>` : '');
 
   const pct = SUM.tests_run ? Math.round(SUM.passed/SUM.tests_run*1000)/10 : 0;
   // "Failed tests" is VI Analyzer's official count of failed test instances; a
@@ -452,101 +428,8 @@ document.getElementById('collapse').addEventListener('click',()=>{
   else document.querySelectorAll('#view-rule .rule').forEach(d=>d.open=false);
 });
 
-// ── re-run analysis for this revision ─────────────────────────────────────
-// Dispatches a fresh VI Analyzer run for THIS commit (workflow_dispatch with
-// commit_sha) using the same fine-grained PAT the dashboard's "Run now" uses
-// (localStorage key lvci_dispatch_token), and writes the same optimistic
-// "queued" marker the dashboard reads (lvci_queued_runs) so the matching cell
-// shows a working/Queued spinner right away. Report + dashboard are same-origin
-// on Pages, so they share that localStorage.
-(function rerun(){
-  const m = META;
-  const REPO = m.repo || '';
-  const SHA  = m.sha || '';
-  const PLAT = m.platform === 'linux' ? 'linux' : 'windows';
-  // Keep this mapping in lockstep with the dashboard's RUN_TARGETS['vi-analyzer'].
-  const WF = PLAT === 'linux' ? 'run-vi-analyzer-linux-container.yml'
-                              : 'run-vi-analyzer-windows-container.yml';
-  const BRANCH = 'main';
-  const TOK_KEY = 'lvci_dispatch_token';
-  const QKEY = 'lvci_queued_runs';
-  const wrap = document.getElementById('rerun');
-  const btn = document.getElementById('rerun-btn');
-  const statusEl = document.getElementById('rerun-status');
-  const panel = document.getElementById('rerun-panel');
-  if(!wrap || !btn) return;
-  // The control only works against a real repo + commit (a workflow_dispatch
-  // needs both); hide it on local/preview renders that lack them.
-  if(!REPO || !SHA) return;
-  wrap.hidden = false;
-  const owner = REPO.split('/')[0];
-  const dashHref = (m.pages_url || '../..') + '/';
-  function tok(){ try{ return localStorage.getItem(TOK_KEY) || ''; } catch(e){ return ''; } }
-  function setStatus(htmlStr, col){ if(statusEl){ statusEl.innerHTML = htmlStr || ''; statusEl.style.color = col || 'var(--fg-muted)'; } }
-  function markQueued(){
-    // Same shape the dashboard's markQueued() writes, keyed cap|sha, so its
-    // applyQueued() overlays the matching cell with a "Queued" spinner.
-    try{
-      const o = JSON.parse(localStorage.getItem(QKEY) || '{}') || {};
-      o['vi-analyzer|' + SHA] = { ts: Date.now(), plats: [PLAT], parent: '', short: SHA.slice(0,7), runs: [] };
-      localStorage.setItem(QKEY, JSON.stringify(o));
-    }catch(e){}
-  }
-  function showPanel(){
-    if(!panel) return;
-    const tokUrl = 'https://github.com/settings/personal-access-tokens/new'
-      + '?name=' + encodeURIComponent('LabVIEW CI dispatch')
-      + '&description=' + encodeURIComponent('Dispatch CI runs for ' + REPO)
-      + '&target_name=' + encodeURIComponent(owner)
-      + '&actions=write';
-    panel.innerHTML =
-      'Re-running needs a fine-grained token with <strong>Actions: Read and write</strong> on '
-      + '<code>' + esc(REPO) + '</code>. '
-      + '<a href="' + tokUrl + '" target="_blank" rel="noopener">Create one \u2197</a> '
-      + '(stored only in this browser, shared with the dashboard\u2019s Run now).'
-      + '<input id="rerun-tok" type="password" placeholder="github_pat_\u2026" autocomplete="off" spellcheck="false">'
-      + '<button id="rerun-tok-save" type="button">Save &amp; re-run</button>';
-    panel.classList.remove('hidden');
-    const save = document.getElementById('rerun-tok-save');
-    const inp = document.getElementById('rerun-tok');
-    if(inp) inp.focus();
-    if(save) save.addEventListener('click', function(){
-      const v = (inp && inp.value || '').trim();
-      if(!v){ if(inp) inp.focus(); return; }
-      try{ localStorage.setItem(TOK_KEY, v); }catch(e){}
-      panel.classList.add('hidden'); panel.innerHTML='';
-      dispatch();
-    });
-    if(inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter' && save) save.click(); });
-  }
-  function dispatch(){
-    btn.disabled = true;
-    setStatus('Queuing\u2026', 'var(--fg-muted)');
-    fetch('https://api.github.com/repos/' + REPO + '/actions/workflows/' + encodeURIComponent(WF) + '/dispatches', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + tok(), 'Accept': 'application/vnd.github+json',
-                 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref: BRANCH, inputs: { commit_sha: SHA } })
-    }).then(function(r){
-      btn.disabled = false;
-      if(r.status === 204){
-        markQueued();
-        setStatus('\u2713 Queued a fresh run \u2014 the <a href="' + dashHref + '">dashboard</a> cell shows it working now; '
-          + 'this report refreshes once the run finishes. '
-          + '<a href="https://github.com/' + REPO + '/actions/workflows/' + WF + '" target="_blank" rel="noopener">View runs \u2197</a>', '#3fb950');
-        return;
-      }
-      if(r.status === 401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} setStatus('That token was rejected (401). Paste a valid one.', '#f85149'); showPanel(); return; }
-      if(r.status === 403){ setStatus('<strong>403</strong>: the token is missing <strong>Actions: Read and write</strong> on this repository.', '#f85149'); showPanel(); return; }
-      if(r.status === 404){ setStatus('<strong>404</strong>: the token cannot see <code>' + esc(REPO) + '</code>. Grant it access to this repo + Actions: Read and write.', '#f85149'); showPanel(); return; }
-      setStatus('Dispatch failed (HTTP ' + r.status + ').', '#f85149');
-    }).catch(function(e){ btn.disabled = false; setStatus('Network error: ' + esc(String(e && e.message || e)), '#f85149'); });
-  }
-  btn.addEventListener('click', function(){
-    if(!tok()){ showPanel(); setStatus('Paste a token to dispatch the run.', 'var(--fg-muted)'); return; }
-    dispatch();
-  });
-})();
+// The site header (lvci-header.js) owns "Re-run analysis" + the token flow now,
+// reading window.LVCI for this commit; nothing report-specific is needed here.
 
 renderVI(); renderRule(); apply();
 </script>
