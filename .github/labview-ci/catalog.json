@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.7",
+  "version": "1.7.8",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.8",
+        "date": "2026-06-15",
+        "title": "VIDiff again shows what changed in every revision",
+        "summary": "Clicking a revision's VIDiff 'diff' badge opens the VI Browser filtered to the VIs that changed in that revision, each linking to its side-by-side comparison report. That view had stopped finding any changes \u2014 every revision looked unchanged \u2014 because it only knew about the single most recent snapshot commit and so never had a previous revision to compare against. It now reads the full project revision list (files.json), so it can pick the correct previous revision and highlight exactly the VIs that changed, with their diff reports, for every revision. Revisions whose snapshots have not been rendered still list their changed VIs by falling back to the same per-revision VI fingerprints, and any VI a container's VIDiff run flagged is always shown.",
+        "highlights": [
+          "The VIDiff / 'Changed VIs only' view now reads the full project revision history (files.json), so it finds the correct previous revision and no longer reports 'no changes' for revisions that did change a VI.",
+          "Each changed VI links to its Windows/Linux side-by-side comparison report, with the Linux \u2194 Windows toggle, exactly as before.",
+          "Revisions without rendered snapshots still resolve their changed VIs from the per-revision VI fingerprints, so the tree and change badges work for every revision in the dropdown.",
+          "Any VI flagged by a container's VIDiff run is surfaced even when the fingerprint comparison alone would miss it (for example the very first revision)."
+        ]
+      },
       {
         "version": "1.7.7",
         "date": "2026-06-15",

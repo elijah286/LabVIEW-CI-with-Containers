@@ -181,8 +181,9 @@ let activeHtml = null;           // html of the currently-open VI (drives row hi
 let changeMap = {};              // vi_rel -> { type, url, isDiff } for VIs changed in this commit
 let changedFolders = new Set();  // folder paths that contain >=1 changed VI (for the folder dot)
 let changedOnly = new URLSearchParams(location.search).get('changed') === '1'; // down-filter to changed VIs
-let commitList = [];             // commits.json (newest first); used to find the previous revision
+let commitList = [];             // union of files.json + commits.json (newest first); used to find the previous revision
 const manifestCache = new Map(); // sha -> manifest (so diffing against the previous commit is cheap)
+const filesVisBySha = new Map(); // sha -> [{vi_rel, blob}] from files.json: every project revision's VI blobs, snapshot-independent
 // Diff reports are rendered by both the Linux and Windows containers; this is the
 // platform currently shown. The user can swap to compare container output. The
 // choice persists across VIs/commits via the URL (?plat=) and this variable.
@@ -240,34 +241,86 @@ function nodeHasVisible(node, f) {
 }
 
 async function loadCommits() {
-  const commits = await fetchJson(BASE + 'commits.json').catch(() => []);
-  commitList = commits;
+  // Two sources, unioned:
+  //   • commits.json — revisions that have rendered snapshots (newest first).
+  //   • files.json   — EVERY project (VI-touching) revision with its per-VI blob
+  //     SHAs, emitted by the dashboard generator from `git log`, independent of
+  //     whether snapshots ran.
+  // files.json is what makes the change/diff view work for every revision: the
+  // dropdown, the previous-revision baseline for the blob diff (it preserves the
+  // same commit order VIDiff uses to pick a base), and the manifest fallback all
+  // come from it. Without this union the dropdown held only the single snapshot
+  // commit, so the "previous revision" was always missing and every VI looked
+  // unchanged — the diff view reported "no changes" even for revisions that did
+  // change a VI.
+  const [snapCommits, filesDoc] = await Promise.all([
+    fetchJson(BASE + 'commits.json').catch(() => []),
+    fetchJson(BASE + 'files.json').catch(() => null),
+  ]);
+  const fileCommits = (filesDoc && Array.isArray(filesDoc.commits)) ? filesDoc.commits : [];
+  const fileShas = new Set(fileCommits.map(c => c.sha));
+  const order = [];
+  const bySha = new Map();
+  const put = (c) => {
+    if (!c || !c.sha) return;
+    bySha.set(c.sha, Object.assign({}, bySha.get(c.sha), c));
+    if (!order.includes(c.sha)) order.push(c.sha);
+  };
+  // Snapshot-only revisions first (e.g. the latest CI commit); project commits
+  // are ordered authoritatively by files.json just below.
+  for (const c of (Array.isArray(snapCommits) ? snapCommits : [])) if (!fileShas.has(c.sha)) put(c);
+  // Full project history in commit order, carrying each revision's VI blob list.
+  for (const c of fileCommits) {
+    put({ sha: c.sha, short: c.short, message: c.message, author: c.author, date: c.date });
+    if (Array.isArray(c.vis)) filesVisBySha.set(c.sha, c.vis);
+  }
+  commitList = order.map(s => bySha.get(s));
+
   const sel = document.getElementById('commit-select');
   sel.innerHTML = '';
-  if (!commits.length) {
+  if (!commitList.length) {
     sel.innerHTML = '<option value="">No snapshots yet</option>';
     return;
   }
-  for (const c of commits) {
+  for (const c of commitList) {
     const opt = document.createElement('option');
     opt.value   = c.sha;
-    opt.textContent = `${c.short} — ${c.message.slice(0, 40)}`;
+    opt.textContent = `${c.short} — ${(c.message || '').slice(0, 40)}`;
     sel.appendChild(opt);
   }
   sel.addEventListener('change', () => loadManifest(sel.value));
   const initSha = new URLSearchParams(window.location.search).get('sha');
-  const startSha = (initSha && commits.find(c => c.sha === initSha)) ? initSha : commits[0].sha;
+  const startSha = (initSha && commitList.find(c => c.sha === initSha)) ? initSha : commitList[0].sha;
   sel.value = startSha;
   loadManifest(startSha);
 }
 
 // Fetch (and cache) the manifest for any commit — used both for the active view and
-// for diffing the active commit against the previous one.
+// for diffing the active commit against the previous one. Falls back to the VI list
+// from files.json when a revision has no rendered snapshot manifest, so the tree and
+// the blob diff still work for every project revision (snapshot HTML is content-
+// addressed by blob, so each VI's snapshot path is derivable from its blob SHA).
 async function getManifest(sha) {
   if (manifestCache.has(sha)) return manifestCache.get(sha);
-  const m = await fetchJson(BASE + sha + '/manifest.json').catch(() => []);
+  let m = await fetchJson(BASE + sha + '/manifest.json').catch(() => []);
+  if ((!Array.isArray(m) || !m.length) && filesVisBySha.has(sha)) {
+    m = filesVisBySha.get(sha).map(v => viEntryFromBlob(v.vi_rel, v.blob));
+  }
   manifestCache.set(sha, m);
   return m;
+}
+
+// Build a manifest-shaped entry from a VI path + its content-addressed blob SHA.
+function viEntryFromBlob(viRel, blob) {
+  const base = (viRel || '').split('/').pop() || viRel;
+  const dot  = base.lastIndexOf('.');
+  return {
+    vi_name: dot > 0 ? base.slice(0, dot) : base,
+    group:   (viRel || '').split('/')[0] || '',
+    vi_rel:  viRel,
+    blob:    blob,
+    html:    blob ? `by-blob/${blob.slice(0, 2)}/${blob}.html` : '',
+  };
 }
 
 async function loadManifest(sha) {
@@ -324,11 +377,15 @@ async function loadChanges(sha) {
     }
   }
 
-  // 2) Enrich changed VIs with their VIDiff side-by-side reports. Each VI may have
-  //    a report from BOTH containers; we record per-platform URLs so the user can
-  //    toggle Linux <-> Windows. Manifest-diff stays authoritative for *which* VIs
-  //    changed; changes.json only adds report links to a flagged VI.
+  // 2) Enrich changed VIs with their VIDiff side-by-side reports, and surface any
+  //    VI a container's VIDiff run flagged as changed that the blob diff did not
+  //    (e.g. the oldest revision, whose VIDiff base predates the snapshot history).
+  //    changes.json is the container's authoritative changed-file list, so a VI
+  //    that has a report always appears. Each VI may have a report from BOTH
+  //    containers; we record per-platform URLs so the user can toggle Linux <->
+  //    Windows.
   const root = BASE.replace(/vi-snapshots\/$/, '');
+  const htmlByRel = new Map(manifest.map(v => [v.vi_rel, v.html]));
   commitPlatforms = new Set();
   for (const platform of ['linux', 'windows']) {
     const dir = `${root}vidiff/push-${sha}/${platform}/vidiff/`;
@@ -337,11 +394,19 @@ async function loadChanges(sha) {
     if (data && Array.isArray(data.files) && data.files.length) {
       commitPlatforms.add(platform);
       for (const f of data.files) {
-        if (f.file && changeMap[f.file]) {
-          const chg = changeMap[f.file];
-          (chg.reports || (chg.reports = {}))[platform] = dir + f.report;
-          chg.isDiff = true;
+        if (!f.file) continue;
+        let chg = changeMap[f.file];
+        if (!chg) {
+          // Missed by the blob diff. Only surface VIs present in this revision's
+          // tree (a deleted VI has no row to attach to and can't be displayed).
+          if (!htmlByRel.has(f.file)) continue;
+          chg = changeMap[f.file] = { type: f.type || 'modified', url: BASE + htmlByRel.get(f.file), isDiff: false };
+          const parts = f.file.split('/'); parts.pop();
+          let acc = '';
+          for (const p of parts) { acc = acc ? acc + '/' + p : p; changedFolders.add(acc); }
         }
+        (chg.reports || (chg.reports = {}))[platform] = dir + f.report;
+        chg.isDiff = true;
       }
     }
   }
