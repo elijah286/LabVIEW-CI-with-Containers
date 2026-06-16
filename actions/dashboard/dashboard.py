@@ -58,12 +58,6 @@ def masscompile_summary(sha):
     _mc_cache[sha] = data if isinstance(data, dict) else None
     return _mc_cache[sha]
 
-# ── Fetch recent commits on main ────────────────────────────────
-# Pull a wide window so the actual LabVIEW project history is present,
-# not just a long tail of CI/tooling commits (which can easily fill the
-# most-recent slots during a pipeline sprint).
-commits_data = gh_get('commits?sha=main&per_page=100') or []
-
 # LabVIEW / NI source-file extensions. A revision that touches one of
 # these (outside the CI tooling — see below) is a change to the actual
 # project, as opposed to a CI/docs/tooling revision.
@@ -71,6 +65,61 @@ LV_SOURCE_EXTS = (
     '.vi', '.vit', '.ctl', '.ctt', '.lvclass', '.lvlib', '.lvlibp',
     '.lvproj', '.xctl', '.xnode', '.vipc', '.vip', '.llb', '.mnu', '.lvtest',
 )
+
+# Directories that hold CI TOOLING (not the LabVIEW project): vendored workflows
+# + scripts under .github/, the shared composite actions (whose helper VIs, e.g.
+# actions/vidiff/PrintToSingleFileHtml/*.vi, must NOT count as project work), the
+# runtime tooling checkout (_lvci/), and build output. A VI under any of these is
+# tooling, so a commit touching only these is a CI revision — keeping the
+# CI-vs-project split correct even though the tooling itself ships VIs.
+TOOLING_PREFIXES = ('.github/', 'actions/', '_lvci/', 'ci-out/', 'build/')
+
+# ── Classify a commit: does it touch project LabVIEW source? ─────
+# Cached so the paged fetch below and the row loop share ONE detail call per
+# commit (the file list comes from the per-commit endpoint).
+_classify_cache = {}
+def classify_commit(sha):
+    if sha in _classify_cache:
+        return _classify_cache[sha]
+    detail = gh_get(f'commits/{sha}') or {}
+    files = [f['filename'] for f in (detail.get('files') or [])]
+    is_proj = any(
+        f.lower().endswith(LV_SOURCE_EXTS) and not f.startswith(TOOLING_PREFIXES)
+        for f in files)
+    info = {'files': files, 'is_project': is_proj}
+    _classify_cache[sha] = info
+    return info
+
+# ── Fetch commits, deep enough to surface the project's own history ─────
+# The status table needs RECENT commits (for badges), but the project's revisions
+# must stay visible even when a long CI/tooling sprint fills the most-recent slots
+# on main. So fetch the recent window, then keep paging — classifying each commit —
+# until enough project revisions are collected (or a hard scan cap is hit). Beyond
+# the recent window only PROJECT revisions are kept, so the deeper scan surfaces
+# project history without flooding the table with old CI commits.
+_RECENT_WINDOW  = 100   # always keep at least this many most-recent commits
+_PROJECT_TARGET = 30    # keep paging until this many project revisions are found
+_SCAN_CAP       = 500   # never classify more than this many commits (cost guard)
+def fetch_commits():
+    out, n_proj, n_scanned, page = [], 0, 0, 1
+    while n_scanned < _SCAN_CAP:
+        batch = gh_get(f'commits?sha=main&per_page=100&page={page}') or []
+        if not batch:
+            break
+        for c in batch:
+            n_scanned += 1
+            info = classify_commit(c['sha'])
+            if n_scanned <= _RECENT_WINDOW or info['is_project']:
+                out.append(c)
+            if info['is_project']:
+                n_proj += 1
+            if n_scanned >= _SCAN_CAP:
+                break
+        if n_scanned >= _RECENT_WINDOW and n_proj >= _PROJECT_TARGET:
+            break
+        page += 1
+    return out
+commits_data = fetch_commits()
 
 # ── List the VI files present at a revision ─────────────────
 # Powers the VI Browser's file tree INDEPENDENTLY of whether snapshots have
@@ -95,7 +144,7 @@ def vi_tree(sha):
             pl = p.lower()
             if not (pl.endswith('.vi') or pl.endswith('.ctl')):
                 continue
-            if p.startswith(('.github/', 'ci-out/', 'build/')):
+            if p.startswith(TOOLING_PREFIXES):
                 continue
             vis.append({'vi_rel': p, 'blob': t.get('sha', '')})
         vis.sort(key=lambda e: e['vi_rel'].lower())
@@ -178,22 +227,14 @@ for c in commits_data:
     date    = c['commit']['author']['date']
     parent  = (c.get('parents') or [{}])[0].get('sha', '')
 
-    # Classify the revision by scope. A "project change" touches at least
-    # one LabVIEW source file that lives in the project itself — i.e. NOT
-    # the helper VIs bundled with the CI tooling under .github/ (e.g.
-    # .github/labview/PrintToSingleFileHtml/*.vi). Everything else (CI
-    # workflows & scripts, docs, images, repo metadata, merges) is a
-    # non-project revision, hidden by default. Keying off the presence of
-    # project LabVIEW source — rather than "all files under .github/" —
-    # means a commit that changes a VI is always treated as a project
-    # change, and a CI commit that only touches the bundled helper VIs is
-    # not mistaken for one.
-    compare = gh_get(f'commits/{sha}') or {}
-    files   = [f['filename'] for f in (compare.get('files') or [])]
-    is_project = any(
-        f.lower().endswith(LV_SOURCE_EXTS) and not f.startswith('.github/')
-        for f in files
-    )
+    # Classify the revision by scope (cached above): a "project change" touches
+    # at least one LabVIEW source file in the project itself — NOT the helper VIs
+    # that ship with the CI tooling (.github/, actions/, _lvci/, ci-out/, build/).
+    # Everything else (workflows, scripts, docs, metadata, merges) is a non-project
+    # revision, hidden by default.
+    _info = classify_commit(sha)
+    files = _info['files']
+    is_project = _info['is_project']
     proj_flag = 'true' if is_project else 'false'
 
     # Record this revision's VI file tree for the VI Browser (project revisions
