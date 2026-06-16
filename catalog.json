@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.9.0",
+  "version": "1.9.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.9.1",
+        "date": "2026-06-16",
+        "title": "Installed dashboards now actually build, and the README link is added even when an old dashboard URL is present",
+        "summary": "Two install fixes. (1) The dashboard workflow a fresh install writes is now a thin caller that checks the tooling out at runtime and runs ./_lvci/actions/dashboard, instead of the source's own dashboard-pages.yml that referenced a local ./actions/dashboard path no consumer has \u2014 which made the dashboard build fail with 'Can't find action.yml under actions/dashboard'. (2) The 'add a dashboard link to the README' step now decides idempotency only by its own marker comment, so a repository that already mentions the Pages URL (for example a previous/precursor dashboard's badges) still gets the link added.",
+        "highlights": [
+          "Fresh installs write a thin dashboard-pages.yml (checkout tooling into _lvci at the opted-in ref, then ./_lvci/actions/dashboard) so the generator is always the source's own and never needs vendoring or rebranding \u2014 fixes the failing dashboard build.",
+          "Applies to both the one-click browser install and the command-line install.py (default vendored mode); the configurator's downloadable bundle gets the same thin workflow.",
+          "The README dashboard link is now added whenever its marker comment is absent, even if the README already links the Pages URL from an earlier dashboard \u2014 so replacing a precursor dashboard still links the new one."
+        ]
+      },
       {
         "version": "1.9.0",
         "date": "2026-06-16",

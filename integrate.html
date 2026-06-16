@@ -435,8 +435,10 @@
           zip.file(path, await resp.arrayBuffer());
         }
       }
-      zip.file(".github/labview-ci.yml", manifestYaml([...selected], osList, $("version").value));
-
+      zip.file(".github/labview-ci.yml", manifestYaml([...selected], osList, $("version").value));      // Same thin-dashboard substitution as the one-click install (see installToRepo).
+      if ([...paths].some(p => p.endsWith(".github/workflows/dashboard-pages.yml"))) {
+        zip.file(".github/workflows/dashboard-pages.yml", dashboardWorkflowYaml());
+      }
       status.textContent = "Compressing…";
       const blob = await zip.generateAsync({ type: "blob" });
       const repo = $("repo").value.trim().split("/").pop() || "repo";
@@ -526,6 +528,83 @@
       return name.toLowerCase() === host ? `https://${host}/` : `https://${host}/${name}/`;
     }
 
+    // The consumer's dashboard workflow is GENERATED (not vendored): the source's
+    // dashboard-pages.yml runs the dashboard generator from a LOCAL path
+    // (./actions/dashboard) that only exists in the tooling repo, and that
+    // generator can't be copied into a consumer because rebranding would rewrite
+    // its source-repo references. Instead the consumer checks out the tooling at
+    // its opted-in ref into _lvci/ and runs ./_lvci/actions/dashboard at runtime
+    // (mirrors install.py --thin), so the generator is always the source's own.
+    function dashboardWorkflowYaml() {
+      const s = source();
+      const ref = s.ref || "main";
+      return [
+        "# CI Dashboard \u2014 GitHub Pages. Thin caller installed by the LabVIEW CI configurator.",
+        "# The dashboard build logic lives in the shared composite action, pulled at the tooling",
+        "# version this repo opted into (.github/labview-ci.yml: source.ref) and checked out at",
+        "# runtime \u2014 so this repo keeps no copy of the generator and the dashboard updates only",
+        "# when you opt in. Owns the triggers + the Pages deploy.",
+        "name: CI Dashboard \u2014 GitHub Pages",
+        "",
+        "on:",
+        "  status:",
+        "  workflow_run:",
+        "    workflows:",
+        '      - "Mass Compile \u2014 Windows Container"',
+        '      - "Mass Compile Backfill \u2014 Windows Container"',
+        '      - "Run VI Analyzer \u2014 Windows Container"',
+        '      - "Run VI Analyzer \u2014 Linux Container"',
+        '      - "VIDiff Report \u2014 Windows Container"',
+        '      - "VIDiff Report \u2014 Linux Container"',
+        '      - "VIDiff Deploy \u2014 Pages + PR Comment"',
+        '      - "VI Snapshots and VI Browser"',
+        "    types: [completed]",
+        "  schedule:",
+        "    - cron: '0 * * * *'",
+        "  workflow_dispatch:",
+        "",
+        "concurrency:",
+        "  group: dashboard-pages",
+        "  cancel-in-progress: true",
+        "",
+        "permissions:",
+        "  contents: write",
+        "  statuses: read",
+        "  actions: read",
+        "",
+        "jobs:",
+        "  build-dashboard:",
+        "    runs-on: ubuntu-latest",
+        "    steps:",
+        "      - name: Checkout repository",
+        "        uses: actions/checkout@v4",
+        "      - name: Read opted-in tooling ref from config",
+        "        id: cfg",
+        "        shell: bash",
+        "        run: |",
+        "          REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)",
+        '          echo "ref=${REF:-' + ref + '}" >> "$GITHUB_OUTPUT"',
+        "      - name: Check out tooling (opted-in version)",
+        "        uses: actions/checkout@v4",
+        "        with:",
+        "          repository: " + s.repo,
+        "          ref: ${{ steps.cfg.outputs.ref }}",
+        "          path: _lvci",
+        "      - name: Build CI dashboard",
+        "        uses: ./_lvci/actions/dashboard",
+        "        with:",
+        "          github-token: ${{ secrets.GITHUB_TOKEN }}",
+        "      - name: Deploy dashboard to GitHub Pages",
+        "        uses: peaceiris/actions-gh-pages@v4",
+        "        with:",
+        "          github_token: ${{ secrets.GITHUB_TOKEN }}",
+        "          publish_dir: ci-out/dashboard",
+        "          destination_dir: .",
+        "          keep_files: true",
+        ""
+      ].join("\n");
+    }
+
     // The README snippet linking the dashboard. Marked so re-installs don't duplicate it.
     function readmeSection(repo) {
       const url = dashboardUrl(repo);
@@ -548,7 +627,7 @@
       if (r.ok) { const j = await r.json(); path = j.path || "README.md"; existing = b64decodeText(j.content || ""); }
       else if (r.status !== 404) await ghJson(r);
       if (existing != null) {
-        if (/labview-ci:dashboard/.test(existing) || existing.includes(dashboardUrl(repo))) return null;
+        if (/labview-ci:dashboard/.test(existing)) return null;
         const sep = existing.endsWith("\n") ? "\n" : "\n\n";
         return { path, content: existing + sep + readmeSection(repo), isText: true };
       }
@@ -707,6 +786,15 @@
         // The dashboard link + auto-Pages only make sense when the dashboard is
         // part of this install (its publish workflow is in the resolved set).
         setup.hasDashboard = [...paths].some(p => p.endsWith("dashboard-pages.yml"));
+
+        // Replace the vendored source dashboard workflow (which runs ./actions/
+        // dashboard — a local path absent from a consumer) with a thin caller that
+        // checks out the tooling at runtime. See dashboardWorkflowYaml().
+        if (setup.hasDashboard) {
+          const di = files.findIndex(f => f.path.endsWith(".github/workflows/dashboard-pages.yml"));
+          if (di >= 0) files[di] = { path: files[di].path, content: dashboardWorkflowYaml(), isText: true };
+        }
+
         if ($("optReadme") && $("optReadme").checked && setup.hasDashboard) {
           setInsStatus("Preparing the README link&hellip;", null);
           try { const rf = await buildReadmeFile(repo); if (rf) { files.push(rf); setup.readme = true; } }
