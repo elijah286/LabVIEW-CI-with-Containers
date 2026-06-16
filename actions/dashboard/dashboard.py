@@ -388,6 +388,8 @@ if lvci_version:
     )
     version_check_script = (
         '<style>'
+        '#lvci-version.lvci-clickable{cursor:pointer;color:var(--fg)}'
+        '#lvci-version.lvci-clickable:hover{background:rgba(110,118,129,.25)}'
         '#lvci-version.lvci-has-update{cursor:pointer;color:var(--fg);'
         'border-color:#d29922;background:rgba(210,153,34,.13)}'
         '#lvci-version.lvci-has-update:hover{background:rgba(210,153,34,.22)}'
@@ -403,17 +405,26 @@ if lvci_version:
         'var C=' + lvci_cfg_json + ';'
         'function cmp(a,b){var p=String(a||"0").split("."),q=String(b||"0").split(".");'
         'for(var i=0;i<Math.max(p.length,q.length);i++){var d=(parseInt(p[i],10)||0)-(parseInt(q[i],10)||0);if(d)return d;}return 0;}'
-        'if(!C.version||C.isSource||!C.sourceRepo)return;'
+        'if(!C.version)return;'
+        'var b=document.getElementById("lvci-version");if(!b)return;'
+        # The badge always opens the release-notes / What's New dialog, whether or
+        # not an update exists, so the running version is always explorable.
+        'var src=C.sourceRepo||C.repo;'
+        'var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(src)+"&ref="+encodeURIComponent(C.sourceRef),"What\\u2019s New");};'
+        'b.classList.add("lvci-clickable");'
+        'b.setAttribute("role","button");b.setAttribute("tabindex","0");'
+        'b.title="LabVIEW CI v"+C.version+" \\u2014 click for release notes";'
+        'b.addEventListener("click",go);'
+        'b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});'
+        # For clients, additionally check the source for a newer release and, if one
+        # exists, flag the badge (amber + pulsing dot) and sharpen the tooltip.
+        'if(C.isSource||!C.sourceRepo)return;'
         'var u="https://raw.githubusercontent.com/"+C.sourceRepo+"/"+C.sourceRef+"/.github/labview-ci/catalog.json";'
         'fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(cat){'
         'if(!cat||!cat.version||cmp(cat.version,C.version)<=0)return;'
-        'var b=document.getElementById("lvci-version"),d=document.getElementById("lvci-update-dot");'
-        'if(!b)return;b.classList.add("lvci-has-update");if(d)d.classList.add("on");'
+        'var d=document.getElementById("lvci-update-dot");'
+        'b.classList.remove("lvci-clickable");b.classList.add("lvci-has-update");if(d)d.classList.add("on");'
         'b.title="Update available: v"+C.version+" \\u2192 v"+cat.version+" \\u2014 click to see what\\u2019s new";'
-        'b.setAttribute("role","button");b.setAttribute("tabindex","0");'
-        'var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(C.sourceRepo)+"&ref="+encodeURIComponent(C.sourceRef),"What\\u2019s New");};'
-        'b.addEventListener("click",go);'
-        'b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});'
         '}).catch(function(){});})();</scr' + 'ipt>'
     )
 
