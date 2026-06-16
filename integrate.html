@@ -243,7 +243,18 @@
       throw new Error("Could not load catalog.json");
     }
 
-    function source() { return (catalog && catalog.source) || SOURCE_FALLBACK; }
+    function source() {
+      const s = (catalog && catalog.source) || SOURCE_FALLBACK;
+      // A consumer install/upgrade PINS to the exact published version (an
+      // immutable tag): the dashboard, the vendored workflows, and every file
+      // come from v<version>, and the installed pipeline only changes when the
+      // user runs "Update now". The source catalog's own ref ("main") is the
+      // source's live channel and must never leak into a consumer's config or
+      // its vendored files. (catalog.json itself is vendored verbatim and keeps
+      // source.ref="main" — that's the channel the update-check reads.)
+      const ver = catalog && catalog.version;
+      return ver ? Object.assign({}, s, { ref: "v" + ver }) : s;
+    }
 
     function rawUrl(path) {
       const s = source();

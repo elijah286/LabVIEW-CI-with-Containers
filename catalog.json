@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.11.2",
+  "version": "1.12.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.12.0",
+        "date": "2026-06-16",
+        "title": "Your pipeline is pinned to a version, and every report shares one header",
+        "summary": "Two things. First, an install or upgrade now pins your whole pipeline \u2014 the dashboard, the workflows, the report pages, everything \u2014 to the exact version you adopted. It stays on that version until you click Update now; it no longer tracks the source repo's latest changes automatically. (Previously the dashboard was rebuilt from the source's main branch on every run, so dashboard/header changes appeared before you upgraded.) The update check still tells you when a newer version is available. Second, the shared navigation header is now on every document the pipeline publishes \u2014 Mass Compile reports and the worker/container manifest pages join the dashboard, VI Analyzer reports, and the VI Browser. On a VI Analyzer or Mass Compile report the header also carries a revision picker (switch which revision's report you're viewing, just like the VI Browser's commit dropdown) and a one-click \u201cregenerate this report for this revision\u201d button.",
+        "highlights": [
+          "Installs and upgrades pin the consumer's source.ref to the exact version tag (v<version>), so the dashboard and all tooling only change when you run Update now \u2014 not whenever the source repo's main advances. The update-available check is unaffected (it reads the source's release channel).",
+          "The shared header now appears on Mass Compile reports and the worker/container manifest pages too, so navigation and branding are consistent across every published document.",
+          "VI Analyzer and Mass Compile reports gain a header revision picker \u2014 pick another revision to jump to that revision's report of the same type (the list only offers revisions that actually have that report).",
+          "Those reports also get a \u201cRe-run analysis\u201d / \u201cRegenerate report\u201d button in the header that dispatches a fresh run for the revision shown, reusing the dashboard's token and queued-run indicator."
+        ]
+      },
       {
         "version": "1.11.2",
         "date": "2026-06-16",
