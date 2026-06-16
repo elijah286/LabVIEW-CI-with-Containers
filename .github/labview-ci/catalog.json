@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.8.0",
+  "version": "1.9.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.9.0",
+        "date": "2026-06-16",
+        "title": "One-click install can link the dashboard from your README and turn on Pages for you",
+        "summary": "The 'Apply to New Repo' install now goes the last mile. Alongside opening the install pull request it can add a CI dashboard badge + link to your README (in the same PR), and \u2014 if you grant a slightly broader token \u2014 set your repository's Workflow permissions to read/write and enable GitHub Pages on the gh-pages branch, so the dashboard publishes itself with no manual settings. Both are opt-in checkboxes (on by default); if you decline the broader token the install still works and the page lists the two settings for you to flip, with direct links. The pre-filled token link and the panel adapt to show exactly the permissions needed.",
+        "highlights": [
+          "Adds a dashboard badge + link to the repository's README as part of the install pull request \u2014 idempotent, so re-installs don't duplicate it, and it creates a README if there isn't one.",
+          "Optionally sets Workflow permissions to read/write and enables GitHub Pages (gh-pages) via the API, pre-seeding a 'publishing\u2026' placeholder so the site is live immediately and the dashboard overwrites it on the first run.",
+          "The pre-filled fine-grained-token link and the setup panel adjust to request Administration + Pages only when you opt in to auto-publish; declining falls back to clearly listed manual steps.",
+          "The post-install summary shows what was done for you (README, permissions, Pages) versus what's left, with a note if the token lacked the extra permissions."
+        ]
+      },
       {
         "version": "1.8.0",
         "date": "2026-06-16",
