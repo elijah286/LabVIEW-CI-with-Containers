@@ -79,11 +79,23 @@
          border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
     .copy:hover{border-color:var(--link)}
     .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
-    button.ghost{padding:9px 16px;font-size:.9em;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);cursor:pointer}
+    button.ghost,a.ghost{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;font-size:.9em;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);cursor:pointer;text-decoration:none}
+    button.ghost:hover,a.ghost:hover{border-color:var(--link)}
     code{background:var(--chip);padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
     .status{font-size:.82em;color:var(--fg-muted);margin-top:8px;min-height:1.2em}
     .status.err{color:#cf222e}.status.ok{color:var(--accent)}
     .uptodate{display:flex;align-items:center;gap:8px;font-size:.92em;color:var(--accent);font-weight:600}
+    button.primary,a.primary{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font-size:.9em;font-weight:600;
+         border:1px solid transparent;border-radius:6px;background:var(--accent);color:var(--accent-fg);cursor:pointer;text-decoration:none}
+    button.primary:hover,a.primary:hover{filter:brightness(1.08)}
+    button.primary:disabled{opacity:.6;cursor:default}
+    .tokpanel{border:1px solid var(--border);border-radius:8px;padding:14px 16px;background:var(--surface2);margin:0 0 12px}
+    .tokpanel h3{font-size:.9em;margin:0 0 8px}
+    .tokpanel ol{font-size:.84em;color:var(--fg-muted);margin:0 0 10px;padding-left:20px;line-height:1.7}
+    .tokpanel .note{font-size:.78em;color:var(--fg-muted);margin:0 0 10px}
+    .tokpanel .tokrow{display:flex;gap:8px;flex-wrap:wrap}
+    .tokpanel input{flex:1 1 240px;min-width:180px;padding:8px 10px;background:var(--bg);color:var(--fg);
+         border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.82em}
   </style>
 </head>
 <body>
@@ -115,14 +127,32 @@
 
     <section id="updateSec" style="display:none">
       <h2>Update your CI tooling</h2>
-      <p class="hint" id="updateLead">One click opens a pull request that adopts the update for you &mdash;
-        no terminal, no tokens.</p>
-      <div class="actions" style="margin-bottom:8px">
-        <a class="primary" id="updateNowBtn" target="_blank" rel="noopener"
-           style="text-decoration:none;display:inline-flex;align-items:center;gap:7px">&#11014; Update now</a>
-        <button class="ghost" id="viewRelease">View this release in the source repo</button>
-        <span class="status" id="cmdStatus"></span>
+      <p class="hint" id="updateLead">Click <strong>Update now</strong> and the update is started for you &mdash; it
+        opens a pull request adopting the new version, which you review and merge. The first time, the dialog walks
+        you through creating a one-time token (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</p>
+      <!-- One-time token setup (hidden until needed), mirroring the dashboard's Run now dialog. -->
+      <div class="tokpanel" id="tokPanel" style="display:none">
+        <h3>One-time setup &mdash; a token to start the update</h3>
+        <ol>
+          <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a></li>
+          <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code id="tokRepo"></code>.</li>
+          <li><strong>Permissions &rarr; Repository permissions &rarr; Actions &rarr; Read and write</strong>. Required &mdash; selecting the repo alone gives a 403.</li>
+          <li>Generate, then paste it below.</li>
+        </ol>
+        <p class="note">Stored only in this browser (localStorage); sent only to api.github.com &mdash; never to the repo, the page, or CI. The same token works for the dashboard&rsquo;s &ldquo;Run now&rdquo;.</p>
+        <div class="tokrow">
+          <input id="tokInput" type="password" autocomplete="off" placeholder="github_pat_&hellip; or ghp_&hellip;">
+          <button type="button" class="primary" id="tokSave">Save &amp; start</button>
+          <button type="button" class="ghost" id="tokCancel">Cancel</button>
+        </div>
       </div>
+      <div class="actions" style="margin-bottom:8px">
+        <button type="button" class="primary" id="updateNowBtn">&#11014; Update now</button>
+        <a class="ghost" id="openOnGh" target="_blank" rel="noopener">Open the workflow on GitHub &#8599;</a>
+        <button type="button" class="ghost" id="viewRelease">View this release in the source repo</button>
+        <button type="button" class="ghost" id="tokForget" style="display:none" title="Remove the token saved in this browser">Forget token</button>
+      </div>
+      <div class="status" id="cmdStatus" style="margin-bottom:4px"></div>
       <p class="hint" id="updateHowto"></p>
       <details id="cliDetails" style="margin-top:14px">
         <summary style="cursor:pointer">Prefer the command line?</summary>
@@ -159,7 +189,7 @@
     const $ = (id) => document.getElementById(id);
 
     let activeTab = "bash";
-    const state = { repo: "", from: "", srcRepo: "", srcRef: "main", latest: "", releases: [], missing: [], target: "" };
+    const state = { repo: "", from: "", srcRepo: "", srcRef: "main", latest: "", releases: [], missing: [], target: "", branch: "" };
 
     // ---- helpers ---------------------------------------------------------
     function cmpVer(a, b) {
@@ -304,17 +334,126 @@
       $("updateSec").style.display = "";
     }
 
+    // ---- token-based update dispatch (mirrors the dashboard's Run now) -----
+    // Dispatching apply-tooling-update.yml needs an "Actions: Read and write"
+    // token the browser can send. It is shared with Run now under the same
+    // localStorage key, stored only here and sent only to api.github.com. The
+    // dispatched workflow runs with the repo's own GITHUB_TOKEN to open the PR,
+    // so the user's token never needs contents/PR scopes — just Actions.
+    const TOK_KEY = "lvci_dispatch_token";
+    function getTok() { try { return localStorage.getItem(TOK_KEY) || ""; } catch (_) { return ""; } }
+    function setTok(v) { try { localStorage.setItem(TOK_KEY, v); } catch (_) {} }
+    function clearTok() { try { localStorage.removeItem(TOK_KEY); } catch (_) {} }
+    function setCmdStatus(html, kind) {
+      const s = $("cmdStatus"); if (!s) return;
+      s.className = "status" + (kind ? " " + kind : "");
+      s.innerHTML = html || "";
+    }
+    function showTokenPanel() { $("tokPanel").style.display = ""; const i = $("tokInput"); if (i) i.focus(); }
+    function hideTokenPanel() { $("tokPanel").style.display = "none"; }
+    function refreshTokForget() { const f = $("tokForget"); if (f) f.style.display = getTok() ? "" : "none"; }
+
+    // The dispatch ref must be a branch that carries the workflow — the repo's
+    // default branch. Resolve it once (public read, unauthenticated) and cache;
+    // fall back to main.
+    function resolveBranch() {
+      if (state.branch) return Promise.resolve(state.branch);
+      return fetch(`https://api.github.com/repos/${state.repo}`, { cache: "no-store" })
+        .then((r) => r.ok ? r.json() : null)
+        .then((m) => { state.branch = (m && m.default_branch) || "main"; return state.branch; })
+        .catch(() => { state.branch = "main"; return state.branch; });
+    }
+
+    function dispatchUpdate() {
+      const ver = state.target || state.latest || "";
+      if (!ver) return;
+      if (!getTok()) { showTokenPanel(); return; }
+      const btn = $("updateNowBtn"); if (btn) btn.disabled = true;
+      setCmdStatus("Starting the update&hellip;", null);
+      resolveBranch().then((branch) => {
+        return fetch(`https://api.github.com/repos/${state.repo}/actions/workflows/apply-tooling-update.yml/dispatches`, {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + getTok(),
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ ref: branch, inputs: { target_version: ver } })
+        });
+      }).then((r) => {
+        if (btn) btn.disabled = false;
+        if (r.status === 204) {
+          setCmdStatus(`&#10003; Update started &mdash; opening a pull request to adopt <code>v${esc(ver)}</code>. Review and merge it to finish.`, "ok");
+          pollForPr(ver);
+          return;
+        }
+        if (r.status === 401) { clearTok(); refreshTokForget(); setCmdStatus("That token was rejected (401). Paste a valid one.", "err"); showTokenPanel(); return; }
+        let hint;
+        if (r.status === 403) hint = `<strong>403</strong>: the token is missing the <strong>Actions: Read and write</strong> permission. On the token page open <strong>Permissions &rarr; Repository permissions &rarr; Actions &rarr; Read and write</strong> (selecting the repository is not enough), then <strong>Update</strong> and try again.`;
+        else if (r.status === 404) hint = `<strong>404</strong>: the token cannot see <code>${esc(state.repo)}</code> (or the update workflow is not installed). Grant it <strong>Repository access</strong> to this repo AND the <strong>Actions: Read and write</strong> permission.`;
+        else hint = `HTTP ${r.status} &mdash; check the token has <strong>Actions: Read and write</strong> on this repository.`;
+        setCmdStatus(hint + ` <a href="#" id="cmdFixTok">Update token &rarr;</a>`, "err");
+        const ft = $("cmdFixTok"); if (ft) ft.addEventListener("click", (e) => { e.preventDefault(); showTokenPanel(); });
+      }).catch((e) => {
+        if (btn) btn.disabled = false;
+        setCmdStatus("Could not reach api.github.com: " + esc(String(e && e.message || e)), "err");
+      });
+    }
+
+    function saveTokAndDispatch() {
+      const i = $("tokInput");
+      const v = (i && i.value || "").trim();
+      if (!v) { if (i) i.focus(); return; }
+      setTok(v); refreshTokForget(); hideTokenPanel();
+      if (i) i.value = "";
+      dispatchUpdate();
+    }
+
+    // After dispatch, the workflow force-pushes branch ci/update-tooling-v<ver>
+    // and opens (or updates) a PR. Poll the public PR list briefly to surface a
+    // direct "review & merge" link; degrade to the Pull requests page.
+    function pollForPr(ver) {
+      const owner = state.repo.split("/")[0] || "";
+      const branch = "ci/update-tooling-v" + ver;
+      const url = `https://api.github.com/repos/${state.repo}/pulls?state=open&head=${owner}:${branch}`;
+      const pullsPage = `https://github.com/${state.repo}/pulls`;
+      let tries = 0;
+      const tick = () => {
+        tries++;
+        fetch(url, { cache: "no-store", headers: { "Accept": "application/vnd.github+json" } })
+          .then((r) => r.ok ? r.json() : null)
+          .then((list) => {
+            if (Array.isArray(list) && list.length) {
+              const pr = list[0];
+              setCmdStatus(`&#10003; Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> ready &mdash; ` +
+                `<a href="${esc(pr.html_url)}" target="_blank" rel="noopener"><strong>review &amp; merge it</strong></a> to finish updating to <code>v${esc(ver)}</code>.`, "ok");
+              return;
+            }
+            if (tries < 8) setTimeout(tick, 2500);
+            else setCmdStatus(`&#10003; Update started &mdash; a pull request adopting <code>v${esc(ver)}</code> is being opened. ` +
+              `Find it under <a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a> and merge it to finish.`, "ok");
+          })
+          .catch(() => { if (tries < 8) setTimeout(tick, 2500); });
+      };
+      setTimeout(tick, 2000);
+    }
+
     function renderUpdateButton() {
       const btn = $("updateNowBtn");
       if (!btn) return;
-      const ver = state.latest || state.target || "";
-      btn.href = `https://github.com/${state.repo}/actions/workflows/apply-tooling-update.yml`;
-      btn.textContent = "\u2B06 Update to v" + ver;
+      const ver = state.target || state.latest || "";
+      const ghUrl = `https://github.com/${state.repo}/actions/workflows/apply-tooling-update.yml`;
+      btn.innerHTML = "&#11014; Update to v" + esc(ver);
+      const gh = $("openOnGh"); if (gh) gh.href = ghUrl;
+      const tr = $("tokRepo"); if (tr) tr.textContent = state.repo;
+      refreshTokForget();
       $("updateHowto").innerHTML =
-        `Opens the <strong>Apply LabVIEW CI update</strong> workflow on GitHub. Click the green ` +
-        `<strong>Run workflow</strong> button and a pull request adopting <code>v${esc(ver)}</code> ` +
-        `is created for you &mdash; review and merge it to finish. GitHub only shows the run button to ` +
-        `people with write access, so no tokens are needed here.`;
+        `<strong>Update now</strong> starts the <strong>Apply LabVIEW CI update</strong> workflow for you and opens a ` +
+        `pull request adopting <code>v${esc(ver)}</code> &mdash; review and merge it to finish. The first time, paste a ` +
+        `fine-grained token with <strong>Actions: Read and write</strong> (the dialog walks you through it; the same ` +
+        `token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses). Prefer not to use a token? ` +
+        `<a href="${esc(ghUrl)}" target="_blank" rel="noopener">Open the workflow on GitHub</a> and click <strong>Run workflow</strong>.`;
     }
 
     function showUpToDate() {
@@ -349,6 +488,11 @@
         const url = `https://github.com/${state.srcRepo}/releases/tag/${encodeURIComponent(tag)}`;
         window.open(url, "_blank", "noopener");
       });
+      $("updateNowBtn").addEventListener("click", dispatchUpdate);
+      $("tokSave").addEventListener("click", saveTokAndDispatch);
+      $("tokCancel").addEventListener("click", hideTokenPanel);
+      $("tokForget").addEventListener("click", () => { clearTok(); refreshTokForget(); setCmdStatus("Token removed from this browser.", null); });
+      const ti = $("tokInput"); if (ti) ti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveTokAndDispatch(); } });
     }
 
     // ---- init ------------------------------------------------------------

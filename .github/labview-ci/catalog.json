@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.5",
+  "version": "1.7.6",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.6",
+        "date": "2026-06-15",
+        "title": "Update now starts the update from the dialog",
+        "summary": "The What's New dialog's 'Update now' button now starts the update for you instead of sending you to the Actions page to find and click 'Run workflow'. Like the dashboard's 'Run now', it dispatches the update workflow straight from the browser; the first time, the dialog walks you through creating a one-time fine-grained token (Actions: Read and write) stored only in this browser \u2014 the same token 'Run now' uses, so if you already set that up there is nothing to do. After it dispatches, the dialog watches for the pull request the workflow opens and shows a direct 'review & merge' link, so you always know the next step (the update still finishes when you merge that PR). A token-free 'Open the workflow on GitHub' link remains for anyone who prefers the manual route.",
+        "highlights": [
+          "'Update now' dispatches the Apply LabVIEW CI update workflow from the dialog (browser \u2192 api.github.com), so the update starts with one click instead of navigating to the Actions tab and clicking Run workflow.",
+          "First use walks you through creating a fine-grained token with Actions: Read and write, stored only in this browser and shared with the dashboard's 'Run now' \u2014 set it up once for both.",
+          "After dispatching, the dialog polls for the pull request the workflow opens and surfaces a direct 'review & merge it' link, making the required merge step obvious (previously you landed on a runs list with no clear next step).",
+          "Clear 401/403/404 guidance with an 'Update token' shortcut, plus a token-free 'Open the workflow on GitHub' fallback and the existing CLI command."
+        ]
+      },
       {
         "version": "1.7.5",
         "date": "2026-06-15",
