@@ -628,6 +628,62 @@ run_dialog = (r"""
       }).then(function(r){ return { wf:wf, ok:r.status===204, status:r.status }; })
         .catch(function(e){ return { wf:wf, ok:false, status:0, err:String(e&&e.message||e) }; });
     }
+    // ── Optimistic "queued" overlay ──────────────────────────────
+    // A successful dispatch returns 204 with no body, and the server-rendered
+    // "running" badge only appears once the run posts a pending commit status AND
+    // the Pages site rebuilds — minutes later. So the dispatched cell would keep
+    // showing its empty run-glyph, making it look like nothing happened. Paint the
+    // cell as "Queued" immediately and remember it per-browser (localStorage) so it
+    // survives the page's auto-refresh until the real status takes over. Entries
+    // self-expire so a run that never reports a status can't wedge a fake spinner.
+    var QKEY = "lvci_queued_runs";
+    var QTTL = 20*60*1000;   // forget an unconfirmed entry after 20 min
+    var QFAST = 60*1000;     // re-check this often while a queued run is unconfirmed
+    var qReloadArmed = false;
+    function qLoad(){ try{ return JSON.parse(localStorage.getItem(QKEY)||"{}")||{}; }catch(e){ return {}; } }
+    function qSave(o){ try{ localStorage.setItem(QKEY, JSON.stringify(o)); }catch(e){} }
+    function qPaint(td, c, sha){
+      // Overlay a spinning "Queued" badge onto the cell, replacing its run glyph.
+      if(!td) return;
+      td.classList.add('cidash-queued-cell');
+      td.setAttribute('data-qcap', c); td.setAttribute('data-qsha', sha);
+      td.innerHTML = '<span class="run-badge cidash-queued" title="Queued from this browser \u2014 the live status appears once the run starts and the dashboard rebuilds">'
+        + '<a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">'
+        + '<span class="run-spin"></span>Queued</a></span>';
+    }
+    function qArmReload(){
+      // While a queued run is still unconfirmed, reload sooner than the lazy
+      // meta-refresh so the real status surfaces promptly (mirrors the server's
+      // own faster cadence while CI is live).
+      if(qReloadArmed) return; qReloadArmed = true;
+      setTimeout(function(){ location.reload(); }, QFAST);
+    }
+    function markQueued(c, sha, plats){
+      var o = qLoad(); o[c+'|'+sha] = { ts: Date.now(), plats: plats||[] }; qSave(o);
+      var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
+      var td = a ? (a.closest ? a.closest('td') : null)
+                 : document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+      qPaint(td, c, sha);
+      qArmReload();
+    }
+    function applyQueued(){
+      // Re-apply remembered queued badges after each (auto-)reload. An entry is
+      // dropped once the server renders a real status for that cell (its run glyph
+      // is gone) or once it ages out — so the overlay is a short, self-clearing
+      // bridge, never a permanent fake.
+      var o = qLoad(); var now = Date.now(); var changed = false; var live = 0;
+      Object.keys(o).forEach(function(key){
+        var e = o[key]; var i = key.indexOf('|'); var c = key.slice(0,i); var sha = key.slice(i+1);
+        if(!e || (now - (e.ts||0)) > QTTL){ delete o[key]; changed = true; return; }
+        var painted = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+        var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
+        if(painted){ live++; }
+        else if(a){ qPaint(a.closest('td'), c, sha); live++; }
+        else { delete o[key]; changed = true; }   // real status took over — done
+      });
+      if(changed) qSave(o);
+      if(live > 0) qArmReload();
+    }
     function runNow(){
       var def = RT[state.cap]; if(!def) return;
       var sel = selectedPlats(def);
@@ -642,6 +698,10 @@ run_dialog = (r"""
         if(results.some(function(r){return r.status===401;})){
           clearTok(); setStatus('That token was rejected (401). Paste a valid one.', 'err'); showTokenPanel(); return;
         }
+        // Reflect any successful dispatch on the dashboard right away, before the
+        // server-side status/Pages rebuild catches up (covers partial success too).
+        var okPlats = results.filter(function(r){return r.ok;}).map(function(r){return r.plat;});
+        if(okPlats.length){ markQueued(state.cap, state.sha, okPlats); }
         if(results.every(function(r){return r.ok;})){
           var n=results.length;
           setStatus('\u2713 Queued '+n+' run'+(n>1?'s':'')+'. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
@@ -734,6 +794,10 @@ run_dialog = (r"""
       openRun(a.getAttribute('data-cap'), a.getAttribute('data-sha'), a.getAttribute('data-parent'), a.getAttribute('data-short'));
     });
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') cidashRunClose(); });
+    // Re-apply optimistic "Queued" badges once the table exists (this script runs
+    // before the table is parsed), and after every auto-refresh thereafter.
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', applyQueued); }
+    else { applyQueued(); }
   })();
   </scr""" + """ipt>""").replace('__RUN_TARGETS__', run_targets_json).replace('__REPO__', repo).replace('__BRANCH__', 'main')
 
@@ -773,6 +837,9 @@ html = f"""<!DOCTYPE html>
     .controls input{{margin:0;accent-color:var(--link)}}
     .run-badge{{display:inline-flex;align-items:center;background:#1f6feb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600}}
     .run-badge a:hover{{text-decoration:underline}}
+    /* Optimistic "just queued from this browser" cue: a dashed ring distinguishes
+       a client-side queued badge from a server-confirmed running one. */
+    .run-badge.cidash-queued{{outline:1px dashed rgba(255,255,255,.6);outline-offset:1px}}
     .run-spin{{width:9px;height:9px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:cidash-spin .7s linear infinite}}
     @keyframes cidash-spin{{to{{transform:rotate(360deg)}}}}
     {run_dialog_css}

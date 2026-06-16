@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.4",
+  "version": "1.7.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.5",
+        "date": "2026-06-15",
+        "title": "Run now shows the cell as Queued right away",
+        "summary": "After 'Run now' dispatches a workflow, the dashboard now marks that cell as Queued immediately, so you can see your click took effect without waiting for the next refresh. Previously the run was enqueued on GitHub but the cell kept showing the empty run glyph until the run reported a commit status and the page rebuilt \u2014 often minutes later \u2014 so it looked like nothing had happened. The optimistic Queued badge is remembered in your browser so it survives the dashboard's auto-refresh, and it clears itself automatically as soon as the real run status appears (or after 20 minutes if the run never reports one), so it can never get stuck as a permanent fake spinner.",
+        "highlights": [
+          "A successful 'Run now' dispatch now paints the dashboard cell as Queued (a spinner badge) immediately \u2014 including for each platform when you launch both Windows and Linux \u2014 so enqueuing a run gives instant on-dashboard feedback.",
+          "The Queued state is stored per-browser (localStorage) so it persists across the page's auto-refresh, and the page polls faster (about once a minute) while a run is still unconfirmed so the real status surfaces promptly.",
+          "The optimistic badge self-clears once the server-rendered status takes over, and expires after 20 minutes if no status is ever posted, so it never lingers as a false 'running' indicator.",
+          "A dashed outline distinguishes the just-queued (browser-side) badge from a server-confirmed running badge."
+        ]
+      },
       {
         "version": "1.7.4",
         "date": "2026-06-15",
