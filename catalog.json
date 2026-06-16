@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.1",
+  "version": "1.7.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.2",
+        "date": "2026-06-15",
+        "title": "Run now actually starts the run (one-click dispatch)",
+        "summary": "The empty-cell run dialog now enqueues the workflow for real: clicking 'Run now' dispatches it straight to GitHub Actions from the browser, instead of only printing a command to copy. Because a static dashboard has no server, the one-time setup asks for a GitHub token with Actions write access — it is stored only in your browser (localStorage) and sent only to api.github.com, never to the repo or the page. A 'Run on GitHub' link and the gh CLI command remain as no-token fallbacks.",
+        "highlights": [
+          "'Run now' POSTs to the GitHub workflow-dispatch API for each selected platform and reports '✓ Queued — View runs', so a run starts with one click and no terminal.",
+          "First use prompts once for a fine-grained token (Actions: Read and write) stored only in this browser; after that the button is truly one-click, with a 'Forget token' option.",
+          "Kept a 'Run on GitHub' link (opens the workflow's Run page, no token) and the copyable gh command for people who prefer them."
+        ]
+      },
       {
         "version": "1.7.1",
         "date": "2026-06-15",
