@@ -36,12 +36,12 @@
     .run-badge a:hover{text-decoration:underline}
     .run-spin{width:9px;height:9px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:cidash-spin .7s linear infinite}
     @keyframes cidash-spin{to{transform:rotate(360deg)}}
-    .cidash-run{display:inline-block;color:var(--fg-muted);font-size:.95em;line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}tr:hover .cidash-run{opacity:.85}
+    .cidash-run{display:inline-block;color:var(--fg-muted);font-size:.95em;line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}tr:hover .cidash-run{opacity:.85}.cidash-btn{border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:.85em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-go{background:#238636;color:#fff;border-color:transparent}.cidash-go:hover{background:#2ea043}.cidash-go:disabled{opacity:.6;cursor:default}.cidash-ghost{background:var(--bg);color:var(--fg)}.cidash-ghost:hover{border-color:var(--link)}
   </style>
 </head>
 <body>
   <div style="position:fixed;top:14px;right:16px;z-index:30;display:flex;align-items:center;gap:8px">
-    <div id="lvci-version" title="Latest LabVIEW CI tooling version" style="position:relative;display:inline-flex;align-items:center;gap:6px;background:rgba(110,118,129,.15);color:var(--fg-muted);border:1px solid rgba(110,118,129,.35);padding:8px 12px;border-radius:6px;font-size:.78em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;user-select:none"><span>v1.7.1</span><span id="lvci-update-dot" aria-hidden="true"></span></div>
+    <div id="lvci-version" title="Latest LabVIEW CI tooling version" style="position:relative;display:inline-flex;align-items:center;gap:6px;background:rgba(110,118,129,.15);color:var(--fg-muted);border:1px solid rgba(110,118,129,.35);padding:8px 12px;border-radius:6px;font-size:.78em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;user-select:none"><span>v1.7.2</span><span id="lvci-update-dot" aria-hidden="true"></span></div>
     <button onclick="lvciOpen('configure.html','Configure Workers')" title="Configure the behavior of this repository's automated CI activities" style="background:#1f6feb;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">⚙ Configure Workers</button>
     <button onclick="lvciOpen('integrate.html','Apply to New Repo')" title="Install these CI capabilities into another repository" style="background:#238636;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.82em;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)">➕ Apply to New Repo</button>
   </div>
@@ -68,7 +68,7 @@
     }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lvciClose(); });
   </script>
-  <style>#lvci-version.lvci-clickable{cursor:pointer;color:var(--fg)}#lvci-version.lvci-clickable:hover{background:rgba(110,118,129,.25)}#lvci-version.lvci-has-update{cursor:pointer;color:var(--fg);border-color:#d29922;background:rgba(210,153,34,.13)}#lvci-version.lvci-has-update:hover{background:rgba(210,153,34,.22)}#lvci-update-dot{display:none}#lvci-update-dot.on{display:block;position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:#d29922;box-shadow:0 0 0 2px var(--bg);animation:lvci-pulse 1.7s ease-out infinite}@keyframes lvci-pulse{0%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,.5)}70%{box-shadow:0 0 0 2px var(--bg),0 0 0 7px rgba(210,153,34,0)}100%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,0)}}</style><script>(function(){var C={"version": "1.7.1", "sourceRepo": "elijah286/LabVIEW-CI-with-Containers", "sourceRef": "main", "isSource": true, "repo": "elijah286/LabVIEW-CI-with-Containers"};function cmp(a,b){var p=String(a||"0").split("."),q=String(b||"0").split(".");for(var i=0;i<Math.max(p.length,q.length);i++){var d=(parseInt(p[i],10)||0)-(parseInt(q[i],10)||0);if(d)return d;}return 0;}if(!C.version)return;var b=document.getElementById("lvci-version");if(!b)return;var src=C.sourceRepo||C.repo;var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(src)+"&ref="+encodeURIComponent(C.sourceRef),"What\u2019s New");};b.classList.add("lvci-clickable");b.setAttribute("role","button");b.setAttribute("tabindex","0");b.title="LabVIEW CI v"+C.version+" \u2014 click for release notes";b.addEventListener("click",go);b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});if(C.isSource||!C.sourceRepo)return;var u="https://raw.githubusercontent.com/"+C.sourceRepo+"/"+C.sourceRef+"/.github/labview-ci/catalog.json";fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(cat){if(!cat||!cat.version||cmp(cat.version,C.version)<=0)return;var d=document.getElementById("lvci-update-dot");b.classList.remove("lvci-clickable");b.classList.add("lvci-has-update");if(d)d.classList.add("on");b.title="Update available: v"+C.version+" \u2192 v"+cat.version+" \u2014 click to see what\u2019s new";}).catch(function(){});})();</script>
+  <style>#lvci-version.lvci-clickable{cursor:pointer;color:var(--fg)}#lvci-version.lvci-clickable:hover{background:rgba(110,118,129,.25)}#lvci-version.lvci-has-update{cursor:pointer;color:var(--fg);border-color:#d29922;background:rgba(210,153,34,.13)}#lvci-version.lvci-has-update:hover{background:rgba(210,153,34,.22)}#lvci-update-dot{display:none}#lvci-update-dot.on{display:block;position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:#d29922;box-shadow:0 0 0 2px var(--bg);animation:lvci-pulse 1.7s ease-out infinite}@keyframes lvci-pulse{0%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,.5)}70%{box-shadow:0 0 0 2px var(--bg),0 0 0 7px rgba(210,153,34,0)}100%{box-shadow:0 0 0 2px var(--bg),0 0 0 0 rgba(210,153,34,0)}}</style><script>(function(){var C={"version": "1.7.2", "sourceRepo": "elijah286/LabVIEW-CI-with-Containers", "sourceRef": "main", "isSource": true, "repo": "elijah286/LabVIEW-CI-with-Containers"};function cmp(a,b){var p=String(a||"0").split("."),q=String(b||"0").split(".");for(var i=0;i<Math.max(p.length,q.length);i++){var d=(parseInt(p[i],10)||0)-(parseInt(q[i],10)||0);if(d)return d;}return 0;}if(!C.version)return;var b=document.getElementById("lvci-version");if(!b)return;var src=C.sourceRepo||C.repo;var go=function(){lvciOpen("whats-new.html?repo="+encodeURIComponent(C.repo)+"&from="+encodeURIComponent(C.version)+"&src="+encodeURIComponent(src)+"&ref="+encodeURIComponent(C.sourceRef),"What\u2019s New");};b.classList.add("lvci-clickable");b.setAttribute("role","button");b.setAttribute("tabindex","0");b.title="LabVIEW CI v"+C.version+" \u2014 click for release notes";b.addEventListener("click",go);b.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});if(C.isSource||!C.sourceRepo)return;var u="https://raw.githubusercontent.com/"+C.sourceRepo+"/"+C.sourceRef+"/.github/labview-ci/catalog.json";fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(cat){if(!cat||!cat.version||cmp(cat.version,C.version)<=0)return;var d=document.getElementById("lvci-update-dot");b.classList.remove("lvci-clickable");b.classList.add("lvci-has-update");if(d)d.classList.add("on");b.title="Update available: v"+C.version+" \u2192 v"+cat.version+" \u2014 click to see what\u2019s new";}).catch(function(){});})();</script>
 
   <div id="cidash-run-modal" onclick="if(event.target===this)cidashRunClose()" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55)">
     <div role="dialog" aria-modal="true" aria-labelledby="cidash-run-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
@@ -84,10 +84,14 @@
     var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "run-vi-analyzer-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "head"}}}}};
     var REPO = "elijah286/LabVIEW-CI-with-Containers";
     var BRANCH = "main";
+    var TOK_KEY = "lvci_dispatch_token";
     var state = {cap:null, sha:'', parent:'', short:''};
     function $(id){ return document.getElementById(id); }
     function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
     function fill(t){ return String(t).replace(/\{sha\}/g, state.sha).replace(/\{parent\}/g, state.parent||''); }
+    function getTok(){ try{ return localStorage.getItem(TOK_KEY)||''; }catch(e){ return ''; } }
+    function setTok(v){ try{ localStorage.setItem(TOK_KEY, v); }catch(e){} }
+    function clearTok(){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} }
     function ghCmd(wf, inputs){
       var s = "gh workflow run " + wf + " --ref " + BRANCH;
       Object.keys(inputs).forEach(function(k){ s += " -f " + k + "=" + fill(inputs[k]); });
@@ -102,14 +106,55 @@
       if (boxes.every(function(b){ return !b; })) return keys.slice();
       return keys.filter(function(k){ var b = $("cidash-plat-"+k); return b && b.checked; });
     }
+    function setStatus(html, kind){
+      var s = $("cidash-run-status"); if(!s) return;
+      var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
+      s.style.color = col; s.innerHTML = html || '';
+    }
+    function filledInputs(p){ var o={}; Object.keys(p.inputs).forEach(function(k){ o[k]=fill(p.inputs[k]); }); return o; }
+    function dispatchOne(wf, inputs){
+      return fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(wf)+'/dispatches', {
+        method:'POST',
+        headers:{ 'Authorization':'Bearer '+getTok(), 'Accept':'application/vnd.github+json',
+                  'X-GitHub-Api-Version':'2022-11-28', 'Content-Type':'application/json' },
+        body: JSON.stringify({ ref: BRANCH, inputs: inputs })
+      }).then(function(r){ return { wf:wf, ok:r.status===204, status:r.status }; })
+        .catch(function(e){ return { wf:wf, ok:false, status:0, err:String(e&&e.message||e) }; });
+    }
+    function runNow(){
+      var def = RT[state.cap]; if(!def) return;
+      var sel = selectedPlats(def);
+      if(!sel.length){ setStatus('Select at least one platform.', 'warn'); return; }
+      if(!getTok()){ showTokenPanel(); return; }
+      var go = $("cidash-run-go"); if(go){ go.disabled = true; }
+      setStatus('Queuing\u2026', null);
+      var jobs = sel.map(function(k){ var p=def.platforms[k];
+        return dispatchOne(p.wf, filledInputs(p)).then(function(res){ res.plat=k; return res; }); });
+      Promise.all(jobs).then(function(results){
+        if(go){ go.disabled = false; }
+        if(results.some(function(r){return r.status===401;})){
+          clearTok(); setStatus('That token was rejected (401). Paste a valid one.', 'err'); showTokenPanel(); return;
+        }
+        if(results.every(function(r){return r.ok;})){
+          var n=results.length;
+          setStatus('\u2713 Queued '+n+' run'+(n>1?'s':'')+'. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
+        } else {
+          var parts = results.map(function(r){ return (RT[state.cap].platforms[r.plat]&&Object.keys(RT[state.cap].platforms).length>1?cap(r.plat)+': ':'') + (r.ok?'queued':('HTTP '+r.status)); });
+          setStatus(parts.join(' \u00b7 ') + ' \u2014 a 403/404 usually means the token lacks <strong>Actions: write</strong> or access to this repo.', 'err');
+        }
+      });
+    }
+    function showTokenPanel(){ var p=$("cidash-tok-panel"); if(p){ p.style.display='block'; var i=$("cidash-tok-input"); if(i) i.focus(); } }
+    function hideTokenPanel(){ var p=$("cidash-tok-panel"); if(p){ p.style.display='none'; } }
+    function saveTokAndRun(){ var i=$("cidash-tok-input"); var v=(i&&i.value||'').trim(); if(!v){ if(i) i.focus(); return; } setTok(v); hideTokenPanel(); runNow(); }
     function render(){
       var def = RT[state.cap]; if(!def) return;
       var keys = Object.keys(def.platforms);
       var multi = keys.length > 1;
       var sel = selectedPlats(def);
-      var cmds = sel.map(function(k){ return ghCmd(def.platforms[k].wf, def.platforms[k].inputs); });
+      var haveTok = !!getTok();
       var h = '';
-      h += '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.85em">Enqueue the <strong>'+esc(def.label)+'</strong> run for commit <code style="font-family:monospace">'+esc(state.short)+'</code>. Uses your own GitHub auth &mdash; no tokens in the browser.</p>';
+      h += '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.85em">Run <strong>'+esc(def.label)+'</strong> for commit <code style="font-family:monospace">'+esc(state.short)+'</code>. Click <strong>Run now</strong> and it is queued on GitHub Actions \u2014 no terminal.</p>';
       if (multi){
         h += '<div style="display:flex;gap:18px;margin:0 0 14px;font-size:.9em">';
         keys.forEach(function(k){
@@ -117,20 +162,35 @@
         });
         h += '</div>';
       }
-      if (!cmds.length){
-        h += '<p style="color:#bb8009;font-size:.85em;margin:0">Select at least one platform.</p>';
-      } else {
-        h += '<div style="position:relative;margin:0 0 12px"><pre id="cidash-run-cmd" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8em;white-space:pre-wrap;word-break:break-word">'+esc(cmds.join("\n"))+'</pre>';
-        h += '<button onclick="cidashRunCopy()" style="position:absolute;top:8px;right:8px;background:var(--bg);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 10px;font-size:.74em;cursor:pointer">Copy</button></div>';
-        h += '<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:.85em">';
-        sel.forEach(function(k){
-          h += '<a href="'+actionsUrl(def.platforms[k].wf)+'" target="_blank" rel="noopener" style="color:var(--link)">Open '+esc(multi?cap(k):def.label)+' workflow &#8599;</a>';
-        });
-        h += '</div>';
-        h += '<p style="color:var(--fg-muted);font-size:.78em;margin:14px 0 0">Run the command with the <a href="https://cli.github.com/" target="_blank" rel="noopener" style="color:var(--link)">GitHub CLI</a> to enqueue immediately, or open the workflow and use <strong>Run workflow</strong> (enter the SHA above).</p>';
-      }
+      // One-time token setup panel (hidden until needed).
+      h += '<div id="cidash-tok-panel" style="display:none;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);margin:0 0 12px">';
+      h += '<div style="font-size:.8em;color:var(--fg-muted);margin-bottom:8px">One-time setup. Paste a GitHub token with <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code>. It is stored only in this browser and sent only to api.github.com. <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:var(--link)">Create a fine-grained token \u2197</a></div>';
+      h += '<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="cidash-tok-input" type="password" autocomplete="off" placeholder="github_pat_\u2026 or ghp_\u2026" style="flex:1 1 240px;min-width:180px;padding:7px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.8em">';
+      h += '<button class="cidash-btn cidash-go" id="cidash-tok-save">Save &amp; run</button>';
+      h += '<button class="cidash-btn cidash-ghost" id="cidash-tok-cancel">Cancel</button></div></div>';
+      // Status line (dispatch result / hints).
+      h += '<div id="cidash-run-status" style="font-size:.82em;min-height:1.2em;margin:0 0 12px"></div>';
+      // Primary actions.
+      h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
+      h += '<button class="cidash-btn cidash-go" id="cidash-run-go">\u25B6 Run now</button>';
+      sel.forEach(function(k){
+        h += '<a class="cidash-btn cidash-ghost" style="text-decoration:none" href="'+actionsUrl(def.platforms[k].wf)+'" target="_blank" rel="noopener">Run '+esc(multi?cap(k):def.label)+' on GitHub \u2197</a>';
+      });
+      if (haveTok){ h += '<button class="cidash-btn cidash-ghost" id="cidash-tok-forget" title="Remove the token saved in this browser">Forget token</button>'; }
+      h += '</div>';
+      // CLI fallback, collapsed.
+      var cmds = sel.map(function(k){ return ghCmd(def.platforms[k].wf, def.platforms[k].inputs); });
+      h += '<details style="margin-top:14px"><summary style="cursor:pointer;color:var(--link);font-size:.82em">Prefer the command line?</summary>';
+      h += '<div style="position:relative;margin:10px 0 0"><pre id="cidash-run-cmd" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre-wrap;word-break:break-word">'+esc(cmds.join("\n"))+'</pre>';
+      h += '<button onclick="cidashRunCopy()" style="position:absolute;top:8px;right:8px;background:var(--bg);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 10px;font-size:.74em;cursor:pointer">Copy</button></div>';
+      h += '<p style="color:var(--fg-muted);font-size:.76em;margin:8px 0 0">Run with the <a href="https://cli.github.com/" target="_blank" rel="noopener" style="color:var(--link)">GitHub CLI</a>, or use <strong>Run on GitHub</strong> above and paste the SHA into the form.</p></details>';
       $("cidash-run-body").innerHTML = h;
       Array.prototype.forEach.call(document.querySelectorAll('.cidash-plat'), function(b){ b.addEventListener('change', render); });
+      var go=$("cidash-run-go"); if(go) go.addEventListener('click', runNow);
+      var sv=$("cidash-tok-save"); if(sv) sv.addEventListener('click', saveTokAndRun);
+      var cn=$("cidash-tok-cancel"); if(cn) cn.addEventListener('click', hideTokenPanel);
+      var fg=$("cidash-tok-forget"); if(fg) fg.addEventListener('click', function(){ clearTok(); render(); setStatus('Token removed from this browser.', null); });
+      var ti=$("cidash-tok-input"); if(ti) ti.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); saveTokAndRun(); } });
     }
     window.cidashRunCopy = function(){
       var pre = $("cidash-run-cmd"); if(!pre || !navigator.clipboard) return;
@@ -155,7 +215,7 @@
   })();
   </script>
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-16 02:11 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-16 02:53 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/">VI Browser</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
@@ -178,6 +238,21 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/commit/d91b06573afd8a4767d0e10edc8821ef421cc5b8" style="color:var(--link)">d91b065</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(dashboard): Run now actually dispatches the workflow (1.7.2)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d91b06573afd8a4767d0e10edc8821ef421cc5b8" style="color:var(--fg)">feat(dashboard): Run now actually dispatches the workflow (1.7.2)</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/commit/c44cd11dc6beeeeb6bcbf63a1a576de43c9609e0" style="color:var(--link)">c44cd11</a>
