@@ -140,7 +140,7 @@
 
     <section>
       <h2>3. Install</h2>
-      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a one-time fine-grained token; the panel walks you through creating it with the permissions pre-filled.</p>
+      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a <strong>short-lived</strong> fine-grained token &mdash; it&rsquo;s used just once, right now, to open this pull request, so give it the shortest expiration you can. The panel walks you through creating it with the permissions pre-filled.</p>
 
       <div class="insopts">
         <label class="insopt"><input type="checkbox" id="optReadme" checked>
@@ -152,14 +152,15 @@
       </div>
 
       <div class="tokpanel" id="insTokPanel" style="display:none">
-        <h3>One-time setup &mdash; a token to open the install pull request</h3>
+        <h3>One-time setup &mdash; a short-lived token to open the install pull request</h3>
         <ol>
           <li><a id="insTokLink" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a> &mdash; the required permissions are pre-filled.</li>
+          <li>Set <strong>Expiration</strong> to the shortest option (7 days, or a custom date as soon as tomorrow) &mdash; this token is used once, right now, so it never needs to outlive the install.</li>
           <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code class="inl" id="insTokRepo">your-org/your-repo</code>.</li>
           <li id="insTokPerms"></li>
           <li>Generate, then paste it below.</li>
         </ol>
-        <p class="note">Kept only in this browser tab (sessionStorage) and sent only to api.github.com &mdash; never to the page host or to CI. It is discarded automatically the moment the pull request opens; you can also revoke it on GitHub at any time.</p>
+        <p class="note">Kept only in this browser tab (sessionStorage) and sent only to api.github.com &mdash; never to the page host or to CI. It is discarded automatically the moment the pull request opens; you can also revoke it on GitHub at any time &mdash; and a short expiration means it lapses on its own.</p>
         <div class="tokrow">
           <input id="insTokInput" type="password" autocomplete="off" placeholder="github_pat_&hellip;">
           <button type="button" class="primary" id="insTokSave">Save &amp; install</button>
