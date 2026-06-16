@@ -134,7 +134,7 @@
 
     <section>
       <h2>2. Capabilities</h2>
-      <p class="hint">Recommended ones are pre-selected. Dependencies are added automatically.</p>
+      <p class="hint">All available capabilities are selected by default &mdash; uncheck any you don't want. Dependencies are added automatically.</p>
       <div class="caps" id="caps"></div>
     </section>
 
@@ -270,7 +270,9 @@
         wrap.className = "cap" + (planned ? " disabled" : "");
         const cb = document.createElement("input");
         cb.type = "checkbox"; cb.value = cap.id; cb.disabled = planned;
-        cb.checked = !planned && !!cap.recommended;
+        // All available capabilities are on by default (everything except the
+        // ones still marked "Coming soon", which can't be installed yet).
+        cb.checked = !planned;
         if (cb.checked) selected.add(cap.id);
         cb.addEventListener("change", () => {
           if (cb.checked) { selected.add(cap.id); addRequires(cap.id); }

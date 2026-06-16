@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "1.10.0",
+  "version": "1.10.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.10.1",
+        "date": "2026-06-16",
+        "title": "Apply to New Repo selects every capability by default",
+        "summary": "The Apply to New Repo configurator now pre-selects all available capabilities (mass compile, VI Analyzer, VIDiff, VI snapshots/VI Browser, the shared container image, and the dashboard) instead of only the recommended ones, so a new install gets the full pipeline by default. Uncheck anything you don't want before installing; capabilities still marked Coming soon stay disabled.",
+        "highlights": [
+          "All non-planned capabilities are checked by default in the configurator \u2014 the VI snapshots/VI Browser and shared container image capabilities are no longer off by default.",
+          "The capabilities hint now reads \u201cAll available capabilities are selected by default \u2014 uncheck any you don't want.\u201d"
+        ]
+      },
       {        "version": "1.10.0",
         "date": "2026-06-16",
         "title": "Re-run a VI Analyzer report for its revision \u2014 right from the report",
