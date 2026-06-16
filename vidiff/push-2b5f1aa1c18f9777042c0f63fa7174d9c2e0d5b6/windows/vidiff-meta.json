@@ -1,7 +1,7 @@
 {
-  "head_sha":  "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6",
-  "base_sha":  "3d513473c8dce75e22b08294b87de2fb37fd9798",
-  "pr_number": "",
-  "platform":  "windows",
-  "outcome":   "success"
+  "head_sha":   "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6",
+  "base_sha":   "3d513473c8dce75e22b08294b87de2fb37fd9798",
+  "pr_number":  "",
+  "platform":   "windows",
+  "outcome":    "success"
 }
