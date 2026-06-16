@@ -96,6 +96,14 @@
     .tokpanel .tokrow{display:flex;gap:8px;flex-wrap:wrap}
     .tokpanel input{flex:1 1 240px;min-width:180px;padding:8px 10px;background:var(--bg);color:var(--fg);
          border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.82em}
+    .upsteps{margin:4px 0 16px;padding:0;list-style:none;counter-reset:upstep}
+    .upsteps li{position:relative;padding:1px 0 0 34px;margin:0 0 11px;font-size:.88em;color:var(--fg);line-height:1.5}
+    .upsteps li::before{counter-increment:upstep;content:counter(upstep);position:absolute;left:0;top:0;
+         width:23px;height:23px;border-radius:50%;background:var(--chip);border:1px solid var(--border);
+         color:var(--fg-muted);font-size:.78em;font-weight:700;display:flex;align-items:center;justify-content:center}
+    .upsteps li.key::before{background:var(--warn);border-color:transparent;color:#fff}
+    .upsteps li small{display:block;color:var(--fg-muted);font-size:.92em;margin-top:3px}
+    .upsteps em{color:var(--warn);font-style:normal;font-weight:600}
   </style>
 </head>
 <body>
@@ -127,9 +135,19 @@
 
     <section id="updateSec" style="display:none">
       <h2>Update your CI tooling</h2>
-      <p class="hint" id="updateLead">Click <strong>Update now</strong> and the update is started for you &mdash; it
-        opens a pull request adopting the new version, which you review and merge. The first time, the dialog walks
-        you through creating a one-time token (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</p>
+      <p class="hint" id="updateLead">Updating is a few clicks: <strong>Update now</strong> kicks it off, then GitHub
+        needs you to <strong>approve</strong> and <strong>merge</strong>. Here is the whole sequence so nothing waits on a step you did not know about:</p>
+      <ol class="upsteps" id="upSteps">
+        <li>Click <strong>Update now</strong> below. The first time, paste a one-time token &mdash; the dialog walks you
+          through it (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</li>
+        <li>The <strong>Apply LabVIEW CI update</strong> workflow runs and opens a <strong>pull request</strong> that adopts the new version.</li>
+        <li class="key"><strong>Approve the pull request&rsquo;s checks.</strong>
+          <small>Because the pull request is opened automatically, GitHub holds its checks for your approval and marks
+          them <em>&ldquo;Action required.&rdquo;</em> Open the PR (or the <strong>Actions</strong> tab), and on the paused run
+          click <strong>Approve and run</strong>. Until you do, the checks never start and the update cannot complete.</small></li>
+        <li><strong>Merge the pull request</strong> once its checks pass.</li>
+        <li>On the next refresh, the dashboard badge turns green and shows the new version.</li>
+      </ol>
       <!-- One-time token setup (hidden until needed), mirroring the dashboard's Run now dialog. -->
       <div class="tokpanel" id="tokPanel" style="display:none">
         <h3>One-time setup &mdash; a token to start the update</h3>
@@ -384,7 +402,9 @@
       }).then((r) => {
         if (btn) btn.disabled = false;
         if (r.status === 204) {
-          setCmdStatus(`&#10003; Update started &mdash; opening a pull request to adopt <code>v${esc(ver)}</code>. Review and merge it to finish.`, "ok");
+          setCmdStatus(`&#10003; Update started &mdash; opening a pull request to adopt <code>v${esc(ver)}</code>. ` +
+            `Two steps remain (see above): <strong>approve the PR&rsquo;s checks</strong> &mdash; GitHub marks them ` +
+            `&ldquo;Action required&rdquo; &mdash; then <strong>merge</strong> it to finish.`, "ok");
           pollForPr(ver);
           return;
         }
@@ -426,13 +446,16 @@
           .then((list) => {
             if (Array.isArray(list) && list.length) {
               const pr = list[0];
-              setCmdStatus(`&#10003; Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> ready &mdash; ` +
-                `<a href="${esc(pr.html_url)}" target="_blank" rel="noopener"><strong>review &amp; merge it</strong></a> to finish updating to <code>v${esc(ver)}</code>.`, "ok");
+              setCmdStatus(`&#10003; Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> opened. Two steps remain: ` +
+                `<strong>1.</strong> open it and <strong>approve its checks</strong> if GitHub shows <em style="color:var(--warn);font-style:normal;font-weight:600">&ldquo;Action required&rdquo;</em> ` +
+                `(click <strong>Approve and run</strong>), then <strong>2.</strong> ` +
+                `<a href="${esc(pr.html_url)}" target="_blank" rel="noopener"><strong>merge it</strong></a> to finish updating to <code>v${esc(ver)}</code>.`, "ok");
               return;
             }
             if (tries < 8) setTimeout(tick, 2500);
             else setCmdStatus(`&#10003; Update started &mdash; a pull request adopting <code>v${esc(ver)}</code> is being opened. ` +
-              `Find it under <a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a> and merge it to finish.`, "ok");
+              `Find it under <a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a>, <strong>approve its checks</strong> if they show ` +
+              `&ldquo;Action required,&rdquo; then merge it to finish.`, "ok");
           })
           .catch(() => { if (tries < 8) setTimeout(tick, 2500); });
       };
@@ -450,7 +473,8 @@
       refreshTokForget();
       $("updateHowto").innerHTML =
         `<strong>Update now</strong> starts the <strong>Apply LabVIEW CI update</strong> workflow for you and opens a ` +
-        `pull request adopting <code>v${esc(ver)}</code> &mdash; review and merge it to finish. The first time, paste a ` +
+        `pull request adopting <code>v${esc(ver)}</code>. You then <strong>approve the PR&rsquo;s checks</strong> (GitHub marks ` +
+        `them &ldquo;Action required&rdquo;) and <strong>merge</strong> it to finish &mdash; see the numbered steps above. The first time, paste a ` +
         `fine-grained token with <strong>Actions: Read and write</strong> (the dialog walks you through it; the same ` +
         `token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses). Prefer not to use a token? ` +
         `<a href="${esc(ghUrl)}" target="_blank" rel="noopener">Open the workflow on GitHub</a> and click <strong>Run workflow</strong>.`;

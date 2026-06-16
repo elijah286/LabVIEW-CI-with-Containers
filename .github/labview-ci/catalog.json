@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.12",
+  "version": "1.7.13",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.7.13",
+        "date": "2026-06-16",
+        "title": "What's New spells out the approve-and-merge steps after Update now",
+        "summary": "The What's New / update dialog now lays out every action an update requires, so it can't silently stall waiting on a step you didn't know about. A numbered 'what happens next' checklist is shown up front, and the pull request's workflow-approval gate is called out as its own highlighted step: because the update PR is opened by automation, GitHub holds its checks for your approval and marks them 'Action required', and nothing merges until you open the PR (or the Actions tab) and click 'Approve and run'. The status messages after Update now were updated to match — they now tell you to approve the checks and then merge, instead of only 'merge it to finish'.",
+        "highlights": [
+          "Added a numbered 'what happens next' checklist to the update dialog, with the workflow-approval gate as its own highlighted step.",
+          "Calls out that GitHub marks the update PR's checks 'Action required' and that you must click 'Approve and run' before they start — the step that was previously undocumented.",
+          "Post-dispatch status messages now point you to approve the checks first, then merge, so an opened update PR no longer sits unmerged because its checks were paused for approval."
+        ]
+      },
       {
         "version": "1.7.12",
         "date": "2026-06-16",
