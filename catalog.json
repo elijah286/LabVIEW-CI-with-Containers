@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "1.11.1",
+  "version": "1.11.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.11.2",
+        "date": "2026-06-16",
+        "title": "Header fits the VI Browser, and a commit hash opens its VIs everywhere",
+        "summary": "Fixes the new navigation header on full-height pages: on the VI Browser the header was being laid out beside the sidebar instead of across the top, because that page uses its <body> as a side-by-side layout. The header now detects a page that lays its content out directly on <body> and tucks that content beneath itself, so it spans the top on every page. Separately, the commit hash in the dashboard's Commit column now opens that commit's VIs in the VI Browser \u2014 the same place the commit message already linked to \u2014 instead of the commit on GitHub, so both columns take you to the snapshots for that revision.",
+        "highlights": [
+          "The shared header now spans the full width at the top of the VI Browser (and any page that uses <body> as a flex/grid layout) instead of sitting beside the content.",
+          "On the dashboard, the Commit-column hash links to that commit's VIs in the VI Browser, matching the commit message link (it previously went to the commit on GitHub)."
+        ]
+      },
       {
         "version": "1.11.1",
         "date": "2026-06-16",
