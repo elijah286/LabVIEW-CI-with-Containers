@@ -154,8 +154,8 @@
       <div class="tokpanel" id="tokPanel" style="display:none">
         <h3>One-time setup &mdash; a token to start the update</h3>
         <ol>
-          <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a></li>
-          <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code id="tokRepo"></code>.</li>
+          <li><a id="tokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a> &mdash; opens with the name, resource owner, and <strong>Actions: Read and write</strong> already filled in.</li>
+          <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code id="tokRepo"></code>. <span class="note">(This is the one step GitHub can&rsquo;t pre-fill from a link.)</span></li>
           <li><strong>Permissions &rarr; Repository permissions &rarr; Actions &rarr; Read and write</strong>. Required &mdash; selecting the repo alone gives a 403.</li>
           <li>Generate, then paste it below.</li>
         </ol>
@@ -481,6 +481,21 @@
       btn.innerHTML = "&#11014; Update to v" + esc(ver);
       const gh = $("openOnGh"); if (gh) gh.href = ghUrl;
       const tr = $("tokRepo"); if (tr) tr.textContent = state.repo;
+      // Pre-fill the token-creation form: name, resource owner, and the one
+      // permission a dispatch needs (Actions: write). GitHub has no URL param to
+      // pre-select the specific repository, so step 2 (Repository access) stays
+      // manual. Same shape the dashboard's "Run now" and the report header use.
+      const tc = $("tokCreate");
+      if (tc) {
+        const owner = (state.repo || "").split("/")[0];
+        const qp = new URLSearchParams({
+          name: "LabVIEW CI dispatch",
+          description: "Queue LabVIEW CI runs for " + (state.repo || "this repo") + " (Run now / Re-run / Update).",
+          actions: "write"
+        });
+        if (owner) qp.set("target_name", owner);
+        tc.href = "https://github.com/settings/personal-access-tokens/new?" + qp.toString();
+      }
       refreshTokForget();
       $("updateHowto").innerHTML =
         `<strong>Update now</strong> starts the <strong>Apply LabVIEW CI update</strong> workflow for you and opens a ` +

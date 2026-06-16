@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "1.12.0",
+  "version": "1.12.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.12.1",
+        "date": "2026-06-16",
+        "title": "The 'create a token' links arrive with the settings pre-filled",
+        "summary": "When you set up the one-time token for Run now or Update now, the 'Create a fine-grained token' link now opens GitHub's form with the token name, the resource owner, and the Actions: Read and write permission already filled in \u2014 so you only have to pick the repository under Repository access (the one step GitHub gives no way to pre-fill from a link) and click Generate. The report header's Re-run / Regenerate token link already worked this way; now the dashboard and What's New match it.",
+        "highlights": [
+          "The Run now token setup (dashboard) and the Update now token setup (What's New) now pre-fill the token name, resource owner, and Actions: Read and write permission via GitHub's supported URL parameters.",
+          "Each link is clear that selecting the specific repository is the only manual step \u2014 GitHub provides no URL parameter to pre-select a repository."
+        ]
+      },
       {
         "version": "1.12.0",
         "date": "2026-06-16",
