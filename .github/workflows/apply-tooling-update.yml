@@ -172,6 +172,8 @@ jobs:
             echo ""
             echo "Triggered from the dashboard **Update now** button. Review and merge to finish — the version"
             echo "badge turns green and the pipeline runs the updated capabilities."
+            echo ""
+            echo "> **See an older update PR, or a merge conflict?** You can ignore it — only this PR (the newest, **v${LATEST}**) matters. Any older \`ci/adopt-tooling-*\` update PR is closed automatically. And if this PR ever shows a conflict on \`catalog.json\` / \`labview-ci.yml\`, don't hand-resolve it: just click **Update now** again. That rebuilds this branch from the latest default branch, which clears the conflict (the update replaces those files wholesale, so there is never anything real to merge by hand)."
           } > /tmp/pr-body.md
 
           git commit -m "ci: adopt LabVIEW CI tooling v${LATEST} (full update)"
@@ -219,6 +221,25 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+
+          # Keep only ONE open update PR. A previous "Update now" that was never
+          # merged leaves a per-version branch behind; once this repo's default
+          # branch moves on, that stale branch collides on catalog.json /
+          # labview-ci.yml — a "conflict" that is never a real conflict, because the
+          # update overwrites those files wholesale. Close every OTHER open update
+          # PR and delete its branch so the newest one is the only thing you see.
+          gh pr list --state open --json number,headRefName \
+            --jq '.[] | select(.headRefName|test("^ci/(adopt|update)-tooling-v")) | "\(.number)\t\(.headRefName)"' 2>/dev/null \
+          | while IFS=$'\t' read -r num ref; do
+              if [ -z "${num:-}" ] || [ "$ref" = "$BRANCH" ]; then continue; fi
+              if gh pr close "$num" --delete-branch \
+                   --comment "Superseded by the newer update to **v${LATEST}** (branch \`${BRANCH}\`). This PR targeted an older version and would conflict with the current default branch, so it is closed automatically — there is nothing to resolve here." >/dev/null 2>&1; then
+                echo "Superseded stale update PR #$num ($ref)"
+              else
+                echo "Could not close PR #$num ($ref) — continuing"
+              fi
+            done || true
+
           {
             echo "## ✅ Upgrade pull request ready"
             echo ""

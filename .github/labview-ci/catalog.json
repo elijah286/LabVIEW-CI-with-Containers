@@ -1,13 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "1.9.3",
+  "version": "1.9.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
-      {
-        "version": "1.9.3",
+      {        "version": "1.9.4",
+        "date": "2026-06-16",
+        "title": "Update now never leaves you with a conflicting pull request",
+        "summary": "Clicking Update now used to open a new per-version pull request each time, so unmerged ones piled up; once your default branch moved on, those stale branches collided on catalog.json and labview-ci.yml and showed a merge conflict — even though the update overwrites those files wholesale and there was nothing real to resolve. The update workflow now keeps exactly one open update pull request: when it opens or refreshes the newest one, it automatically closes every older update PR and deletes its branch. The pull request body also explains the self-heal: if an update PR ever shows a conflict, click Update now again and the branch is rebuilt from the latest default branch, which clears it.",
+        "highlights": [
+          "The Apply update workflow auto-closes superseded update PRs (older ci/adopt-tooling-* branches) and deletes them, so only the newest update PR — always based on the current default branch — remains.",
+          "A merge conflict on an update PR is no longer something to hand-resolve: re-running Update now rebuilds the branch from the latest default branch and clears it.",
+          "The update PR body now spells this out, so a stale or conflicting update PR is self-explanatory instead of a dead end."
+        ]
+      },
+      {        "version": "1.9.3",
         "date": "2026-06-16",
         "title": "The dashboard now publishes itself when you merge the install \u2014 no waiting, no manual trigger",
         "summary": "After installing, the CI dashboard workflow had no trigger that fired on the install merge \u2014 only on commit statuses, after other CI workflows, or on its hourly schedule \u2014 so a brand-new install showed the old page (or nothing) until something else happened to run it. The generated dashboard workflow now also builds on a push to your default branch that touches its config, so merging the install pull request publishes the dashboard right away. The one-time install token is also now session-scoped and discarded as soon as the pull request opens.",
