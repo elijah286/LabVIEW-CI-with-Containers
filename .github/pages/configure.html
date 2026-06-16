@@ -96,7 +96,6 @@
       <input type="hidden" id="repo">
       <input type="hidden" id="branch" value="main">
       <div class="status" id="loadStatus"></div>
-      <div id="updateBanner" style="display:none;margin-top:10px;padding:10px 14px;border:1px solid var(--warn);border-radius:8px;background:rgba(154,103,0,.12);font-size:.86em"></div>
     </section>
 
     <section>
@@ -212,7 +211,7 @@
 
     // ---- minimal labview-ci.yml parser (our own simple format) -------------
     function parseManifest(text) {
-      const out = { version: "", installedVersion: "", os: [], activities: [], runners: null };
+      const out = { version: "", os: [], activities: [], runners: null };
       let inActs = false;
       for (const line of text.split(/\r?\n/)) {
         if (/^\s*activities:\s*$/.test(line)) { inActs = true; continue; }
@@ -223,22 +222,10 @@
         }
         let m;
         if ((m = line.match(/^\s*labviewVersion:\s*"?([^"\s]+)"?/))) out.version = m[1];
-        if ((m = line.match(/^\s*installedVersion:\s*(\S+)/))) out.installedVersion = m[1];
         if ((m = line.match(/^\s*os:\s*\[([^\]]*)\]/))) out.os = m[1].split(",").map(s => s.trim()).filter(Boolean);
         if ((m = line.match(/^\s*maxParallel:\s*(\d+)/))) out.runners = parseInt(m[1], 10);
       }
       return out;
-    }
-
-    // Compare dotted version strings: returns >0 if a>b, <0 if a<b, 0 if equal.
-    function cmpVer(a, b) {
-      const pa = String(a || "0").split(".").map(n => parseInt(n, 10) || 0);
-      const pb = String(b || "0").split(".").map(n => parseInt(n, 10) || 0);
-      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-        const d = (pa[i] || 0) - (pb[i] || 0);
-        if (d) return d;
-      }
-      return 0;
     }
 
     // ---- rendering ---------------------------------------------------------
@@ -387,7 +374,6 @@
         if (m.os.length) { osSel.clear(); m.os.forEach(o => osSel.add(o)); document.querySelectorAll("#osToggle input").forEach(cb => cb.checked = osSel.has(cb.value)); }
         if (m.activities.length) { actSel.clear(); m.activities.forEach(a => actSel.add(a)); renderActivities(); }
         if (m.runners) $("runners").value = m.runners;
-        showUpdateStatus(m, repo);
         loadedAny = true;
       } catch (_) { /* not installed yet */ }
       try {
@@ -399,39 +385,6 @@
         ? "Loaded current settings from " + repo + "@" + ref + "."
         : "No existing config found (repo may not have the pipeline yet) — showing defaults to download & commit.";
       update();
-    }
-
-    // Compare the loaded repo's install against master's catalog and surface an
-    // update notice (newer tooling version) and/or newly-available capabilities.
-    function showUpdateStatus(m, repo) {
-      const banner = $("updateBanner");
-      const latest = (catalog && catalog.version) || "";
-      const installed = m.installedVersion || "";
-      const src = source();
-      // The source repo can't update from itself: when this dialog is configuring
-      // the catalog's own source repo, the catalog version IS this repo's version
-      // (its committed labview-ci.yml carries only a placeholder installedVersion),
-      // so any "update available from <self>" / "new capabilities from <self>"
-      // notice is meaningless. Never show the banner in that case.
-      const norm = (s) => String(s || "").trim().toLowerCase();
-      if (repo && src.repo && norm(repo) === norm(src.repo)) { banner.style.display = "none"; return; }
-      const newer = latest && installed && cmpVer(latest, installed) > 0;
-      const newCaps = (catalog.capabilities || [])
-        .filter(c => c.status !== "planned" && !(m.activities || []).includes(c.id))
-        .map(c => c.name);
-      if (!newer && newCaps.length === 0) { banner.style.display = "none"; return; }
-      let html = "";
-      if (newer) {
-        html += `<strong>Update available:</strong> ${src.repo} is on <code>v${latest}</code>, ` +
-          `this repo is on <code>v${installed || "?"}</code>. Pull it with ` +
-          `<code>curl -fsSL https://raw.githubusercontent.com/${src.repo}/${src.ref}/.github/labview-ci/install.sh | bash -s -- --update</code>.`;
-      }
-      if (newCaps.length) {
-        html += `${newer ? "<br>" : ""}<strong>New capabilities</strong> available from ${src.repo}: ` +
-          newCaps.map(n => `<em>${n}</em>`).join(", ") + `. Tick them under Activities, then apply.`;
-      }
-      banner.innerHTML = html;
-      banner.style.display = "block";
     }
 
     // ---- wiring ------------------------------------------------------------
