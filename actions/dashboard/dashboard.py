@@ -18,7 +18,7 @@ def get_default_branch():
     return _default_branch
 
 def gh_get(path):
-    url = f"https://api.github.com/repos/{repo}/{path}"
+    url = f"https://api.github.com/repos/{repo}" + (f"/{path}" if path else "")
     req = urllib.request.Request(url, headers={
         'Authorization': f'token {token}',
         'Accept': 'application/vnd.github+json',
