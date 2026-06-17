@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.6.1",
+  "version": "2.7.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.7.0",
+        "date": "2026-06-17",
+        "title": "Populate the dashboard with your project's history in a few clicks",
+        "summary": "A new Populate history action (in the dashboard header's menu) queues CI for the revisions that already exist in your repository, so a dashboard you just set up fills in with results instead of starting empty. You choose where in history to begin, whether to run a lean diff-based pass (VI Snapshots and VIDiff only - the visual history of what each revision changed) or every activity, and exactly which activities to queue. Everything runs oldest to newest so snapshots and diffs build on one another with no duplicated work, only activities that have not run yet are queued, and VI Snapshots backfills the whole history in a single incremental pass. The same choices are now offered from the fresh-install card via a new 'Choose activities or where to start' link, and a stored-cross-site-scripting issue where a crafted commit message could inject markup into the dashboard table has been fixed.",
+        "highlights": [
+          "New 'Populate history' item in the dashboard header menu opens a dialog that queues CI for your existing revisions, so a freshly set-up dashboard fills in with results.",
+          "Pick where in history to start, choose a lean diff-based pass (VI Snapshots + VIDiff) or run every activity, and select exactly which activities to queue - with a live summary of how many runs will be queued.",
+          "Runs oldest -> newest with no duplicated work: only activities that have not run yet are queued, VIDiff skips root commits, and VI Snapshots backfills the whole history in one incremental pass.",
+          "The fresh-install card now links to the same dialog ('Choose activities or where to start'), and a stored-XSS issue with crafted commit messages in the dashboard table is fixed."
+        ]
+      },
       {
         "version": "2.6.1",
         "date": "2026-06-17",
