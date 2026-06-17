@@ -745,7 +745,21 @@ run_dialog_css = (
     # checkboxes, diff-based toggle). Reuses the run-modal chrome + cidash-btn.
     '.cidash-hist-sec{margin:0 0 16px}'
     '.cidash-hist-lbl{display:block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-muted);margin:0 0 7px}'
-    '#cidash-hist-start{width:100%;padding:8px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.9em;font-family:inherit}'
+    '.cidash-hist-scope{display:flex;flex-direction:column;gap:9px}'
+    '.cidash-hist-radio{display:flex;align-items:center;gap:9px;font-size:.9em;cursor:pointer;user-select:none}'
+    '.cidash-hist-radio input{accent-color:var(--link);width:15px;height:15px;margin:0;flex:0 0 auto}'
+    '.cidash-hist-radio .sub{color:var(--fg-muted);font-size:.88em}'
+    '.cidash-hist-rangerow{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:2px 0 4px 25px}'
+    '.cidash-hist-rangerow label{display:flex;align-items:center;gap:7px;font-size:.84em;color:var(--fg-muted)}'
+    '#cidash-hist-from,#cidash-hist-to{padding:7px 9px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.85em;font-family:inherit;max-width:248px}'
+    '.cidash-hist-spectools{display:flex;gap:14px;margin:2px 0 6px 25px;font-size:.8em}'
+    '.cidash-hist-spectools a{color:var(--link);cursor:pointer}.cidash-hist-spectools a:hover{text-decoration:underline}'
+    '.cidash-hist-speclist{display:flex;flex-direction:column;gap:1px;max-height:210px;overflow:auto;margin-left:25px;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--bg)}'
+    '.cidash-hist-specitem{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:5px;font-size:.84em;cursor:pointer;min-width:0}'
+    '.cidash-hist-specitem:hover{background:var(--surface)}'
+    '.cidash-hist-specitem input{accent-color:var(--link);width:14px;height:14px;margin:0;flex:0 0 auto}'
+    '.cidash-hist-specitem .sh{font-family:ui-monospace,Menlo,monospace;color:var(--fg-muted);flex:0 0 auto}'
+    '.cidash-hist-specitem .ms{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}'
     '.cidash-hist-acts{display:flex;flex-direction:column;gap:7px}'
     '.cidash-hist-act{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid var(--border);border-radius:7px;background:var(--bg);cursor:pointer;font-size:.88em;user-select:none}'
     '.cidash-hist-act:hover{border-color:var(--link)}'
@@ -1425,15 +1439,37 @@ run_dialog = (r"""
       HIST_CAPS.forEach(function(o){ var b=document.getElementById('cidash-hist-act-'+o[0]); if(b && b.checked && !b.disabled) caps[o[0]]=1; });
       return caps;
     }
+    function histScopeMode(){ var r=document.querySelector('input[name="cidash-hist-scope"]:checked'); return r ? r.value : 'all'; }
+    function histIdx(sha){ for(var i=0;i<HIST.length;i++){ if(HIST[i].sha===sha) return i; } return -1; }
     function histIncludedShas(){
-      // "Start from" picks an (older) revision; include it and everything NEWER.
-      // HIST is newest-first, so that is indices 0..iStart. '' = the oldest = all.
-      var sel=document.getElementById('cidash-hist-start');
-      var startSha = sel ? sel.value : '';
-      var iStart = HIST.length-1;
-      if(startSha){ for(var i=0;i<HIST.length;i++){ if(HIST[i].sha===startSha){ iStart=i; break; } } }
-      var inc={}; for(var j=0;j<=iStart && j<HIST.length;j++){ inc[HIST[j].sha]=1; }
+      // Three scopes drive which revisions are queued (HIST is newest-first):
+      //   all      -> every revision
+      //   range    -> Start (older bound) .. Stop (newer bound), inclusive; a blank
+      //               Start = oldest and a blank Stop = newest, and a reversed pair
+      //               is swapped so the range is always valid
+      //   specific -> exactly the ticked revisions (one or many)
+      var mode=histScopeMode(); var inc={};
+      if(mode==='specific'){
+        Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec:checked'), function(b){ inc[b.value]=1; });
+        return inc;
+      }
+      if(mode==='range'){
+        var f=document.getElementById('cidash-hist-from'); var t=document.getElementById('cidash-hist-to');
+        var iFrom = (f && f.value) ? histIdx(f.value) : HIST.length-1;   // '' = oldest
+        var iTo   = (t && t.value) ? histIdx(t.value) : 0;               // '' = newest
+        if(iFrom<0) iFrom=HIST.length-1; if(iTo<0) iTo=0;
+        var lo=Math.min(iFrom,iTo), hi=Math.max(iFrom,iTo);
+        for(var j=lo;j<=hi;j++){ if(HIST[j]) inc[HIST[j].sha]=1; }
+        return inc;
+      }
+      HIST.forEach(function(r){ inc[r.sha]=1; });
       return inc;
+    }
+    function histScopeApply(){
+      // Reveal only the sub-control for the chosen scope.
+      var mode=histScopeMode();
+      var rr=document.getElementById('cidash-hist-rangerow'); if(rr) rr.style.display = (mode==='range') ? '' : 'none';
+      var sw=document.getElementById('cidash-hist-specwrap'); if(sw) sw.style.display = (mode==='specific') ? '' : 'none';
     }
     function histCells(){
       var caps=histSelectedCaps(); var inc=histIncludedShas();
@@ -1474,10 +1510,21 @@ run_dialog = (r"""
       var body=document.getElementById('cidash-hist-body'); if(!body) return;
       var h='';
       h += '<p style="margin:0 0 16px;color:var(--fg-muted);font-size:.86em;line-height:1.55">Queue CI for revisions that already exist so the dashboard fills in. Runs <strong>oldest \u2192 newest</strong>; only activities that haven\u2019t run yet are queued, and VI Snapshots backfills the whole history in one incremental pass.</p>';
-      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl" for="cidash-hist-start">Start from</label>';
-      h += '<select id="cidash-hist-start"><option value="">Beginning \u2014 all '+HIST.length+' revision'+(HIST.length===1?'':'s')+'</option>';
-      HIST.forEach(function(r){ var lab=(r.short||'')+(r.msg?(' \u2014 '+r.msg):''); h += '<option value="'+esc(r.sha)+'">'+esc(lab)+'</option>'; });
-      h += '</select></div>';
+      var optsHtml = HIST.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
+      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label><div class="cidash-hist-scope">';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> All '+HIST.length+' revision'+(HIST.length===1?'':'s')+' <span class="sub">\u2014 the full history</span></label>';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="range"> A range of history</label>';
+      h += '<div class="cidash-hist-rangerow" id="cidash-hist-rangerow" style="display:none">';
+      h += '<label>Start at <select id="cidash-hist-from"><option value="">Oldest (beginning)</option>'+optsHtml+'</select></label>';
+      h += '<label>stop at <select id="cidash-hist-to"><option value="">Newest (latest)</option>'+optsHtml+'</select></label>';
+      h += '</div>';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="specific"> Specific revision(s)</label>';
+      h += '<div id="cidash-hist-specwrap" style="display:none">';
+      h += '<div class="cidash-hist-spectools"><a href="#" id="cidash-hist-spec-all">Select all</a><a href="#" id="cidash-hist-spec-none">Clear</a></div>';
+      h += '<div class="cidash-hist-speclist" id="cidash-hist-speclist">';
+      HIST.forEach(function(r){ h += '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"><span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span></label>'; });
+      h += '</div></div>';
+      h += '</div></div>';
       h += '<div class="cidash-hist-sec"><label class="cidash-hist-toggle"><input type="checkbox" id="cidash-hist-diff" checked>'
         + '<span><span class="cidash-hist-tmain">Diff-based \u2014 modified files only</span>'
         + '<span class="cidash-hist-tsub">Runs just VI Snapshots and VIDiff (the visual history of what each revision changed). Uncheck to also run Mass Compile and VI Analyzer on every revision.</span></span></label></div>';
@@ -1503,13 +1550,18 @@ run_dialog = (r"""
       h += '<button class="cidash-btn cidash-ghost" id="cidash-hist-cancel">Cancel</button></div>';
       body.innerHTML=h;
       var diff=document.getElementById('cidash-hist-diff'); if(diff) diff.addEventListener('change', function(){ histDiffApply(); histRefresh(); });
-      var start=document.getElementById('cidash-hist-start'); if(start) start.addEventListener('change', histRefresh);
+      Array.prototype.forEach.call(document.querySelectorAll('input[name="cidash-hist-scope"]'), function(r){ r.addEventListener('change', function(){ histScopeApply(); histRefresh(); }); });
+      var hf=document.getElementById('cidash-hist-from'); if(hf) hf.addEventListener('change', histRefresh);
+      var ht=document.getElementById('cidash-hist-to'); if(ht) ht.addEventListener('change', histRefresh);
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
+      var spa=document.getElementById('cidash-hist-spec-all'); if(spa) spa.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=true; }); histRefresh(); });
+      var spn=document.getElementById('cidash-hist-spec-none'); if(spn) spn.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=false; }); histRefresh(); });
       HIST_CAPS.forEach(function(o){ var b=document.getElementById('cidash-hist-act-'+o[0]); if(b) b.addEventListener('change', histRefresh); });
       var go=document.getElementById('cidash-hist-go'); if(go) go.addEventListener('click', histRun);
       var cancel=document.getElementById('cidash-hist-cancel'); if(cancel) cancel.addEventListener('click', cidashHistClose);
       var save=document.getElementById('cidash-hist-tok-save'); if(save) save.addEventListener('click', function(){ var i=document.getElementById('cidash-hist-tok-input'); var v=(i&&i.value||'').trim(); if(!v){ if(i) i.focus(); return; } setTok(v); histTokPanel(false); histRun(); });
       var tin=document.getElementById('cidash-hist-tok-input'); if(tin) tin.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); var v=(tin.value||'').trim(); if(v){ setTok(v); histTokPanel(false); histRun(); } } });
-      histDiffApply(); histRefresh();
+      histScopeApply(); histDiffApply(); histRefresh();
     }
     function histOpen(){
       var m=histModal(); if(!m) return;

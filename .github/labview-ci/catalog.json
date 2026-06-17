@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.8.0",
+  "version": "2.8.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.8.1",
+        "date": "2026-06-17",
+        "title": "Populate history: choose a range or pick specific revisions",
+        "summary": "The Populate history dialog now lets you target exactly the revisions you want, not just everything from a starting point. A new 'Which revisions' control offers three scopes: All revisions (the full history), A range of history - work through revisions from a chosen start commit and, optionally, stop at a chosen commit - or Specific revision(s), a checklist where you tick exactly the one or several commits to run (with Select all / Clear shortcuts). Reversed range pickers are handled gracefully, the live summary updates as you choose, and everything still runs oldest to newest, queuing only the activities that have not run yet.",
+        "highlights": [
+          "New 'Which revisions' scope control in Populate history: All revisions, a Range (start at a commit and optionally stop at one), or Specific revision(s).",
+          "Specific mode is a checklist of your revisions with Select all / Clear, so you can re-run just one commit or any handful you choose.",
+          "Range mode works through history from your chosen start to an optional stop point; a reversed start/stop is corrected automatically.",
+          "The live summary reflects the chosen scope, and runs still go oldest -> newest queuing only activities that have not run yet."
+        ]
+      },
       {
         "version": "2.8.0",
         "date": "2026-06-17",
