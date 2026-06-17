@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.5.0",
+  "version": "2.5.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.5.1",
+        "date": "2026-06-17",
+        "title": "The upgrade page shows the live upgrade instead of letting you restart it",
+        "summary": "When an update is already running, the What's New page now reflects that it is in progress and locks its controls, so you cannot accidentally start a second update. It shows live progress polled from GitHub - the workflow run, then the pull request, then the merge - and you can expand a panel to see the exact workflow jobs and steps as they execute. The page detects an in-flight update even if it was started from another device or browser, so clicking the dashboard's Updating badge always lands on an honest status instead of a button that offers to start the update again.",
+        "highlights": [
+          "The upgrade page now recognises an update already in progress - even one started elsewhere - by checking GitHub directly, not just this browser.",
+          "While an update is in flight the controls lock, so a duplicate update can never be started; the page points you to approving and merging the open pull request.",
+          "Expand the what-is-running panel to see the exact workflow jobs and steps of the update as they execute.",
+          "Clear, honest status replaces the old behaviour where the in-progress badge led to a page that offered to restart the update."
+        ]
+      },
       {
         "version": "2.5.0",
         "date": "2026-06-17",

@@ -145,6 +145,31 @@
     .up-prog-foot[hidden]{display:none}
     .up-prog-foot a{color:var(--link);cursor:pointer}
     .locked-area{opacity:.5;pointer-events:none;filter:saturate(.55)}
+    /* expandable "what's running" — the update workflow's jobs + live step */
+    .up-detail{margin:2px 0;border-top:1px solid var(--border);padding-top:11px}
+    .up-detail[hidden]{display:none}
+    .up-detail>summary{cursor:pointer;font-size:.83em;color:var(--link);user-select:none;list-style:none;display:flex;align-items:center;gap:6px}
+    .up-detail>summary::-webkit-details-marker{display:none}
+    .up-detail>summary::before{content:"\25B6";font-size:.7em;color:var(--fg-muted);transition:transform .15s}
+    .up-detail[open]>summary::before{transform:rotate(90deg)}
+    .up-jobs{margin:11px 0 2px;display:flex;flex-direction:column;gap:9px}
+    .up-job{border:1px solid var(--border);border-radius:8px;background:var(--bg);padding:9px 11px}
+    .up-job-head{display:flex;align-items:center;gap:8px;font-size:.86em}
+    .up-job-name{font-weight:600;color:var(--fg)}
+    .up-job-state{margin-left:auto;font-size:.77em;color:var(--fg-muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:capitalize}
+    .up-job-ico{width:14px;height:14px;flex:none;border-radius:50%;display:inline-block;background:var(--border)}
+    .up-job-ico.run{background:none;border:2px solid var(--border);border-top-color:var(--link);animation:upspin .8s linear infinite}
+    .up-job-ico.ok{background:var(--accent)}
+    .up-job-ico.bad{background:#cf222e}
+    .up-job-ico.wait{background:var(--warn)}
+    .up-steps2{margin:8px 0 0;padding:0;list-style:none;font-size:.8em}
+    .up-steps2 li{display:flex;align-items:center;gap:7px;padding:2px 0;color:var(--fg-muted);line-height:1.4}
+    .up-steps2 li.run{color:var(--fg);font-weight:600}
+    .up-step-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--border)}
+    .up-steps2 li.run .up-step-dot{background:var(--link)}
+    .up-steps2 li.ok .up-step-dot{background:var(--accent)}
+    .up-steps2 li.bad .up-step-dot{background:#cf222e}
+    .up-jobs-note{font-size:.8em;color:var(--fg-muted);margin:9px 0 2px}
   </style>
 </head>
 <body>
@@ -231,6 +256,10 @@
         </ol>
         <p class="up-prog-msg" id="upMsg"></p>
         <div class="up-prog-links" id="upLinks"></div>
+        <details class="up-detail" id="upDetails" hidden>
+          <summary id="upDetailsSummary">Show what&rsquo;s running</summary>
+          <div class="up-jobs" id="upJobs"></div>
+        </details>
         <div class="up-prog-foot" id="upProgFoot" hidden></div>
       </div>
       <div class="status" id="cmdStatus" style="margin-bottom:4px"></div>
@@ -449,10 +478,10 @@
     // The update runs server-side (apply-tooling-update.yml), so we surface honest
     // progress by POLLING real GitHub state: the dispatched workflow run
     // (queued -> in_progress -> completed), then the pull request it opens, then
-    // the merge. The whole control set stays locked through the automatic phases so
-    // a user can't fire a duplicate update; it unlocks once the PR exists (their
-    // turn to approve + merge). Progress is mirrored to localStorage so a reload
-    // restores the live view instead of looking idle.
+    // the merge. The whole control set stays locked through every in-flight phase
+    // (including while the PR waits for the user to approve + merge) so a duplicate
+    // update can never be started; it unlocks only once the update finishes or
+    // fails. Progress is mirrored to localStorage so a reload restores the live view.
     const PH = { IDLE: 0, DISPATCH: 1, QUEUED: 2, RUNNING: 3, OPENING: 4, REVIEW: 5, DONE: 6, ERROR: -1 };
     const PROG_KEY = "lvci_update_progress";
     const prog = { phase: PH.IDLE, ver: "", runId: 0, runUrl: "", prUrl: "", prNum: 0, ts: 0, timers: [] };
@@ -477,7 +506,9 @@
       ["updateNowBtn", "target", "viewRelease"].forEach(id => { const el = $(id); if (el) el.disabled = b; });
       const cli = $("cliDetails"); if (cli) cli.classList.toggle("locked-area", b);
       const btn = $("updateNowBtn");
-      if (btn) btn.innerHTML = b ? "&#8635; Updating&hellip;" : ("&#11014; Update to v" + esc(state.target || state.latest || ""));
+      if (btn) btn.innerHTML = b
+        ? (prog.phase === PH.REVIEW ? "&#9203; Update in progress&hellip;" : "&#8635; Updating&hellip;")
+        : ("&#11014; Update to v" + esc(state.target || state.latest || ""));
       if (b) hideTokenPanel();
     }
 
@@ -512,20 +543,25 @@
       const lz = $("upLinks"); if (lz) lz.innerHTML = links.join("");
       const foot = $("upProgFoot");
       if (foot) {
-        const showFoot = prog.phase === PH.REVIEW || prog.phase === PH.DONE || prog.phase === PH.ERROR;
+        // Dismiss only when the update has truly stopped (done/failed). While it
+        // is in flight the controls stay locked — there is no restart path.
+        const showFoot = prog.phase === PH.DONE || prog.phase === PH.ERROR;
         foot.hidden = !showFoot;
         if (showFoot) {
           foot.innerHTML = (prog.phase === PH.DONE)
             ? `<a id="upReset">Update another version</a>`
-            : `<a id="upReset">Dismiss</a> &mdash; ${prog.phase === PH.ERROR ? "you can try again." : "this won\u2019t cancel the update already running on GitHub."}`;
+            : `<a id="upReset">Dismiss</a> &mdash; you can try again.`;
           const r = $("upReset"); if (r) r.addEventListener("click", resetProgress);
         }
       }
+      syncJobsPanel();
     }
 
     function setPhase(phase, msg) {
       prog.phase = phase;
-      lockUpdateControls(phase >= PH.DISPATCH && phase <= PH.OPENING);
+      // Lock every in-flight phase (dispatch -> review) so a user who lands on
+      // an update already in progress cannot start a duplicate.
+      lockUpdateControls(phase >= PH.DISPATCH && phase <= PH.REVIEW);
       renderProgress(msg);
       // Errors aren't resumable; only persist the live automatic/review phases.
       if (phase === PH.IDLE || phase === PH.DONE || phase === PH.ERROR) clearProg(); else saveProg();
@@ -588,7 +624,7 @@
     function dispatchUpdate() {
       const ver = state.target || state.latest || "";
       if (!ver) return;
-      if (prog.phase >= PH.DISPATCH && prog.phase <= PH.OPENING) return; // already running — no duplicates
+      if (prog.phase >= PH.DISPATCH && prog.phase <= PH.REVIEW) return; // already running — no duplicates
       if (!getTok()) { showTokenPanel(); return; }
       prog.ver = ver; prog.ts = Date.now(); prog.runId = 0; prog.runUrl = ""; prog.prUrl = ""; prog.prNum = 0;
       clearTimers();
@@ -678,6 +714,133 @@
         .catch(() => { if (tries < 40) later(() => pollPrMerged(num, tries + 1), 8000); });
     }
 
+    // ---- "what's running": the update workflow's jobs + live step ----------
+    // An honest drill-down into the automatic work. Reads the run's jobs from
+    // GitHub and shows each job with its current step, so the user can see exactly
+    // what is executing rather than wondering whether anything is happening.
+    let jobsTimer = 0;
+    function stopJobsTimer() { if (jobsTimer) { clearTimeout(jobsTimer); jobsTimer = 0; } }
+    const JOB_ICO = { in_progress: "run", queued: "wait", waiting: "wait", pending: "wait", requested: "wait" };
+    function jobIconClass(job) {
+      if (job.status !== "completed") return JOB_ICO[job.status] || "wait";
+      return job.conclusion === "success" ? "ok"
+        : (job.conclusion === "skipped" || job.conclusion === "neutral") ? "wait" : "bad";
+    }
+    function stepClass(st) {
+      if (st.status !== "completed") return st.status === "in_progress" ? "run" : "";
+      return st.conclusion === "success" ? "ok" : st.conclusion === "skipped" ? "" : "bad";
+    }
+    function renderJobs(jobs) {
+      const box = $("upJobs"); if (!box) return;
+      if (!jobs || !jobs.length) {
+        box.innerHTML = `<p class="up-jobs-note">Waiting for the update workflow to report its steps&hellip;</p>`;
+        return;
+      }
+      box.innerHTML = jobs.map((job) => {
+        const ico = jobIconClass(job);
+        const stateTxt = job.status === "completed" ? (job.conclusion || "done") : String(job.status).replace(/_/g, " ");
+        const steps = (job.steps || []).filter((s) => s.name && s.number > 0);
+        const running = steps.find((s) => s.status === "in_progress");
+        const stepsHtml = steps.length
+          ? `<ul class="up-steps2">` + steps.map((s) =>
+              `<li class="${stepClass(s)}"><span class="up-step-dot"></span>${esc(s.name)}</li>`).join("") + `</ul>`
+          : "";
+        const head = `<div class="up-job-head"><span class="up-job-ico ${ico}"></span>` +
+          `<span class="up-job-name">${esc(job.name || "job")}</span>` +
+          `<span class="up-job-state">${esc(running ? running.name : stateTxt)}</span></div>`;
+        return `<div class="up-job">${head}${stepsHtml}</div>`;
+      }).join("");
+    }
+    function refreshJobs() {
+      const det = $("upDetails");
+      if (!det || det.hidden || !det.open) return;
+      if (!prog.runId) { renderJobs(null); return; }
+      fetch(`https://api.github.com/repos/${state.repo}/actions/runs/${prog.runId}/jobs?per_page=100`,
+        { cache: "no-store", headers: authHeaders() })
+        .then((r) => r.ok ? r.json() : null)
+        .then((j) => {
+          renderJobs(j && j.jobs);
+          stopJobsTimer();
+          // Keep refreshing while the run is still active and the panel is open.
+          if (prog.phase >= PH.QUEUED && prog.phase <= PH.OPENING && det.open && !det.hidden) {
+            jobsTimer = later(refreshJobs, 5000);
+          }
+        })
+        .catch(() => { renderJobs(null); });
+    }
+    // Show the drill-down whenever there is a concrete run to describe.
+    function syncJobsPanel() {
+      const det = $("upDetails"); if (!det) return;
+      const show = prog.phase !== PH.IDLE && !!prog.runId;
+      det.hidden = !show;
+      if (!show) { det.open = false; stopJobsTimer(); return; }
+      if (det.open) refreshJobs();
+    }
+
+    // ---- detect an update already in flight (independent of this browser) ---
+    // The dashboard badge shows "Updating to vX" from real GitHub state, so a user
+    // can land here with an update in progress that THIS browser never started (a
+    // different device, or a run kicked off elsewhere). Poll GitHub directly so the
+    // page reflects that — locked, with live progress — instead of offering to start
+    // it again. Public repos read unauthenticated; private repos use the saved
+    // token; any failure just leaves the normal (idle) page.
+    function verFromBranch(ref) {
+      const m = /(?:^|\/)(?:update|adopt)-tooling-v(\d+\.\d+\.\d+)/.exec(ref || "");
+      return m ? m[1] : "";
+    }
+    function findOpenUpdatePr() {
+      return fetch(`https://api.github.com/repos/${state.repo}/pulls?state=open&per_page=30`,
+        { cache: "no-store", headers: authHeaders() })
+        .then((r) => r.ok ? r.json() : null)
+        .then((list) => {
+          if (!Array.isArray(list)) return null;
+          const ours = list
+            .map((pr) => ({ pr, ver: verFromBranch(pr.head && pr.head.ref) }))
+            .filter((x) => x.ver && cmpVer(x.ver, state.from || "0") > 0)   // a genuine pending upgrade
+            .sort((a, b) => cmpVer(b.ver, a.ver));
+          return ours.length ? ours[0] : null;
+        }).catch(() => null);
+    }
+    function findActiveRun() {
+      return fetch(`https://api.github.com/repos/${state.repo}/actions/workflows/apply-tooling-update.yml/runs?per_page=10`,
+        { cache: "no-store", headers: authHeaders() })
+        .then((r) => r.ok ? r.json() : null)
+        .then((j) => {
+          const runs = (j && j.workflow_runs) || [];
+          return runs.filter((r) => r.status !== "completed")
+                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null;
+        }).catch(() => null);
+    }
+    function detectInFlight() {
+      if (prog.phase !== PH.IDLE) return;            // a local resume already owns the view
+      Promise.all([findOpenUpdatePr(), findActiveRun()]).then(([hit, run]) => {
+        if (prog.phase !== PH.IDLE) return;          // a resume landed while we polled
+        if (hit) {
+          const pr = hit.pr;
+          prog.ver = hit.ver; prog.ts = Date.now();
+          prog.prUrl = pr.html_url; prog.prNum = pr.number;
+          if (run) { prog.runId = run.id; prog.runUrl = run.html_url; }
+          setPhase(PH.REVIEW,
+            `An update to <code>v${esc(hit.ver)}</code> is already in progress. Pull request ` +
+            `<a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> is open &mdash; ` +
+            `<strong>approve its checks</strong> if GitHub shows <em>&ldquo;Action required&rdquo;</em>, then ` +
+            `<strong>merge</strong> it to finish.`);
+          pollPrMerged(pr.number, 0);
+          return;
+        }
+        if (run) {
+          prog.ver = state.target || state.latest || "";
+          prog.ts = new Date(run.created_at).getTime() || Date.now();
+          prog.runId = run.id; prog.runUrl = run.html_url;
+          setPhase(run.status === "in_progress" ? PH.RUNNING : PH.QUEUED,
+            run.status === "in_progress"
+              ? "An update is already building on GitHub Actions&hellip; tracking its progress."
+              : "An update is already queued on GitHub Actions&hellip; waiting for a runner.");
+          pollRun(0);
+        }
+      });
+    }
+
     // Restore a live update view after a reload (state is scoped to THIS repo and
     // expires after 2h). Resumes polling from wherever it left off.
     function resumeProgress() {
@@ -763,6 +926,7 @@
       $("tokCancel").addEventListener("click", hideTokenPanel);
       $("tokForget").addEventListener("click", () => { clearTok(); refreshTokForget(); setCmdStatus("Token removed from this browser.", null); });
       const ti = $("tokInput"); if (ti) ti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveTokAndDispatch(); } });
+      const det = $("upDetails"); if (det) det.addEventListener("toggle", () => { if (det.open) refreshJobs(); else stopJobsTimer(); });
     }
 
     // ---- init ------------------------------------------------------------
@@ -825,6 +989,7 @@
       wirePicker();
       wireButtons();
       resumeProgress();
+      if (prog.phase === PH.IDLE) detectInFlight();
     })();
   })();
   </script>
