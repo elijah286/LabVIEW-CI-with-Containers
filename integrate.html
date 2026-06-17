@@ -164,9 +164,6 @@
         <label class="insopt"><input type="checkbox" id="optPages" checked>
           <span><strong>Turn on GitHub Pages &amp; set Workflow permissions for me</strong><small>Sets Actions to read/write and enables Pages (<code class="inl">gh-pages</code>) so the dashboard goes live with no manual settings. Needs a broader token &mdash; Administration + Pages &mdash; and falls back to manual steps if you decline them.</small></span>
         </label>
-        <label class="insopt"><input type="checkbox" id="optAutoMerge">
-          <span><strong>Auto-merge this PR when it&rsquo;s created</strong><small>Squash &amp; merge the install pull request immediately (skips the review step). Re-run the installer with this unchecked if you want to review before merging.</small></span>
-        </label>
       </div>
 
       <div class="tokpanel reinstall" id="insReinstallPanel" style="display:none">
@@ -899,29 +896,6 @@
       return lines.join("\n");
     }
 
-    async function mergeInstallPr(pr, repo) {
-      try {
-        setInsStatus("Merging pull request&hellip;", null);
-        const mergeResp = await gh(`/repos/${repo}/pulls/${pr.number}/merge`, {
-          method: "PUT",
-          body: {
-            commit_title: pr.title,
-            commit_message: pr.body,
-            merge_method: "squash"
-          }
-        });
-        if (!mergeResp.ok) {
-          const err = await mergeResp.json();
-          console.warn("Merge failed:", err);
-          return false;
-        }
-        return true;
-      } catch (e) {
-        console.warn("Error auto-merging PR:", e);
-        return false;
-      }
-    }
-
     function installSuccess(pr, repo, setup) {
       setup = setup || {};
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
@@ -951,19 +925,6 @@
           note.innerHTML = `Heads up: your token didn&rsquo;t include <strong>Administration</strong> + <strong>Pages</strong>, so those two settings were left for you above. Re-create the token with those permissions (re-open the token panel) to have the configurator do it for you next time.`;
           note.style.display = "";
         } else { note.style.display = "none"; }
-      }
-
-      // Auto-merge if the checkbox is enabled
-      if ($("optAutoMerge") && $("optAutoMerge").checked) {
-        mergeInstallPr(pr, repo).then(success => {
-          if (success) {
-            setInsStatus(`&#10003; Done — pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`, "ok");
-            const nextEl = $("insNext");
-            if (nextEl) nextEl.style.display = "none";
-          } else {
-            setInsStatus(`&#10003; Opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but auto-merge failed (check the link above to merge manually).`, "ok");
-          }
-        });
       }
     }
 

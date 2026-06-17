@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.3.1",
+  "version": "2.3.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.3.2",
+        "date": "2026-06-17",
+        "title": "Safer default for concurrent runners, with clearer GitHub limits guidance",
+        "summary": "The Configure dialog's Max concurrent runners now defaults to 5 instead of 20, and explains an easy-to-miss detail about GitHub Actions: the simultaneous-jobs limit is per account, not per repository. GitHub's standard-runner concurrency cap (20 on Free, 40 on Pro, 60 on Team, 500 on Enterprise) is shared across every repository you own, and routine work such as submitting code or running a tooling upgrade draws from that same pool. So a high per-repo number, multiplied across several repositories, can quietly oversubscribe your account and leave jobs queued. The new conservative default leaves headroom, and the dialog, the reconfigure workflow, and the FAQ now spell out the per-account vs per-repo distinction so you can choose a number deliberately. The per-repo setting records your preferred ceiling, while GitHub's account-wide limit is what actually schedules and queues jobs.",
+        "highlights": [
+          "Max concurrent runners now defaults to 5 (was 20), leaving headroom under GitHub's per-account concurrency limit.",
+          "Clear guidance everywhere it matters: GitHub's simultaneous-jobs limit (Free 20, Pro 40, Team 60, Enterprise 500) is per account and shared across all your repositories, not per repo.",
+          "Reminds you that ordinary submissions and tooling upgrades also consume from that shared pool, so spreading CI across many repos adds up; pick a per-repo number judiciously.",
+          "FAQ corrected: included GitHub Actions minutes are 2,000/month on Free and 3,000/month on Pro and Team."
+        ]
+      },
       {
         "version": "2.3.1",
         "date": "2026-06-17",

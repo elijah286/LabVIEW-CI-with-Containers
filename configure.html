@@ -148,8 +148,8 @@
           </div>
           <div class="field">
             <label class="fl" for="runners">Max concurrent runners</label>
-            <input type="number" id="runners" min="1" max="50" value="20">
-            <div class="hint" style="margin-top:4px">Default 20 = GitHub Free concurrent-job limit.</div>
+            <input type="number" id="runners" min="1" max="50" value="5">
+            <div class="hint" style="margin-top:4px">Your per-repo preference for how many CI jobs run in parallel. GitHub's real concurrency limit is <strong>per account, not per repo</strong> &mdash; Free 20, Pro 40, Team 60, Enterprise 500 simultaneous jobs, shared across <em>all</em> your repositories. Runners are also consumed automatically whenever you submit code or run a tooling upgrade, so CI spread over several repos draws from that one shared pool. The default of 5 leaves headroom; raise it only if your account can spare the capacity.</div>
           </div>
         </div>
         <div class="subhead">Activities</div>
