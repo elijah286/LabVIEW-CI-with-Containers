@@ -271,6 +271,13 @@ def run_is_active(url):
 # Set as soon as any cell renders an actively-running activity; drives the
 # faster page auto-refresh so a live run (and its result) surfaces promptly.
 running_flag = {'on': False}
+# Together these gate the "Run all history" backfill card (built after the row
+# loop): `any_output` flips True the moment ANY terminal CI result is rendered,
+# and `run_count` counts the empty cells that offer a one-click run. The card is
+# emitted only on a fresh dashboard — no results, nothing running — that still
+# has revisions left to run, so it never appears once CI output exists.
+any_output = {'on': False}
+run_count  = {'n': 0}
 
 rows_html = []
 for c in commits_data:
@@ -339,6 +346,7 @@ for c in commits_data:
         # with no re-run workflow (or unknown caps) fall back to a plain dash.
         if cap not in RUN_TARGETS:
             return EMPTY_CELL
+        run_count['n'] += 1
         return ('<td style="text-align:center">'
                 f'<a href="#" class="cidash-run" data-cap="{cap}" data-sha="{sha}" '
                 f'data-parent="{parent}" data-short="{short}" '
@@ -382,6 +390,7 @@ for c in commits_data:
         s = pick_status(*contexts)
         if not s:
             return run_cell(cap) if cap else EMPTY_CELL
+        any_output['on'] = True
         color  = {'success':'#2ea043','failure':'#da3633','pending':'#9a6700','error':'#da3633'}.get(s['state'],'#555')
         emoji  = {'success':'✅','failure':'❌','pending':'⏳','error':'⚠️'}.get(s['state'],'?')
         url    = url_override or s.get('target_url','')
@@ -413,6 +422,7 @@ for c in commits_data:
         s = pick_status(*contexts)
         if not s:
             return EMPTY_CELL
+        any_output['on'] = True
         desc = (s.get('description') or '').strip()
         m = re.search(r'(?:win|linux)-[0-9a-f]{6,}', desc)
         ver = m.group(0) if m else (desc or 'manifest')
@@ -433,6 +443,7 @@ for c in commits_data:
         if _mc_run is not None:
             mc_badge = running_cell('compile', _mc_run.get('target_url', ''))
         elif _mc and isinstance(_mc.get('percent'), int):
+            any_output['on'] = True
             _pct = _mc['percent']
             _ok, _tot = _mc.get('ok', 0), _mc.get('total', 0)
             # Yellow whenever SOME VIs failed (a partial compile); red is reserved
@@ -476,6 +487,7 @@ for c in commits_data:
         elif not _counts:
             snap_badge = run_cell('snapshots')
         else:
+            any_output['on'] = True
             _links = []
             for _plat, _label in (('windows', 'Win'), ('linux', 'Linux')):
                 _n = _counts.get(_plat)
@@ -707,6 +719,18 @@ run_dialog_css = (
     # "#N" place-in-queue chip shown inside the Queued badge when several are waiting.
     '.cidash-qpos{margin-left:5px;font-weight:700;opacity:.92;font-variant-numeric:tabular-nums}'
     '.cidash-qpos:empty{display:none}'
+    # "Run all history" backfill card shown above the table on a fresh install.
+    '.lvci-backfill{border:1px solid var(--border);border-left:3px solid #1f6feb;'
+    'background:var(--surface);border-radius:10px;padding:14px 16px;margin:0 0 18px}'
+    '.lvci-bf-main{display:flex;align-items:center;gap:14px;flex-wrap:wrap}'
+    '.lvci-bf-icon{font-size:1.5em;line-height:1}'
+    '.lvci-bf-text{flex:1 1 320px;min-width:240px;font-size:.9em;line-height:1.5}'
+    '.lvci-bf-text strong{display:block;font-size:1.03em;margin-bottom:2px}'
+    '.lvci-bf-text span{color:var(--fg-muted)}'
+    '.lvci-bf-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}'
+    '.lvci-bf-tok{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;font-size:.84em;color:var(--fg-muted)}'
+    '.lvci-bf-status{font-size:.82em;margin-top:10px}'
+    '.lvci-bf-status:empty{display:none}'
 )
 # Modal + controller. Clicking a cell's play glyph opens this; clicking "Run now"
 # DISPATCHES the workflow(s) straight to GitHub Actions via the REST API
@@ -745,7 +769,12 @@ run_dialog = (r"""
     function $(id){ return document.getElementById(id); }
     function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
     function fill(t){ return String(t).replace(/\{sha\}/g, state.sha).replace(/\{parent\}/g, state.parent||''); }
-    function getTok(){ try{ return localStorage.getItem(TOK_KEY)||''; }catch(e){ return ''; } }
+    // The dashboard's own dispatch token; if it isn't set, fall back to the token
+    // saved during "Apply to New Repo" (lvci_install_token — same browser, same
+    // origin) so the SAME token used to set the dashboard up also queues runs here
+    // with no second token to create. It still needs Actions: Read and write to
+    // dispatch; if it lacks that, the 403 hint explains the one box to add.
+    function getTok(){ try{ return localStorage.getItem(TOK_KEY)||localStorage.getItem("lvci_install_token")||''; }catch(e){ return ''; } }
     function setTok(v){ try{ localStorage.setItem(TOK_KEY, v); }catch(e){} }
     function clearTok(){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} }
     function ghCmd(wf, inputs){
@@ -1207,12 +1236,160 @@ run_dialog = (r"""
       }
     });
     document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(qModalOpen()) cidashQClose(); else cidashRunClose(); } });
+    // ── "Run all history" backfill card ──────────────────────────────
+    // On a fresh dashboard (gated server-side: no results, nothing running) the
+    // card offers to queue CI for the WHOLE history in one click, oldest commit
+    // first. Snapshots are not per-commit (every snapshot cell dispatches the same
+    // gallery workflow), so instead of one run per row we fire a SINGLE run in the
+    // workflow's "backfill" mode — it walks history oldest→newest and seeds from
+    // the already-deployed gallery, so nothing is rendered twice. Mass Compile /
+    // VI Analyzer / VIDiff are per-revision, so those are dispatched once each,
+    // oldest first and gently throttled. The card self-hides once anything is
+    // queued and can be dismissed (remembered per repo).
+    var BF_DISMISS_KEY = "lvci_backfill_dismissed";
+    function bfCard(){ return document.getElementById('lvci-backfill'); }
+    function bfDismissed(){ try{ return localStorage.getItem(BF_DISMISS_KEY) === REPO; }catch(e){ return false; } }
+    function bfHide(){ var c=bfCard(); if(c) c.style.display='none'; }
+    function bfDismiss(){ try{ localStorage.setItem(BF_DISMISS_KEY, REPO); }catch(e){} bfHide(); }
+    function bfTokPanel(show){ var p=document.getElementById('lvci-bf-tok'); if(p) p.style.display = show ? 'block' : 'none'; }
+    function bfStatus(html, kind){
+      var s=document.getElementById('lvci-bf-status'); if(!s) return;
+      var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
+      s.style.color=col; s.innerHTML=html||'';
+    }
+    function bfCells(){
+      // Every empty run-glyph paired with its row order. The table is rendered
+      // newest-first, so a larger row index = an older commit; dispatching in
+      // descending row order is therefore oldest-first.
+      var out=[]; var rows=document.querySelectorAll('tbody tr[data-project]');
+      Array.prototype.forEach.call(rows, function(tr, idx){
+        Array.prototype.forEach.call(tr.querySelectorAll('a.cidash-run'), function(a){
+          out.push({ cap:a.getAttribute('data-cap'), sha:a.getAttribute('data-sha'),
+                     parent:a.getAttribute('data-parent')||'', order:idx });
+        });
+      });
+      return out;
+    }
+    function bfShow(){
+      var c=bfCard(); if(!c) return;
+      // Hide on a repo we've dismissed, or once anything has been queued from here
+      // ("disappear after anything is run"); otherwise show with a live count.
+      var queued = Object.keys(qLoad()).length > 0;
+      if(bfDismissed() || queued){ c.style.display='none'; return; }
+      var cells=bfCells(); if(!cells.length){ c.style.display='none'; return; }
+      var shas={}; cells.forEach(function(x){ shas[x.sha]=1; });
+      var n=document.getElementById('lvci-bf-count'); if(n) n.textContent=String(Object.keys(shas).length);
+      c.style.display='';
+    }
+    function bfFill(t, sha, parent){ return String(t).replace(/\{sha\}/g, sha).replace(/\{parent\}/g, parent||''); }
+    function bfInputs(p, sha, parent){ var o={}; Object.keys(p.inputs).forEach(function(k){ o[k]=bfFill(p.inputs[k], sha, parent); }); return o; }
+    function bfRunAll(){
+      var cells=bfCells();
+      if(!cells.length){ bfStatus('Nothing left to run \u2014 every revision is queued or already has results.', 'ok'); return; }
+      if(!getTok()){ bfTokPanel(true); bfStatus('Add a token (Actions: Read and write) to queue runs.', 'warn'); var i=document.getElementById('lvci-bf-tok-input'); if(i) i.focus(); return; }
+      bfTokPanel(false);
+      var runBtn=document.getElementById('lvci-bf-run'); var disBtn=document.getElementById('lvci-bf-dismiss');
+      if(runBtn) runBtn.disabled=true; if(disBtn) disBtn.disabled=true;
+      var perRev=[]; var snapShas=[]; var sawSnap=false;
+      cells.forEach(function(x){
+        if(x.cap==='snapshots'){ sawSnap=true; snapShas.push(x.sha); }
+        else if(!(x.cap==='vidiff' && !x.parent)){ perRev.push(x); }   // a root commit has no base to diff
+      });
+      perRev.sort(function(a,b){ return b.order - a.order; });   // oldest first
+      var total=perRev.length + (sawSnap?1:0);
+      var t0=Date.now(); var ok=0, err=0, done=0;
+      bfStatus('Queuing '+total+' workflow'+(total>1?'s':'')+'\u2026', null);
+      var chain=Promise.resolve();
+      // 1) Snapshots — one backfill run for the whole history (oldest→newest, deduped).
+      if(sawSnap){
+        chain=chain.then(function(){
+          return dispatchOne('vi-snapshots.yml', { mode:'backfill' }).then(function(r){
+            done++;
+            if(r.ok){ ok++; snapShas.forEach(function(sha){ markQueued('snapshots', sha, ['all'], '', t0); }); }
+            else { err++; if(r.status===401) clearTok(); }
+            bfStatus('Queuing\u2026 '+done+'/'+total, null);
+          });
+        });
+      }
+      // 2) Per-revision capabilities, oldest first, gently throttled so a long
+      //    history doesn't trip GitHub's secondary rate limits.
+      perRev.forEach(function(x){
+        chain=chain.then(function(){
+          var def=RT[x.cap]; if(!def){ return; }
+          var plats=Object.keys(def.platforms);
+          var jobs=plats.map(function(k){ var p=def.platforms[k]; return dispatchOne(p.wf, bfInputs(p, x.sha, x.parent)).then(function(r){ r.plat=k; return r; }); });
+          return Promise.all(jobs).then(function(results){
+            done++;
+            if(results.some(function(r){return r.status===401;})) clearTok();
+            var okPlats=results.filter(function(r){return r.ok;}).map(function(r){return r.plat;});
+            if(okPlats.length){ ok++; markQueued(x.cap, x.sha, okPlats, x.parent, Date.now()); captureRuns(x.cap, x.sha); }
+            else { err++; }
+            bfStatus('Queuing\u2026 '+done+'/'+total, null);
+          }).then(function(){ return new Promise(function(res){ setTimeout(res, 650); }); });
+        });
+      });
+      chain.then(function(){
+        if(runBtn) runBtn.disabled=false; if(disBtn) disBtn.disabled=false;
+        if(ok && !err){
+          bfStatus('\u2713 Queued '+ok+' workflow'+(ok>1?'s':'')+', oldest first \u2014 results appear as they finish. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
+          bfDismiss();
+        } else if(ok && err){
+          bfStatus('Queued '+ok+', but '+err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
+        } else {
+          bfStatus('Could not queue runs. The token needs <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code> (runs dispatch on <code>'+esc(BRANCH)+'</code>). <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', 'err');
+          bfTokPanel(true);
+        }
+      });
+    }
+    function bfInit(){
+      var c=bfCard(); if(!c) return;
+      var run=document.getElementById('lvci-bf-run'); if(run) run.addEventListener('click', bfRunAll);
+      var dis=document.getElementById('lvci-bf-dismiss'); if(dis) dis.addEventListener('click', function(){ bfDismiss(); });
+      var save=document.getElementById('lvci-bf-tok-save'); if(save) save.addEventListener('click', function(){ var i=document.getElementById('lvci-bf-tok-input'); var v=(i&&i.value||'').trim(); if(!v){ if(i) i.focus(); return; } setTok(v); bfRunAll(); });
+      var inp=document.getElementById('lvci-bf-tok-input'); if(inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); var v=(inp.value||'').trim(); if(v){ setTok(v); bfRunAll(); } } });
+      var link=document.getElementById('lvci-bf-tok-link'); if(link) link.href=tokenSetupUrl();
+      bfShow();
+    }
     // Re-apply optimistic "Queued" badges once the table exists (this script runs
-    // before the table is parsed), and after every auto-refresh thereafter.
-    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', applyQueued); }
-    else { applyQueued(); }
+    // before the table is parsed), and after every auto-refresh thereafter; wire
+    // the backfill card the same way.
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', function(){ applyQueued(); bfInit(); }); }
+    else { applyQueued(); bfInit(); }
   })();
-  </scr""" + """ipt>""").replace('__RUN_TARGETS__', run_targets_json).replace('__REPO__', repo).replace('__BRANCH__', 'main')
+  </scr""" + """ipt>""").replace('__RUN_TARGETS__', run_targets_json).replace('__REPO__', repo).replace('__BRANCH__', get_default_branch())
+
+# ── "Run CI for your whole history" card (fresh installs only) ───────────────
+# A brand-new dashboard has no results, so every project cell shows a one-click
+# run glyph. Rather than make the user click each one, this card offers to queue
+# them ALL at once, oldest revision first. It is emitted ONLY when the page is
+# output-free (no terminal results, nothing running) yet has revisions to run, so
+# it never appears once CI output exists; the client controller (in run_dialog)
+# also lets the user dismiss it and self-hides it once anything has been queued.
+# No literal braces in the markup, so this stays a plain string (the page template
+# below is an f-string; this is spliced in as {backfill_card}).
+backfill_card = ''
+if not any_output['on'] and not running_flag['on'] and run_count['n'] > 0:
+    backfill_card = (
+        '<div id="lvci-backfill" class="lvci-backfill" role="region" aria-label="Run CI for existing history" style="display:none">'
+        '<div class="lvci-bf-main">'
+        '<div class="lvci-bf-icon" aria-hidden="true">&#9889;</div>'
+        '<div class="lvci-bf-text">'
+        '<strong>Run CI for your existing revisions?</strong>'
+        '<span>This dashboard has no results yet. Queue CI for all <b id="lvci-bf-count"></b> revisions in one click &mdash; processed <b>oldest&nbsp;&rarr;&nbsp;newest</b> so snapshots and diffs build on one another with no duplicated work.</span>'
+        '</div>'
+        '<div class="lvci-bf-actions">'
+        '<button type="button" id="lvci-bf-run" class="cidash-btn cidash-go">&#9654; Run all history</button>'
+        '<button type="button" id="lvci-bf-dismiss" class="cidash-btn cidash-ghost">Dismiss</button>'
+        '</div></div>'
+        '<div id="lvci-bf-tok" class="lvci-bf-tok" style="display:none">'
+        'Paste a token with <strong>Actions: Read and write</strong> on this repository &mdash; the same token you set the dashboard up with works here too, or <a id="lvci-bf-tok-link" target="_blank" rel="noopener" style="color:var(--link)">create one &#8599;</a>.'
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px">'
+        '<input id="lvci-bf-tok-input" type="password" autocomplete="off" placeholder="github_pat_&hellip; or ghp_&hellip;" style="flex:1 1 240px;min-width:180px;padding:7px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.8em">'
+        '<button type="button" id="lvci-bf-tok-save" class="cidash-btn cidash-go">Save &amp; run</button>'
+        '</div></div>'
+        '<div id="lvci-bf-status" class="lvci-bf-status" role="status" aria-live="polite"></div>'
+        '</div>'
+    )
 
 html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1295,6 +1472,7 @@ html = f"""<!DOCTYPE html>
     <a href="https://github.com/{repo}">GitHub</a>
     <a href="https://github.com/{repo}/actions">Actions</a>
   </div>
+  {backfill_card}
   <label class="controls" for="show-nonproject">
     <input type="checkbox" id="show-nonproject">
     Include CI-only revisions

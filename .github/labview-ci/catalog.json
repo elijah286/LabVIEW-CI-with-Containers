@@ -1,11 +1,24 @@
 {
   "schemaVersion": 1,
-  "version": "2.3.2",
+  "version": "2.4.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.4.0",
+        "date": "2026-06-17",
+        "title": "Backfill CI for your whole history in one click",
+        "summary": "A brand-new dashboard starts empty because nothing has run yet. Now, on a fresh install, the dashboard shows a card at the top that offers to queue CI for every existing revision in a single click. It processes history oldest commit first and works forward, so snapshots and diffs build on one another instead of being recomputed: VI snapshots run as one backfill pass that walks the whole history and reuses what is already rendered, and each VIDiff is queued once against its real parent. Mass Compile, VI Analyzer, VIDiff and snapshots are all covered. The card disappears once anything is queued and can be dismissed (remembered per repository). It reuses the same token you set the dashboard up with, so there is no second token to create. This release also fixes dispatching runs on repositories whose default branch is not 'main' (for example 'master'), which previously failed with an HTTP 422 error.",
+        "highlights": [
+          "New 'Run all history' card on a fresh dashboard queues CI for every revision in one click, oldest first.",
+          "Snapshots run as a single oldest-to-newest backfill that seeds from what is already deployed, so nothing is rendered twice; diffs are queued once each against their true parent.",
+          "The card auto-hides once anything has been queued, and can be dismissed (remembered per repository).",
+          "Reuses the token you set the dashboard up with (Apply to New Repo) to queue runs, so no second token is needed; that setup token now also requests Actions: Read and write.",
+          "Fixed: queuing runs now works on repositories whose default branch is not 'main' (e.g. 'master'), which previously returned HTTP 422."
+        ]
+      },
       {
         "version": "2.3.2",
         "date": "2026-06-17",

@@ -533,18 +533,21 @@
     function tokenUrl() {
       const repo = $("repo").value.trim();
       const owner = repo.includes("/") ? repo.split("/")[0] : "";
-      const perms = { contents: "write", pull_requests: "write", workflows: "write" };
+      // contents/pull_requests/workflows let the install commit files and open the
+      // PR; actions:write lets this SAME token queue CI runs from the dashboard
+      // afterward (Run now / Run all history), so setup and running share one token.
+      const perms = { contents: "write", pull_requests: "write", workflows: "write", actions: "write" };
       if (wantsPages()) { perms.administration = "write"; perms.pages = "write"; }
       const p = new URLSearchParams(Object.assign({
         name: "LabVIEW CI installer",
-        description: "Installs the LabVIEW CI pipeline" + (repo ? " into " + repo : "") + " and opens a pull request."
+        description: "Installs the LabVIEW CI pipeline" + (repo ? " into " + repo : "") + " and opens a pull request; also queues CI runs from the dashboard."
       }, perms));
       if (owner) p.set("target_name", owner);
       return "https://github.com/settings/personal-access-tokens/new?" + p.toString();
     }
     function renderTokPanel() {
       const li = $("insTokPerms"); if (!li) return;
-      let html = `Confirm <strong>Permissions</strong> &mdash; <strong>Contents</strong>, <strong>Pull requests</strong>, and <strong>Workflows</strong> set to <strong>Read and write</strong> (Workflows is what lets the install add files under <code class="inl">.github/workflows/</code>)`;
+      let html = `Confirm <strong>Permissions</strong> &mdash; <strong>Contents</strong>, <strong>Pull requests</strong>, <strong>Workflows</strong>, and <strong>Actions</strong> set to <strong>Read and write</strong> (Workflows lets the install add files under <code class="inl">.github/workflows/</code>; Actions lets this same token queue CI runs from the dashboard later)`;
       if (wantsPages()) html += `, plus <strong>Administration</strong> and <strong>Pages</strong> (Read and write) so the configurator can set Workflow permissions and turn on Pages for you`;
       li.innerHTML = html + `.`;
     }
