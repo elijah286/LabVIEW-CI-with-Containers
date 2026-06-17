@@ -422,24 +422,6 @@ for c in commits_data:
         return (f'<td style="text-align:center"{cap_attrs}>'
                 f'<span style="background:{color};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">{link}</span></td>')
 
-    def worker_cell(*contexts):
-        # Worker-version column: the version string the worker status posted
-        # (e.g. win-abc123def456) linked to its published manifest. EMPTY_CELL
-        # for non-project revisions or before the analyzer reported a worker.
-        if not is_project:
-            return EMPTY_CELL
-        s = pick_status(*contexts)
-        if not s:
-            return EMPTY_CELL
-        any_output['on'] = True
-        desc = (s.get('description') or '').strip()
-        m = re.search(r'(?:win|linux)-[0-9a-f]{6,}', desc)
-        ver = m.group(0) if m else (desc or 'manifest')
-        url = s.get('target_url', '')
-        inner = f'<a href="{url}" style="color:inherit">{ver}</a>' if url else ver
-        return ('<td style="text-align:center"><span style="font-family:monospace;'
-                f'font-size:.72em;color:var(--fg-muted)">{inner}</span></td>')
-
     # Mass Compile column: show the % of project VIs that compiled (most VIs
     # compile even when a few depend on libraries absent from the CI image),
     # sourced from the run's summary.json. Falls back to the plain status badge
@@ -507,10 +489,14 @@ for c in commits_data:
                     _links.append(f'<a href="{_href}" style="color:var(--link)">{_label}({_n})</a>')
             snap_badge = f'<td style="text-align:center;font-size:.78em;white-space:nowrap">{" / ".join(_links)}</td>'
 
-    # Worker columns: which CI worker image analyzed this revision, each
-    # linking to that worker's published manifest (what's installed + VIPC).
-    win_worker   = worker_cell('CI / Worker (windows)')
-    linux_worker = worker_cell('CI / Worker (linux)')
+    # Unit Tests column: pass/fail from a LabVIEW unit-test framework (UTF / JKI
+    # VI Tester / Caraya) once a runner posts the "CI / Unit Tests" status. The
+    # capability is currently "planned" (no runner workflow yet), so this shows a
+    # neutral placeholder until results exist; WHICH framework ran belongs in the
+    # test report as metadata, not as separate per-framework columns. When the
+    # runner lands, add 'unit-tests' to RUN_TARGETS and pass cap=/doc= here to
+    # enable the Run-now button and a framed report.
+    unit_badge = badge('tests', 'CI / Unit Tests')
 
     rows_html.append(f"""
     <tr data-project="{proj_flag}">
@@ -524,8 +510,7 @@ for c in commits_data:
       {via_badge}
       {diff_badge}
       {snap_badge}
-      {win_worker}
-      {linux_worker}
+      {unit_badge}
     </tr>""")
 
 rows = '\n'.join(rows_html)
@@ -1715,8 +1700,19 @@ html = f"""<!DOCTYPE html>
     a{{color:var(--link);text-decoration:none}}a:hover{{text-decoration:underline}}
     .nav{{margin-bottom:16px;font-size:.9em}}
     .nav a{{margin-right:16px;color:var(--link)}}
-    .controls{{margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--fg-muted);font-size:.85em}}
+    .controls{{margin:0 0 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:var(--fg-muted);font-size:.85em}}
     .controls input{{margin:0;accent-color:var(--link)}}
+    .cidash-check{{display:inline-flex;align-items:center;gap:6px}}
+    /* Column-visibility menu (standard "Columns" dropdown of checkboxes). */
+    .cidash-colmenu{{position:relative;display:inline-block}}
+    .cidash-colbtn{{background:var(--surface);border:1px solid var(--border);color:var(--fg);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:1em;line-height:1.2;display:inline-flex;align-items:center;gap:6px}}
+    .cidash-colbtn:hover{{background:var(--hover)}}
+    .cidash-colpanel{{position:absolute;top:calc(100% + 6px);left:0;z-index:120;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:6px}}
+    .cidash-colpanel[hidden]{{display:none}}
+    .cidash-colpanel .hd{{font-size:.72em;color:var(--fg-muted);padding:4px 8px 6px;text-transform:uppercase;letter-spacing:.05em}}
+    .cidash-colopt{{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;cursor:pointer;color:var(--fg);white-space:nowrap;font-size:.95em}}
+    .cidash-colopt:hover{{background:var(--hover)}}
+    .cidash-colopt input{{margin:0;accent-color:var(--link)}}
     .run-badge{{display:inline-flex;align-items:center;background:#1f6feb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600}}
     .run-badge a:hover{{text-decoration:underline}}
     /* Optimistic "just queued from this browser" cue: a dashed ring distinguishes
@@ -1762,12 +1758,18 @@ html = f"""<!DOCTYPE html>
     <a href="https://github.com/{repo}/actions">Actions</a>
   </div>
   {backfill_card}
-  <label class="controls" for="show-nonproject">
-    <input type="checkbox" id="show-nonproject">
-    Include CI-only revisions
-  </label>
+  <div class="controls">
+    <label class="cidash-check" for="show-nonproject">
+      <input type="checkbox" id="show-nonproject">
+      Include CI-only revisions
+    </label>
+    <div class="cidash-colmenu">
+      <button type="button" id="cidash-colbtn" class="cidash-colbtn" aria-haspopup="true" aria-expanded="false">&#9783; Columns &#9662;</button>
+      <div id="cidash-colpanel" class="cidash-colpanel" role="menu" hidden></div>
+    </div>
+  </div>
   <div class="lvci-tablewrap">
-  <table>
+  <table id="cidash-table">
     <thead>
       <tr>
         <th>Commit</th><th>Message</th><th>Author</th><th>Date</th>
@@ -1775,8 +1777,7 @@ html = f"""<!DOCTYPE html>
         <th style="text-align:center">VI Analyzer</th>
         <th style="text-align:center">VIDiff</th>
         <th style="text-align:center">Snapshots</th>
-        <th style="text-align:center">Win Worker</th>
-        <th style="text-align:center">Linux Worker</th>
+        <th style="text-align:center">Unit Tests</th>
       </tr>
     </thead>
     <tbody>{rows}</tbody>
@@ -1808,6 +1809,59 @@ html = f"""<!DOCTYPE html>
       }};
       checkbox.addEventListener('change', applyFilter);
       applyFilter();
+    }})();
+
+    // Column-visibility menu: a standard "Columns" dropdown of checkboxes that
+    // toggles each (non-identifier) column on/off, persisted per-repo in
+    // localStorage so the choice survives reloads. Commit (column 0) is the row
+    // identifier and is always shown.
+    (() => {{
+      const STORE = 'lvci_dash_cols_{repo}';
+      const COLS = [
+        {{key:'message',     label:'Message',      idx:1}},
+        {{key:'author',      label:'Author',       idx:2}},
+        {{key:'date',        label:'Date',         idx:3}},
+        {{key:'masscompile', label:'Mass Compile', idx:4}},
+        {{key:'vi-analyzer', label:'VI Analyzer',  idx:5}},
+        {{key:'vidiff',      label:'VIDiff',       idx:6}},
+        {{key:'snapshots',   label:'Snapshots',    idx:7}},
+        {{key:'unit-tests',  label:'Unit Tests',   idx:8}}
+      ];
+      const btn = document.getElementById('cidash-colbtn');
+      const panel = document.getElementById('cidash-colpanel');
+      if (!btn || !panel) return;
+      const hidden = {{}};
+      try {{ (JSON.parse(localStorage.getItem(STORE)) || []).forEach((k) => {{ hidden[k] = true; }}); }} catch (e) {{}}
+      const persist = () => {{
+        try {{ localStorage.setItem(STORE, JSON.stringify(COLS.map((c) => c.key).filter((k) => hidden[k]))); }} catch (e) {{}}
+      }};
+      const applyCol = (col) => {{
+        const vis = !hidden[col.key];
+        document.querySelectorAll('#cidash-table > thead > tr, #cidash-table > tbody > tr').forEach((tr) => {{
+          const cell = tr.children[col.idx];
+          if (cell) cell.style.display = vis ? '' : 'none';
+        }});
+      }};
+      const head = document.createElement('div');
+      head.className = 'hd';
+      head.textContent = 'Show columns';
+      panel.appendChild(head);
+      COLS.forEach((col) => {{
+        const lab = document.createElement('label');
+        lab.className = 'cidash-colopt';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !hidden[col.key];
+        cb.addEventListener('change', () => {{ hidden[col.key] = !cb.checked; applyCol(col); persist(); }});
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(' ' + col.label));
+        panel.appendChild(lab);
+        applyCol(col);
+      }});
+      const setOpen = (open) => {{ panel.hidden = !open; btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }};
+      btn.addEventListener('click', (e) => {{ e.stopPropagation(); setOpen(panel.hidden); }});
+      document.addEventListener('click', (e) => {{ if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) setOpen(false); }});
+      document.addEventListener('keydown', (e) => {{ if (e.key === 'Escape') setOpen(false); }});
     }})();
   </script>
 </body>
