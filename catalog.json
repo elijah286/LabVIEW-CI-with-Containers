@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.4.0",
+  "version": "2.5.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.5.0",
+        "date": "2026-06-17",
+        "title": "Choose which VIPC files to bake into the worker container",
+        "summary": "The Configure dialog's Worker container section now lists every VIPC file found in your repository and lets you choose which ones to bake into the worker image. Discovered files are de-selected by default, so nothing new is added to the container until you tick it \u2014 you pick exactly the dependency files the project needs. Files already configured in your pipeline stay selected and keep their Monitor setting, so existing containers are unaffected. Once a file is included you can still turn on Monitor to rebuild and re-push the container automatically whenever that file changes.",
+        "highlights": [
+          "The Worker container section pre-populates with every .vipc file discovered in the repository, so you no longer have to type each path by hand.",
+          "Each discovered file has an include checkbox and is de-selected by default \u2014 only the files you tick are baked into the worker image.",
+          "Files already baked in your existing configuration load pre-selected and keep their Monitor setting, so current pipelines are unchanged.",
+          "Turn on Monitor for an included file to rebuild and re-push the container automatically whenever that file changes."
+        ]
+      },
       {
         "version": "2.4.0",
         "date": "2026-06-17",

@@ -67,6 +67,8 @@
     .pkg .pname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.84em}
     .pkg .psum{color:var(--fg-muted);font-size:.8em}
     .pkg .pver{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.74em;color:var(--fg-muted)}
+    .pkg .pkgctl{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+    .pkg .pkgmon{display:inline-flex;align-items:center;gap:5px;font-size:.76em;color:var(--fg-muted);white-space:nowrap;cursor:pointer;user-select:none}
     .addpkg{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
     .addpkg input{flex:1 1 160px}
     .badge{display:inline-block;font-size:.64em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
@@ -171,7 +173,7 @@
         </div>
 
         <div class="subhead">VIPC dependencies baked into the container</div>
-        <p class="hint">Each VIPC file is applied to the worker image so the project's add-on dependencies are available in CI. Turn on <strong>Monitor</strong> to rebuild and re-push the container automatically whenever that file changes on a submission &mdash; so the container always matches the dependencies the project needs.</p>
+        <p class="hint">VIPC files found in your repository are listed below, <strong>de-selected by default</strong>. Tick the ones you want baked into the worker image so their add-on dependencies are available in CI. Turn on <strong>Monitor</strong> for an included file to rebuild and re-push the container automatically whenever it changes on a submission &mdash; so the container always matches the dependencies the project needs.</p>
         <div class="pkgs" id="vipcs"></div>
         <div class="addpkg">
           <input type="text" id="newVipcPath" placeholder="path to a .vipc file (e.g. COTC Dependencies.vipc)">
@@ -259,7 +261,8 @@
     const actSel = new Set();
     let winLatest = null;                    // workers/windows/latest.json (current build)
     let containerUse = "latest";             // config.container.use (default tag activities pull)
-    let vipcList = [];                       // [{ path, monitor }] baked into the worker image
+    let vipcList = [];                       // [{ path, include, monitor }] repo VIPC files; only `include` ones are baked
+    let vipcFoundCount = 0;                  // how many .vipc files discovery found in the repo
     const actionContainer = new Map();       // activity id -> container tag override (absent = inherit `use`)
 
     const $ = (id) => document.getElementById(id);
@@ -406,32 +409,53 @@
     }
     function renderVipcs() {
       const host = $("vipcs"); if (!host) return; host.innerHTML = "";
+      updateVipcNote();
       if (!vipcList.length) {
-        host.innerHTML = '<div class="hint">No VIPC files configured yet. The image still builds; add a <code class="inl">.vipc</code> to bake project dependencies into the container.</div>';
+        host.innerHTML = '<div class="hint">No VIPC files found in this repository. The image still builds; add a <code class="inl">.vipc</code> path to bake project dependencies into the container.</div>';
         return;
       }
       vipcList.forEach((v, i) => {
+        const included = v.include === true;
         const row = document.createElement("div"); row.className = "pkg";
-        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = v.monitor !== false;
-        cb.title = "Monitor this file and rebuild the container automatically when it changes";
-        cb.addEventListener("change", () => { v.monitor = cb.checked; renderVipcs(); update(); });
+        // Primary control: include this VIPC in the worker container (de-selected by default).
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = included;
+        cb.title = "Include this VIPC file in the worker container";
+        cb.addEventListener("change", () => { v.include = cb.checked; renderVipcs(); update(); });
         const mid = document.createElement("div");
         mid.innerHTML = '<span class="pname">' + escapeHtml(v.path) + "</span>" +
-          '<div class="psum">' + (v.monitor !== false
-            ? "Monitored \u2014 rebuilds &amp; re-pushes the container when this file changes"
-            : "Baked once \u2014 not monitored for changes") + "</div>";
+          '<div class="psum">' + (included
+            ? (v.monitor !== false
+                ? "Included \u2014 monitored, rebuilds &amp; re-pushes the container when this file changes"
+                : "Included \u2014 baked once, not monitored for changes")
+            : "Not included \u2014 tick to bake this file into the container") + "</div>";
+        const ctl = document.createElement("div"); ctl.className = "pkgctl";
+        if (included) {
+          const ml = document.createElement("label"); ml.className = "pkgmon";
+          ml.title = "Monitor this file and rebuild the container automatically when it changes";
+          const mcb = document.createElement("input"); mcb.type = "checkbox"; mcb.checked = v.monitor !== false;
+          mcb.addEventListener("change", () => { v.monitor = mcb.checked; renderVipcs(); update(); });
+          ml.appendChild(mcb); ml.appendChild(document.createTextNode("Monitor"));
+          ctl.appendChild(ml);
+        }
         const rm = document.createElement("button"); rm.type = "button"; rm.className = "ghost"; rm.textContent = "Remove";
         rm.addEventListener("click", () => { vipcList.splice(i, 1); renderVipcs(); update(); });
-        row.appendChild(cb); row.appendChild(mid); row.appendChild(rm);
+        ctl.appendChild(rm);
+        row.appendChild(cb); row.appendChild(mid); row.appendChild(ctl);
         host.appendChild(row);
       });
     }
     function renderContainer() { renderContainerUse(); renderVipcs(); }
-    function setVipcNote(found) {
+    function updateVipcNote() {
       const el = $("vipcNote"); if (!el) return;
-      el.textContent = (found && found.length)
-        ? ("Found " + found.length + " VIPC file" + (found.length === 1 ? "" : "s") + " in the repository.")
-        : "";
+      const parts = [];
+      if (vipcFoundCount) parts.push("Found " + vipcFoundCount + " VIPC file" + (vipcFoundCount === 1 ? "" : "s") + " in the repository.");
+      if (vipcList.length) {
+        const sel = vipcList.filter(v => v.include === true).length;
+        parts.push(sel
+          ? (sel + " selected to bake into the container.")
+          : "None selected \u2014 files are de-selected by default; tick the ones you want baked in.");
+      }
+      el.textContent = parts.join(" ");
     }
 
     // ---- per-action container routing --------------------------------------
@@ -497,9 +521,10 @@
 
     function containerYamlLines() {
       const lines = ["  container:", "    use: " + (containerUseValue() || "latest")];
-      if (vipcList.length) {
+      const baked = vipcList.filter(v => v.include === true);
+      if (baked.length) {
         lines.push("    vipc:");
-        vipcList.forEach(v => {
+        baked.forEach(v => {
           lines.push('      - path: "' + String(v.path).replace(/"/g, "") + '"');
           lines.push("        monitor: " + (v.monitor !== false ? "true" : "false"));
         });
@@ -522,11 +547,13 @@
         if (!r.ok) return;
         const data = await r.json();
         const found = (data.tree || []).filter(t => t.type === "blob" && /\.vipc$/i.test(t.path)).map(t => t.path);
+        vipcFoundCount = found.length;
         const have = new Set(vipcList.map(v => v.path));
         let added = false;
-        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true }); added = true; } });
-        if (added) { renderVipcs(); update(); }
-        setVipcNote(found);
+        // Pre-populate every discovered file, de-selected by default — the user picks which to bake.
+        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true, include: false }); added = true; } });
+        renderVipcs();
+        if (added) update();
       } catch (_) {}
     }
 
@@ -571,7 +598,7 @@
       const repo = $("repo").value.trim();
       const r = repo.includes("/") ? ` -R ${repo}` : "";
       const antidoc = $("antidoc").checked ? "true" : "false";
-      const cVipc = vipcList.map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
+      const cVipc = vipcList.filter(v => v.include === true).map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
       const cActs = containerActionEntries().map(([id, t]) => `${id}::${t}`).join(";");
       const cLine = ` \\\n  -f container_use=${containerUseValue() || "latest"}` +
         (cVipc ? ` \\\n  -f container_vipc="${cVipc}"` : "") +
@@ -654,7 +681,7 @@
         if (m.activities.length) { actSel.clear(); m.activities.forEach(a => actSel.add(a)); renderActivities(); }
         if (m.runners) $("runners").value = m.runners;
         containerUse = m.containerUse || "latest";
-        vipcList = (m.vipc || []).map(v => ({ path: v.path, monitor: v.monitor !== false }));
+        vipcList = (m.vipc || []).map(v => ({ path: v.path, monitor: v.monitor !== false, include: true }));
         actionContainer.clear();
         Object.keys(m.actions || {}).forEach(id => actionContainer.set(id, m.actions[id]));
         renderContainer();
@@ -707,7 +734,8 @@
       $("containerUseCustom").addEventListener("input", () => { containerUse = containerUseValue(); update(); });
       $("addVipcBtn").addEventListener("click", () => {
         const p = $("newVipcPath").value.trim(); if (!p) return;
-        if (!vipcList.some(v => v.path === p)) vipcList.push({ path: p, monitor: true });
+        // Manually added paths are an explicit choice, so include them by default.
+        if (!vipcList.some(v => v.path === p)) vipcList.push({ path: p, monitor: true, include: true });
         $("newVipcPath").value = ""; renderVipcs(); update();
       });
     }
