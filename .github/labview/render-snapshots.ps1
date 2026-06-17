@@ -23,7 +23,7 @@
     -AdditionalOperationDirectory.
 
 .PARAMETER OutByBlobDir
-    Root of the content-addressed snapshot store (…\vi-snapshots\by-blob).
+    Root of the content-addressed snapshot store (...\vi-snapshots\by-blob).
 
 .PARAMETER WorkListPath
     TSV worklist file: "<blobsha>`t<vi_rel_path>" per line.
@@ -85,19 +85,36 @@ h1{font-size:1.1em;margin:0 0 8px}.muted{color:#8b949e;font-size:.85em}</style><
 # SuperSecretPrivateSpecialStuff is the scripting enabler. The merge is idempotent
 # and preserves every other key already present in the container's LabVIEW.ini.
 # Plain HTML snapshots do not need scripting, so the caller only invokes this when
-# the JSON operation is present (see the gated call below) — no base image change
+# the JSON operation is present (see the gated call below) - no base image change
 # is required; this travels with the tooling and runs inside the stock container.
 function Enable-LVScripting([string]$LabVIEWExePath) {
     $iniPath = Join-Path (Split-Path -Parent $LabVIEWExePath) 'LabVIEW.ini'
     $tokens  = [ordered]@{
+        # Enable VI scripting (Convert.vi traverses the block diagram).
         'SuperSecretPrivateSpecialStuff'    = 'True'
         'unattended'                        = 'True'
-        'NIERAutoSendAndSuppressAllDialogs' = 'True'
-        'SuppressRTConnectionDialogs'       = 'True'
-        'neverShowAddonLicensingStartup'    = 'True'
+        # Run our own LabVIEW instance without colliding with any other.
+        'AllowMultipleInstances'            = 'True'
+        # CRITICAL for scripting: setting VisFrame dirties the VI, so on ref
+        # close LabVIEW would pop a Save-changes dialog and hang the headless
+        # container. Auto-select do-not-save for all.
+        'SaveChangesAutoSelection'          = 'dont'
+        'SaveChanges_ApplyToAll'            = 'True'
+        'AutoSaveEnabled'                   = 'False'
+        # Suppress every licensing / warning / deploy dialog class.
         'neverShowLicensingStartupDialog'   = 'True'
-        'DWarnDialog'                        = 'False'
-        'AutoSaveEnabled'                    = 'False'
+        'neverShowAddonLicensingStartup'    = 'True'
+        'SuppressRTConnectionDialogs'       = 'True'
+        'DeployDlgCloseWindow'              = 'True'
+        'DWarnDialog'                       = 'False'
+        'nirviShowErrorDialogs'             = 'False'
+        'nirviShowErrorDialogsOld'          = 'False'
+        # Suppress NI Error Reporting (crash) dialogs that would block exit.
+        'NIERAutoSendAndSuppressAllDialogs' = 'True'
+        'NIERShowFatalDialog'               = '0'
+        'NIERSendDialogClose'               = 'True'
+        'NIERShowNonFatalDialogOnExit'      = 'False'
+        'autoerr'                           = '3'
     }
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
