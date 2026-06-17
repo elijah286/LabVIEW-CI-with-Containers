@@ -98,6 +98,12 @@
     .insdone li{position:relative;padding:0 0 0 24px;margin:0 0 7px;font-size:.88em;color:var(--fg);line-height:1.5}
     .insdone li::before{content:"\2713";position:absolute;left:0;top:1px;color:var(--accent);font-weight:700}
     .insdone small{display:block;color:var(--fg-muted);font-size:.86em;margin-top:1px}
+    .reinstall{border-color:var(--warn)}
+    .reinstall h3{display:flex;align-items:center;gap:7px}
+    .stalewrap{margin-top:7px}
+    .stalewrap summary{cursor:pointer;font-size:.82em;color:var(--link);user-select:none}
+    .stalelist{margin:7px 0 0;padding-left:18px;font-size:.82em;color:var(--fg-muted);max-height:180px;overflow:auto}
+    .stalelist li{margin:0 0 2px;word-break:break-all}
     details.altinstall>summary{cursor:pointer;font-size:.86em;color:var(--link);user-select:none}
     details.altinstall>summary:hover{text-decoration:underline}
   </style>
@@ -151,6 +157,25 @@
         <label class="insopt"><input type="checkbox" id="optPages" checked>
           <span><strong>Turn on GitHub Pages &amp; set Workflow permissions for me</strong><small>Sets Actions to read/write and enables Pages (<code class="inl">gh-pages</code>) so the dashboard goes live with no manual settings. Needs a broader token &mdash; Administration + Pages &mdash; and falls back to manual steps if you decline them.</small></span>
         </label>
+      </div>
+
+      <div class="tokpanel reinstall" id="insReinstallPanel" style="display:none">
+        <h3>&#9888; This repository already has LabVIEW CI</h3>
+        <p class="note" id="insReinstallSummary"></p>
+        <div class="insopts">
+          <label class="insopt" id="optKeepWrap"><input type="checkbox" id="optKeep" checked>
+            <span><strong>Keep the existing settings</strong><small id="optKeepDesc"></small></span>
+          </label>
+          <label class="insopt" id="optDeleteWrap" style="display:none"><input type="checkbox" id="optDeleteStale" checked>
+            <span><strong>Remove old tooling files no longer used</strong><small id="optDeleteDesc"></small>
+              <details class="stalewrap"><summary>Show files</summary><ul class="stalelist" id="insStaleList"></ul></details>
+            </span>
+          </label>
+        </div>
+        <div class="tokrow">
+          <button type="button" class="primary" id="insReinstallGo">Continue &amp; install</button>
+          <button type="button" class="ghost" id="insReinstallCancel">Cancel</button>
+        </div>
       </div>
 
       <div class="tokpanel" id="insTokPanel" style="display:none">
@@ -224,6 +249,7 @@
     let activeTab = "bash";
     const selected = new Set();   // capability ids the user checked
     const osSel = new Set(["windows","linux"]);
+    let priorState = null;        // set by detectPriorInstall when re-installing over an existing setup
 
     const $ = (id) => document.getElementById(id);
     const csv = (set) => [...set].join(",");
@@ -789,9 +815,9 @@
       ib.innerHTML = b ? "Installing&hellip;" : "&#11014; Install into your repo";
     }
 
-    function installPrBody(acts, osList, ver, fileCount) {
+    function installPrBody(acts, osList, ver, fileCount, removed, kept) {
       const s = source();
-      return [
+      const lines = [
         "## LabVIEW CI pipeline", "",
         "Opened by the **LabVIEW CI configurator** to add a containerized CI pipeline to this repository.", "",
         "| | |", "|---|---|",
@@ -799,13 +825,20 @@
         "| Platforms | " + (osList.join(", ") || "windows, linux") + " |",
         "| Capabilities | " + (acts.join(", ") || "dashboard") + " |",
         "| Files added | " + fileCount + " |",
-        "| Tooling source | `" + s.repo + "@" + s.ref + "` |", "",
-        "### After you merge", "",
+        "| Tooling source | `" + s.repo + "@" + s.ref + "` |"
+      ];
+      if (kept) lines.push("", "\u267b\ufe0f **Kept the settings from the previous install** (capabilities, LabVIEW version, and platforms).");
+      if (removed && removed.length) {
+        lines.push("", "### Removed " + removed.length + " old tooling file" + (removed.length > 1 ? "s" : ""), "",
+          "These were left by an earlier install and are no longer used:", "");
+        removed.forEach(p => lines.push("- `" + p + "`"));
+      }
+      lines.push("", "### After you merge", "",
         "1. **Workflow permissions** must be *Read and write* (Settings \u203a Actions \u203a General) \u2014 the configurator may have already set this for you.",
         "2. **GitHub Pages** must be enabled on the `gh-pages` branch (Settings \u203a Pages) \u2014 the configurator may have already enabled this for you; otherwise turn it on after the first run creates the branch.",
         "3. Open a pull request that changes a VI \u2014 the pipeline runs and reports back on the dashboard.", "",
-        "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", ""
-      ].join("\n");
+        "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", "");
+      return lines.join("\n");
     }
 
     function installSuccess(pr, repo, setup) {
@@ -814,6 +847,8 @@
       const url = dashboardUrl(repo);
 
       const done = [];
+      if (setup.kept) done.push(`Kept your existing settings &mdash; <strong>${esc(setup.kept)}</strong>.`);
+      if (setup.removed && setup.removed.length) done.push(`Removed <strong>${setup.removed.length}</strong> old tooling file${setup.removed.length > 1 ? "s" : ""} no longer used (in the pull request).`);
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
       if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a><small>It goes live after the first CI run; until then it shows a &ldquo;publishing&hellip;&rdquo; placeholder.</small>`);
@@ -856,18 +891,194 @@
       return (e && e.message ? esc(e.message) : "Install failed.") + gm;
     }
 
+    // ---- detecting + reconciling a previous installation -----------------
+    // Recognizes a LabVIEW-CI tooling workflow by content (survives branding
+    // substitution — these markers are never the source-repo string we rewrite),
+    // so stale-file detection never deletes a user's own unrelated workflow.
+    const LVCI_WF_SIG = /labview-ci|labview\s*ci|_lvci|peaceiris\/actions-gh-pages|LABVIEW_VERSION|ghcr\.io\/[^\s/]+\/labview/i;
+
+    function actLabel(id) { const c = byId(id); return (c && c.name) || id; }
+    function userConfigPaths() { return (catalog && catalog.userConfig && catalog.userConfig.files) || []; }
+    function isUserConfig(p) { return userConfigPaths().some(uc => uc.endsWith("/") ? p.startsWith(uc) : uc === p); }
+
+    // Every concrete tooling file the CURRENT catalog can install (base + all
+    // capabilities, all OS). Used to tell a current tooling workflow (keep) from
+    // an unknown one (scan its content) during stale detection.
+    function managedUniverse() {
+      const u = new Set([...((catalog.base && catalog.base.files) || [])]);
+      (catalog.capabilities || []).forEach(c => {
+        const f = c.files || {};
+        [].concat(f.any || [], f.windows || [], f.linux || []).forEach(x => { if (x && !x.endsWith("/")) u.add(x); });
+      });
+      return u;
+    }
+
+    // Parse our own simple manifest format (.github/labview-ci.yml) — mirrors
+    // install.py's read_manifest: activities list + config.labviewVersion/os + source.ref.
+    function parseManifest(text) {
+      const out = { activities: [], os: [], labviewVersion: "", sourceRef: "" };
+      let section = "";
+      String(text || "").split(/\r?\n/).forEach(raw => {
+        const line = raw.replace(/\t/g, "  ");
+        const li = line.match(/^\s*-\s+(.+?)\s*$/);
+        if (li && section === "activities") { out.activities.push(li[1].trim()); return; }
+        const m = line.match(/^(\s*)([\w.-]+):\s*(.*)$/);
+        if (!m) return;
+        const indent = m[1].length, key = m[2], val = m[3].trim();
+        if (key === "activities") { section = "activities"; return; }
+        if (indent === 0) section = key;
+        if (key === "labviewVersion") out.labviewVersion = val.replace(/^["']|["']$/g, "");
+        else if (key === "os") { const inner = val.replace(/^\[|\]$/g, ""); if (inner) out.os = inner.split(",").map(s => s.trim()).filter(Boolean); }
+        else if (key === "ref" && !out.sourceRef) out.sourceRef = val;
+      });
+      return out;
+    }
+
+    // The activities / OS / version the install will actually use: the previous
+    // manifest's choices when "keep settings" is on, else the configurator UI.
+    function effectiveValues(keepSettings) {
+      let activities = [...selected], osList = [...osSel], version = $("version").value;
+      if (keepSettings && priorState && priorState.manifest) {
+        const m = priorState.manifest;
+        const acts = (m.activities || []).filter(a => { const c = byId(a); return c && c.status !== "planned"; });
+        if (acts.length) activities = acts;
+        if (m.os && m.os.length) osList = m.os.slice();
+        if (m.labviewVersion) version = m.labviewVersion;
+      }
+      return { activities, osList, version };
+    }
+
+    // Tooling files the previous install left that THIS install won't write, so
+    // they can be removed. "Covered" uses prefix matching for the catalog's
+    // directory entries, so it's conservative (never flags a file the install
+    // might rewrite) and matches what proceedInstall actually deletes.
+    function staleFor(keepSettings) {
+      if (!priorState || !priorState.managedFiles) return [];
+      const { activities, osList } = effectiveValues(keepSettings);
+      const newEntries = resolveFiles(activities, osList).concat([".github/labview-ci.yml"]);
+      const covered = (p) => newEntries.some(e => e.endsWith("/") ? p.startsWith(e) : e === p);
+      return [...priorState.managedFiles].filter(p => !covered(p) && !isUserConfig(p)).sort();
+    }
+
+    // Read the target's existing manifest (if any) + inventory the tooling files
+    // it carries. Returns null for a fresh repo. Auth/permission errors propagate
+    // so installError can map them (same as the main install path).
+    async function detectPriorInstall(repo) {
+      const meta = await ghWrite(`/repos/${repo}`, null, "read your repository");
+      const branch = meta && meta.default_branch;
+      if (!branch) return null;
+      const r = await gh(`/repos/${repo}/contents/${encodeURIComponent(".github/labview-ci.yml")}?ref=${encodeURIComponent(branch)}`);
+      if (r.status === 404 || !r.ok) return null;
+      let manifest = null;
+      try { manifest = parseManifest(b64decodeText((await r.json()).content || "")); } catch (_) { return null; }
+      const canKeep = (manifest.activities && manifest.activities.length > 0) || !!manifest.labviewVersion || (manifest.os && manifest.os.length > 0);
+      let managedFiles = new Set();
+      try { managedFiles = await inventoryManagedFiles(repo, branch); } catch (_) { managedFiles = new Set(); }
+      return { manifest, branch, canKeep, managedFiles };
+    }
+
+    async function inventoryManagedFiles(repo, branch) {
+      const t = await ghWrite(`/repos/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, null, "list your repository's files");
+      const paths = (t.tree || []).filter(x => x.type === "blob").map(x => x.path);
+      const universe = managedUniverse();
+      const managed = new Set();
+      const sigCandidates = [];
+      paths.forEach(p => {
+        if (p === ".github/labview-ci.yml" || isUserConfig(p)) return;
+        if (p.startsWith(".github/labview-ci/") || p.startsWith(".github/labview/")) { managed.add(p); return; }
+        if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(p)) {
+          if (universe.has(p)) managed.add(p);   // a current tooling workflow
+          else sigCandidates.push(p);            // unknown — scan its content
+        }
+      });
+      // Only unknown workflow names need a content fetch (renamed/retired tooling
+      // vs. the user's own workflows). Bounded so a huge repo can't fan out.
+      for (const p of sigCandidates.slice(0, 40)) {
+        try {
+          const c = await gh(`/repos/${repo}/contents/${encodeURIComponent(p)}?ref=${encodeURIComponent(branch)}`);
+          if (!c.ok) continue;
+          if (LVCI_WF_SIG.test(b64decodeText((await c.json()).content || ""))) managed.add(p);
+        } catch (_) { /* skip on error */ }
+      }
+      return managed;
+    }
+
+    function showReinstallPanel() { const p = $("insReinstallPanel"); if (p) p.style.display = ""; }
+    function hideReinstallPanel() { const p = $("insReinstallPanel"); if (p) p.style.display = "none"; }
+
+    function populateReinstallPanel(repo, prior) {
+      const m = prior.manifest || {};
+      const acts = (m.activities || []).map(actLabel).join(", ") || "(none recorded)";
+      const ver = m.labviewVersion || "(unspecified)";
+      const os = (m.os && m.os.length) ? m.os.join(", ") : "(unspecified)";
+      const sum = $("insReinstallSummary");
+      if (sum) sum.innerHTML = `It currently runs <strong>${esc(acts)}</strong> &middot; LabVIEW <strong>${esc(ver)}</strong> &middot; <strong>${esc(os)}</strong>. Choose how to reconcile this install &mdash; everything still lands in a reviewable pull request.`;
+      const keepWrap = $("optKeepWrap"), keep = $("optKeep"), keepDesc = $("optKeepDesc");
+      if (keepWrap) keepWrap.style.display = prior.canKeep ? "" : "none";
+      if (keep) keep.checked = !!prior.canKeep;
+      if (keepDesc) keepDesc.innerHTML = "Reuse the capabilities, LabVIEW version, and platforms shown above. Uncheck to apply what you picked in steps 1&ndash;2 instead.";
+      renderStalePreview();
+    }
+
+    function renderStalePreview() {
+      const keepWrap = $("optKeepWrap");
+      const keep = !!($("optKeep") && keepWrap && keepWrap.style.display !== "none" && $("optKeep").checked);
+      const stale = staleFor(keep);
+      const wrap = $("optDeleteWrap"), del = $("optDeleteStale"), desc = $("optDeleteDesc"), list = $("insStaleList");
+      if (!stale.length) {
+        if (wrap) wrap.style.display = "none";
+        if (del) del.checked = false;
+        if (list) list.innerHTML = "";
+        return;
+      }
+      if (wrap) wrap.style.display = "";
+      if (desc) desc.innerHTML = `Delete ${stale.length} tooling file${stale.length > 1 ? "s" : ""} this install no longer uses (e.g. workflows renamed or dropped in newer versions).`;
+      if (list) list.innerHTML = stale.map(p => `<li>${esc(p)}</li>`).join("");
+    }
+
+    async function confirmReinstall() {
+      const keepWrap = $("optKeepWrap"), delWrap = $("optDeleteWrap");
+      const keepSettings = !!($("optKeep") && keepWrap && keepWrap.style.display !== "none" && $("optKeep").checked);
+      const deleteStale = !!($("optDeleteStale") && delWrap && delWrap.style.display !== "none" && $("optDeleteStale").checked);
+      hideReinstallPanel();
+      await proceedInstall($("repo").value.trim(), { keepSettings, deleteStale });
+    }
+
     async function installToRepo() {
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) { setInsStatus("Enter your target repository (owner/name) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
       if (!getInsTok()) { showInsTokPanel(); return; }
+      installBusy(true);
+      setInsStatus("Checking your repository&hellip;", null);
+      try {
+        const prior = await detectPriorInstall(repo);
+        priorState = prior || null;
+        if (prior && (prior.canKeep || (prior.managedFiles && prior.managedFiles.size))) {
+          populateReinstallPanel(repo, prior);
+          showReinstallPanel();
+          installBusy(false);
+          return;
+        }
+        await proceedInstall(repo, { keepSettings: false, deleteStale: false });
+      } catch (e) {
+        setInsStatus(installError(e, repo), "err");
+        installBusy(false);
+      }
+    }
+
+    async function proceedInstall(repo, opts) {
       const owner = repo.split("/")[0];
       const s = source();
       installBusy(true);
       setInsStatus("Preparing&hellip;", null);
       try {
         const setup = {};
-        const osList = [...osSel];
-        const wanted = resolveFiles([...selected], osList);
+        const eff = effectiveValues(opts.keepSettings);
+        const activities = eff.activities, osList = eff.osList, version = eff.version;
+        if (opts.keepSettings && priorState && priorState.canKeep) {
+          setup.kept = activities.map(actLabel).join(", ") + " \u00b7 LabVIEW " + version + " \u00b7 " + osList.join(", ");
+        }
+        const wanted = resolveFiles(activities, osList);
         const subs = buildSubs();
 
         // Enumerate the source tree (public; unauthenticated) to expand dir entries.
@@ -900,7 +1111,14 @@
             files.push({ path, bytes: new Uint8Array(await resp.arrayBuffer()), isText: false });
           }
         }
-        files.push({ path: ".github/labview-ci.yml", content: manifestYaml([...selected], osList, $("version").value), isText: true });
+        files.push({ path: ".github/labview-ci.yml", content: manifestYaml(activities, osList, version), isText: true });
+
+        // Files an earlier install left that this one no longer writes — removed
+        // (via tree delete entries below) only when the user opted in at the prompt.
+        setup.removed = [];
+        if (opts.deleteStale && priorState && priorState.managedFiles && priorState.managedFiles.size) {
+          setup.removed = staleFor(opts.keepSettings);
+        }
 
         // The dashboard link + auto-Pages only make sense when the dashboard is
         // part of this install (its publish workflow is in the resolved set).
@@ -948,10 +1166,12 @@
         files.filter(f => f.isText).forEach(f => {
           treeItems.push({ path: f.path, mode: "100644", type: "blob", content: f.content });
         });
+        // Remove stale tooling files (sha:null deletes the path from base_tree).
+        (setup.removed || []).forEach(p => treeItems.push({ path: p, mode: "100644", type: "blob", sha: null }));
 
         setInsStatus("Creating the commit&hellip;", null);
         const newTree = await ghWrite(`/repos/${repo}/git/trees`, { method: "POST", body: { base_tree: baseTree, tree: treeItems } }, "create the file tree");
-        const acts = [...selected].filter(id => { const c = byId(id); return c && c.status !== "planned"; });
+        const acts = activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
         const commitMsg = `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})\n\nAdded by the LabVIEW CI configurator from ${s.repo}@${s.ref}.`;
         const commit = await ghWrite(`/repos/${repo}/git/commits`, { method: "POST", body: { message: commitMsg, tree: newTree.sha, parents: [headSha] } }, "create the commit");
 
@@ -971,7 +1191,7 @@
         setInsStatus("Opening the pull request&hellip;", null);
         const prResp = await gh(`/repos/${repo}/pulls`, { method: "POST", body: {
           title: "Add LabVIEW CI pipeline", head: INSTALL_BRANCH, base: branch,
-          body: installPrBody(acts, osList, $("version").value, files.length) } });
+          body: installPrBody(acts, osList, version, files.length, setup.removed, setup.kept) } });
         let pr;
         if (prResp.ok) { pr = await prResp.json(); }
         else {
@@ -1034,6 +1254,9 @@
       $("insTokCancel").addEventListener("click", hideInsTokPanel);
       $("insTokForget").addEventListener("click", () => { clearInsTok(); refreshInsForget(); setInsStatus("Token removed from this browser.", null); });
       const _iti = $("insTokInput"); if (_iti) _iti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveInsTokAndInstall(); } });
+      const _rg = $("insReinstallGo"); if (_rg) _rg.addEventListener("click", confirmReinstall);
+      const _rc = $("insReinstallCancel"); if (_rc) _rc.addEventListener("click", () => { hideReinstallPanel(); installBusy(false); setInsStatus("Install cancelled \u2014 nothing was changed.", null); });
+      const _ok = $("optKeep"); if (_ok) _ok.addEventListener("change", renderStalePreview);
     }
 
     (async function init() {

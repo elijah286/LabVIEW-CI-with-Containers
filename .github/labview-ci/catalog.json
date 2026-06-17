@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.12.3",
+  "version": "1.13.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.13.0",
+        "date": "2026-06-16",
+        "title": "Apply to New Repo detects an existing install and lets you keep settings or clear out old files",
+        "summary": "Re-running 'Apply to New Repo' on a repository that already has LabVIEW CI now notices the previous install and pauses to ask how to reconcile it, before anything is committed. You can keep the previous capabilities, LabVIEW version, and platforms (instead of the configurator's current selections), and you can have old tooling files that newer versions no longer use \u2014 for example workflows that were renamed or dropped \u2014 removed in the same pull request. Both are opt-in and listed up front, your own workflows and baked dependency files are never touched, and everything still lands in a reviewable pull request.",
+        "highlights": [
+          "Detects a prior install by reading the repo's .github/labview-ci.yml and prompts before committing \u2014 fresh repos are unaffected and install as before.",
+          "'Keep the existing settings' reuses the previously installed capabilities, LabVIEW version, and platforms instead of the configurator's current picks.",
+          "'Remove old tooling files no longer used' lists and deletes orphaned tooling files (e.g. renamed/removed workflows) in the install pull request; it recognizes tooling files by content, so your own workflows and baked VIPM dependency files are never removed.",
+          "The result summary and pull request spell out exactly what was kept and which files were removed."
+        ]
+      },
       {
         "version": "1.12.3",
         "date": "2026-06-16",
