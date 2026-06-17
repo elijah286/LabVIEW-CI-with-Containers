@@ -99,6 +99,17 @@
     #plat-toggle button.active{background:var(--link);color:#fff}
     #plat-toggle button:disabled{opacity:.4;cursor:default}
     #plat-toggle .sep{width:1px;background:var(--border)}
+    /* 1.0 / 2.0 VI Browser switch — classic flat viewer vs the in-place renderer */
+    #viewer-toggle-label{color:var(--fg-muted);font-size:.8em;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+    #viewer-toggle{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:7px;
+                   overflow:hidden;font-size:.92em}
+    #viewer-toggle button{border:none;background:var(--bg);color:var(--fg-muted);cursor:pointer;
+                          padding:3px 11px;font:inherit;font-weight:600}
+    #viewer-toggle button:hover:not(.active){background:var(--sidebar-hover);color:var(--fg)}
+    #viewer-toggle button.active{background:var(--link);color:#fff}
+    #viewer-toggle .sep{width:1px;background:var(--border)}
+    #viewer-mode-note{display:none;color:var(--fg-muted);font-size:.82em;font-style:italic}
+    #viewer-mode-note.show{display:inline}
     #viewer{flex:1;overflow:hidden;position:relative}
     #viewer iframe{width:100%;height:100%;border:none;background:var(--viewer-bg)}
     #viewer-loading{position:absolute;inset:0;z-index:3;display:none;align-items:center;
@@ -138,6 +149,13 @@
 
 <div id="main">
   <div id="toolbar">
+    <span id="viewer-toggle-label">Viewer</span>
+    <span id="viewer-toggle" title="Switch between the classic VI Browser (1.0) and the in-place renderer (2.0)">
+      <button type="button" data-viewer="1" title="1.0 — classic gallery: front panel + block diagram, with each structure's cases in a stepper below the diagram">1.0</button>
+      <span class="sep"></span>
+      <button type="button" data-viewer="2" title="2.0 — in-place renderer: Case / Event structures navigated on the diagram itself, like the LabVIEW editor">2.0</button>
+    </span>
+    <span id="viewer-mode-note"></span>
     <span id="vi-title">Select a VI from the sidebar</span>
     <a id="diff-link" href="#" style="color:var(--link);font-weight:600;display:none">View diff report &rarr;</a>
     <span id="plat-toggle" title="Swap the diff report between the Linux and Windows container renders">
@@ -156,10 +174,14 @@
   </div>
   <div id="viewer" style="display:none">
     <iframe id="vi-frame" title="VI Snapshot"></iframe>
+    <!-- Position-aware in-place renderer. Preferred whenever a frames JSON sits
+         beside the snapshot HTML; otherwise the iframe above shows the flat snapshot. -->
+    <div id="vi-canvas" style="position:absolute;inset:0;display:none;z-index:2"></div>
     <div id="viewer-loading"><span class="spinner"></span><span>Rendering…</span></div>
   </div>
 </div>
 
+<script src="vi-render.js"></script>
 <script>
 // Resolve the directory this page lives in. Stripping the trailing path segment
 // yields the same base whether the page is opened as ".../vi-snapshots/" or as
@@ -192,6 +214,12 @@ let diffPlatform = (new URLSearchParams(location.search).get('plat') === 'linux'
 let commitPlatforms = new Set(); // which platforms published a report for the active commit
 let currentDiffVi = null;        // vi_rel of the diff currently shown (so the toggle can reload it)
 let currentDiffRow = null;       // the tree row backing the current view (for re-activation)
+// VI Browser viewer mode: '1' = classic flat gallery (enhanceSnapshot iframe),
+// '2' = in-place renderer (vi-render.js). Persists via ?viewer=. Defaults to 1.0
+// (the proven classic view); switch to 2.0 to evaluate the in-place renderer. 2.0
+// uses each VI's frames JSON and gracefully falls back to 1.0 when none exists yet.
+let viewerMode = (new URLSearchParams(location.search).get('viewer') === '2') ? '2' : '1';
+let currentSnapshot = null;      // { html, title } of the open plain snapshot (re-rendered on a 1.0/2.0 switch)
 
 const ICON = {
   chevron: '<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M6 4l4 4-4 4z"/></svg>',
@@ -509,7 +537,57 @@ function setViewerLoading(on) {
   if (el) el.classList.toggle('show', !!on);
 }
 
+// Open a plain VI snapshot. Prefer the position-aware frames JSON (in-place
+// renderer) when one sits beside the snapshot HTML; otherwise fall back to the
+// flat-HTML iframe + enhanceSnapshot (unchanged behaviour). The JSON is content-
+// addressed next to the .html (by-blob/<ab>/<blob>.json), so a VI auto-upgrades to
+// the in-place view the moment its frames JSON is rendered — no gallery changes.
+let lvController = null;
+function openSnapshot(htmlUrl, title) {
+  // 1.0 (classic): always the flat-HTML iframe + enhanceSnapshot stepper view.
+  if (viewerMode !== '2') { setViewerModeNote(''); showInFrame(htmlUrl, title); return; }
+  // 2.0 (in-place): prefer the position-aware frames JSON; gracefully fall back to
+  // the classic view when this VI has no frames JSON yet (e.g. before the backend
+  // that emits <blob>.json has rendered it).
+  const jsonUrl = htmlUrl.replace(/\.html$/i, '.json');
+  setViewerLoading(true);
+  fetch(jsonUrl, { cache: 'no-store' })
+    .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+    .then(frames => {
+      if (!window.LVRender || !Array.isArray(frames) || !frames.length) throw new Error('no frames');
+      setViewerModeNote('');
+      showInPlace(frames, htmlUrl, title);
+    })
+    .catch(() => {
+      setViewerModeNote('2.0 has no position data for this VI yet \u2014 showing the classic 1.0 view.');
+      showInFrame(htmlUrl, title);
+    });
+}
+
+// Render the in-place diagram into #vi-canvas (same-origin parent document).
+function showInPlace(frames, htmlUrl, title) {
+  document.getElementById('vi-title').textContent = title;
+  const open = document.getElementById('open-link');
+  open.href = htmlUrl; open.style.display = 'inline';
+  const hint = document.getElementById('viewer-hint');
+  if (hint) hint.style.display = 'inline-block';
+  document.getElementById('empty').style.display  = 'none';
+  document.getElementById('viewer').style.display = 'block';
+  document.getElementById('vi-frame').style.display = 'none';
+  const canvas = document.getElementById('vi-canvas');
+  canvas.style.display = 'block';
+  if (lvController) { try { lvController.destroy(); } catch (e) {} }
+  lvController = window.LVRender.render(canvas, frames, {});
+  setViewerLoading(false);
+}
+
 function showInFrame(url, title) {
+  // Leaving any in-place render: hide the canvas and restore the iframe.
+  const canvas = document.getElementById('vi-canvas');
+  if (canvas) canvas.style.display = 'none';
+  if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
+  const frameEl = document.getElementById('vi-frame');
+  if (frameEl) frameEl.style.display = 'block';
   document.getElementById('vi-title').textContent = title;
   const open = document.getElementById('open-link');
   open.href = url; open.style.display = 'inline';
@@ -878,7 +956,8 @@ function openVI(row) {
   // `html` is relative to the vi-snapshots base (e.g. "by-blob/ab/<blob>.html").
   setDiffLink(row.dataset.name);
   document.getElementById('plat-toggle').style.display = 'none';
-  showInFrame(`${BASE}${row.dataset.html}`, row.dataset.name);
+  currentSnapshot = { html: `${BASE}${row.dataset.html}`, title: row.dataset.name };
+  openSnapshot(currentSnapshot.html, currentSnapshot.title);
 }
 
 // Open a changed VI's side-by-side diff report (from the selected container), or
@@ -888,6 +967,7 @@ function openDiff(viRel, type, row) {
   currentDiffRow = row || null;
   currentDiffVi = viRel;
   activeHtml = row ? row.dataset.html : null;
+  setViewerModeNote('');
   setDiffLink(viRel);
   setPlatformToggle(viRel);
   const rep = diffReportFor(viRel);
@@ -925,6 +1005,37 @@ document.querySelectorAll('#plat-toggle button').forEach(btn => {
     if (currentDiffVi) openDiff(currentDiffVi, (changeMap[currentDiffVi] || {}).type || 'modified', currentDiffRow);
   });
 });
+
+// 1.0 / 2.0 VI Browser switch: reflect the active mode, persist it (?viewer=), and
+// re-render the open VI in the chosen mode. A diff report is mode-independent, so
+// switching while a diff is shown only updates the preference for the next VI.
+function setViewerModeNote(msg) {
+  const note = document.getElementById('viewer-mode-note');
+  if (!note) return;
+  note.textContent = msg || '';
+  note.classList.toggle('show', !!msg);
+}
+function syncViewerToggle() {
+  document.querySelectorAll('#viewer-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.viewer === viewerMode);
+  });
+}
+document.querySelectorAll('#viewer-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.viewer === viewerMode) return;
+    viewerMode = btn.dataset.viewer;
+    syncViewerToggle();
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('viewer', viewerMode);
+      history.replaceState(null, '', u);
+    } catch (e) { /* non-fatal */ }
+    // Re-render a plain snapshot in the new mode; a diff report is unaffected.
+    if (currentSnapshot && !currentDiffVi) openSnapshot(currentSnapshot.html, currentSnapshot.title);
+    else setViewerModeNote('');
+  });
+});
+syncViewerToggle();
 
 loadCommits().catch(err => {
   document.getElementById('vi-list').innerHTML =

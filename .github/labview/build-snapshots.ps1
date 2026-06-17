@@ -243,6 +243,10 @@ finally {
 # ── Publish the browser pages alongside the gallery data ─────────────────────
 Copy-Item (Join-Path $PagesDir 'vi-browser.html')     (Join-Path $OutDir 'index.html')          -Force
 Copy-Item (Join-Path $PagesDir 'vi-interactive.html') (Join-Path $OutDir 'vi-interactive.html') -Force
+# vi-render.js drives the in-place block-diagram renderer (loaded by both pages).
+# Tolerate its absence so older page bundles without it still deploy cleanly.
+$ViRenderSrc = Join-Path $PagesDir 'vi-render.js'
+if (Test-Path $ViRenderSrc) { Copy-Item $ViRenderSrc (Join-Path $OutDir 'vi-render.js') -Force }
 
 Write-Host ""
 Write-Host "=== Snapshots done: $processed commit(s) processed, $totalRendered VI(s) rendered this run ==="
