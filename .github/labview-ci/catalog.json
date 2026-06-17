@@ -1,11 +1,24 @@
 {
   "schemaVersion": 1,
-  "version": "2.1.5",
+  "version": "2.2.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.2.0",
+        "date": "2026-06-17",
+        "title": "Organize Configure into tabs and pick a container per action",
+        "summary": "The Configure dialog is reorganized into clear tabs \u2014 Pipeline, Container & Dependencies, Action Routing, and Review & Apply \u2014 so each concern is easy to find instead of one long page. The new Action Routing tab lets you choose which container each Windows action runs in: Mass Compile, VI Analyzer, VIDiff, and VI Snapshots can each use the project default, the latest build, a pinned build, the bare NI base image, or a custom tag, saved to config.container.actions and read by the matching workflow at run time. The Container tab gathers the default worker container, the VIPC dependency files baked into it (with per-file Monitor to rebuild and re-push to GHCR automatically when a file changes), and a new Build / update the container now action that dispatches the image build on demand. Existing pipelines are unaffected \u2014 with nothing set, every action keeps using the same image it did before.",
+        "highlights": [
+          "Configure is now tabbed (Pipeline, Container & Dependencies, Action Routing, Review & Apply) so settings are far easier to navigate.",
+          "Action Routing: choose the container per action (Latest, a pinned build, the bare NI base image, or a custom tag) \u2014 e.g. pin VIDiff to a frozen build while Mass Compile tracks Latest. Stored in config.container.actions; Mass Compile, VI Analyzer, and VIDiff read it on Windows.",
+          "Specify one or more VIPC files to bake into the worker image, and turn on Monitor so a change to that file automatically rebuilds and re-pushes the container to your GHCR.",
+          "New Build / update the container now action creates a new image version or updates the existing one in GHCR on demand, without waiting for a file change.",
+          "Backward compatible: with no per-action overrides, every action uses config.container.use exactly as before."
+        ]
+      },
       {
         "version": "2.1.5",
         "date": "2026-06-17",

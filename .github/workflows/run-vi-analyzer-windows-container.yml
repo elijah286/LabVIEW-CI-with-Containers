@@ -103,23 +103,49 @@ jobs:
         env:
           IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
           IMAGE_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
         run: |
           owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
           name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
           name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
           custom="ghcr.io/${owner}/${name}"
-          use=""
-          if [ -f .github/labview-ci.yml ]; then
-            use=$(awk '
-              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
-              inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
-              inc && /^[^[:space:]]/ {inc=0}
-            ' .github/labview-ci.yml | tr -d '[:space:]')
+          # Per-action container selection. config.container.actions.<id> wins, then
+          # the project-wide config.container.use. With neither set VI Analyzer keeps
+          # its default (the custom image at the version tag) since the full test set
+          # needs the custom image. "base" forces the bare NI image for this action;
+          # "latest"/"<tag>" select that tag of the custom worker image.
+          ACTION_ID="vi-analyzer"
+          CFG=.github/labview-ci.yml
+          sel=""
+          if [ -f "$CFG" ]; then
+            sel=$(awk -v act="$ACTION_ID" '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; ina=0; next}
+              inc && /^    actions:[[:space:]]*$/ {ina=1; next}
+              ina && /^      [A-Za-z0-9_.-]+:/ {
+                k=$1; sub(/:.*/,"",k);
+                v=$0; sub(/^[[:space:]]*[A-Za-z0-9_.-]+:[[:space:]]*/,"",v); gsub(/"/,"",v); gsub(/[[:space:]]/,"",v);
+                if (k==act) {print v; exit}
+                next
+              }
+              ina && /^    [A-Za-z]/ {ina=0}
+              inc && /^[^[:space:]]/ {inc=0; ina=0}
+            ' "$CFG" | tr -d '[:space:]')
+            if [ -z "$sel" ]; then
+              sel=$(awk '
+                /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+                inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+                inc && /^[^[:space:]]/ {inc=0}
+              ' "$CFG" | tr -d '[:space:]')
+            fi
           fi
-          if [ -n "$use" ]; then
-            if [ "$use" = "latest" ]; then img="${custom}:latest"; else img="${custom}:${use}"; fi
-          else
+          if [ -z "$sel" ]; then
             img="${custom}:${IMAGE_TAG}"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+            img="${BASE_IMAGE}"
+          elif [ "$sel" = "latest" ]; then
+            img="${custom}:latest"
+          else
+            img="${custom}:${sel}"
           fi
           echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
           echo "Resolved container image: ${img}"

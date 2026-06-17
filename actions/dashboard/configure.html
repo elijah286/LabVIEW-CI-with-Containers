@@ -4,11 +4,15 @@
   Settings editor for an ALREADY-INSTALLED repo. Loads the repo's current
   labview-ci.yml + ci-tooling.packages.json, lets the user change settings
   (LabVIEW version, OS, activities, concurrent runners, container dependencies /
-  Antidoc), and produces the updated config files. Because a static Pages site
-  can't write to a repo, it offers two apply paths:
+  Antidoc, the worker container + its baked VIPC files, and which container each
+  action runs in), and produces the updated config files. Organised into tabs so
+  each concern is found quickly. Because a static Pages site can't write to a
+  repo, it offers two apply paths:
     1. Download the edited files and commit them.
     2. A `gh workflow run reconfigure.yml ...` command (the Reconfigure workflow
        writes the files and opens a PR).
+  It can also dispatch the image build directly (`gh workflow run
+  build-labview-image.yml`) to create/update the container in GHCR on demand.
   Pure static page, no backend.
 -->
 <html lang="en">
@@ -80,6 +84,24 @@
     .subhead{font-weight:600;font-size:.9em;margin:14px 0 6px}
     code.inl{background:var(--chip);padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
     details{margin-top:10px}summary{cursor:pointer;font-size:.85em;color:var(--link)}
+    /* Tabs */
+    .tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin:0 0 18px;flex-wrap:wrap}
+    .tab{appearance:none;border:0;background:none;color:var(--fg-muted);font:inherit;font-size:.92em;
+         padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+         display:flex;align-items:center;gap:8px;white-space:nowrap}
+    .tab:hover{color:var(--fg)}
+    .tab.active{color:var(--fg);font-weight:600;border-bottom-color:var(--accent)}
+    .tab .badge{margin:0}
+    .tabpane[hidden]{display:none}
+    /* Per-action routing rows */
+    .routerow{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:11px 13px;
+         border:1px solid var(--border);border-radius:8px;background:var(--surface2);margin-bottom:8px}
+    .routerow .rtitle{font-size:.9em;font-weight:600;display:flex;align-items:center}
+    .routerow .rsub{color:var(--fg-muted);font-size:.78em;margin-top:2px}
+    .routerow .rsel{display:flex;flex-direction:column;gap:6px;align-items:stretch;min-width:230px}
+    .routerow.off{opacity:.6}
+    .pill{display:inline-block;font-size:.6em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+         padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:var(--fg-muted);background:var(--chip);margin-left:8px}
   </style>
 </head>
 <body>
@@ -87,105 +109,142 @@
     <header class="top">
       <div>
         <h1>Configure Workers</h1>
-        <p class="sub">Configure the behavior of this repository's automated CI activities — LabVIEW version, platforms, which activities run, and the dependencies baked into the worker image.</p>
+        <p class="sub">Tune this repository's automated CI &mdash; LabVIEW version, platforms, the worker container and its baked VIPC dependencies, and which container each action runs in.</p>
       </div>
       <a class="back" id="backLink" href="./">&larr; Back to dashboard</a>
     </header>
 
     <section id="targetBar">
       <h2>Configuring <code class="inl" id="targetRepo">this repository</code></h2>
-      <p class="hint">These settings apply only to the repository you opened this dialog from — detected automatically from the dashboard you launched it from.</p>
+      <p class="hint">These settings apply only to the repository you opened this dialog from &mdash; detected automatically from the dashboard you launched it from.</p>
       <input type="hidden" id="repo">
       <input type="hidden" id="branch" value="main">
       <div class="status" id="loadStatus"></div>
     </section>
 
-    <section>
-      <h2>1. Pipeline settings</h2>
-      <p class="hint">These are written to <code class="inl">.github/labview-ci.yml</code>.</p>
-      <div class="row">
-        <div class="field">
-          <label class="fl" for="version">LabVIEW version</label>
-          <select id="version"></select>
-        </div>
-        <div class="field">
-          <label class="fl">Operating systems</label>
-          <div class="toggle-row" id="osToggle">
-            <label class="toggle"><input type="checkbox" value="windows" checked> Windows</label>
-            <label class="toggle"><input type="checkbox" value="linux" checked> Linux</label>
+    <nav class="tabs" id="tabs" role="tablist">
+      <button class="tab active" id="tab-pipeline" role="tab" data-pane="pane-pipeline">Pipeline</button>
+      <button class="tab" id="tab-container" role="tab" data-pane="pane-container">Container &amp; Dependencies</button>
+      <button class="tab" id="tab-routing" role="tab" data-pane="pane-routing">Action Routing</button>
+      <button class="tab" id="tab-review" role="tab" data-pane="pane-review">Review &amp; Apply</button>
+    </nav>
+
+    <!-- ============================ PIPELINE ============================ -->
+    <div class="tabpane" id="pane-pipeline" role="tabpanel" aria-labelledby="tab-pipeline">
+      <section>
+        <h2>Pipeline settings</h2>
+        <p class="hint">LabVIEW version, platforms, runner concurrency, and which activities run. Written to <code class="inl">.github/labview-ci.yml</code>.</p>
+        <div class="row">
+          <div class="field">
+            <label class="fl" for="version">LabVIEW version</label>
+            <select id="version"></select>
+          </div>
+          <div class="field">
+            <label class="fl">Operating systems</label>
+            <div class="toggle-row" id="osToggle">
+              <label class="toggle"><input type="checkbox" value="windows" checked> Windows</label>
+              <label class="toggle"><input type="checkbox" value="linux" checked> Linux</label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="fl" for="runners">Max concurrent runners</label>
+            <input type="number" id="runners" min="1" max="50" value="20">
+            <div class="hint" style="margin-top:4px">Default 20 = GitHub Free concurrent-job limit.</div>
           </div>
         </div>
-        <div class="field">
-          <label class="fl" for="runners">Max concurrent runners</label>
-          <input type="number" id="runners" min="1" max="50" value="20">
-          <div class="hint" style="margin-top:4px">Default 20 = GitHub Free concurrent-job limit.</div>
+        <div class="subhead">Activities</div>
+        <div class="acts" id="acts"></div>
+      </section>
+    </div><!-- /pane-pipeline -->
+
+    <!-- ===================== CONTAINER & DEPENDENCIES ==================== -->
+    <div class="tabpane" id="pane-container" role="tabpanel" aria-labelledby="tab-container" hidden>
+      <section>
+        <h2>Worker container</h2>
+        <p class="hint">The default prebuilt image your CI activities run in, and the VIPC dependency files baked into it. Stored in <code class="inl">.github/labview-ci.yml</code> under <code class="inl">config.container</code>; built and pushed to GHCR by the <code class="inl">Build LabVIEW CI Image</code> workflow. Individual actions can override this default in <strong>Action Routing</strong>.</p>
+
+        <div class="field" style="max-width:560px">
+          <label class="fl" for="containerUse">Default container for all actions</label>
+          <select id="containerUse"></select>
+          <input type="text" id="containerUseCustom" placeholder="image tag, e.g. win-ab12cd34ef56 or 2026-20260616" style="margin-top:8px" hidden>
+          <div class="hint" style="margin-top:4px"><strong>Latest</strong> always uses the most recently built image, so your dependencies stay current. Pin to a specific build to freeze the container for reproducibility.</div>
         </div>
-      </div>
-      <div class="subhead">Activities</div>
-      <div class="acts" id="acts"></div>
-    </section>
 
-    <section>
-      <h2>2. Container dependencies</h2>
-      <p class="hint">VIPM packages baked into the CI worker image. Written to <code class="inl">.github/labview/vipm/ci-tooling.packages.json</code>; the image rebuilds when this changes.</p>
-      <label class="toggle" style="margin-bottom:10px;display:inline-flex">
-        <input type="checkbox" id="antidoc"> Use Antidoc (Wovalab doc generation)
-      </label>
-      <div class="pkgs" id="pkgs"></div>
-      <div class="addpkg">
-        <input type="text" id="newPkgName" placeholder="vipm package name (e.g. oglib_array)">
-        <input type="text" id="newPkgVer" placeholder="version (blank = latest)" style="flex:0 1 180px">
-        <button class="ghost" id="addPkgBtn">Add package</button>
-      </div>
-    </section>
+        <div class="subhead">VIPC dependencies baked into the container</div>
+        <p class="hint">Each VIPC file is applied to the worker image so the project's add-on dependencies are available in CI. Turn on <strong>Monitor</strong> to rebuild and re-push the container automatically whenever that file changes on a submission &mdash; so the container always matches the dependencies the project needs.</p>
+        <div class="pkgs" id="vipcs"></div>
+        <div class="addpkg">
+          <input type="text" id="newVipcPath" placeholder="path to a .vipc file (e.g. COTC Dependencies.vipc)">
+          <button class="ghost" id="addVipcBtn">Add VIPC</button>
+        </div>
+        <div class="hint" id="vipcNote" style="margin-top:8px"></div>
+      </section>
 
-    <section>
-      <h2>3. Worker container</h2>
-      <p class="hint">Choose which prebuilt container image your CI activities run in, and the VIPC dependency files baked into it. Stored in <code class="inl">.github/labview-ci.yml</code> under <code class="inl">config.container</code>; the image is built and pushed to GHCR by the <code class="inl">Build LabVIEW CI Image</code> workflow when you apply.</p>
+      <section>
+        <h2>Container dependencies (VIPM packages)</h2>
+        <p class="hint">VIPM packages baked into the CI worker image alongside your VIPC files. Written to <code class="inl">.github/labview/vipm/ci-tooling.packages.json</code>; the image rebuilds when this changes.</p>
+        <label class="toggle" style="margin-bottom:10px;display:inline-flex">
+          <input type="checkbox" id="antidoc"> Use Antidoc (Wovalab doc generation)
+        </label>
+        <div class="pkgs" id="pkgs"></div>
+        <div class="addpkg">
+          <input type="text" id="newPkgName" placeholder="vipm package name (e.g. oglib_array)">
+          <input type="text" id="newPkgVer" placeholder="version (blank = latest)" style="flex:0 1 180px">
+          <button class="ghost" id="addPkgBtn">Add package</button>
+        </div>
+      </section>
 
-      <div class="field" style="max-width:560px">
-        <label class="fl" for="containerUse">Container used for future actions</label>
-        <select id="containerUse"></select>
-        <input type="text" id="containerUseCustom" placeholder="image tag, e.g. win-ab12cd34ef56 or 2026-20260616" style="margin-top:8px" hidden>
-        <div class="hint" style="margin-top:4px"><strong>Latest</strong> always uses the most recently built image, so your dependencies stay current. Pin to a specific build to freeze the container for reproducibility.</div>
-      </div>
+      <section>
+        <h2>Build / update the container now</h2>
+        <p class="hint">Create a new image version or update the existing one and push it to your GHCR, on demand &mdash; without waiting for a file change. The build always publishes a moving <code class="inl">:latest</code> tag plus an immutable per-content tag (e.g. <code class="inl">win-ab12cd34ef56</code>) you can pin to. Monitored VIPC files also trigger this automatically when they change.</p>
+        <div class="codebox">
+          <button class="copy" id="copyBuild">Copy</button>
+          <pre id="buildCmd"></pre>
+        </div>
+        <div class="hint" style="margin-top:8px">Tip: after it finishes, the new build appears as a pinnable tag in <strong>Default container</strong> above and in <strong>Action Routing</strong>.</div>
+      </section>
+    </div><!-- /pane-container -->
 
-      <div class="subhead">VIPC dependencies baked into the container</div>
-      <p class="hint">Each VIPC file is applied to the worker image. Turn on <strong>Monitor</strong> to rebuild the container automatically whenever that file changes &mdash; so the container always has the dependencies the project needs.</p>
-      <div class="pkgs" id="vipcs"></div>
-      <div class="addpkg">
-        <input type="text" id="newVipcPath" placeholder="path to a .vipc file (e.g. COTC Dependencies.vipc)">
-        <button class="ghost" id="addVipcBtn">Add VIPC</button>
-      </div>
-      <div class="hint" id="vipcNote" style="margin-top:8px"></div>
-    </section>
+    <!-- ========================= ACTION ROUTING ========================= -->
+    <div class="tabpane" id="pane-routing" role="tabpanel" aria-labelledby="tab-routing" hidden>
+      <section>
+        <h2>Which container each action runs in</h2>
+        <p class="hint">By default every action uses the <strong>Default container</strong> from the Container tab. Override it per action here &mdash; for example pin VIDiff to a frozen build for stable rendering while Mass Compile tracks <em>Latest</em>. Saved to <code class="inl">config.container.actions</code> in <code class="inl">.github/labview-ci.yml</code>; the matching Windows workflow reads it at run time.</p>
+        <div id="routeNote" class="hint" style="margin:0 0 14px"></div>
+        <div id="routeList"></div>
+        <div class="note hint" style="margin-top:8px">Choices: <strong>Project default</strong> (inherit the Container tab), <strong>Latest build</strong>, a <strong>pinned build</strong>, the <strong>bare NI base image</strong> (no baked dependencies), or a <strong>custom tag</strong>. Linux jobs always use the NI base image.</div>
+      </section>
+    </div><!-- /pane-routing -->
 
-    <section>
-      <h2>4. Review &amp; apply</h2>
-      <p class="hint">Two apply paths. Both are reviewable before anything runs.</p>
+    <!-- ========================= REVIEW & APPLY ========================= -->
+    <div class="tabpane" id="pane-review" role="tabpanel" aria-labelledby="tab-review" hidden>
+      <section>
+        <h2>Review &amp; apply</h2>
+        <p class="hint">Two apply paths. Both are reviewable before anything runs.</p>
 
-      <div class="subhead">Option A — open a pull request (recommended)</div>
-      <p class="hint">Runs the <code class="inl">Reconfigure</code> workflow, which writes these settings and opens a PR. Quick toggles only (version, OS, Antidoc, runners, activities); for full dependency edits use Option B.</p>
-      <div class="codebox">
-        <button class="copy" id="copyGh">Copy</button>
-        <pre id="ghCmd"></pre>
-      </div>
+        <div class="subhead">Option A &mdash; open a pull request (recommended)</div>
+        <p class="hint">Runs the <code class="inl">Reconfigure</code> workflow, which writes these settings (including the worker container, baked VIPC files, and per-action routing) and opens a PR.</p>
+        <div class="codebox">
+          <button class="copy" id="copyGh">Copy</button>
+          <pre id="ghCmd"></pre>
+        </div>
 
-      <div class="subhead">Option B — download &amp; commit</div>
-      <div class="actions">
-        <button class="primary" id="dlYaml">Download labview-ci.yml</button>
-        <button class="primary" id="dlJson">Download ci-tooling.packages.json</button>
-        <span class="status" id="dlStatus"></span>
-      </div>
+        <div class="subhead">Option B &mdash; download &amp; commit</div>
+        <div class="actions">
+          <button class="primary" id="dlYaml">Download labview-ci.yml</button>
+          <button class="primary" id="dlJson">Download ci-tooling.packages.json</button>
+          <span class="status" id="dlStatus"></span>
+        </div>
 
-      <details>
-        <summary>Preview generated files</summary>
-        <div class="subhead">.github/labview-ci.yml</div>
-        <div class="codebox"><button class="copy" id="copyYaml">Copy</button><pre id="yamlPreview"></pre></div>
-        <div class="subhead">.github/labview/vipm/ci-tooling.packages.json</div>
-        <div class="codebox"><button class="copy" id="copyJson">Copy</button><pre id="jsonPreview"></pre></div>
-      </details>
-    </section>
+        <details>
+          <summary>Preview generated files</summary>
+          <div class="subhead">.github/labview-ci.yml</div>
+          <div class="codebox"><button class="copy" id="copyYaml">Copy</button><pre id="yamlPreview"></pre></div>
+          <div class="subhead">.github/labview/vipm/ci-tooling.packages.json</div>
+          <div class="codebox"><button class="copy" id="copyJson">Copy</button><pre id="jsonPreview"></pre></div>
+        </details>
+      </section>
+    </div><!-- /pane-review -->
   </div>
 
   <script>
@@ -199,8 +258,9 @@
     const osSel = new Set(["windows", "linux"]);
     const actSel = new Set();
     let winLatest = null;                    // workers/windows/latest.json (current build)
-    let containerUse = "latest";             // config.container.use (tag activities pull)
+    let containerUse = "latest";             // config.container.use (default tag activities pull)
     let vipcList = [];                       // [{ path, monitor }] baked into the worker image
+    const actionContainer = new Map();       // activity id -> container tag override (absent = inherit `use`)
 
     const $ = (id) => document.getElementById(id);
     const csv = (set) => [...set].join(",");
@@ -237,11 +297,11 @@
 
     // ---- minimal labview-ci.yml parser (our own simple format) -------------
     function parseManifest(text) {
-      const out = { version: "", os: [], activities: [], runners: null, containerUse: "", vipc: [] };
-      let inActs = false, inContainer = false, inVipc = false, curVipc = null;
+      const out = { version: "", os: [], activities: [], runners: null, containerUse: "", vipc: [], actions: {} };
+      let inActs = false, inContainer = false, inVipc = false, inActions = false, curVipc = null;
       for (const line of text.split(/\r?\n/)) {
-        if (/^\s*activities:\s*$/.test(line)) { inActs = true; inContainer = false; inVipc = false; continue; }
-        if (/^\s*container:\s*$/.test(line)) { inContainer = true; inActs = false; inVipc = false; continue; }
+        if (/^\s*activities:\s*$/.test(line)) { inActs = true; inContainer = false; inVipc = false; inActions = false; continue; }
+        if (/^\s*container:\s*$/.test(line)) { inContainer = true; inActs = false; inVipc = false; inActions = false; continue; }
         if (inActs) {
           const m = line.match(/^\s*-\s*(\S+)/);
           if (m) { out.activities.push(m[1]); continue; }
@@ -249,13 +309,17 @@
         }
         if (inContainer) {
           let mc;
-          if ((mc = line.match(/^\s{4}use:\s*"?([^"\s]+)"?/))) { out.containerUse = mc[1]; continue; }
-          if (/^\s{4}vipc:\s*$/.test(line)) { inVipc = true; continue; }
+          if ((mc = line.match(/^\s{4}use:\s*"?([^"\s]+)"?/))) { out.containerUse = mc[1]; inVipc = false; inActions = false; continue; }
+          if (/^\s{4}vipc:\s*$/.test(line)) { inVipc = true; inActions = false; continue; }
+          if (/^\s{4}actions:\s*$/.test(line)) { inActions = true; inVipc = false; continue; }
           if (inVipc) {
             if ((mc = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/))) { curVipc = { path: mc[1].trim(), monitor: true }; out.vipc.push(curVipc); continue; }
             if (curVipc && (mc = line.match(/^\s{8}monitor:\s*(\S+)/))) { curVipc.monitor = mc[1].trim().toLowerCase() === "true"; continue; }
           }
-          if (/^\s{0,3}\S/.test(line)) { inContainer = false; inVipc = false; }
+          if (inActions) {
+            if ((mc = line.match(/^\s{6}([A-Za-z0-9_.\-]+):\s*"?([^"\s]+)"?\s*$/))) { out.actions[mc[1]] = mc[2]; continue; }
+          }
+          if (/^\s{0,3}\S/.test(line)) { inContainer = false; inVipc = false; inActions = false; }
         }
         let m;
         if ((m = line.match(/^\s*labviewVersion:\s*"?([^"\s]+)"?/))) out.version = m[1];
@@ -282,7 +346,7 @@
         const cb = document.createElement("input");
         cb.type = "checkbox"; cb.value = cap.id; cb.disabled = planned;
         cb.checked = actSel.has(cap.id);
-        cb.addEventListener("change", () => { cb.checked ? actSel.add(cap.id) : actSel.delete(cap.id); update(); });
+        cb.addEventListener("change", () => { cb.checked ? actSel.add(cap.id) : actSel.delete(cap.id); renderActionRouting(); update(); });
         lab.appendChild(cb);
         lab.appendChild(document.createTextNode(" " + cap.name));
         if (planned) { const b = document.createElement("span"); b.className = "badge"; b.textContent = "soon"; lab.appendChild(b); }
@@ -354,7 +418,7 @@
         const mid = document.createElement("div");
         mid.innerHTML = '<span class="pname">' + escapeHtml(v.path) + "</span>" +
           '<div class="psum">' + (v.monitor !== false
-            ? "Monitored \u2014 rebuilds the container when this file changes"
+            ? "Monitored \u2014 rebuilds &amp; re-pushes the container when this file changes"
             : "Baked once \u2014 not monitored for changes") + "</div>";
         const rm = document.createElement("button"); rm.type = "button"; rm.className = "ghost"; rm.textContent = "Remove";
         rm.addEventListener("click", () => { vipcList.splice(i, 1); renderVipcs(); update(); });
@@ -369,6 +433,68 @@
         ? ("Found " + found.length + " VIPC file" + (found.length === 1 ? "" : "s") + " in the repository.")
         : "";
     }
+
+    // ---- per-action container routing --------------------------------------
+    // The container activities (Windows container jobs) that can pick a specific
+    // image: every non-dashboard, non-builder, non-planned capability that runs
+    // on Windows. dashboard runs on ubuntu; custom-image IS the builder.
+    function containerRoutableCaps() {
+      return (catalog.capabilities || []).filter(c =>
+        c.status !== "planned" && c.id !== "dashboard" && c.id !== "custom-image" &&
+        (c.supportsOs || []).includes("windows"));
+    }
+    function actionTagOptions() {
+      const cur = (winLatest && winLatest.version) ? String(winLatest.version) : "";
+      const o = [["__default__", "Project default (inherit)"], ["latest", "Latest build"]];
+      if (cur) o.push([cur, "Pinned: " + cur]);
+      o.push(["base", "Bare NI base image"], ["__custom__", "Custom tag\u2026"]);
+      return o;
+    }
+    function renderActionRouting() {
+      const host = $("routeList"); if (!host || !catalog) return; host.innerHTML = "";
+      containerRoutableCaps().forEach(cap => {
+        const enabled = actSel.has(cap.id);
+        const row = document.createElement("div"); row.className = "routerow" + (enabled ? "" : " off");
+        const left = document.createElement("div");
+        const title = document.createElement("div"); title.className = "rtitle";
+        title.textContent = cap.name;
+        if (!enabled) { const pill = document.createElement("span"); pill.className = "pill"; pill.textContent = "not enabled"; title.appendChild(pill); }
+        const sub = document.createElement("div"); sub.className = "rsub";
+        sub.textContent = cap.id === "snapshots" ? "Windows container job" : "Windows container job (Linux uses the NI base image)";
+        left.appendChild(title); left.appendChild(sub);
+
+        const wrap = document.createElement("div"); wrap.className = "rsel";
+        const sel = document.createElement("select");
+        sel.setAttribute("aria-label", "Container for " + cap.name);
+        actionTagOptions().forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; sel.appendChild(o); });
+        const custom = document.createElement("input"); custom.type = "text"; custom.placeholder = "image tag, e.g. win-ab12cd34"; custom.hidden = true;
+        const curVal = actionContainer.get(cap.id);
+        if (!curVal) { sel.value = "__default__"; }
+        else if ([...sel.options].some(o => o.value === curVal)) { sel.value = curVal; }
+        else { sel.value = "__custom__"; custom.hidden = false; custom.value = curVal; }
+        const apply = () => {
+          const v = sel.value;
+          if (v === "__default__") { actionContainer.delete(cap.id); custom.hidden = true; }
+          else if (v === "__custom__") { custom.hidden = false; const t = (custom.value || "").trim(); if (t) actionContainer.set(cap.id, t); else actionContainer.delete(cap.id); }
+          else { custom.hidden = true; actionContainer.set(cap.id, v); }
+          update();
+        };
+        sel.addEventListener("change", apply);
+        custom.addEventListener("input", apply);
+        wrap.appendChild(sel); wrap.appendChild(custom);
+        row.appendChild(left); row.appendChild(wrap);
+        host.appendChild(row);
+      });
+      const note = $("routeNote");
+      if (note) note.innerHTML = "Project default currently resolves to <code class=\"inl\">" + escapeHtml(containerUseValue() || "latest") + "</code> (set in the Container tab).";
+    }
+    // Entries that actually override the default (stable, sorted output).
+    function containerActionEntries() {
+      return [...actionContainer.entries()]
+        .filter(([, t]) => t && t !== "__default__")
+        .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    }
+
     function containerYamlLines() {
       const lines = ["  container:", "    use: " + (containerUseValue() || "latest")];
       if (vipcList.length) {
@@ -377,6 +503,11 @@
           lines.push('      - path: "' + String(v.path).replace(/"/g, "") + '"');
           lines.push("        monitor: " + (v.monitor !== false ? "true" : "false"));
         });
+      }
+      const acts = containerActionEntries();
+      if (acts.length) {
+        lines.push("    actions:");
+        acts.forEach(([id, tag]) => lines.push("      " + id + ": " + tag));
       }
       return lines;
     }
@@ -441,8 +572,10 @@
       const r = repo.includes("/") ? ` -R ${repo}` : "";
       const antidoc = $("antidoc").checked ? "true" : "false";
       const cVipc = vipcList.map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
+      const cActs = containerActionEntries().map(([id, t]) => `${id}::${t}`).join(";");
       const cLine = ` \\\n  -f container_use=${containerUseValue() || "latest"}` +
-        (cVipc ? ` \\\n  -f container_vipc="${cVipc}"` : "");
+        (cVipc ? ` \\\n  -f container_vipc="${cVipc}"` : "") +
+        (cActs ? ` \\\n  -f container_actions="${cActs}"` : "");
       return `gh workflow run reconfigure.yml${r} \\\n` +
         `  -f labview_version=${$("version").value} \\\n` +
         `  -f operating_systems=${osChoice()} \\\n` +
@@ -451,10 +584,19 @@
         `  -f activities=${csv(actSel) || "dashboard"}` + cLine;
     }
 
+    function genBuildCmd() {
+      const repo = $("repo").value.trim();
+      const r = repo.includes("/") ? ` -R ${repo}` : "";
+      return `gh workflow run build-labview-image.yml${r}`;
+    }
+
     function update() {
       $("yamlPreview").textContent = genYaml();
       $("jsonPreview").textContent = genJson();
       $("ghCmd").textContent = genGhCmd();
+      const bc = $("buildCmd"); if (bc) bc.textContent = genBuildCmd();
+      const note = $("routeNote");
+      if (note) note.innerHTML = "Project default currently resolves to <code class=\"inl\">" + escapeHtml(containerUseValue() || "latest") + "</code> (set in the Container tab).";
     }
 
     function download(name, text) {
@@ -462,6 +604,16 @@
       a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
       a.download = name; document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(a.href);
+    }
+
+    // ---- tabs --------------------------------------------------------------
+    function initTabs() {
+      const tabs = [...document.querySelectorAll(".tab")];
+      tabs.forEach(t => t.addEventListener("click", () => {
+        tabs.forEach(x => x.classList.toggle("active", x === t));
+        document.querySelectorAll(".tabpane").forEach(p => { p.hidden = (p.id !== t.dataset.pane); });
+        if (t.dataset.pane === "pane-routing") renderActionRouting();
+      }));
     }
 
     // Resolve the repo this dialog configures. The dialog is always scoped to the
@@ -503,7 +655,10 @@
         if (m.runners) $("runners").value = m.runners;
         containerUse = m.containerUse || "latest";
         vipcList = (m.vipc || []).map(v => ({ path: v.path, monitor: v.monitor !== false }));
+        actionContainer.clear();
+        Object.keys(m.actions || {}).forEach(id => actionContainer.set(id, m.actions[id]));
         renderContainer();
+        renderActionRouting();
         loadedAny = true;
       } catch (_) { /* not installed yet */ }
       try {
@@ -540,10 +695,10 @@
       });
       $("dlYaml").addEventListener("click", () => { download("labview-ci.yml", genYaml()); flash("labview-ci.yml downloaded — place at .github/labview-ci.yml"); });
       $("dlJson").addEventListener("click", () => { download("ci-tooling.packages.json", genJson()); flash("ci-tooling.packages.json downloaded — place at .github/labview/vipm/"); });
-      const copy = (btn, src) => $(btn).addEventListener("click", async () => {
-        try { await navigator.clipboard.writeText($(src).textContent); $(btn).textContent = "Copied!"; setTimeout(() => $(btn).textContent = "Copy", 1400); } catch (_) {}
-      });
-      copy("copyGh", "ghCmd"); copy("copyYaml", "yamlPreview"); copy("copyJson", "jsonPreview");
+      const copy = (btn, src) => { const b = $(btn); if (!b) return; b.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText($(src).textContent); b.textContent = "Copied!"; setTimeout(() => b.textContent = "Copy", 1400); } catch (_) {}
+      }); };
+      copy("copyGh", "ghCmd"); copy("copyYaml", "yamlPreview"); copy("copyJson", "jsonPreview"); copy("copyBuild", "buildCmd");
       $("containerUse").addEventListener("change", () => {
         const sel = $("containerUse"); const custom = $("containerUseCustom");
         if (custom) custom.hidden = (sel.value !== "__custom__");
@@ -572,8 +727,8 @@
       pkgObj = await loadDefaultPackages();
       renderPackages();
       winLatest = await (async () => { try { return await fetchJson("./workers/windows/latest.json"); } catch (_) { return null; } })();
-      renderContainer();
-      wire(); update();
+      renderContainer(); renderActionRouting();
+      wire(); initTabs(); update();
 
       // The dialog is scoped to the repo whose dashboard launched it (never asked).
       // Auto-detect it, reflect it read-only, and load that repo's current settings

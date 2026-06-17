@@ -37,6 +37,10 @@ on:
         description: 'Baked VIPC files as path::monitor pairs separated by ; (blank = keep current)'
         required: false
         default: ''
+      container_actions:
+        description: 'Per-action container overrides as id::tag pairs separated by ; (e.g. masscompile::latest;vidiff::base; blank = keep current)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -67,6 +71,7 @@ jobs:
           IN_ACTS: ${{ inputs.activities }}
           IN_CONTAINER_USE: ${{ inputs.container_use }}
           IN_CONTAINER_VIPC: ${{ inputs.container_vipc }}
+          IN_CONTAINER_ACTIONS: ${{ inputs.container_actions }}
         run: |
           python3 - <<'PY'
           import os, re, json, datetime, pathlib
@@ -78,32 +83,37 @@ jobs:
           acts_in = os.environ['IN_ACTS'].strip()
           container_use_in = os.environ.get('IN_CONTAINER_USE', '').strip()
           container_vipc_in = os.environ.get('IN_CONTAINER_VIPC', '').strip()
+          container_actions_in = os.environ.get('IN_CONTAINER_ACTIONS', '').strip()
 
           # Preserve provenance fields from any existing manifest.
           mpath = pathlib.Path('.github/labview-ci.yml')
           prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main',
-                  'container_use': '', 'vipc': []}
+                  'container_use': '', 'vipc': [], 'actions': {}}
           if mpath.exists():
-              in_acts = False; in_container = False; in_vipc = False; cur_vipc = None
+              in_acts = False; in_container = False; in_vipc = False; in_actions = False; cur_vipc = None
               for line in mpath.read_text(encoding='utf-8').splitlines():
                   if re.match(r'^\s*activities:\s*$', line):
-                      in_acts = True; in_container = False; in_vipc = False; continue
+                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; continue
                   if re.match(r'^\s*container:\s*$', line):
-                      in_container = True; in_acts = False; in_vipc = False; continue
+                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; continue
                   if in_acts:
                       m = re.match(r'^\s*-\s*(\S+)', line)
                       if m: prev['activities'].append(m.group(1)); continue
                       in_acts = False
                   if in_container:
                       m = re.match(r'^\s{4}use:\s*"?([^"\s]+)"?', line)
-                      if m: prev['container_use'] = m.group(1); continue
-                      if re.match(r'^\s{4}vipc:\s*$', line): in_vipc = True; continue
+                      if m: prev['container_use'] = m.group(1); in_vipc = False; in_actions = False; continue
+                      if re.match(r'^\s{4}vipc:\s*$', line): in_vipc = True; in_actions = False; continue
+                      if re.match(r'^\s{4}actions:\s*$', line): in_actions = True; in_vipc = False; continue
                       if in_vipc:
                           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
                           if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': True}; prev['vipc'].append(cur_vipc); continue
                           m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                           if m and cur_vipc is not None: cur_vipc['monitor'] = (m.group(1).strip().lower() == 'true'); continue
-                      if re.match(r'^\s{0,3}\S', line): in_container = False; in_vipc = False
+                      if in_actions:
+                          m = re.match(r'^\s{6}([A-Za-z0-9_.\-]+):\s*"?([^"\s]+)"?\s*$', line)
+                          if m: prev['actions'][m.group(1)] = m.group(2); continue
+                      if re.match(r'^\s{0,3}\S', line): in_container = False; in_vipc = False; in_actions = False
                   m = re.match(r'^\s*installedVersion:\s*(\S+)', line)
                   if m: prev['installedVersion'] = m.group(1)
                   m = re.match(r'^\s*repo:\s*(\S+)', line)
@@ -132,6 +142,20 @@ jobs:
               return out
           vipc = _parse_vipc(container_vipc_in) if container_vipc_in else prev['vipc']
 
+          # Per-action container overrides: explicit input wins; blank keeps the
+          # manifest's. Each entry is "<activity-id>::<tag>" (tag = latest, a pinned
+          # build, "base" for the bare NI image, or any custom tag).
+          def _parse_actions(s):
+              out = {}
+              for entry in s.split(';'):
+                  entry = entry.strip()
+                  if not entry or '::' not in entry: continue
+                  k, v = entry.split('::', 1)
+                  k = k.strip(); v = v.strip()
+                  if k and v: out[k] = v
+              return out
+          container_actions = _parse_actions(container_actions_in) if container_actions_in else prev['actions']
+
           lines = [
               '# .github/labview-ci.yml - LabVIEW CI configuration',
               '# Updated by the Reconfigure workflow.',
@@ -156,6 +180,10 @@ jobs:
                   p = str(v['path']).replace('"', '')
                   lines.append(f'      - path: "{p}"')
                   lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
+          if container_actions:
+              lines.append('    actions:')
+              for _id in sorted(container_actions):
+                  lines.append(f'      {_id}: {container_actions[_id]}')
           lines += ['activities:'] + [f'  - {a}' for a in acts] + ['']
           mpath.parent.mkdir(parents=True, exist_ok=True)
           mpath.write_text('\n'.join(lines), encoding='utf-8')
@@ -220,6 +248,7 @@ jobs:
           | Max concurrent runners | ${{ inputs.concurrent_runners }} |
           | Activities | ${{ inputs.activities }} |
           | Container | ${{ inputs.container_use }} |
+          | Per-action containers | ${{ inputs.container_actions }} |
 
           Review and merge to apply. Container-dependency and LabVIEW-version changes
           take effect on the next image build; OS/runner settings apply where the

@@ -33,6 +33,30 @@ config:
   # To pin it for CI, set the Actions variable LABVIEW_IMAGE_NAME.
   # imageName: my-labview-ci
 
+  # Worker container (optional). Choose which prebuilt GHCR image CI runs in and
+  # the VIPC dependency files baked into it. Managed by the Configure dialog.
+  container:
+    # Default image tag every container action uses: "latest" (recommended;
+    # tracks your newest build), a pinned per-content tag (e.g. win-ab12cd34ef56),
+    # the LabVIEW year, or "base" for the bare NI image.
+    use: latest
+
+    # VIPC dependency files applied to (baked into) the worker image. Set
+    # monitor: true to rebuild + re-push the container to GHCR automatically
+    # whenever that file changes on a submission; monitor: false bakes it once.
+    vipc:
+      - path: "Dependencies.vipc"
+        monitor: true
+
+    # Per-action container overrides (optional). Each Windows container action can
+    # run in a different image than the default above: "latest", a pinned build
+    # tag, the LabVIEW year, or "base" (the bare NI image, no baked deps). Anything
+    # not listed uses `use`. Linux jobs always run on the NI base image.
+    actions:
+      masscompile: latest
+      vi-analyzer: latest
+      vidiff: base
+
 # Installed capabilities (see .github/labview-ci/catalog.json for the full list).
 activities:
   - dashboard
