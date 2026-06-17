@@ -9,10 +9,10 @@ name: toimages COM probe (diagnostic)
 on:
   workflow_dispatch:
     inputs:
-      vis:
-        description: "Semicolon-separated example VI paths (relative to repo root)"
+      vi:
+        description: "Example VI path (relative to repo root) to convert"
         required: false
-        default: "example/main.vi;example/Curriculum Launcher.vi;example/Simple Solar Tracker v4.vi;example/Status String Update.vi"
+        default: "example/main.vi"
 
 env:
   LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-windows
@@ -46,14 +46,7 @@ jobs:
 
           $repo = "${{ github.workspace }}"
           $name = "toimages-probe-$([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
-
-          # Translate the dispatch input into the -TargetVI argument list.
-          $visInput = @'
-          ${{ github.event.inputs.vis }}
-          '@
-          $vis = ($visInput -split ';') | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
-          $targets = $vis | ForEach-Object { "C:\repo\" + ($_ -replace '/', '\') }
-          $targetArg = ($targets | ForEach-Object { "'$_'" }) -join ','
+          $target = "C:\repo\" + ("${{ github.event.inputs.vi }}" -replace '/', '\')
 
           Write-Host "Starting container $name ..."
           docker run -d --name $name -v "${repo}:C:\repo" $image `
@@ -61,14 +54,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { Write-Error "container start failed"; exit 1 }
 
           try {
-            $inner = "C:\repo\.github\labview\toimages-probe.ps1 " +
-                     "-ConvertVI 'C:\repo\.github\labview\toimages\Convert.vi' " +
-                     "-OutDir 'C:\repo\_probe-out' " +
-                     "-TargetVI @($targetArg)"
-            Write-Host "exec: $inner"
-            docker exec $name powershell -NoProfile -ExecutionPolicy Bypass -Command $inner
-            $code = $LASTEXITCODE
-            Write-Host "probe exit code: $code"
+            Write-Host "exec probe (-File), target=$target"
+            docker exec $name powershell -NoProfile -ExecutionPolicy Bypass `
+              -File 'C:\repo\.github\labview\toimages-probe.ps1' `
+              -ConvertVI 'C:\repo\.github\labview\toimages\Convert.vi' `
+              -TargetVI $target `
+              -OutDir 'C:\repo\_probe-out'
+            Write-Host "probe exit code: $LASTEXITCODE"
 
             # Copy the JSON out of the container for inspection / artifact upload.
             New-Item -ItemType Directory -Force -Path "$repo\_probe-out" | Out-Null

@@ -1,28 +1,14 @@
 <#
-.SYNOPSIS
-    Probe v3 (diagnostic): figure out how to run LabVIEW headless in the NI
-    container so COM can drive toimages\Convert.vi.
-
-.DESCRIPTION
-    v2 proved `New-Object -ComObject LabVIEW.Application` creates the server but
-    LabVIEW never finishes initializing (Version blank for 240s) - the container's
-    "-Headless required" wall. The PROVEN path is `LabVIEWCLI -Headless`, so this
-    probe:
-      Phase A - runs a known-good `LabVIEWCLI ... -Headless` render in a background
-        job and, while it runs, captures the exact LabVIEW.exe COMMAND LINE it used
-        (Win32_Process.CommandLine). That reveals the headless launch mechanism.
-        It ALSO tries to attach COM (GetActiveObject) to that headless instance
-        while it is alive - if that works, COM + Convert.vi is viable.
-      Phase B - independently tries launching LabVIEW.exe ourselves with a few
-        candidate headless flags and reports which (if any) yields a COM-ready app.
-    Pure diagnostic; prints everything to the CI log.
+  Probe v4 (minimal, robust) — diagnostic only.
+  Goal: find a LabVIEW.exe launch that yields a COM-ready HEADLESS LabVIEW in the
+  container, then drive toimages\Convert.vi (set "VI Path in", read "JSON out").
+  No Start-Job, no 2>&1 redirects (those broke v3). Invoked via -File.
 #>
 param(
-    [string]   $ConvertVI   = 'C:\repo\.github\labview\toimages\Convert.vi',
-    [string]   $PtsOpDir    = 'C:\repo\.github\labview\PrintToSingleFileHtml',
-    [string[]] $TargetVI    = @(),
-    [string]   $OutDir      = 'C:\repo\_probe-out',
-    [string]   $LabVIEWPath = ''
+    [string] $ConvertVI   = 'C:\repo\.github\labview\toimages\Convert.vi',
+    [string] $TargetVI    = 'C:\repo\example\main.vi',
+    [string] $OutDir      = 'C:\repo\_probe-out',
+    [string] $LabVIEWPath = ''
 )
 $ErrorActionPreference = 'Continue'
 $ProgressPreference    = 'SilentlyContinue'
@@ -32,111 +18,111 @@ function Resolve-LabVIEWPath([string]$Preferred) {
     $cands = @(Get-ChildItem 'C:\Program Files\National Instruments' -Directory -Filter 'LabVIEW *' -ErrorAction SilentlyContinue |
         Sort-Object Name -Descending | ForEach-Object { Join-Path $_.FullName 'LabVIEW.exe' } | Where-Object { Test-Path $_ })
     if ($cands.Count -gt 0) { return $cands[0] }
-    throw "LabVIEW.exe not found"
+    throw 'LabVIEW.exe not found'
 }
-function Get-LVProcs { @(Get-CimInstance Win32_Process -Filter "Name='LabVIEW.exe'" -ErrorAction SilentlyContinue) }
-function Try-AttachCom {
+
+function Enable-Scripting([string]$ExePath) {
+    $ini = Join-Path (Split-Path -Parent $ExePath) 'LabVIEW.ini'
+    $want = @{
+        'SuperSecretPrivateSpecialStuff' = 'True'; 'unattended' = 'True'
+        'AllowMultipleInstances' = 'True'; 'NIERAutoSendAndSuppressAllDialogs' = 'True'
+        'neverShowLicensingStartupDialog' = 'True'; 'neverShowAddonLicensingStartup' = 'True'
+        'SuppressRTConnectionDialogs' = 'True'; 'DWarnDialog' = 'False'; 'AutoSaveEnabled' = 'False'
+    }
+    $lines = @()
+    if (Test-Path $ini) { $lines = @(Get-Content $ini) }
+    if (-not ($lines | Where-Object { $_.Trim() -ieq '[LabVIEW]' })) { $lines += '[LabVIEW]' }
+    foreach ($k in $want.Keys) {
+        if ($lines | Where-Object { $_ -match "^\s*$([regex]::Escape($k))\s*=" }) {
+            $lines = $lines | ForEach-Object { if ($_ -match "^\s*$([regex]::Escape($k))\s*=") { "$k=$($want[$k])" } else { $_ } }
+        } else {
+            $out = @(); $done = $false
+            foreach ($ln in $lines) { $out += $ln; if (-not $done -and $ln.Trim() -ieq '[LabVIEW]') { $out += "$k=$($want[$k])"; $done = $true } }
+            $lines = $out
+        }
+    }
+    [System.IO.File]::WriteAllLines($ini, [string[]]$lines, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "  [ini] scripting tokens ensured in $ini"
+}
+
+function Kill-LabVIEW {
+    Get-Process LabVIEW -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 3
+}
+
+function Attach-Com {
     try {
         $app = [System.Runtime.InteropServices.Marshal]::GetActiveObject('LabVIEW.Application')
         $v = [string]$app.Version
-        if ($v -ne '') { return @{ app = $app; ver = $v } }
+        if ($v -ne '') { return $app }
     } catch { }
     return $null
 }
 
-New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $lvExe = Resolve-LabVIEWPath $LabVIEWPath
-$dir   = Split-Path -Parent $lvExe
-$cli   = Join-Path $dir 'LabVIEWCLI.exe'
-if (-not (Test-Path $cli)) { $c = Get-Command LabVIEWCLI.exe -ErrorAction SilentlyContinue; if ($c) { $cli = $c.Source } }
-$oneVI = ($TargetVI | Where-Object { Test-Path $_ } | Select-Object -First 1)
-
-Write-Host "=== probe v3 ==="
+Write-Host "=== probe v4 ==="
 Write-Host "  LabVIEW.exe : $lvExe"
-Write-Host "  LabVIEWCLI  : $cli"
 Write-Host "  Convert.vi  : $ConvertVI  (exists: $(Test-Path $ConvertVI))"
-Write-Host "  PrintHtmlOp : $PtsOpDir   (exists: $(Test-Path $PtsOpDir))"
-Write-Host "  sample VI   : $oneVI"
+Write-Host "  target VI   : $TargetVI   (exists: $(Test-Path $TargetVI))"
+New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+Enable-Scripting $lvExe
 
-# ── Phase A: capture LabVIEWCLI -Headless's LabVIEW.exe command line ─────────
-Write-Host ""
-Write-Host "=== Phase A: capture how 'LabVIEWCLI -Headless' launches LabVIEW.exe ==="
-if (-not $oneVI -or -not (Test-Path $cli) -or -not (Test-Path $PtsOpDir)) {
-    Write-Warning "  missing CLI / op dir / sample VI - skipping Phase A"
-} else {
-    $job = Start-Job -ScriptBlock {
-        param($cli,$lv,$op,$vi)
-        & $cli -OperationName PrintToSingleFileHtml -LabVIEWPath $lv -AdditionalOperationDirectory $op `
-               -LogToConsole TRUE -VI $vi -OutputPath 'C:\probe_a.html' -o -c -Headless 2>&1
-    } -ArgumentList $cli,$lvExe,$PtsOpDir,$oneVI
+# Candidate launch arg strings (LabVIEW.exe). Start-Process passes the string as
+# the command line; LabVIEW parses its own argv. -Headless was never tested pre-v4.
+$variants = @('-Headless /Automation', '/Automation -Headless', '-Headless', '/Automation')
 
-    $captured = $null; $attached = $null
-    for ($i = 0; $i -lt 120; $i++) {
-        $procs = Get-LVProcs
-        if ($procs.Count -gt 0 -and -not $captured) {
-            $captured = $procs[0].CommandLine
-            Write-Host "  >>> LabVIEW.exe CommandLine: $captured"
-        }
-        if ($procs.Count -gt 0 -and -not $attached) {
-            $a = Try-AttachCom
-            if ($a) { $attached = $a; Write-Host "  >>> COM ATTACH to headless LabVIEW SUCCEEDED — version $($a.ver)" }
-        }
-        if ($captured -and $attached) { break }
-        if ((Get-Job -Id $job.Id).State -ne 'Running') { break }
-        Start-Sleep -Seconds 1
+$winner = $null; $app = $null
+foreach ($vargs in $variants) {
+    $label = $vargs
+    Write-Host ""
+    Write-Host "=== launch: LabVIEW.exe $label ==="
+    Kill-LabVIEW
+    try { Start-Process -FilePath $lvExe -ArgumentList $vargs } catch { Write-Host "  Start-Process failed: $($_.Exception.Message)"; continue }
+    $app = $null
+    for ($i = 1; $i -le 30; $i++) {
+        $procs = @(Get-Process LabVIEW -ErrorAction SilentlyContinue)
+        if ($procs.Count -eq 0) { Write-Host "  LabVIEW.exe exited (arg rejected?) at poll $i"; break }
+        $app = Attach-Com
+        if ($app) { Write-Host "  >>> COM-READY after ~$($i*4)s - LabVIEW version $([string]$app.Version)"; break }
+        Start-Sleep -Seconds 4
     }
-    if (-not $captured) { Write-Host "  (never observed a LabVIEW.exe process during the CLI render)" }
-
-    # If we attached, prove end-to-end: run Convert.vi on the sample VI.
-    if ($attached) {
-        try {
-            Write-Host "  --- running Convert.vi via the attached COM app ---"
-            $vi = $attached.app.GetVIReference($ConvertVI, "", $false, 0)
-            $vi.SetControlValue('VI Path in', $oneVI)
-            $vi.Run($false)
-            $rd = (Get-Date).AddSeconds(150)
-            while ($true) { $st=[int]$vi.ExecState; if ($st -eq 1) { break }; if ((Get-Date) -gt $rd) { $vi.Abort(); throw "run timeout" }; Start-Sleep -Milliseconds 100 }
-            $json = [string]$vi.GetControlValue('JSON out')
-            Write-Host "  >>> Convert.vi JSON length: $($json.Length)"
-            if ($json.Length -gt 0) {
-                [System.IO.File]::WriteAllText((Join-Path $OutDir 'attached-sample.json'), $json, [System.Text.UTF8Encoding]::new($false))
-                Write-Host "  >>> head: $($json.Substring(0,[Math]::Min(300,$json.Length)))"
-            }
-        } catch { Write-Warning "  Convert.vi via attach failed: $($_.Exception.Message)" }
-    }
-
-    Wait-Job $job -Timeout 200 | Out-Null
-    Receive-Job $job 2>&1 | Select-Object -First 25 | ForEach-Object { Write-Host "  [cli] $_" }
-    Remove-Job $job -Force -ErrorAction SilentlyContinue
-    Get-LVProcs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    if ($app) { $winner = $label; break }
+    Write-Host "  no COM-ready app for '$label'"
 }
 
-# ── Phase B: try launching LabVIEW.exe ourselves with candidate headless flags ─
-Write-Host ""
-Write-Host "=== Phase B: candidate self-launch flags for a COM-ready headless LabVIEW ==="
-$variants = @(
-    @('-Headless'),
-    @('-Headless','/Automation'),
-    @('/Automation','-Headless'),
-    @('-Headless','-unattended')
-)
-foreach ($args in $variants) {
-    Get-LVProcs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-    Start-Sleep -Seconds 2
-    Write-Host "  --- launch: LabVIEW.exe $($args -join ' ') ---"
-    try { Start-Process -FilePath $lvExe -ArgumentList $args | Out-Null } catch { Write-Warning "    start failed: $($_.Exception.Message)"; continue }
-    $ok = $false
-    for ($i = 0; $i -lt 40; $i++) {
-        $procs = Get-LVProcs
-        if ($procs.Count -eq 0) { Write-Host "    LabVIEW.exe exited (flag likely rejected)"; break }
-        $a = Try-AttachCom
-        if ($a) { Write-Host "    >>> COM-READY with '$($args -join ' ')' — version $($a.ver)"; $ok = $true; break }
-        Start-Sleep -Seconds 3
-    }
-    if (-not $ok) { Write-Host "    no COM-ready app for this variant" }
-    else { break }
+if (-not $app) {
+    Write-Host ""
+    Write-Host "RESULT: no launch variant produced a COM-ready headless LabVIEW."
+    exit 1
 }
-Get-LVProcs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
 Write-Host ""
-Write-Host "=== probe v3 done ==="
+Write-Host "=== WINNER launch args: '$winner' — running Convert.vi ==="
+try {
+    $vi = $app.GetVIReference($ConvertVI, '', $false, 0)
+    Write-Host "  opened Convert.vi: $($vi.Name)"
+    $vi.SetControlValue('VI Path in', $TargetVI)
+    $vi.Run($false)
+    $deadline = (Get-Date).AddSeconds(180)
+    while ($true) {
+        $st = [int]$vi.ExecState
+        if ($st -eq 1) { break }
+        if ((Get-Date) -gt $deadline) { $vi.Abort(); throw "Convert.vi run timeout (ExecState=$st)" }
+        Start-Sleep -Milliseconds 200
+    }
+    $json = [string]$vi.GetControlValue('JSON out')
+    Write-Host "  >>> Convert.vi JSON length: $($json.Length)"
+    if ($json.Length -gt 0) {
+        [System.IO.File]::WriteAllText((Join-Path $OutDir 'sample.json'), $json, [System.Text.UTF8Encoding]::new($false))
+        Write-Host "  >>> head: $($json.Substring(0, [Math]::Min(400, $json.Length)))"
+        Write-Host ""
+        Write-Host "SUCCESS: launch '$winner' + COM Convert.vi works in the container."
+    } else {
+        Write-Host "  empty JSON (COM works but Convert.vi returned nothing)"
+    }
+} catch {
+    Write-Host "  Convert.vi via COM failed: $($_.Exception.Message)"
+}
+try { $app.Quit() } catch { }
+Kill-LabVIEW
+Write-Host "=== probe v4 done ==="
