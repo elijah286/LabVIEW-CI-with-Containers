@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "2.1.3",
+  "version": "2.1.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.1.4",
+        "date": "2026-06-17",
+        "title": "Update now fixes the dashboard without a token",
+        "summary": "Clicking Update now used to push every refreshed file \u2014 including GitHub workflow YAMLs \u2014 onto one branch. Repositories without a workflow-scope token (no TOOLING_UPDATE_TOKEN secret) had that push rejected wholesale, so nothing landed: the version never bumped and a dashboard pinned to an older, buggy tooling ref stayed blank. Now the update is resilient. When the only thing blocking the push is workflow scope, it defers just the .github/workflows/** files and pushes the rest \u2014 the labview-ci.yml ref bump, vendored scripts, and pages \u2014 with the built-in token. Because the dashboard and reusable workflows load the tooling at that ref at runtime, the version (and the dashboard fix) adopts on its own; the deferred workflow YAMLs are listed in the PR and applied later once an optional token is added.",
+        "highlights": [
+          "Update now adopts the new version token-lessly: the config ref bump + scripts + pages always push with the built-in token, so the dashboard updates even on repos with no TOOLING_UPDATE_TOKEN.",
+          "Only changes to .github/workflows/** still need a one-time TOOLING_UPDATE_TOKEN (repo + workflow scope); they are deferred and clearly reported instead of failing the whole update.",
+          "Fixes the case where a repo's dashboard stayed blank after Update now because the ref bump never landed (the thin caller kept checking out the old, buggy tooling)."
+        ]
+      },
       {
         "version": "2.1.3",
         "date": "2026-06-17",
