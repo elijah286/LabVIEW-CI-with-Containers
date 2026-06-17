@@ -200,7 +200,15 @@ jobs:
               # Re-commit WITHOUT the workflow YAMLs so the default token can push.
               DEFERRED_WF=$(git diff --name-only HEAD~1 HEAD -- '.github/workflows' | grep -c . || true)
               git reset --soft HEAD~1
-              git checkout HEAD -- '.github/workflows' 2>/dev/null || true
+              # Strip EVERY workflow change from the commit -- modified, deleted, AND
+              # newly added. `git checkout HEAD -- <path>` only reverts files that
+              # already exist in HEAD, so a brand-new YAML (e.g. a new capability's
+              # workflow) would survive and the re-push is refused again. Unstage the
+              # paths, restore the tracked ones, then delete the now-untracked new
+              # files so the following `git add -A` cannot re-stage them.
+              git reset -q HEAD -- '.github/workflows' 2>/dev/null || true
+              git checkout -q -- '.github/workflows' 2>/dev/null || true
+              git clean -fdq -- '.github/workflows' 2>/dev/null || true
               git add -A
               if [ -z "$(git diff --cached --name-only)" ]; then
                 {

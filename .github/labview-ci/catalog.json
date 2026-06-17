@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.0.0",
+  "version": "3.0.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.0.1",
+        "date": "2026-06-17",
+        "title": "Update fix: a brand-new workflow file no longer breaks the no-token update path",
+        "summary": "Clicking Update now on a repository without a workflow-scope token is meant to defer just the .github/workflows/** files and still push the rest - the version bump, vendored scripts, and pages - so the new tooling adopts on its own and only the workflow YAMLs wait for an optional token. A gap remained: when a release introduced a brand-new workflow file (as v3.0.0 did with the Windows unit-test workflow), the deferral reverted changed workflow files but left newly-added ones staged, so the follow-up push was rejected again and the entire update failed - the version never moved. The deferral now strips every workflow change - modified, deleted, AND newly added - so config + scripts land and the version adopts; the workflow YAMLs are listed in the pull request and applied later once a TOOLING_UPDATE_TOKEN (repo + workflow scope) is added.",
+        "highlights": [
+          "The no-token update path now also defers brand-new workflow files, not just modified ones, so the push is no longer rejected and the rest of the update lands.",
+          "Repositories without a TOOLING_UPDATE_TOKEN still adopt the new version (ref bump, scripts, pages); only the .github/workflows/** YAMLs wait for an optional repo + workflow scoped token.",
+          "No change for repositories that already have a workflow-scope token - those keep pushing the full update in a single commit."
+        ]
+      },
       {
         "version": "3.0.0",
         "date": "2026-06-17",
