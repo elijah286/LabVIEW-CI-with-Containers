@@ -142,7 +142,7 @@
 
     <section>
       <h2>3. Install</h2>
-      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a <strong>short-lived</strong> fine-grained token &mdash; it&rsquo;s used just once, right now, to open this pull request, so give it the shortest expiration you can. The panel walks you through creating it with the permissions pre-filled.</p>
+      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a fine-grained token; the panel walks you through creating it with the permissions pre-filled. It stays in this browser so you don&rsquo;t have to paste it again.</p>
 
       <div class="insopts">
         <label class="insopt"><input type="checkbox" id="optReadme" checked>
@@ -154,15 +154,14 @@
       </div>
 
       <div class="tokpanel" id="insTokPanel" style="display:none">
-        <h3>One-time setup &mdash; a short-lived token to open the install pull request</h3>
+        <h3>One-time setup &mdash; a token to open the install pull request</h3>
         <ol>
           <li><a id="insTokLink" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a> &mdash; the required permissions are pre-filled.</li>
-          <li>Set <strong>Expiration</strong> to the shortest option (7 days, or a custom date as soon as tomorrow) &mdash; this token is used once, right now, so it never needs to outlive the install.</li>
           <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code class="inl" id="insTokRepo">your-org/your-repo</code>.</li>
           <li id="insTokPerms"></li>
           <li>Generate, then paste it below.</li>
         </ol>
-        <p class="note">Kept only in this browser tab (sessionStorage) and sent only to api.github.com &mdash; never to the page host or to CI. It is discarded automatically the moment the pull request opens; you can also revoke it on GitHub at any time &mdash; and a short expiration means it lapses on its own.</p>
+        <p class="note">Stored in this browser only (localStorage) and sent only to api.github.com &mdash; never to the page host or to CI, so it can never be used from another machine. It stays on this device so you can reuse it for more installs; <strong>Forget token</strong> (or revoking it on GitHub) removes it &mdash; do that on a shared computer.</p>
         <div class="tokrow">
           <input id="insTokInput" type="password" autocomplete="off" placeholder="github_pat_&hellip;">
           <button type="button" class="primary" id="insTokSave">Save &amp; install</button>
@@ -172,7 +171,7 @@
 
       <div class="actions">
         <button class="primary" id="installBtn">&#11014; Install into your repo</button>
-        <button class="ghost" id="insTokForget" style="display:none" title="Remove the token from this browser tab">Forget token</button>
+        <button class="ghost" id="insTokForget" style="display:none" title="Remove the saved token from this browser">Forget token</button>
         <span class="status" id="insStatus"></span>
       </div>
 
@@ -399,7 +398,7 @@
         const s = document.createElement("script");
         s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
         // Pin the third-party script so a compromised CDN can't run arbitrary JS in
-        // this origin (defense-in-depth: this page can hold a token in sessionStorage).
+        // this origin (defense-in-depth: this page can hold a saved token in localStorage).
         s.integrity = "sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==";
         s.crossOrigin = "anonymous";
         s.referrerPolicy = "no-referrer";
@@ -479,13 +478,14 @@
     // Workflows (write): the workflow files require the Workflows permission.
     const INSTALL_TOK_KEY = "lvci_install_token";
     const INSTALL_BRANCH = "ci/install-labview-ci";
-    // Ephemeral by design: the token lives in sessionStorage (scoped to this browser
-    // tab/device, never shared with other visitors) and is cleared the moment the
-    // install pull request opens (see installSuccess). It is only ever sent to
-    // api.github.com via gh() — never to the page host that serves this file.
-    const getInsTok = () => { try { return sessionStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
-    const setInsTok = (v) => { try { sessionStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
-    const clearInsTok = () => { try { sessionStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
+    // Persisted in this browser only (localStorage): scoped to this origin + browser
+    // profile + device, so it survives across installs but is never reachable by
+    // another machine or visitor. It is only ever sent to api.github.com via gh() —
+    // never to the page host that serves this file. "Forget token" or a GitHub revoke
+    // clears it (e.g. on a shared computer).
+    const getInsTok = () => { try { return localStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
+    const setInsTok = (v) => { try { localStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
+    const clearInsTok = () => { try { localStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
 
     // Pre-filled fine-grained token creation link (GitHub honours these query
     // params), so the user lands on the form with the right scopes selected.
@@ -813,12 +813,7 @@
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
       const url = dashboardUrl(repo);
 
-      // The token did its one job (opening the PR); discard it now so nothing
-      // sensitive lingers in this browser. The user re-pastes for any later install.
-      clearInsTok(); refreshInsForget();
-
       const done = [];
-      done.push(`Discarded your install token from this browser &mdash; it was used only to open this pull request.`);
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
       if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a><small>It goes live after the first CI run; until then it shows a &ldquo;publishing&hellip;&rdquo; placeholder.</small>`);
