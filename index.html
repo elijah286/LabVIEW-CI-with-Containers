@@ -33,8 +33,19 @@
     a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
     .nav{margin-bottom:16px;font-size:.9em}
     .nav a{margin-right:16px;color:var(--link)}
-    .controls{margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--fg-muted);font-size:.85em}
+    .controls{margin:0 0 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:var(--fg-muted);font-size:.85em}
     .controls input{margin:0;accent-color:var(--link)}
+    .cidash-check{display:inline-flex;align-items:center;gap:6px}
+    /* Column-visibility menu (standard "Columns" dropdown of checkboxes). */
+    .cidash-colmenu{position:relative;display:inline-block}
+    .cidash-colbtn{background:var(--surface);border:1px solid var(--border);color:var(--fg);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:1em;line-height:1.2;display:inline-flex;align-items:center;gap:6px}
+    .cidash-colbtn:hover{background:var(--hover)}
+    .cidash-colpanel{position:absolute;top:calc(100% + 6px);left:0;z-index:120;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:6px}
+    .cidash-colpanel[hidden]{display:none}
+    .cidash-colpanel .hd{font-size:.72em;color:var(--fg-muted);padding:4px 8px 6px;text-transform:uppercase;letter-spacing:.05em}
+    .cidash-colopt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;cursor:pointer;color:var(--fg);white-space:nowrap;font-size:.95em}
+    .cidash-colopt:hover{background:var(--hover)}
+    .cidash-colopt input{margin:0;accent-color:var(--link)}
     .run-badge{display:inline-flex;align-items:center;background:#1f6feb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600}
     .run-badge a:hover{text-decoration:underline}
     /* Optimistic "just queued from this browser" cue: a dashed ring distinguishes
@@ -891,18 +902,24 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-17 19:26 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-17 20:05 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
   </div>
 
-  <label class="controls" for="show-nonproject">
-    <input type="checkbox" id="show-nonproject">
-    Include CI-only revisions
-  </label>
+  <div class="controls">
+    <label class="cidash-check" for="show-nonproject">
+      <input type="checkbox" id="show-nonproject">
+      Include CI-only revisions
+    </label>
+    <div class="cidash-colmenu">
+      <button type="button" id="cidash-colbtn" class="cidash-colbtn" aria-haspopup="true" aria-expanded="false">&#9783; Columns &#9662;</button>
+      <div id="cidash-colpanel" class="cidash-colpanel" role="menu" hidden></div>
+    </div>
+  </div>
   <div class="lvci-tablewrap">
-  <table>
+  <table id="cidash-table">
     <thead>
       <tr>
         <th>Commit</th><th>Message</th><th>Author</th><th>Date</th>
@@ -910,11 +927,52 @@
         <th style="text-align:center">VI Analyzer</th>
         <th style="text-align:center">VIDiff</th>
         <th style="text-align:center">Snapshots</th>
-        <th style="text-align:center">Win Worker</th>
-        <th style="text-align:center">Linux Worker</th>
+        <th style="text-align:center">Unit Tests</th>
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7f2b8751f6da9fb44441d3a6750d56449c01a855" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">7f2b875</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="dashboard: Unit Tests column + column-visibility menu; drop worker columns"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7f2b8751f6da9fb44441d3a6750d56449c01a855" style="color:var(--fg)">dashboard: Unit Tests column + column-visibility menu; drop worker columns</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ca9f880103a276fe0e5f121b5f956f6268320aa5" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">ca9f880</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="probe v5: fix the REAL blocker — non-ASCII em-dash desynced PS 5.1 parser"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ca9f880103a276fe0e5f121b5f956f6268320aa5" style="color:var(--fg)">probe v5: fix the REAL blocker — non-ASCII em-dash desynced PS 5.1 parser</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=051b331d60e36f4f02d2a865e4491ba1b8bc62dc" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">051b331</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="probe v4: minimal, -File invocation, test LabVIEW.exe -Headless self-launch"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=051b331d60e36f4f02d2a865e4491ba1b8bc62dc" style="color:var(--fg)">probe v4: minimal, -File invocation, test LabVIEW.exe -Headless self-launch</a></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abe86513ceaf7e557f6519c1da01d5c97a9e462a" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">abe8651</a>
@@ -922,7 +980,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Backfill card: explain per-repo / per-account concurrency (v2.8.2)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abe86513ceaf7e557f6519c1da01d5c97a9e462a" style="color:var(--fg)">Backfill card: explain per-repo / per-account concurrency (v2.8.2)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -942,7 +999,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -952,7 +1008,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Populate history: add range + specific-revision scope to the dialog (v2.8.1)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=eca10f1acb1784969418444da24df86370db2f36" style="color:var(--fg)">Populate history: add range + specific-revision scope to the dialog (v2.8.1)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -972,7 +1027,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -982,7 +1036,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Add toimages COM probe (diagnostic, dispatch-only)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9c695fb26788ffbaf8b094b25a289cda11c60c5b" style="color:var(--fg)">Add toimages COM probe (diagnostic, dispatch-only)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1002,7 +1055,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1012,7 +1064,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="VI Snapshots: stage position-aware (toimages) backend — gated no-op"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=b01e9417c0dc2f10c4dc6b95af3315f3f5ffcfee" style="color:var(--fg)">VI Snapshots: stage position-aware (toimages) backend — gated no-op</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1032,7 +1083,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1042,7 +1092,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Add &quot;Populate history&quot; action to backfill the dashboard from existing revisions "><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=8094055381f870a01e30ba9727de3d5f44a50bd0" style="color:var(--fg)">Add &quot;Populate history&quot; action to backfill the dashboard from existing revisions </a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1062,7 +1111,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1072,7 +1120,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Configure: per-activity submission triggers + info-button declutter (v2.6.0)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=585bad748cdd3f335eeb64fd96bc8acf155c5cca" style="color:var(--fg)">Configure: per-activity submission triggers + info-button declutter (v2.6.0)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1092,7 +1139,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1102,7 +1148,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Configure: pre-populate repo VIPC files, de-selected by default; pick which to b"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c82e790da5ac438afb649e4d8b282d75e2ceba60" style="color:var(--fg)">Configure: pre-populate repo VIPC files, de-selected by default; pick which to b</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1122,7 +1167,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1132,7 +1176,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Default max concurrent runners to 5; clarify per-account vs per-repo GitHub limi"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=825ef16de1be2c56028f6c4760a44e55bcb91b1f" style="color:var(--fg)">Default max concurrent runners to 5; clarify per-account vs per-repo GitHub limi</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1152,7 +1195,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1162,7 +1204,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(ux): live progress + control lock for Update now and Apply to New Repo"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=79af7ecdae1f353aa992c61a3f4abc741f4588c0" style="color:var(--fg)">feat(ux): live progress + control lock for Update now and Apply to New Repo</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1182,7 +1223,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1192,7 +1232,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(configure): tabbed dialog + per-action container routing (2.2.0)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=521e7eac6d33f8e004ccdc212e4525f980dc8310" style="color:var(--fg)">feat(configure): tabbed dialog + per-action container routing (2.2.0)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1212,7 +1251,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1222,7 +1260,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix: restore dashboard default-branch detection (regressed by 85645fb)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=b1da5ed697a8f72b7b34b8c7524ac22b480c4263" style="color:var(--fg)">fix: restore dashboard default-branch detection (regressed by 85645fb)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1242,7 +1279,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1252,7 +1288,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="release: 2.1.4 — Update now fixes the dashboard without a token"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a478fc676fc49bba24b859860d3c03f69f52489e" style="color:var(--fg)">release: 2.1.4 — Update now fixes the dashboard without a token</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1272,7 +1307,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1282,7 +1316,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="release: 2.1.3 — scope in-flight update state per repository"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=8b4c3bdc2f25edfd68d7bd69c945bd3c401c6319" style="color:var(--fg)">release: 2.1.3 — scope in-flight update state per repository</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1302,7 +1335,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1312,7 +1344,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="sync: ensure menu consolidation code is in deployed header"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=3bab7c5cd17bc1f0071a6de2e94778b119036a61" style="color:var(--fg)">sync: ensure menu consolidation code is in deployed header</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1332,7 +1363,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1342,7 +1372,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix: remove broad on:status trigger from dashboard workflow"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=21cee271fbe0da4ed14be2b6e135519617bff0d0" style="color:var(--fg)">fix: remove broad on:status trigger from dashboard workflow</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1362,7 +1391,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1372,7 +1400,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="docs: add faq.html to actions/dashboard"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=6ebdc3361fd8e0755913cb843b04f0f3c2424563" style="color:var(--fg)">docs: add faq.html to actions/dashboard</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1392,7 +1419,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1402,7 +1428,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix: add faq.html and lvci-header.js to Pages deployment trigger paths"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=0af2daeea6d8317909803bdfd232097e6cf82e31" style="color:var(--fg)">fix: add faq.html and lvci-header.js to Pages deployment trigger paths</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1422,7 +1447,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1432,7 +1456,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="sync: update whats-new.html copy in actions/dashboard"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=533afeb11a60af607640dac110e57c36c51d9177" style="color:var(--fg)">sync: update whats-new.html copy in actions/dashboard</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1452,7 +1475,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1462,7 +1484,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat: add auto-merge option for install pull requests"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=fa5f257e94d6cf581fcc606e4195c850cb44fda0" style="color:var(--fg)">feat: add auto-merge option for install pull requests</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1482,7 +1503,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1492,7 +1512,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="release: 2.1.0 — fix dashboard on non-main branches and README link placement"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=361fedf1b54f0c512fcf4cd254b8b0c5cc768738" style="color:var(--fg)">release: 2.1.0 — fix dashboard on non-main branches and README link placement</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1512,7 +1531,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1522,7 +1540,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(container): manage the worker container and its VIPC dependencies from Conf"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d321a275a13ff855cf5c7df87b12787ca9a4a2e6" style="color:var(--fg)">feat(container): manage the worker container and its VIPC dependencies from Conf</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1542,7 +1559,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1552,7 +1568,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Header badge: show live &quot;N running&quot; when CI is in flight (1.14.0)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=db49bab9fe1bdee08dbd9d98eb5d0998c8bda525" style="color:var(--fg)">Header badge: show live &quot;N running&quot; when CI is in flight (1.14.0)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1572,7 +1587,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1582,7 +1596,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(integrate): persist the install token in the browser (revert over-ephemeral)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=40641421f0af525f9091411f63c02d674f44ebc0" style="color:var(--fg)">fix(integrate): persist the install token in the browser (revert over-ephemeral)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1602,7 +1615,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1612,7 +1624,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Header brand shows the repository name (1.12.2)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=f088797f5bb830bc6ddbcdc5f5704ef5acf6fa99" style="color:var(--fg)">Header brand shows the repository name (1.12.2)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1632,7 +1643,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1642,7 +1652,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Pin consumers to a version; put the shared header on every document (1.12.0)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=cce0fa619b11c080215fd468cf95430d5bc42d2f" style="color:var(--fg)">Pin consumers to a version; put the shared header on every document (1.12.0)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1662,7 +1671,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1672,7 +1680,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Link a VI Analyzer report&#x27;s commit hash to that commit&#x27;s VI snapshots (1.11.1)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=343e9e48e14133d0aaf9c7577e816585f7b6d90d" style="color:var(--fg)">Link a VI Analyzer report&#x27;s commit hash to that commit&#x27;s VI snapshots (1.11.1)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1692,7 +1699,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1702,7 +1708,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(integrate): make one-click install reliable for full-capability repos (1.10."><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ebab2c37c4869600f8a616de8d360b712a9bc16c" style="color:var(--fg)">fix(integrate): make one-click install reliable for full-capability repos (1.10.</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1722,7 +1727,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1732,7 +1736,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(dashboard): source-of-truth badge never shows &#x27;Updating&#x27;"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=fa7a18009024162e40925549fcb522f91f2dac37" style="color:var(--fg)">fix(dashboard): source-of-truth badge never shows &#x27;Updating&#x27;</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1752,7 +1755,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1762,7 +1764,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(vi-analyzer): &quot;Re-run analysis for this revision&quot; button in the report"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a4fee7911b7be382d4a7bab742b5aa0bbc12515d" style="color:var(--fg)">feat(vi-analyzer): &quot;Re-run analysis for this revision&quot; button in the report</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1782,7 +1783,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1792,7 +1792,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(update): keep one update PR, auto-close superseded ones (1.9.4)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=b744da05bca234317b4955ccb23d37a5399bf2bb" style="color:var(--fg)">fix(update): keep one update PR, auto-close superseded ones (1.9.4)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1812,7 +1811,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1822,7 +1820,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="docs(integrate): encourage a short-lived, single-use install token"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9398e72c678b31559511feab6d5059f5738819b6" style="color:var(--fg)">docs(integrate): encourage a short-lived, single-use install token</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1842,7 +1839,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1852,7 +1848,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(install): build the dashboard on the install merge via a push trigger (1.9.3"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7b68fea1130192b3003f167059bb8faee9fef187" style="color:var(--fg)">fix(install): build the dashboard on the install merge via a push trigger (1.9.3</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1872,7 +1867,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1882,7 +1876,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="release(1.9.2): VI Analyzer worker ships and runs the full test suite"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=6f1a2d335e02dd5c8a7933af1ecbc24849c3218c" style="color:var(--fg)">release(1.9.2): VI Analyzer worker ships and runs the full test suite</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1902,7 +1895,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1912,7 +1904,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(ci-image): ensure the VI Analyzer test suite is actually on disk"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2367f4fa4b971ca38c3144907bba47f0e845df43" style="color:var(--fg)">fix(ci-image): ensure the VI Analyzer test suite is actually on disk</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1932,7 +1923,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1942,7 +1932,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(vi-analyzer): locate the VI Analyzer test suite wherever it lives"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=4f30602ba78e5b1c1d0fd3b3fc770bfc1bf724e2" style="color:var(--fg)">fix(vi-analyzer): locate the VI Analyzer test suite wherever it lives</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1962,7 +1951,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -1972,7 +1960,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(integrate): install can link the dashboard in the README and enable Pages ("><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=475e37b78310ee0733fd08b408d5188a3b815936" style="color:var(--fg)">feat(integrate): install can link the dashboard in the README and enable Pages (</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1992,7 +1979,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2002,7 +1988,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(integrate): one-click install into a repo via token + PR, no download (1.8."><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=48e603e11c61f1b2793e88d6268dcf5adfdff622" style="color:var(--fg)">feat(integrate): one-click install into a repo via token + PR, no download (1.8.</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2022,7 +2007,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2032,7 +2016,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(whats-new): outline the approve + merge steps the update needs (1.7.13)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=704dd258eed1a87701e5eddf81166b5b4a9e6247" style="color:var(--fg)">fix(whats-new): outline the approve + merge steps the update needs (1.7.13)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2052,7 +2035,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2062,7 +2044,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(configure): hide update banner on the source repo&#x27;s own dialog (1.7.11)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=b5a4dcffbbc6a0e3e528e9382112e7e0f4c52116" style="color:var(--fg)">fix(configure): hide update banner on the source repo&#x27;s own dialog (1.7.11)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2082,7 +2063,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2092,7 +2072,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(dashboard): version badge shows when an upgrade is in flight (1.7.9)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=84c6c345ed1b8a5587940b80744ec1af13078e22" style="color:var(--fg)">feat(dashboard): version badge shows when an upgrade is in flight (1.7.9)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2112,7 +2091,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2122,7 +2100,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(dashboard): queued cells show queue position and can be cancelled (1.7.7)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=6046439d5c93df365baaa05551b59cf774980edc" style="color:var(--fg)">feat(dashboard): queued cells show queue position and can be cancelled (1.7.7)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2142,7 +2119,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2152,7 +2128,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(dashboard): show a cell as Queued the moment Run now dispatches (1.7.5)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=22d63b8f9f761e27b53e2de484875cb95aa07578" style="color:var(--fg)">feat(dashboard): show a cell as Queued the moment Run now dispatches (1.7.5)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2172,7 +2147,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2182,7 +2156,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(dashboard): keep CI and project work correctly separated (1.7.3)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=e712f192b2cc142a3763b81d881e668eeca2de82" style="color:var(--fg)">fix(dashboard): keep CI and project work correctly separated (1.7.3)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2202,7 +2175,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2212,7 +2184,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(dashboard): deliver dashboard via the shared action (1.7.1)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c44cd11dc6beeeeb6bcbf63a1a576de43c9609e0" style="color:var(--fg)">feat(dashboard): deliver dashboard via the shared action (1.7.1)</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2232,7 +2203,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2242,7 +2212,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="dashboard action: make the version badge always clickable"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=5389156b3df6a53ae450f1d593bfe098ccfe0296" style="color:var(--fg)">dashboard action: make the version badge always clickable</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2262,7 +2231,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2272,7 +2240,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat: dashboard as shared action + thin token-free install [release: minor]"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a6e971509bcc3419ce4c4e426dd999caf2fa4e0b" style="color:var(--fg)">feat: dashboard as shared action + thin token-free install [release: minor]</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2292,7 +2259,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2302,7 +2268,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(vi-analyzer): shared reusable VI Analyzer capability (token-free) [release:"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=97180b1e170321aecea5e2e9664636ae3bceab45" style="color:var(--fg)">feat(vi-analyzer): shared reusable VI Analyzer capability (token-free) [release:</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2322,7 +2287,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2332,7 +2296,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(update): push workflow-file changes via TOOLING_UPDATE_TOKEN PAT"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=893006837f76164e67e889663dd76acc75fade8f" style="color:var(--fg)">fix(update): push workflow-file changes via TOOLING_UPDATE_TOKEN PAT</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2352,7 +2315,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false">
@@ -2362,52 +2324,6 @@
       <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(apply-update): bump catalog.json version so client badges update [release: p"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a9108ef9caeaec553b09800c95348f845d9d0fd3" style="color:var(--fg)">fix(apply-update): bump catalog.json version so client badges update [release: p</a></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false">
-      <td style="padding:8px;font-family:monospace;font-size:.85em">
-        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=01422ac03a358bcf62d8c6d7f84f4d3e3eb1c949" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">01422ac</a>
-      </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="feat(update): one-click &#x27;Update now&#x27; button for clients [release: patch]"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=01422ac03a358bcf62d8c6d7f84f4d3e3eb1c949" style="color:var(--fg)">feat(update): one-click &#x27;Update now&#x27; button for clients [release: patch]</a></td>
-      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
-      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false">
-      <td style="padding:8px;font-family:monospace;font-size:.85em">
-        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=eb1ce03235edb93368df562b3f9c21333d6a03b1" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">eb1ce03</a>
-      </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(vi-analyzer): recompile workspace to image LabVIEW version before analyzing"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=eb1ce03235edb93368df562b3f9c21333d6a03b1" style="color:var(--fg)">fix(vi-analyzer): recompile workspace to image LabVIEW version before analyzing</a></td>
-      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
-      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false">
-      <td style="padding:8px;font-family:monospace;font-size:.85em">
-        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=657924502f841e81b23b43812dec6ffe00268e3e" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">6579245</a>
-      </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="fix(dashboard): brand title/header from runtime repo name, not hardcoded"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=657924502f841e81b23b43812dec6ffe00268e3e" style="color:var(--fg)">fix(dashboard): brand title/header from runtime repo name, not hardcoded</a></td>
-      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
-      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-15</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2426,8 +2342,7 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="df868ea07cef49f7ed721442b627ec78ba306e7f" data-parent="c433e9e5e28492955ffa4d83f0434159b64d3fb7" data-short="df868ea" data-ts="2026-06-16T22:32:36Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=df868ea07cef49f7ed721442b627ec78ba306e7f&short=df868ea&src=..%2Fvi-analyzer%2Fdf868ea07cef49f7ed721442b627ec78ba306e7f%2Findex.html&title=VI%20Analyzer%20%C2%B7%20df868ea" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="df868ea07cef49f7ed721442b627ec78ba306e7f" data-parent="c433e9e5e28492955ffa4d83f0434159b64d3fb7" data-short="df868ea" data-ts="2026-06-15T19:59:39Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=df868ea07cef49f7ed721442b627ec78ba306e7f&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=df868ea07cef49f7ed721442b627ec78ba306e7f&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=df868ea07cef49f7ed721442b627ec78ba306e7f&plat=linux&changed=1" style="color:var(--link)">Linux(1)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-5f78fa77a678/manifest.html" style="color:inherit">win-5f78fa77a678</a></span></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/linux/linux-c6484cf4d66a/manifest.html" style="color:inherit">linux-c6484cf4d66a</a></span></td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="true">
@@ -2441,8 +2356,7 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="c433e9e5e28492955ffa4d83f0434159b64d3fb7" data-parent="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-short="c433e9e" data-ts="2026-06-15T22:17:33Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=c433e9e5e28492955ffa4d83f0434159b64d3fb7&short=c433e9e&src=..%2Fvi-analyzer%2Fc433e9e5e28492955ffa4d83f0434159b64d3fb7%2Findex.html&title=VI%20Analyzer%20%C2%B7%20c433e9e" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="c433e9e5e28492955ffa4d83f0434159b64d3fb7" data-parent="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-short="c433e9e" data-ts="2026-06-16T03:51:14Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c433e9e5e28492955ffa4d83f0434159b64d3fb7&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c433e9e5e28492955ffa4d83f0434159b64d3fb7&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c433e9e5e28492955ffa4d83f0434159b64d3fb7&plat=linux&changed=1" style="color:var(--link)">Linux(1)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/linux/linux-c6484cf4d66a/manifest.html" style="color:inherit">linux-c6484cf4d66a</a></span></td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="true">
@@ -2456,7 +2370,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-parent="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-short="d1705cb" data-ts="2026-06-15T22:32:40Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&short=d1705cb&src=..%2Fvi-analyzer%2Fd1705cb4e4bf97878034ace4aa9ddd2d53bf29d1%2Findex.html&title=VI%20Analyzer%20%C2%B7%20d1705cb" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-parent="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-short="d1705cb" data-ts="2026-06-16T04:10:56Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1&plat=linux&changed=1" style="color:var(--link)">Linux(1)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2471,7 +2384,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-parent="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-short="d1a86a8" data-ts="2026-06-15T22:46:35Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=d1a86a8741bec13cfa11446d0e72d12479a209ae&short=d1a86a8&src=..%2Fvi-analyzer%2Fd1a86a8741bec13cfa11446d0e72d12479a209ae%2Findex.html&title=VI%20Analyzer%20%C2%B7%20d1a86a8" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-parent="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-short="d1a86a8" data-ts="2026-06-16T04:43:42Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1a86a8741bec13cfa11446d0e72d12479a209ae&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1a86a8741bec13cfa11446d0e72d12479a209ae&plat=windows&changed=1" style="color:var(--link)">Win(5)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d1a86a8741bec13cfa11446d0e72d12479a209ae&plat=linux&changed=1" style="color:var(--link)">Linux(5)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2486,7 +2398,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-parent="3d513473c8dce75e22b08294b87de2fb37fd9798" data-short="2b5f1aa" data-ts="2026-06-15T23:26:38Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6&short=2b5f1aa&src=..%2Fvi-analyzer%2F2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6%2Findex.html&title=VI%20Analyzer%20%C2%B7%202b5f1aa" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-parent="3d513473c8dce75e22b08294b87de2fb37fd9798" data-short="2b5f1aa" data-ts="2026-06-16T04:43:16Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6&plat=windows&changed=1" style="color:var(--link)">Win(5)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6&plat=linux&changed=1" style="color:var(--link)">Linux(5)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2501,7 +2412,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="3d513473c8dce75e22b08294b87de2fb37fd9798" data-parent="1b00b2d59dd388f8fb93de6661d429025e320a6b" data-short="3d51347" data-ts="2026-06-15T23:44:00Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=3d513473c8dce75e22b08294b87de2fb37fd9798&short=3d51347&src=..%2Fvi-analyzer%2F3d513473c8dce75e22b08294b87de2fb37fd9798%2Findex.html&title=VI%20Analyzer%20%C2%B7%203d51347" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="3d513473c8dce75e22b08294b87de2fb37fd9798" data-parent="1b00b2d59dd388f8fb93de6661d429025e320a6b" data-short="3d51347" data-ts="2026-06-16T04:45:43Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=3d513473c8dce75e22b08294b87de2fb37fd9798&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=3d513473c8dce75e22b08294b87de2fb37fd9798&plat=windows&changed=1" style="color:var(--link)">Win(2)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=3d513473c8dce75e22b08294b87de2fb37fd9798&plat=linux&changed=1" style="color:var(--link)">Linux(2)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2516,7 +2426,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="1b00b2d59dd388f8fb93de6661d429025e320a6b" data-parent="f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5" data-short="1b00b2d" data-ts="2026-06-16T00:00:32Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=1b00b2d59dd388f8fb93de6661d429025e320a6b&short=1b00b2d&src=..%2Fvi-analyzer%2F1b00b2d59dd388f8fb93de6661d429025e320a6b%2Findex.html&title=VI%20Analyzer%20%C2%B7%201b00b2d" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="1b00b2d59dd388f8fb93de6661d429025e320a6b" data-parent="f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5" data-short="1b00b2d" data-ts="2026-06-16T04:53:06Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=1b00b2d59dd388f8fb93de6661d429025e320a6b&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=1b00b2d59dd388f8fb93de6661d429025e320a6b&plat=windows&changed=1" style="color:var(--link)">Win(6)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=1b00b2d59dd388f8fb93de6661d429025e320a6b&plat=linux&changed=1" style="color:var(--link)">Linux(6)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2531,7 +2440,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5" data-parent="f96842dc7fd776c01e186bb089eb7079444390f1" data-short="f4640da" data-ts="2026-06-16T00:16:31Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5&short=f4640da&src=..%2Fvi-analyzer%2Ff4640dad9ee5e8dcc8cdc87917e97a08f0233ba5%2Findex.html&title=VI%20Analyzer%20%C2%B7%20f4640da" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5" data-parent="f96842dc7fd776c01e186bb089eb7079444390f1" data-short="f4640da" data-ts="2026-06-16T04:39:02Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5&plat=windows&changed=1" style="color:var(--link)">Win(24)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5&plat=linux&changed=1" style="color:var(--link)">Linux(24)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2546,7 +2454,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="f96842dc7fd776c01e186bb089eb7079444390f1" data-parent="e2ee064d41e45456d7d51afd63c3fce28713fc94" data-short="f96842d" data-ts="2026-06-16T00:32:46Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=f96842dc7fd776c01e186bb089eb7079444390f1&short=f96842d&src=..%2Fvi-analyzer%2Ff96842dc7fd776c01e186bb089eb7079444390f1%2Findex.html&title=VI%20Analyzer%20%C2%B7%20f96842d" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="f96842dc7fd776c01e186bb089eb7079444390f1" data-parent="e2ee064d41e45456d7d51afd63c3fce28713fc94" data-short="f96842d" data-ts="2026-06-16T04:51:07Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=f96842dc7fd776c01e186bb089eb7079444390f1&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=f96842dc7fd776c01e186bb089eb7079444390f1&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=f96842dc7fd776c01e186bb089eb7079444390f1&plat=linux&changed=1" style="color:var(--link)">Linux(1)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2561,7 +2468,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="e2ee064d41e45456d7d51afd63c3fce28713fc94" data-parent="abb3a165d423dff26829fa296e1039bbc3903ece" data-short="e2ee064" data-ts="2026-06-16T00:46:50Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=e2ee064d41e45456d7d51afd63c3fce28713fc94&short=e2ee064&src=..%2Fvi-analyzer%2Fe2ee064d41e45456d7d51afd63c3fce28713fc94%2Findex.html&title=VI%20Analyzer%20%C2%B7%20e2ee064" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="e2ee064d41e45456d7d51afd63c3fce28713fc94" data-parent="abb3a165d423dff26829fa296e1039bbc3903ece" data-short="e2ee064" title="Run VIDiff for commit e2ee064">&#9655;</a></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=e2ee064d41e45456d7d51afd63c3fce28713fc94&plat=windows&changed=1" style="color:var(--link)">Win(6)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=e2ee064d41e45456d7d51afd63c3fce28713fc94&plat=linux&changed=1" style="color:var(--link)">Linux(6)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2576,7 +2482,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="abb3a165d423dff26829fa296e1039bbc3903ece" data-parent="7599b047409f6801f226b06159da3036986c5bb8" data-short="abb3a16" data-ts="2026-06-16T01:02:08Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=abb3a165d423dff26829fa296e1039bbc3903ece&short=abb3a16&src=..%2Fvi-analyzer%2Fabb3a165d423dff26829fa296e1039bbc3903ece%2Findex.html&title=VI%20Analyzer%20%C2%B7%20abb3a16" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="abb3a165d423dff26829fa296e1039bbc3903ece" data-parent="7599b047409f6801f226b06159da3036986c5bb8" data-short="abb3a16" data-ts="2026-06-16T05:00:47Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abb3a165d423dff26829fa296e1039bbc3903ece&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abb3a165d423dff26829fa296e1039bbc3903ece&plat=windows&changed=1" style="color:var(--link)">Win(1)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=abb3a165d423dff26829fa296e1039bbc3903ece&plat=linux&changed=1" style="color:var(--link)">Linux(1)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2591,7 +2496,6 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" data-ts="2026-06-16T01:17:20Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=7599b047409f6801f226b06159da3036986c5bb8&short=7599b04&src=..%2Fvi-analyzer%2F7599b047409f6801f226b06159da3036986c5bb8%2Findex.html&title=VI%20Analyzer%20%C2%B7%207599b04" style="color:inherit">✅ analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" data-ts="2026-06-16T05:00:24Z"><span style="background:#2ea043;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8&changed=1" style="color:inherit">✅ diff</a></span></td>
       <td style="text-align:center;font-size:.78em;white-space:nowrap"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8&plat=windows&changed=1" style="color:var(--link)">Win(22)</a> / <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8&plat=linux&changed=1" style="color:var(--link)">Linux(22)</a></td>
-      <td style="text-align:center"><span style="font-family:monospace;font-size:.72em;color:var(--fg-muted)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/windows/win-744dfc9a7774/manifest.html" style="color:inherit">win-744dfc9a7774</a></span></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr></tbody>
   </table>
@@ -2622,6 +2526,59 @@
       };
       checkbox.addEventListener('change', applyFilter);
       applyFilter();
+    })();
+
+    // Column-visibility menu: a standard "Columns" dropdown of checkboxes that
+    // toggles each (non-identifier) column on/off, persisted per-repo in
+    // localStorage so the choice survives reloads. Commit (column 0) is the row
+    // identifier and is always shown.
+    (() => {
+      const STORE = 'lvci_dash_cols_elijah286/LabVIEW-CI-with-Containers';
+      const COLS = [
+        {key:'message',     label:'Message',      idx:1},
+        {key:'author',      label:'Author',       idx:2},
+        {key:'date',        label:'Date',         idx:3},
+        {key:'masscompile', label:'Mass Compile', idx:4},
+        {key:'vi-analyzer', label:'VI Analyzer',  idx:5},
+        {key:'vidiff',      label:'VIDiff',       idx:6},
+        {key:'snapshots',   label:'Snapshots',    idx:7},
+        {key:'unit-tests',  label:'Unit Tests',   idx:8}
+      ];
+      const btn = document.getElementById('cidash-colbtn');
+      const panel = document.getElementById('cidash-colpanel');
+      if (!btn || !panel) return;
+      const hidden = {};
+      try { (JSON.parse(localStorage.getItem(STORE)) || []).forEach((k) => { hidden[k] = true; }); } catch (e) {}
+      const persist = () => {
+        try { localStorage.setItem(STORE, JSON.stringify(COLS.map((c) => c.key).filter((k) => hidden[k]))); } catch (e) {}
+      };
+      const applyCol = (col) => {
+        const vis = !hidden[col.key];
+        document.querySelectorAll('#cidash-table > thead > tr, #cidash-table > tbody > tr').forEach((tr) => {
+          const cell = tr.children[col.idx];
+          if (cell) cell.style.display = vis ? '' : 'none';
+        });
+      };
+      const head = document.createElement('div');
+      head.className = 'hd';
+      head.textContent = 'Show columns';
+      panel.appendChild(head);
+      COLS.forEach((col) => {
+        const lab = document.createElement('label');
+        lab.className = 'cidash-colopt';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !hidden[col.key];
+        cb.addEventListener('change', () => { hidden[col.key] = !cb.checked; applyCol(col); persist(); });
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(' ' + col.label));
+        panel.appendChild(lab);
+        applyCol(col);
+      });
+      const setOpen = (open) => { panel.hidden = !open; btn.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+      btn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(panel.hidden); });
+      document.addEventListener('click', (e) => { if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) setOpen(false); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
     })();
   </script>
 </body>
