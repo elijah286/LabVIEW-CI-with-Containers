@@ -79,6 +79,71 @@ h1{font-size:1.1em;margin:0 0 8px}.muted{color:#8b949e;font-size:.85em}</style><
     [System.IO.File]::WriteAllText($Path, $html, [System.Text.UTF8Encoding]::new($false))
 }
 
+# Ensure the container's LabVIEW is in the scripting-enabled, unattended state the
+# position-aware renderer (Convert.vi) needs to traverse block-diagram objects.
+# These tokens mirror the LabVIEW.ini that lvctl ships for the same workload;
+# SuperSecretPrivateSpecialStuff is the scripting enabler. The merge is idempotent
+# and preserves every other key already present in the container's LabVIEW.ini.
+# Plain HTML snapshots do not need scripting, so the caller only invokes this when
+# the JSON operation is present (see the gated call below) — no base image change
+# is required; this travels with the tooling and runs inside the stock container.
+function Enable-LVScripting([string]$LabVIEWExePath) {
+    $iniPath = Join-Path (Split-Path -Parent $LabVIEWExePath) 'LabVIEW.ini'
+    $tokens  = [ordered]@{
+        'SuperSecretPrivateSpecialStuff'    = 'True'
+        'unattended'                        = 'True'
+        'NIERAutoSendAndSuppressAllDialogs' = 'True'
+        'SuppressRTConnectionDialogs'       = 'True'
+        'neverShowAddonLicensingStartup'    = 'True'
+        'neverShowLicensingStartupDialog'   = 'True'
+        'DWarnDialog'                        = 'False'
+        'AutoSaveEnabled'                    = 'False'
+    }
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+
+    $existing = @()
+    if (Test-Path -LiteralPath $iniPath) { $existing = @(Get-Content -LiteralPath $iniPath) }
+
+    # LabVIEW's INI keys live under a [LabVIEW] section. Locate it (case-insensitive).
+    $secIdx = -1
+    for ($i = 0; $i -lt $existing.Count; $i++) {
+        if ("$($existing[$i])".Trim() -ieq '[LabVIEW]') { $secIdx = $i; break }
+    }
+
+    if ($secIdx -lt 0) {
+        # No section yet: append a fresh [LabVIEW] block with all tokens.
+        $block = @('[LabVIEW]') + ($tokens.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" })
+        if ($existing.Count -gt 0 -and "$($existing[-1])".Trim() -ne '') { $existing += '' }
+        $existing += $block
+        [System.IO.File]::WriteAllLines($iniPath, [string[]]$existing, $utf8NoBom)
+        Write-Host "  Scripting: created [LabVIEW] section with scripting tokens in $iniPath"
+        return
+    }
+
+    # The section body spans (secIdx+1 .. next '[...]' header or end of file).
+    $end = $existing.Count
+    for ($j = $secIdx + 1; $j -lt $existing.Count; $j++) {
+        if ("$($existing[$j])" -match '^\s*\[.+\]\s*$') { $end = $j; break }
+    }
+
+    $pre  = @(); if ($secIdx -ge 0)            { $pre  = @($existing[0..$secIdx]) }
+    $body = @(); if ($end -gt ($secIdx + 1))   { $body = @($existing[($secIdx + 1)..($end - 1)]) }
+    $post = @(); if ($end -lt $existing.Count) { $post = @($existing[$end..($existing.Count - 1)]) }
+
+    foreach ($key in $tokens.Keys) {
+        $val   = $tokens[$key]
+        $found = $false
+        for ($k = 0; $k -lt $body.Count; $k++) {
+            if ("$($body[$k])" -match "^\s*$([regex]::Escape($key))\s*=") { $body[$k] = "$key=$val"; $found = $true; break }
+        }
+        if (-not $found) { $body += "$key=$val" }
+    }
+
+    $merged = @(); $merged += $pre; $merged += $body; $merged += $post
+    [System.IO.File]::WriteAllLines($iniPath, [string[]]$merged, $utf8NoBom)
+    Write-Host "  Scripting: ensured scripting tokens in $iniPath"
+}
+
 $ResolvedLV = Resolve-LabVIEWPath $LabVIEWPath
 $CliExe     = Resolve-LabVIEWCLI $ResolvedLV
 
@@ -87,6 +152,22 @@ $OpClass = Join-Path $OpsDir 'PrintToSingleFileHtml'
 if (-not (Test-Path $OpClass)) {
     Write-Error "PrintToSingleFileHtml operation not found under '$OpsDir'."
     exit 1
+}
+
+# Optional position-aware renderer for the in-place VI Browser. A frames JSON is
+# emitted next to each snapshot ONLY when a PrintToImagesJson LabVIEWCLI operation
+# is present beside PrintToSingleFileHtml (see toimages\README.md for how to author
+# it from the bundled Convert.vi). Until then this is skipped and the gallery
+# behaves exactly as before.
+$ImagesOp     = Join-Path $OpsDir 'PrintToImagesJson'
+$HaveImagesOp = Test-Path $ImagesOp
+
+# The position-aware renderer scripts the block diagram, which requires LabVIEW
+# scripting to be enabled. Do it (idempotently) ONLY when we will actually emit
+# JSON, so plain-HTML snapshot runs stay byte-for-byte unchanged.
+if ($HaveImagesOp) {
+    try { Enable-LVScripting $ResolvedLV }
+    catch { Write-Warning "  Could not update LabVIEW.ini for scripting: $_ (JSON capture may fail; HTML unaffected)." }
 }
 
 Write-Host "=== Render VI Snapshots ==="
@@ -148,6 +229,28 @@ foreach ($line in $lines) {
         if (-not (Test-Path $OutFile)) { throw 'no output produced' }
         Write-Host "  OK: $rel"
         $Rendered++
+
+        # Best-effort: also emit a position-aware frames JSON next to the HTML so
+        # the VI Browser can render this VI in place. A failure here never affects
+        # the HTML snapshot (the gallery's source of truth).
+        if ($HaveImagesOp) {
+            $JsonOut = [System.IO.Path]::ChangeExtension($OutFile, '.json')
+            try {
+                & $CliExe `
+                    -OperationName                PrintToImagesJson `
+                    -LabVIEWPath                  $ResolvedLV `
+                    -AdditionalOperationDirectory $ImagesOp `
+                    -LogToConsole                 TRUE `
+                    -VI                           $ViPath `
+                    -OutputPath                   $JsonOut `
+                    -o -c `
+                    -Headless
+                if ($LASTEXITCODE -eq 0 -and (Test-Path $JsonOut)) { Write-Host "  JSON: $rel" }
+                else { Write-Warning "  (json) skipped for $rel (op exit $LASTEXITCODE)" }
+            } catch {
+                Write-Warning "  (json) error for $rel - $_ (non-fatal)"
+            }
+        }
     } catch {
         Write-Warning "  ERROR: $rel - $_"
         Write-Placeholder -Path $OutFile -Rel $rel -Reason "Render failed: $_"
