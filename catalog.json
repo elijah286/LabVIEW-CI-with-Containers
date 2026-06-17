@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.3.0",
+        "date": "2026-06-17",
+        "title": "The dashboard tells you when it's being rebuilt",
+        "summary": "While the workflow that regenerates the dashboard (or the GitHub Pages publish that follows it) is running, the dashboard now shows a banner at the top: it says a new version is being compiled, links directly to the running action, and refreshes the page automatically once that action completes. No more staring at a stale dashboard wondering whether your latest change has landed yet.",
+        "highlights": [
+          "A banner at the top of the dashboard appears whenever the page is being rebuilt, with a live link to the GitHub Actions run doing the work.",
+          "The page reloads itself once the rebuild finishes, so the new version shows up without a manual refresh.",
+          "It appears only on the dashboard, and only while a rebuild or Pages publish is actually in flight."
+        ]
+      },
       {
         "version": "2.2.0",
         "date": "2026-06-17",
