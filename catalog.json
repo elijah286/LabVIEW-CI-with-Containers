@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.9.0",
+  "version": "2.10.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.10.0",
+        "date": "2026-06-17",
+        "title": "Unit testing: configure frameworks, run in CI, jump to failures",
+        "summary": "Unit testing is now a first-class CI activity. A new Unit Testing page (in the header's menu) lets you turn on the LabVIEW unit-test frameworks you use (JKI Caraya and JKI VI Tester) and say where each one's tests live - a folder or a glob. They run in the Windows worker, and their different outputs are merged into one Unit Tests report per revision on the dashboard, where you can run them on demand just like the other activities and click any failure to open the VI under test in the VI Browser. NI's Unit Test Framework is scaffolded for when its headless runner lands.",
+        "highlights": [
+          "New Unit Testing configuration page: enable one or many frameworks and point each at its tests (directory or glob). Scales to future tools.",
+          "Unit Tests is now in the activity matrix and the dashboard's Unit Tests column - run it on demand with the same Run-now flow as Mass Compile or VI Analyzer.",
+          "Every framework's results are normalised to one report; failing tests deep-link to the VI under test in the VI Browser.",
+          "Windows-only for now (Caraya and VI Tester are VIPM packages). The Caraya runner is the reference; execution is being validated on a real worker."
+        ]
+      },
       {
         "version": "2.9.0",
         "date": "2026-06-17",
@@ -839,7 +851,8 @@
           ".github/pages/report-viewer.html",
           ".github/pages/integrate.html",
           ".github/pages/configure.html",
-          ".github/pages/whats-new.html"
+          ".github/pages/whats-new.html",
+          ".github/pages/unit-tests.html"
         ],
         "windows": [],
         "linux": []
@@ -1008,23 +1021,28 @@
       "id": "unit-tests",
       "name": "Unit Tests",
       "summary": "Run a LabVIEW unit-test framework (e.g. Caraya or VI Tester) in CI and publish pass/fail results to the dashboard.",
-      "status": "planned",
+      "status": "stable",
       "recommended": false,
       "supportsOs": [
-        "windows",
-        "linux"
+        "windows"
       ],
       "requires": [],
       "recommends": [
-        "dashboard"
+        "dashboard",
+        "custom-image"
       ],
       "statusContext": "CI / Unit Tests",
       "files": {
-        "any": [],
-        "windows": [],
+        "any": [
+          ".github/labview/build-unittest-report.py"
+        ],
+        "windows": [
+          ".github/workflows/unit-tests-windows-container.yml",
+          ".github/labview/run-unit-tests.ps1"
+        ],
         "linux": []
       },
-      "notes": "Planned \u2014 the CI runner is not yet implemented, but the test frameworks themselves (NI Unit Test Framework, JKI VI Tester, and Caraya) are already baked into the worker image. This entry demonstrates how the system scales: when the runner exists, add its workflow + script paths to the `files` map here and flip `status` to `stable`. It then appears automatically in both the configurator and the installer with no other code changes."
+      "notes": "Runs the configured LabVIEW unit-test frameworks (Caraya, JKI VI Tester) headlessly in the Windows worker via g-cli, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Windows-only because Caraya and VI Tester are VIPM packages; choose which tools run and where their tests live on the Unit Testing page. NI UTF headless execution is scaffolded (coming soon)."
     }
   ]
 }
