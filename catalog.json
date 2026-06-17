@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "1.12.1",
+  "version": "1.12.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.12.2",
+        "date": "2026-06-16",
+        "title": "The header shows which repository you're viewing",
+        "summary": "The navigation header's top-left mark now shows the repository name \u2014 with a small LabVIEW CI label above it \u2014 instead of just the product name, so the repository whose results you're viewing is always visible, on the dashboard and on every report and page that carries the header. The name truncates with an ellipsis when space is tight (the full owner/name shows on hover), so the header stays tidy and fits all the way down to a narrow phone.",
+        "highlights": [
+          "The header's top-left brand now reads the repository name with a small LabVIEW CI kicker above it, so you can always tell which repository's dashboard or report you're looking at.",
+          "Responsive by design: the repository name truncates with an ellipsis (full owner/name on hover) and never collides with the mobile menu button, so the header fits cleanly on phones."
+        ]
+      },
       {
         "version": "1.12.1",
         "date": "2026-06-16",
