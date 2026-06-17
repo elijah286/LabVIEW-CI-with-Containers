@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.13.0",
+  "version": "1.14.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.14.0",
+        "date": "2026-06-16",
+        "title": "The version badge shows when CI is running",
+        "summary": "The navigation header's version badge now doubles as a live activity indicator: whenever workflow runs are queued or in progress, it replaces the version number with a spinning 'N running' badge that links to the Actions tab, then returns to the version once everything finishes. This makes the dashboard visibly reflect work in progress \u2014 for example a deploy you're waiting on right after 'Apply to New Repo' or an update \u2014 instead of looking stale while it catches up. It reads the repository's in-flight runs from the browser, so public repositories need no setup and private repositories reuse the dashboard's existing token; it only checks while the tab is open and falls back to the plain version number if activity can't be read. An in-progress tooling update still takes precedence and shows 'Updating to v\u2026'.",
+        "highlights": [
+          "While any workflow run is queued or in progress, the version badge becomes a live 'N running' indicator with a spinner and links to the Actions tab; it reverts to the version number when the runs finish.",
+          "Appears on the dashboard and every page that carries the shared header, and refreshes as runs start and finish (only while the tab is visible).",
+          "Public repositories work with no setup; private repositories reuse the dashboard's existing dispatch token, and the badge quietly falls back to the version number when activity can't be read.",
+          "An in-progress tooling update ('Updating to v\u2026') and the 'update available' cue still take priority over the running indicator."
+        ]
+      },
       {
         "version": "1.13.0",
         "date": "2026-06-16",
