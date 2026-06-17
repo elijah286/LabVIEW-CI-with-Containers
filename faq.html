@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FAQ — LabVIEW CI</title>
+  <script>window.LVCI={context:'faq'};</script>
+  <script src="lvci-header.js" defer></script>
+  <style>
+    :root{
+      --bg:#0d1117;--surface:#161b22;--border:#30363d;
+      --fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;
+    }
+    @media(prefers-color-scheme:light){
+      :root{
+        --bg:#ffffff;--surface:#f6f8fa;--border:#d0d7de;
+        --fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--accent:#1f883d;
+      }
+    }
+    *{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:var(--bg);color:var(--fg);line-height:1.6}
+    a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+    .wrap{max-width:820px;margin:0 auto;padding:32px 20px 64px}
+    h1{font-size:1.6em;margin:0 0 8px}
+    .intro{color:var(--fg-muted);font-size:.95em;margin:0 0 28px}
+    .faq-item{margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .faq-q{background:var(--surface);padding:14px 16px;font-weight:600;font-size:.95em;cursor:pointer;display:flex;
+          justify-content:space-between;align-items:center;user-select:none}
+    .faq-q:hover{background:rgba(88,166,255,.06)}
+    .faq-q.open{background:rgba(88,166,255,.1)}
+    .faq-icon{display:inline-block;transition:transform .2s;font-size:1.2em}
+    .faq-q.open .faq-icon{transform:rotate(180deg)}
+    .faq-a{display:none;padding:16px;background:var(--bg);border-top:1px solid var(--border);font-size:.9em;line-height:1.7}
+    .faq-a.open{display:block}
+    .faq-a code{background:var(--surface);padding:2px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:.9em}
+    .faq-a pre{background:var(--surface);padding:12px 14px;border-radius:6px;overflow-x:auto;margin:8px 0;
+               font-size:.85em;line-height:1.4}
+    .faq-a pre code{background:none;padding:0;border-radius:0}
+    .faq-a ul{margin:8px 0;padding-left:20px}
+    .faq-a li{margin-bottom:6px}
+    .faq-a strong{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Frequently Asked Questions</h1>
+    <p class="intro">Common questions about LabVIEW CI setup, configuration, and operation.</p>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>What is LabVIEW CI?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>LabVIEW CI is a portable, repository-agnostic CI/CD pipeline for LabVIEW projects. It provides:</p>
+        <ul>
+          <li><strong>Mass Compile</strong> — build all VIs and check for compilation errors</li>
+          <li><strong>VI Analyzer</strong> — static analysis for code quality</li>
+          <li><strong>VIDiff</strong> — compare versions of VIs</li>
+          <li><strong>VI Browser</strong> — browse and search VIs by commit history</li>
+          <li><strong>Status Dashboard</strong> — unified view of all pipeline results</li>
+        </ul>
+        <p>It's driven entirely by a catalog so the configurator UI and installer stay in sync — new capabilities are just a one-entry change.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>How do I add this to my repository?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>Click <strong>➕ Apply to New Repo</strong> from the dashboard. This will:</p>
+        <ol>
+          <li>Ask which LabVIEW version and platforms your repo uses</li>
+          <li>Let you select which capabilities you want (Mass Compile, VI Analyzer, etc.)</li>
+          <li>Generate an install command to run in your repository</li>
+          <li>Create a pull request with all the necessary workflows and configuration</li>
+        </ol>
+        <p>You review and merge the PR to activate the pipeline.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>Can I change settings after installing?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>Yes! Click <strong>⚙ Configure Workers</strong> from the dashboard to change:</p>
+        <ul>
+          <li>LabVIEW version</li>
+          <li>Target platforms (Windows, Linux, or both)</li>
+          <li>Which capabilities run (enable/disable Mass Compile, VI Analyzer, etc.)</li>
+          <li>Maximum concurrent runners</li>
+          <li>VIPM package dependencies and container settings</li>
+        </ul>
+        <p>Configure opens a pull request with your changes — review and merge to apply.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>What are worker containers?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>Worker containers are Docker images that bundle your project's dependencies (VIPM packages, etc.) with LabVIEW. They ensure that every CI run uses exactly the same environment.</p>
+        <p>From Configure, you can:</p>
+        <ul>
+          <li>Select which prebuilt container image to use (Latest for always-current, or pin a specific build)</li>
+          <li>List VIPC dependency files baked into the container</li>
+          <li>Enable "Monitor" on a VIPC so the container rebuilds automatically when that file changes</li>
+        </ul>
+        <p>VI Analyzer, Mass Compile, and VIDiff run inside the container you select.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>How do I update LabVIEW CI to a new version?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>The dashboard shows an "Update available" badge when a new version of LabVIEW CI is released. Click <strong>Update now</strong> to:</p>
+        <ul>
+          <li>Review what changed in the new version</li>
+          <li>Generate an update command</li>
+          <li>Create a pull request that updates your pipeline to the latest version</li>
+        </ul>
+        <p>Merge the PR to get the new features and improvements.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>What platforms are supported?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>LabVIEW CI supports:</p>
+        <ul>
+          <li><strong>Windows</strong> — GitHub-hosted runner or custom runner</li>
+          <li><strong>Linux</strong> — Mass Compile and select capabilities run on Linux via container</li>
+        </ul>
+        <p>You choose which platforms your pipeline targets during setup or from Configure.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>Does it cost anything?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>LabVIEW CI itself is free and open-source. Running CI on GitHub costs:</p>
+        <ul>
+          <li><strong>Public repositories:</strong> free (unlimited Actions minutes on GitHub-hosted runners)</li>
+          <li><strong>Private repositories:</strong> counts against your GitHub Actions quota (2,000 free minutes/month for GitHub Pro)</li>
+        </ul>
+        <p>You can configure the max concurrent runners to stay within quota if needed.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>Can I use custom runners instead of GitHub-hosted?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>Yes. When setting up or configuring your pipeline, specify custom runner labels if you've registered them with your GitHub organization or repository.</p>
+        <p>Custom runners are useful if you have:</p>
+        <ul>
+          <li>A local build machine with special hardware</li>
+          <li>Licenses that tie to a machine</li>
+          <li>Network requirements (internal package servers, etc.)</li>
+        </ul>
+        <p>See your GitHub Actions settings to register custom runners.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>What happens if I merge breaking changes to the main branch?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>The dashboard shows results for every commit. If CI fails on a commit:</p>
+        <ul>
+          <li>The failing commit is flagged on the dashboard</li>
+          <li>You can click through to see Mass Compile errors, VI Analyzer warnings, or test failures</li>
+          <li>Open a new pull request to fix the issue</li>
+        </ul>
+        <p>Protecting your main branch (requiring CI to pass before merge) prevents broken commits from landing.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>Where do I report bugs or request features?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>LabVIEW CI is open-source on GitHub:</p>
+        <p><strong><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers" target="_blank">github.com/elijah286/LabVIEW-CI-with-Containers</a></strong></p>
+        <p>You can:</p>
+        <ul>
+          <li>Open an issue to report a bug or request a feature</li>
+          <li>Check existing issues to see if your question or request has already been discussed</li>
+          <li>Watch the repo to get notified of new releases</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
