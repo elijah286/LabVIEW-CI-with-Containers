@@ -151,6 +151,18 @@
     '.lvci-burger{display:none;align-items:center;justify-content:center;width:38px;height:34px;border:1px solid #30363d;border-radius:7px;background:transparent;color:inherit;cursor:pointer;flex:0 0 auto}',
     '@media(prefers-color-scheme:light){.lvci-burger{border-color:#d0d7de}}',
     '.lvci-burger svg{width:18px;height:18px;display:block}',
+    // Secondary actions dropdown (Configure, Update, About)
+    '.lvci-dropdown{position:relative;display:inline-flex;align-items:center}',
+    '.lvci-more{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid #30363d;background:transparent;color:inherit;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600}',
+    '.lvci-more:hover{background:rgba(177,186,196,.12)}',
+    '@media(prefers-color-scheme:light){.lvci-more{border-color:#d0d7de}.lvci-more:hover{background:rgba(80,90,100,.08)}}',
+    '.lvci-dropdown-menu{display:none;position:absolute;top:100%;right:0;z-index:200;background:rgba(22,27,34,.98);border:1px solid #30363d;border-radius:8px;margin-top:6px;min-width:180px;padding:6px 0}',
+    '.lvci-dropdown-menu.open{display:block}',
+    '.lvci-dropdown-menu a,.lvci-dropdown-menu button{display:flex;width:100%;align-items:center;gap:8px;padding:8px 12px;background:transparent;border:0;color:#e6edf3;text-decoration:none;font-size:13px;cursor:pointer;text-align:left}',
+    '.lvci-dropdown-menu a:hover,.lvci-dropdown-menu button:hover{background:rgba(177,186,196,.12)}',
+    '.lvci-dropdown-menu .lvci-sep{height:1px;background:#30363d;margin:6px 0}',
+    '@media(prefers-color-scheme:light){.lvci-dropdown-menu{background:#fff;border-color:#d0d7de}.lvci-dropdown-menu a,.lvci-dropdown-menu button{color:#1f2328}.lvci-dropdown-menu a:hover,.lvci-dropdown-menu button:hover{background:rgba(80,90,100,.08)}}',
+    '@media(max-width:820px){.lvci-dropdown,.lvci-more{display:none}}',
     // Status line (re-run feedback) sits just under the bar, full width
     '.lvci-status{display:none;align-items:center;gap:8px;font-size:12.5px;padding:7px 16px;border-bottom:1px solid #30363d;',
       'background:rgba(22,27,34,.96);color:#8b949e}',
@@ -224,7 +236,8 @@
     'report-viewer': 'dashboard',
     'configure': 'dashboard',
     'integrate': 'dashboard',
-    'whats-new': 'dashboard'
+    'whats-new': 'dashboard',
+    'faq': 'dashboard'
   };
 
   // ── Per-revision DOCUMENT types ───────────────────────────────────────────
@@ -277,7 +290,6 @@
     }
     var A = {
       'dashboard': [
-        { label: 'Configure Workers', icon: '\u2699', kind: 'configure', accent: true },
         { label: 'Apply to New Repo', icon: '\u2795', kind: 'integrate', primary: true }
       ],
       'worker-manifest': [],
@@ -285,7 +297,28 @@
       'report-viewer': [],
       'configure': [],
       'integrate': [],
-      'whats-new': []
+      'whats-new': [],
+      'faq': []
+    };
+    return (A[ctx] || []).filter(Boolean);
+  }
+  function buildSecondaryActions() {
+    var A = {
+      'dashboard': [
+        { label: 'Configure Workers', icon: '\u2699', kind: 'configure' },
+        { label: 'Update now', icon: '\u21b2', href: base + '/whats-new.html' },
+        { label: 'About', icon: '?', href: base + '/faq.html' }
+      ],
+      'worker-manifest': [],
+      'vi-browser': [
+        { label: 'Update now', icon: '\u21b2', href: base + '/whats-new.html' },
+        { label: 'About', icon: '?', href: base + '/faq.html' }
+      ],
+      'report-viewer': [],
+      'configure': [],
+      'integrate': [],
+      'whats-new': [],
+      'faq': []
     };
     return (A[ctx] || []).filter(Boolean);
   }
@@ -556,6 +589,44 @@
     var actions = document.createElement('div');
     actions.className = 'lvci-actions';
     buildActions().forEach(function (a) { actions.appendChild(actionEl(a, false)); });
+    // Secondary actions dropdown (Configure, Update, About)
+    var secActions = buildSecondaryActions();
+    if (secActions.length) {
+      var dropdown = document.createElement('div');
+      dropdown.className = 'lvci-dropdown';
+      var moreBtn = document.createElement('button');
+      moreBtn.className = 'lvci-more';
+      moreBtn.setAttribute('aria-label', 'More options');
+      moreBtn.innerHTML = '\u22ee';
+      dropdown.appendChild(moreBtn);
+      var ddMenu = document.createElement('div');
+      ddMenu.className = 'lvci-dropdown-menu';
+      secActions.forEach(function (a) {
+        var el;
+        if (a.href) {
+          el = document.createElement('a');
+          el.href = a.href;
+          if (a.newTab) { el.target = '_blank'; el.rel = 'noopener'; }
+        } else {
+          el = document.createElement('button');
+          el.type = 'button';
+        }
+        el.innerHTML = (a.icon ? esc(a.icon) + ' ' : '') + esc(a.label);
+        if (!a.href) {
+          el.addEventListener('click', function () {
+            if (a.kind === 'configure') { openPage('configure'); ddMenu.classList.remove('open'); }
+          });
+        }
+        ddMenu.appendChild(el);
+      });
+      dropdown.appendChild(ddMenu);
+      moreBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        ddMenu.classList.toggle('open');
+      });
+      document.addEventListener('click', function () { ddMenu.classList.remove('open'); });
+      actions.appendChild(dropdown);
+    }
     // Version badge (always present)
     var ver = document.createElement('a');
     ver.className = 'lvci-ver';
@@ -586,6 +657,11 @@
     if (acts.length) {
       var sep = document.createElement('div'); sep.className = 'lvci-sep'; menu.appendChild(sep);
       acts.forEach(function (a) { menu.appendChild(actionEl(a, true)); });
+    }
+    var secActs = buildSecondaryActions();
+    if (secActs.length) {
+      var sep = document.createElement('div'); sep.className = 'lvci-sep'; menu.appendChild(sep);
+      secActs.forEach(function (a) { menu.appendChild(actionEl(a, true)); });
     }
     var sep2 = document.createElement('div'); sep2.className = 'lvci-sep'; menu.appendChild(sep2);
     var wn = document.createElement('a'); wn.href = base + '/whats-new.html'; wn.id = 'lvci-ver-m';
