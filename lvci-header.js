@@ -336,6 +336,7 @@
     update: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
     about: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="16" x2="12" y2="11.5"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
     news: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M11.5 3l1.8 5.2 5.2 1.8-5.2 1.8L11.5 17l-1.8-5.2L4.5 10l5.2-1.8z"/><path d="M18 14l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
+    history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>',
     sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 1.8v2.4M12 19.8v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M1.8 12h2.4M19.8 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg>',
     moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
     system: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13" rx="2"/><line x1="8.5" y1="20.5" x2="15.5" y2="20.5"/><line x1="12" y1="16.5" x2="12" y2="20.5"/></svg>'
@@ -489,6 +490,7 @@
   function buildSecondaryActions() {
     var A = {
       'dashboard': [
+        { label: 'Populate history', svg: ICON.history, kind: 'runhistory' },
         { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
         { label: 'About', svg: ICON.about, href: base + '/faq.html' }
       ],
@@ -515,6 +517,16 @@
     var t = map[kind]; if (!t) return;
     if (typeof window.lvciOpen === 'function') { window.lvciOpen(t.src, t.title); return; }
     window.location.href = base + '/' + t.src;
+  }
+
+  // ── Populate history: open the dashboard's "Populate dashboard history" dialog
+  //    (queue CI for existing revisions). The dialog itself lives in the dashboard
+  //    generator, which exposes window.lvciRunHistory; this menu item is only
+  //    offered on the dashboard context, where that hook is present. The guard
+  //    keeps it inert anywhere the hook is absent (e.g. an older dashboard). ────
+  function runHistory() {
+    if (typeof window.lvciRunHistory === 'function') window.lvciRunHistory();
+    else window.location.href = base + '/';   // fall back to the dashboard
   }
 
   // ── Regenerate this revision's report: dispatch a fresh run for THIS commit,
@@ -621,6 +633,7 @@
       el.addEventListener('click', function () {
         if (a.kind === 'configure' || a.kind === 'integrate') openPage(a.kind);
         else if (a.kind === 'rerun') rerun();
+        else if (a.kind === 'runhistory') runHistory();
       });
     }
     return el;
@@ -824,6 +837,7 @@
           el.type = 'button';
           el.addEventListener('click', function () {
             if (a.kind === 'configure' || a.kind === 'integrate') openPage(a.kind);
+            else if (a.kind === 'runhistory') runHistory();
             closeDD();
           });
         }
