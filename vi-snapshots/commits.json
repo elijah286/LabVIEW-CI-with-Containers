@@ -1,10 +1,10 @@
 [
   {
-    "sha": "1199c4eb11d912de540c83794e4592c40a85bbbb",
-    "short": "1199c4e",
-    "message": "VI snapshots: fix PrintToImagesJson op-dir + precise authoring recipe",
+    "sha": "7fa1021d8d00d783263ec423dcac490a42637bdb",
+    "short": "7fa1021",
+    "message": "VI snapshots: harden headless LabVIEW.ini config (insight from vi-xml stack)",
     "author": "elijah286",
-    "date": "2026-06-17T15:43:49-05:00",
+    "date": "2026-06-17T17:17:13-05:00",
     "vi_count": 51
   }
 ]
