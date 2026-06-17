@@ -90,14 +90,42 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 Write-Host "--- enabling LabVIEW scripting (LabVIEW.ini) ---"
 Enable-LVScripting $lvExe
 
-Write-Host "--- launching LabVIEW via COM (New-Object -ComObject LabVIEW.Application) ---"
-$lv = $null
-try {
-    $lv = New-Object -ComObject 'LabVIEW.Application'
-    Write-Host "  COM OK. LabVIEW version: $($lv.Version)"
-} catch {
-    throw "COM launch FAILED: $($_.Exception.Message)"
+Write-Host "--- launching LabVIEW via COM ---"
+# Wait until the COM object answers a real property (Version) - it only does so
+# once LabVIEW has FINISHED launching. The v1 probe called GetVIReference
+# immediately and hit a null-ref because LabVIEW was still starting.
+function Wait-LVReady($app, [int]$TimeoutSec) {
+    $deadline = (Get-Date).AddSeconds($TimeoutSec); $n = 0
+    while ((Get-Date) -lt $deadline) {
+        $n++
+        try { $v = [string]$app.Version; if ($v -ne '') { Write-Host "  LabVIEW ready, version: $v"; return $true } } catch { }
+        if ($n % 5 -eq 0) { Write-Host "  ... waiting for LabVIEW to be ready ($n)" }
+        Start-Sleep -Seconds 3
+    }
+    return $false
 }
+
+# Strategy 1: CreateObject, then wait for readiness.
+$lv = $null; $ready = $false
+try { $lv = New-Object -ComObject 'LabVIEW.Application'; Write-Host "  created COM object (New-Object)" }
+catch { Write-Warning "  New-Object failed: $($_.Exception.Message)" }
+if ($lv) { $ready = Wait-LVReady $lv 240 }
+
+# Strategy 2 (fallback): explicit `LabVIEW.exe /Automation` + GetActiveObject.
+if (-not $ready) {
+    Write-Host "  [fallback] launching $lvExe /Automation ..."
+    try { Start-Process -FilePath $lvExe -ArgumentList '/Automation' | Out-Null } catch { Write-Warning "  Start-Process failed: $($_.Exception.Message)" }
+    $deadline = (Get-Date).AddSeconds(240)
+    while ((Get-Date) -lt $deadline -and -not $ready) {
+        try {
+            $cand = [System.Runtime.InteropServices.Marshal]::GetActiveObject('LabVIEW.Application')
+            $v = [string]$cand.Version
+            if ($v -ne '') { $lv = $cand; $ready = $true; Write-Host "  attached via GetActiveObject, version: $v" }
+        } catch { }
+        if (-not $ready) { Start-Sleep -Seconds 3 }
+    }
+}
+if (-not $ready -or -not $lv) { Write-Error "LabVIEW COM server never became ready - cannot run Convert.vi."; exit 2 }
 
 $ok = 0; $fail = 0
 foreach ($t in $TargetVI) {
@@ -105,13 +133,20 @@ foreach ($t in $TargetVI) {
     Write-Host "--- [$name] ---"
     if (-not (Test-Path $t)) { Write-Warning "  target not found: $t"; $fail++; continue }
     try {
-        Write-Host "  GetVIReference ..."
-        $vi = $lv.GetVIReference($ConvertVI)
+        Write-Host "  GetVIReference (4-arg) ..."
+        $vi = $lv.GetVIReference($ConvertVI, "", $false, 0)
         Write-Host "  opened: $($vi.Name)"
         Write-Host "  SetControlValue('VI Path in', '$t')"
         $vi.SetControlValue('VI Path in', $t)
-        Write-Host "  Run (wait until done) ..."
-        $vi.Run($true)
+        Write-Host "  Run (async) + poll ExecState ..."
+        $vi.Run($false)
+        $rd = (Get-Date).AddSeconds(180)
+        while ($true) {
+            $st = [int]$vi.ExecState
+            if ($st -eq 1) { break }            # eIdle = done
+            if ((Get-Date) -gt $rd) { try { $vi.Abort() } catch {}; throw "run timeout (ExecState=$st)" }
+            Start-Sleep -Milliseconds 100
+        }
         Write-Host "  GetControlValue('JSON out') ..."
         $json = [string]$vi.GetControlValue('JSON out')
         Write-Host "  JSON length: $($json.Length)"
@@ -130,6 +165,8 @@ foreach ($t in $TargetVI) {
         try { $vi.CloseFrontPanel() } catch {}
     } catch {
         Write-Warning "  FAILED for ${name}: $($_.Exception.Message)"
+        Write-Host  "    type: $($_.Exception.GetType().FullName)"
+        if ($_.Exception.InnerException) { Write-Host "    inner: $($_.Exception.InnerException.Message)" }
         $fail++
     }
 }
