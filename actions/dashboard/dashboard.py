@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json, os, re, sys, urllib.request, urllib.error
+from urllib.parse import quote
 
 token    = os.environ['GH_TOKEN']
 repo     = os.environ['REPO']
@@ -180,6 +181,40 @@ RUN_TARGETS = {
 import json as _json
 run_targets_json = _json.dumps(RUN_TARGETS)
 
+# ── Framed per-revision reports ─────────────────────────────────────────────────────
+# Per-revision reports (Mass Compile, VI Analyzer) open INSIDE the dashboard
+# chrome via report-viewer.html (deployed at report/index.html), which frames
+# the report under the shared site header — same nav, a revision picker, and a
+# Regenerate / Re-run button. So the header no longer "goes away" when a report
+# is opened, and reports that predate the header (or carry none of their own)
+# still appear inside the chrome. Diff/Snapshots already open the VI Browser (its
+# own headered page), so only these two doctypes are wrapped here.
+DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile'}
+
+def viewer_url(report_url, doctype, sha, short, platform=''):
+    """Wrap a deployed report's absolute Pages URL so it opens framed under the
+    shared header. ``report_url`` is e.g. ``{pages_url}/masscompile/<sha>/index.html``;
+    the viewer lives at ``{pages_url}/report/index.html`` so the embedded ``src``
+    is made relative to it (``../<prefix>/<sha>/index.html``)."""
+    rel = report_url[len(pages_url):].lstrip('/') if report_url.startswith(pages_url) else report_url
+    src = '../' + rel
+    title = f'{DOC_LABELS.get(doctype, "CI Report")} \u00b7 {short or sha[:7]}'
+    q = ('type=' + quote(doctype, safe='')
+         + '&sha=' + quote(sha, safe='')
+         + ('&short=' + quote(short, safe='') if short else '')
+         + ('&platform=' + quote(platform, safe='') if platform else '')
+         + '&src=' + quote(src, safe='')
+         + '&title=' + quote(title, safe=''))
+    return f'{pages_url}/report/index.html?{q}'
+
+def maybe_frame(url, doctype, prefix, sha, short):
+    """Frame ``url`` only when it points at a real deployed report
+    (``…/<prefix>/<sha>/index.html``). A failed run whose status links to the
+    Actions run page (not a report) is returned unchanged."""
+    if url and f'/{prefix}/{sha}/index.html' in url:
+        return viewer_url(url, doctype, sha, short)
+    return url
+
 import datetime as _dt
 def _stale_pending(s):
     # A 'pending' status older than 2h is almost certainly orphaned
@@ -319,7 +354,7 @@ for c in commits_data:
                 '<span class="run-badge" title="Running — click to view progress">'
                 f'{body}</span></td>')
 
-    def badge(label, *contexts, url_override=None, cap=None):
+    def badge(label, *contexts, url_override=None, cap=None, doc=None):
         if not is_project:
             return EMPTY_CELL
         run = fresh_pending(*contexts)
@@ -331,6 +366,12 @@ for c in commits_data:
         color  = {'success':'#2ea043','failure':'#da3633','pending':'#9a6700','error':'#da3633'}.get(s['state'],'#555')
         emoji  = {'success':'✅','failure':'❌','pending':'⏳','error':'⚠️'}.get(s['state'],'?')
         url    = url_override or s.get('target_url','')
+        # Open a per-revision report inside the dashboard chrome (framed under
+        # the shared header) rather than as a bare page — but only when the
+        # status actually links to a deployed report (a failed run links to its
+        # Actions page, which is left as-is).
+        if doc and not url_override:
+            url = maybe_frame(url, doc[0], doc[1], sha, short)
         link   = f'<a href="{url}" style="color:inherit">{emoji} {label}</a>' if url else f'{emoji} {label}'
         # When this column has a re-run workflow, tag the result cell with its
         # cap/sha (+ the result's timestamp) so a re-run dispatched from elsewhere
@@ -384,19 +425,21 @@ for c in commits_data:
             _passed = (_st == 'passed') or (_st is None and _pct >= 100)
             _col = '#2ea043' if _passed else ('#da3633' if _failed else '#bb8009')
             _emoji = '✅' if _passed else ('❌' if _failed else '⚠️')
-            # The Mass Compile report is now a full friendly page — problems
-            # grouped by VI, a Windows/Linux toggle, a snapshot drawer, and its
-            # own dashboard nav — so link straight to it (no iframe wrapper).
-            _url = f'{pages_url}/masscompile/{sha}/index.html'
+            # The Mass Compile report opens framed inside the dashboard chrome
+            # (report-viewer.html), so the header stays put and even older
+            # reports that carry no header of their own still appear under it,
+            # with a Regenerate button.
+            _url = viewer_url(f'{pages_url}/masscompile/{sha}/index.html', 'masscompile-report', sha, short)
             mc_badge = (f'<td style="text-align:center"><span title="{_ok}/{_tot} project VIs compiled" '
                         f'style="background:{_col};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">'
                         f'<a href="{_url}" style="color:inherit">{_emoji} {_pct}%</a></span></td>')
         else:
-            mc_badge = badge('compile', 'CI / Mass Compile', cap='masscompile')
+            mc_badge = badge('compile', 'CI / Mass Compile', cap='masscompile', doc=('masscompile-report', 'masscompile'))
     # Consider both analyzer platforms (mirrors the diff badge): a revision
     # analyzed only on Linux still surfaces its VI Analyzer result instead of
     # showing nothing because the Windows-only context is absent.
-    via_badge = badge('analyze',   'CI / VI Analyzer', 'CI / VI Analyzer (Linux)', cap='vi-analyzer')
+    via_badge = badge('analyze',   'CI / VI Analyzer', 'CI / VI Analyzer (Linux)', cap='vi-analyzer',
+                      doc=('vi-analyzer-report', 'vi-analyzer'))
     # The diff badge opens the unified VI Browser filtered to this commit's
     # changed VIs (each links to its diff report), rather than a separate table.
     diff_badge= badge('diff',      'CI / VIDiff (windows)', 'CI / VIDiff (linux)',

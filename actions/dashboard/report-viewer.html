@@ -4,24 +4,59 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>CI Report — LabVIEW-CI-with-Containers</title>
-  <script>window.LVCI={context:'report-viewer'};</script>
-  <script src="../lvci-header.js" defer></script>
   <!--
-    Framed report viewer. The CI Dashboard links its Mass Compile badge here so a
-    report opens *inside* a chrome bar (with a "← CI Dashboard" back link, the
-    report title, and an "open raw" escape hatch) instead of as a bare full-page
-    report with no way back. The report itself is shown in an iframe.
+    Framed report viewer. The CI Dashboard opens its per-revision reports (Mass
+    Compile, VI Analyzer) here so each one loads *inside* the shared header
+    chrome — same nav, a Revision picker, and a Regenerate / Re-run button —
+    instead of as a bare full-page report. Reports that predate the header (or
+    have none of their own) therefore still appear inside the chrome. The report
+    is shown in an iframe; the shared header suppresses its own copy inside that
+    iframe, so there is exactly one chrome bar.
 
-    Query params:
-      src   — RELATIVE, same-origin path to the report to embed (required),
-              e.g. "../masscompile/<sha>/index.html". Absolute URLs, scheme URLs
-              and protocol-relative ("//host") values are rejected so the frame
-              can only ever load first-party content from this Pages site.
-      title — heading text shown in the chrome bar (optional).
-      sha   — commit SHA shown as a sub-label and linked to GitHub (optional).
-      back  — RELATIVE path for the back link (optional; defaults to "../", the
-              dashboard at the Pages root).
+    Query params (all optional except src):
+      src      — RELATIVE, same-origin path to the report to embed,
+                 e.g. "../masscompile/<sha>/index.html". Absolute URLs, scheme
+                 URLs and protocol-relative ("//host") values are rejected so the
+                 frame can only ever load first-party content from this Pages site.
+      type     — document type: "masscompile-report" or "vi-analyzer-report".
+                 Drives the header's Regenerate action + revision picker. An
+                 unknown/absent type still frames the report under a plain header.
+      sha      — commit SHA (full) for the embedded report.
+      short    — short SHA / label for the revision.
+      platform — "windows" | "linux" (which workflow Regenerate dispatches).
+      title    — document title for the browser tab.
   -->
+  <script>
+    // Configure the shared header BEFORE it loads (it is deferred). The header
+    // reads window.LVCI; pointing its context at the embedded report's document
+    // type makes it render that report's chrome (nav + Revision picker +
+    // Regenerate), and `embedded` makes the picker re-frame THIS viewer when the
+    // revision changes. Query values are validated exactly like the iframe src.
+    (function () {
+      var p = new URLSearchParams(location.search);
+      var safeRel = function (raw) {
+        if (!raw) return '';
+        var s; try { s = decodeURIComponent(raw); } catch (e) { return ''; }
+        if (/^[a-z][a-z0-9+.\-]*:/i.test(s)) return '';   // scheme:
+        if (s.indexOf('//') === 0) return '';             // protocol-relative
+        if (s.charAt(0) === '/') return '';               // root-absolute
+        return s;
+      };
+      var dec = function (raw, fb) { if (!raw) return fb; try { return decodeURIComponent(raw); } catch (e) { return fb; } };
+      var KNOWN = { 'masscompile-report': 1, 'vi-analyzer-report': 1 };
+      var type = dec(p.get('type'), '');
+      window.LVCI = {
+        context: KNOWN[type] ? type : 'report-viewer',
+        sha: dec(p.get('sha'), ''),
+        short: dec(p.get('short'), ''),
+        platform: dec(p.get('platform'), ''),
+        embedded: true,
+        framedSrc: safeRel(p.get('src')),
+        framedTitle: dec(p.get('title'), 'CI Report')
+      };
+    })();
+  </script>
+  <script src="../lvci-header.js" defer></script>
   <style>
     :root{
       --bg:#0d1117;--surface:#161b22;--border:#30363d;
@@ -37,86 +72,30 @@
     html,body{height:100%}
     body{margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);
          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-    header{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:10px 16px;
-           background:var(--surface);border-bottom:1px solid var(--border)}
     a{color:var(--link);text-decoration:none}
     a:hover{text-decoration:underline}
-    .back{display:inline-flex;align-items:center;gap:5px;font-size:.9em;white-space:nowrap}
-    .titles{display:flex;flex-direction:column;min-width:0;flex:1}
-    .titles .t{font-size:.95em;font-weight:600;color:var(--fg);overflow:hidden;
-               text-overflow:ellipsis;white-space:nowrap}
-    .titles .s{font-size:.72em;color:var(--fg-muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-    .spacer{flex:1}
-    .raw{font-size:.8em;white-space:nowrap;color:var(--fg-muted)}
-    .raw a{color:var(--link)}
+    /* The shared header (lvci-header.js) is the chrome; the iframe fills the
+       rest of the viewport beneath it. */
     iframe{flex:1 1 auto;width:100%;border:0;background:var(--bg)}
     .err{margin:auto;padding:40px;text-align:center;color:var(--fg-muted)}
   </style>
 </head>
 <body>
-  <header>
-    <a class="back" id="back" href="../" title="Back to the CI Dashboard">&larr; CI Dashboard</a>
-    <div class="titles">
-      <span class="t" id="title">CI Report</span>
-      <span class="s" id="sha"></span>
-    </div>
-    <span class="raw" id="raw"></span>
-  </header>
   <iframe id="frame" title="CI report"></iframe>
   <div class="err" id="err" hidden>
     No report selected. <a href="../">Return to the CI Dashboard</a>.
   </div>
   <script>
-    (() => {
-      const params = new URLSearchParams(location.search);
-
-      // Accept only first-party, relative paths. Anything with a scheme
-      // (http:, javascript:, data: …), a protocol-relative "//host" prefix, or a
-      // root-absolute "/path" is rejected, so the frame can never be pointed at
-      // an off-site or script URL via a tampered query string.
-      const safeRel = (raw) => {
-        if (!raw) return null;
-        let s;
-        try { s = decodeURIComponent(raw); } catch (_) { return null; }
-        if (/^[a-z][a-z0-9+.\-]*:/i.test(s)) return null; // scheme:
-        if (s.startsWith('//')) return null;              // protocol-relative
-        if (s.startsWith('/')) return null;               // root-absolute
-        return s;
-      };
-
-      const decode = (raw, fallback) => {
-        if (!raw) return fallback;
-        try { return decodeURIComponent(raw); } catch (_) { return fallback; }
-      };
-
-      const src = safeRel(params.get('src'));
-      const title = decode(params.get('title'), 'CI Report');
-      const sha = decode(params.get('sha'), '');
-      const back = safeRel(params.get('back')) || '../';
-
-      document.title = title + ' — LabVIEW-CI-with-Containers';
-      document.getElementById('title').textContent = title;     // textContent: no HTML injection
-      document.getElementById('back').setAttribute('href', back);
-
-      const shaEl = document.getElementById('sha');
-      if (sha) {
-        const a = document.createElement('a');
-        a.href = 'https://github.com/elijah286/LabVIEW-CI-with-Containers/commit/' + encodeURIComponent(sha);
-        a.textContent = sha.slice(0, 7);
-        shaEl.appendChild(a);
-      }
-
-      const frame = document.getElementById('frame');
-      const err = document.getElementById('err');
-      if (src) {
-        frame.src = src;
-        const rawEl = document.getElementById('raw');
-        const a = document.createElement('a');
-        a.href = src;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        a.textContent = 'Open raw \u2197';
-        rawEl.appendChild(a);
+    (function () {
+      // window.LVCI was populated from the query string in <head> (before the
+      // deferred header ran). Use it to title the tab and point the iframe at
+      // the validated, first-party report path.
+      var cfg = window.LVCI || {};
+      document.title = cfg.framedTitle || 'CI Report';
+      var frame = document.getElementById('frame');
+      var err = document.getElementById('err');
+      if (cfg.framedSrc) {
+        frame.src = cfg.framedSrc;
       } else {
         frame.hidden = true;
         err.hidden = false;

@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.14.0",
+  "version": "1.14.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.14.1",
+        "date": "2026-06-16",
+        "title": "Reports open inside the dashboard header instead of replacing it",
+        "summary": "Opening a Mass Compile or VI Analyzer report from the dashboard now keeps the shared navigation header in place: the report loads framed inside the dashboard chrome \u2014 same brand, navigation, version badge, a revision picker, and a Regenerate / Re-run button \u2014 rather than navigating away to a bare full-page report. This also means reports that predate the header (or carry no header of their own) still appear inside the chrome, so older Mass Compile and VI Analyzer reports gain the navigation and a one-click re-run without being regenerated. Switching revisions from the header re-frames the same viewer, and a report's own copy of the header is hidden while it is framed so there is always exactly one header.",
+        "highlights": [
+          "The dashboard's Mass Compile and VI Analyzer links now open the report framed under the shared header (via report-viewer.html) instead of as a bare page, so the header no longer disappears when you open a report.",
+          "Reports that carry no header of their own \u2014 including ones published before the header existed \u2014 now appear inside the chrome too, with the navigation, version badge, and a Regenerate / Re-run button, without needing to be regenerated.",
+          "The header's revision picker re-frames the viewer onto the chosen revision (keeping the chrome), and the Raw log / Native report link follows the framed report.",
+          "A failed run whose status links to its Actions page (not a report) still opens that run, and the diff / snapshots links continue to open the VI Browser as before."
+        ]
+      },
       {
         "version": "1.14.0",
         "date": "2026-06-16",
