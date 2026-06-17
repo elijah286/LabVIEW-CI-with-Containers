@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.1.0",
+        "date": "2026-06-17",
+        "title": "Fix dashboard on non-main default branches and README link placement",
+        "summary": "The dashboard now works on repositories with any default branch (master, main, develop, etc.), not just main. Additionally, the dashboard link is now prepended to the top of an existing README instead of appended to the end, so it appears prominently when users view the repository.",
+        "highlights": [
+          "Dashboard now detects the repository's actual default branch and fetches commits from it, fixing empty dashboards on repos with branches like 'master' or 'develop'.",
+          "The README.md dashboard badge and link are now added to the top of existing files instead of the bottom, appearing prominently when users open the repository."
+        ]
+      },
       {
         "version": "2.0.0",
         "date": "2026-06-16",
