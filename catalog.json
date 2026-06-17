@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "1.12.2",
+  "version": "1.12.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.12.3",
+        "date": "2026-06-16",
+        "title": "Every Mass Compile report opens inside the dashboard",
+        "summary": "Mass Compile reports now always render inside the shared navigation header \u2014 even the minimal fallback report. Previously, if the friendly report builder was skipped or hit a snag, the run still published a plain log-dump page with no header, navigation, or version badge, so a few Mass Compile links opened a bare page outside the dashboard chrome. The safety-net report (both Windows and Linux) now carries the same header as the full report, with the revision picker and the Regenerate / Raw log / This commit actions. Every previously published Mass Compile report has also been refreshed in place so it shows the header too.",
+        "highlights": [
+          "The fallback Mass Compile report (emitted when the friendly builder is skipped) now includes the shared site header, so every Mass Compile report renders inside the dashboard chrome \u2014 brand, navigation, version badge, and the revision picker.",
+          "All previously published Mass Compile reports were refreshed to show the header as well; the figures are unchanged \u2014 only the chrome was added."
+        ]
+      },
       {
         "version": "1.12.2",
         "date": "2026-06-16",
