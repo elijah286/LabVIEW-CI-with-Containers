@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "2.1.4",
+  "version": "2.1.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.1.5",
+        "date": "2026-06-17",
+        "title": "Fix (again) the blank dashboard on master / non-main repos",
+        "summary": "A stale-file commit had silently reverted the dashboard generator's default-branch detection, so releases v2.1.1\u2013v2.1.4 shipped a generator that always asked GitHub for commits on a 'main' branch. Any repository whose default branch is 'master' (or anything other than 'main') therefore built a completely empty dashboard \u2014 it fetched zero commits even though the history was right there. This restores the fix: the generator now queries the repository's real default branch (cached) and fetches commits from it, and the bare repo API call no longer sends a trailing slash that GitHub answers with 404. Verified against a 'master'-default repo: 22 commits, 20 project revisions.",
+        "highlights": [
+          "The dashboard again detects the repo's real default branch instead of assuming 'main', so 'master' (and other) default branches show their commits.",
+          "Fixes the regression behind a dashboard that stayed blank with 'No project revisions' despite a full commit history.",
+          "Hardened the API helper + added a guard comment so the empty-path call can't silently regress to a 404-causing trailing slash again."
+        ]
+      },
       {
         "version": "2.1.4",
         "date": "2026-06-17",
