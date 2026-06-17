@@ -89,10 +89,18 @@
       'background:rgba(22,27,34,.86);-webkit-backdrop-filter:saturate(160%) blur(10px);backdrop-filter:saturate(160%) blur(10px);',
       'border-bottom:1px solid #30363d;color:#e6edf3}',
     '@media(prefers-color-scheme:light){.lvci-hdr{background:rgba(255,255,255,.86);border-bottom-color:#d0d7de;color:#1f2328}}',
-    // Brand
-    '.lvci-brand{display:inline-flex;align-items:center;gap:9px;font-weight:700;font-size:15px;color:inherit;text-decoration:none;white-space:nowrap;flex:0 0 auto}',
+    // Brand — shows the repository this dashboard belongs to (always visible),
+    // with a small product kicker above it. The repo name truncates with an
+    // ellipsis so the brand always fits, down to a narrow phone. Falls back to
+    // the product name when the repo can't be derived (e.g. a preview build).
+    '.lvci-brand{display:inline-flex;align-items:center;gap:10px;color:inherit;text-decoration:none;white-space:nowrap;flex:0 1 auto;min-width:0}',
     '.lvci-brand:hover{text-decoration:none}',
-    '.lvci-brand svg{display:block;width:22px;height:22px;flex:0 0 auto}',
+    '.lvci-brand:hover .lvci-name{text-decoration:underline}',
+    '.lvci-brand svg{display:block;width:24px;height:24px;flex:0 0 auto}',
+    '.lvci-brand .lvci-repo{display:flex;flex-direction:column;justify-content:center;min-width:0;overflow:hidden}',
+    '.lvci-brand .lvci-kicker{font-weight:600;font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#8b949e;line-height:1.3}',
+    '.lvci-brand .lvci-name{font-weight:700;font-size:15px;line-height:1.2;color:inherit;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}',
+    '@media(prefers-color-scheme:light){.lvci-brand .lvci-kicker{color:#57606a}}',
     '.lvci-brand .lvci-sub{font-weight:500;font-size:11px;color:#8b949e;border:1px solid #30363d;border-radius:999px;padding:1px 7px;margin-left:2px}',
     '@media(prefers-color-scheme:light){.lvci-brand .lvci-sub{color:#57606a;border-color:#d0d7de}}',
     // Primary nav
@@ -472,11 +480,25 @@
     var hdr = document.createElement('header');
     hdr.className = 'lvci-hdr';
 
-    // Brand
+    // Brand — the repository this site is for, always visible, with a small
+    // "LabVIEW CI" kicker so the product identity is kept. Falls back to the
+    // product name when no repo can be derived. The whole mark links home.
     var brand = document.createElement('a');
     brand.className = 'lvci-brand';
     brand.href = base + '/';
-    brand.innerHTML = BRAND_SVG + '<span>LabVIEW CI</span>';
+    if (repo) {
+      var rname = repo.split('/').pop();
+      brand.title = repo;                                      // full owner/name on hover
+      brand.setAttribute('aria-label', 'LabVIEW CI \u2014 ' + repo);
+      brand.innerHTML = BRAND_SVG +
+        '<span class="lvci-repo">' +
+          '<span class="lvci-kicker">LabVIEW CI</span>' +
+          '<span class="lvci-name">' + esc(rname) + '</span>' +
+        '</span>';
+    } else {
+      brand.setAttribute('aria-label', 'LabVIEW CI');
+      brand.innerHTML = BRAND_SVG + '<span class="lvci-repo"><span class="lvci-name">LabVIEW CI</span></span>';
+    }
     hdr.appendChild(brand);
 
     // Primary nav
