@@ -7,8 +7,12 @@
 # file for this repo's selected activities (bringing new capabilities, not just a
 # version bump), rebrands them to this repo, preserves your own config + baked
 # dependencies, and bumps the version. The result is opened as a pull request.
-# Review + merge to finish — no terminal, no tokens. GitHub's own "Run workflow"
-# gate limits this to write-access users.
+# Review + merge to finish — no terminal needed. The config ref bump + vendored
+# scripts + pages push with the built-in token, so the version (and thus the
+# dashboard + runtime tooling) always adopts token-lessly; only changes to
+# .github/workflows/** need a one-time TOOLING_UPDATE_TOKEN (repo + workflow
+# scope) and are otherwise deferred. GitHub's own "Run workflow" gate limits this
+# to write-access users.
 name: Apply LabVIEW CI update
 
 on:
@@ -178,24 +182,65 @@ jobs:
 
           git commit -m "ci: adopt LabVIEW CI tooling v${LATEST} (full update)"
 
+          # Pushing .github/workflows/** needs a token with `workflow` scope;
+          # with only the built-in token GitHub rejects the whole branch. But the
+          # workflow YAMLs are THIN callers that read the tooling ref from
+          # .github/labview-ci.yml at RUNTIME, so the rest of the update — the ref
+          # bump + vendored scripts + pages — adopts the new version on its own
+          # (the dashboard caller checks the tooling out at the bumped ref and runs
+          # the fixed generator). So when the push is refused only for workflow
+          # scope, defer just those YAMLs and push the part that actually fixes the
+          # pipeline, instead of dropping the entire update. DEFERRED_WF carries the
+          # count into the PR body / summary.
+          DEFERRED_WF=0
+
           if ! git push -u origin "$BRANCH" --force 2>/tmp/push-err; then
             cat /tmp/push-err || true
             if grep -qi 'workflow' /tmp/push-err; then
-              {
-                echo "## ⚠️ Full update needs a one-time token"
-                echo ""
-                echo "The update is ready (**${CHANGED} file(s)**, v${INSTALLED} → v${LATEST}) but it changes GitHub"
-                echo "**workflow files**, which the built-in token is not allowed to push. To finish automatically:"
-                echo ""
-                echo "1. Create a token with **repo + workflow** scope (classic PAT: \`repo\` + \`workflow\`; or fine-grained: **Contents** + **Workflows** = Read and write)."
-                echo "2. Add it as the repository secret **TOOLING_UPDATE_TOKEN** (Settings ▸ Secrets and variables ▸ Actions)."
-                echo "3. Re-run **Update now**."
-              } >> "$GITHUB_STEP_SUMMARY"
-              echo "::warning title=Token needed::Full update needs a PAT (TOOLING_UPDATE_TOKEN) with workflow scope to push workflow-file changes."
-              exit 0
+              # Re-commit WITHOUT the workflow YAMLs so the default token can push.
+              DEFERRED_WF=$(git diff --name-only HEAD~1 HEAD -- '.github/workflows' | grep -c . || true)
+              git reset --soft HEAD~1
+              git checkout HEAD -- '.github/workflows' 2>/dev/null || true
+              git add -A
+              if [ -z "$(git diff --cached --name-only)" ]; then
+                {
+                  echo "## ⚠️ This update only changes workflow files — add a one-time token"
+                  echo ""
+                  echo "Everything new in **v${LATEST}** lives in GitHub **workflow files**, which the built-in"
+                  echo "token cannot push. To finish automatically:"
+                  echo ""
+                  echo "1. Create a token with **repo + workflow** scope (classic PAT: \`repo\` + \`workflow\`; or fine-grained: **Contents** + **Workflows** = Read and write)."
+                  echo "2. Add it as the repository secret **TOOLING_UPDATE_TOKEN** (Settings ▸ Secrets and variables ▸ Actions)."
+                  echo "3. Re-run **Update now**."
+                } >> "$GITHUB_STEP_SUMMARY"
+                echo "::warning title=Token needed::This update only changes workflow files; pushing them needs a PAT (TOOLING_UPDATE_TOKEN) with workflow scope."
+                git push origin --delete "$BRANCH" >/dev/null 2>&1 || true
+                exit 0
+              fi
+              CHANGED=$(git diff --cached --name-only | wc -l | tr -d ' ')
+              git commit -m "ci: adopt LabVIEW CI tooling v${LATEST} (config + scripts; ${DEFERRED_WF} workflow file(s) deferred)"
+              if ! git push -u origin "$BRANCH" --force 2>/tmp/push-err2; then
+                cat /tmp/push-err2 || true
+                echo "::error title=Push failed::Could not push the update branch."
+                exit 1
+              fi
+            else
+              echo "::error title=Push failed::Could not push the update branch."
+              exit 1
             fi
-            echo "::error title=Push failed::Could not push the update branch."
-            exit 1
+          fi
+
+          # When workflow YAMLs were held back, say so in the PR — the version
+          # still adopts (runtime callers load the bumped ref), only the YAMLs wait
+          # on a PAT.
+          if [ "${DEFERRED_WF:-0}" -gt 0 ]; then
+            {
+              echo ""
+              echo "> ⚠️ **${DEFERRED_WF} workflow file(s) deferred.** The token available to this run cannot push"
+              echo "> \`.github/workflows/**\`, so those YAMLs keep their current version. The dashboard and reusable"
+              echo "> tooling still update — they load the tooling at the bumped ref at runtime. To also refresh the"
+              echo "> workflow YAMLs, add a **TOOLING_UPDATE_TOKEN** secret (repo + workflow scope) and re-run **Update now**."
+            } >> /tmp/pr-body.md
           fi
 
           URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url // empty')
