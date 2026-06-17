@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.8.2",
+  "version": "2.9.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.9.0",
+        "date": "2026-06-17",
+        "title": "Unit test results on the dashboard, plus pick your columns",
+        "summary": "The dashboard now has a Unit Tests column that shows pass/fail for your LabVIEW unit-test framework (NI Unit Test Framework, JKI VI Tester, or Caraya) once results are reported. A new Columns menu lets you choose which columns to see and remembers your choice, so the table stays readable as it grows. The per-worker 'Win Worker' and 'Linux Worker' columns were removed - which container ran an activity is reported with that activity (in its status and report), not as its own column.",
+        "highlights": [
+          "New Unit Tests column reports pass/fail from your unit-test framework; which framework ran (UTF, JKI VI Tester, or Caraya) is recorded in the test report rather than as separate columns.",
+          "A Columns menu - a standard checklist - shows or hides individual columns and remembers your selection per repository.",
+          "Removed the Win Worker and Linux Worker columns to declutter the table; the worker image used stays available from each activity's status and report.",
+          "Commit stays pinned as the row identifier; every other column is optional."
+        ]
+      },
       {
         "version": "2.8.2",
         "date": "2026-06-17",
@@ -1012,7 +1024,7 @@
         "windows": [],
         "linux": []
       },
-      "notes": "Planned \u2014 not yet implemented. This entry demonstrates how the system scales: when the runner exists, add its workflow + script paths to the `files` map here and flip `status` to `stable`. It then appears automatically in both the configurator and the installer with no other code changes."
+      "notes": "Planned \u2014 the CI runner is not yet implemented, but the test frameworks themselves (NI Unit Test Framework, JKI VI Tester, and Caraya) are already baked into the worker image. This entry demonstrates how the system scales: when the runner exists, add its workflow + script paths to the `files` map here and flip `status` to `stable`. It then appears automatically in both the configurator and the installer with no other code changes."
     }
   ]
 }
