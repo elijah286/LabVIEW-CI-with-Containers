@@ -195,6 +195,16 @@
     '.lvci-tok code{background:#0d1117;padding:1px 5px;border-radius:4px}',
     '.lvci-tok input{padding:7px 9px;border-radius:7px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-family:ui-monospace,Menlo,monospace}',
     '@media(prefers-color-scheme:light){.lvci-tok{background:#fff;border-color:#d0d7de;color:#1f2328}.lvci-tok code{background:#eef2f6}.lvci-tok input{background:#fff;border-color:#d0d7de;color:#1f2328}}',
+    // Rebuild banner (dashboard) — shown while the workflow that regenerates this
+    // page (or the Pages publish that follows) is in flight; links to that run.
+    '.lvci-rebuild{display:none;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #30363d;background:rgba(31,111,235,.12);color:#e6edf3;font-size:12.5px;line-height:1.5}',
+    '.lvci-rebuild.show{display:flex}',
+    '.lvci-rebuild .lvci-rb-spin{flex:0 0 auto;width:14px;height:14px;margin-top:3px;border:2px solid rgba(31,111,235,.35);border-top-color:#1f6feb;border-radius:50%;animation:lvci-spin .7s linear infinite}',
+    '.lvci-rebuild .lvci-rb-txt{min-width:0}',
+    '.lvci-rebuild .lvci-rb-sub{color:#8b949e}',
+    '.lvci-rebuild a{color:#58a6ff;text-decoration:none;font-weight:600;white-space:nowrap}',
+    '.lvci-rebuild a:hover{text-decoration:underline}',
+    '@media(prefers-color-scheme:light){.lvci-rebuild{background:rgba(9,105,218,.09);border-bottom-color:#d0d7de;color:#1f2328}.lvci-rebuild .lvci-rb-sub{color:#57606a}.lvci-rebuild a{color:#0969da}}',
     // ── Mobile menu ───────────────────────────────────────────────────────
     '.lvci-menu{display:none}',
     '@media(max-width:820px){',
@@ -254,6 +264,9 @@
     ':root[data-lvci-theme=light] .lvci-tok input{background:#fff;border-color:#d0d7de;color:#1f2328}',
     ':root[data-lvci-theme=light] .lvci-menu.open{background:#fff;border-bottom-color:#d0d7de}',
     ':root[data-lvci-theme=light] .lvci-menu a,:root[data-lvci-theme=light] .lvci-menu button.lvci-m{color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-rebuild{background:rgba(9,105,218,.09);border-bottom-color:#d0d7de;color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-rebuild .lvci-rb-sub{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-rebuild a{color:#0969da}',
     // Forced DARK — counteract an OS light preference
     ':root[data-lvci-theme=dark] .lvci-hdr{background:rgba(22,27,34,.86);border-bottom-color:#30363d;color:#e6edf3}',
     ':root[data-lvci-theme=dark] .lvci-brand .lvci-kicker,:root[data-lvci-theme=dark] .lvci-brand .lvci-sub{color:#8b949e}',
@@ -285,6 +298,9 @@
     ':root[data-lvci-theme=dark] .lvci-tok code{background:#0d1117}',
     ':root[data-lvci-theme=dark] .lvci-tok input{background:#0d1117;border-color:#30363d;color:#e6edf3}',
     ':root[data-lvci-theme=dark] .lvci-menu.open{background:rgba(22,27,34,.98);border-bottom-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-rebuild{background:rgba(31,111,235,.12);border-bottom-color:#30363d;color:#e6edf3}',
+    ':root[data-lvci-theme=dark] .lvci-rebuild .lvci-rb-sub{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-rebuild a{color:#58a6ff}',
     ':root[data-lvci-theme=dark] .lvci-menu a,:root[data-lvci-theme=dark] .lvci-menu button.lvci-m{color:#e6edf3}'
   ].join('\n');
 
@@ -852,6 +868,23 @@
     var status = document.createElement('div'); status.id = 'lvci-status'; status.className = 'lvci-status';
     var tokp = document.createElement('div'); tokp.id = 'lvci-tok'; tokp.className = 'lvci-tok';
 
+    // Rebuild banner (dashboard only) — hidden until the activity poll detects
+    // the page-rebuild/publish run, then shown with a live link to it.
+    var rebuild = null;
+    if (REBUILD_ON) {
+      rebuild = document.createElement('div');
+      rebuild.id = 'lvci-rebuild';
+      rebuild.className = 'lvci-rebuild';
+      rebuild.setAttribute('role', 'status');
+      rebuild.setAttribute('aria-live', 'polite');
+      rebuild.innerHTML =
+        '<span class="lvci-rb-spin" aria-hidden="true"></span>' +
+        '<span class="lvci-rb-txt"><strong>Updating this dashboard\u2026 </strong>' +
+        '<span class="lvci-rb-sub">A new version is being compiled by </span>' +
+        '<a target="_blank" rel="noopener" href="https://github.com/' + repo + '/actions">the build workflow \u2197</a>' +
+        '<span class="lvci-rb-sub">. This page refreshes automatically when it\u2019s done.</span></span>';
+    }
+
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
     // (e.g. the VI Browser: `body{display:flex;height:100vh}` for a sidebar +
@@ -885,6 +918,7 @@
     document.body.insertBefore(status, tokp);
     document.body.insertBefore(menu, status);
     document.body.insertBefore(hdr, menu);
+    if (rebuild) document.body.insertBefore(rebuild, menu);   // directly under the bar
   }
 
   // ── Badge state ───────────────────────────────────────────────────────────
@@ -897,6 +931,11 @@
   // and the version/update check never fight over the element.
   var verState = { v: '', behind: false, to: '' };
   var runState = { active: 0, names: [] };
+  // Page-rebuild banner: only the dashboard shows it (there "this page is being
+  // regenerated" is literally true). buildWas remembers the prior poll so we can
+  // auto-refresh exactly once when an in-flight rebuild finishes.
+  var REBUILD_ON = (ctx === 'dashboard');
+  var buildWas = false;
   function renderBadge() {
     var badge = document.getElementById('lvci-ver'), txt = document.getElementById('lvci-ver-txt');
     if (!badge || !txt) return;
@@ -961,6 +1000,53 @@
     return 0;
   }
 
+  // ── Page-rebuild banner (dashboard) ──────────────────────────────
+  // While the workflow that regenerates THIS dashboard (dashboard-pages.yml) —
+  // or the GitHub Pages publish that follows it — is in flight, the page on
+  // screen is stale. Surface a banner naming + linking the run, and refresh once
+  // it finishes so the freshly built version appears without a manual reload.
+  function isDashGen(w) { return (w.path || '').toLowerCase().indexOf('dashboard-pages.yml') >= 0; }
+  function isPagesPub(w) { return (w.name || '').toLowerCase() === 'pages build and deployment'; }
+  function pickRebuild(runs) {
+    var gen = null, pub = null;
+    for (var i = 0; i < runs.length; i++) {
+      if (isDashGen(runs[i])) { if (!gen) gen = runs[i]; }
+      else if (isPagesPub(runs[i])) { if (!pub) pub = runs[i]; }
+    }
+    return gen || pub;                          // prefer the generator over the bare publish
+  }
+  function renderRebuild(run) {
+    var card = document.getElementById('lvci-rebuild');
+    if (!card) return;
+    if (!run) { card.classList.remove('show'); return; }
+    var a = card.querySelector('a');
+    if (a) {
+      a.href = run.html_url || ('https://github.com/' + repo + '/actions');
+      a.textContent = (run.name || 'the build workflow') + ' \u2197';
+    }
+    card.classList.add('show');
+  }
+  var RELOAD_KEY = 'lvci_rebuild_reload';
+  function anyModalOpen() {
+    var ids = ['lvci-modal', 'cidash-run-modal', 'cidash-q-modal'];
+    for (var i = 0; i < ids.length; i++) {
+      var m = document.getElementById(ids[i]);
+      if (m && m.style && m.style.display && m.style.display !== 'none') return true;
+    }
+    return false;
+  }
+  function autoRefresh() {
+    // Don't reload out from under an open dialog; throttle so back-to-back
+    // builds can't spin the page (at most one auto-reload per 12 s).
+    if (anyModalOpen()) return;
+    var last = 0;
+    try { last = parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10) || 0; } catch (e) {}
+    if (Date.now() - last < 12000) return;
+    try { sessionStorage.setItem(RELOAD_KEY, String(Date.now())); } catch (e) {}
+    // brief settle for the Pages CDN edge to serve the new deploy
+    setTimeout(function () { if (!anyModalOpen()) location.reload(); }, 4000);
+  }
+
   // ── CI activity: poll the Actions API for in-flight runs. While any are
   //    queued/running, the badge above shows "N running" (with a spinner) in
   //    place of the version — so the dashboard visibly reflects work in
@@ -995,6 +1081,12 @@
           if (runState.names.indexOf(n) < 0) runState.names.push(n);
         });
         renderBadge();
+        if (REBUILD_ON) {
+          var rb = pickRebuild(act);
+          renderRebuild(rb);
+          if (buildWas && !rb) autoRefresh();   // a rebuild we were showing just finished
+          buildWas = !!rb;
+        }
       }).catch(function () { /* network blip: keep prior badge state */ });
   }
   function startActivity() {
