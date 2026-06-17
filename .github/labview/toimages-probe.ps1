@@ -1,5 +1,5 @@
 <#
-  Probe v4 (minimal, robust) — diagnostic only.
+  Probe v4 (minimal, robust) - diagnostic only.
   Goal: find a LabVIEW.exe launch that yields a COM-ready HEADLESS LabVIEW in the
   container, then drive toimages\Convert.vi (set "VI Path in", read "JSON out").
   No Start-Job, no 2>&1 redirects (those broke v3). Invoked via -File.
@@ -97,7 +97,7 @@ if (-not $app) {
 }
 
 Write-Host ""
-Write-Host "=== WINNER launch args: '$winner' — running Convert.vi ==="
+Write-Host "=== WINNER launch args: '$winner' - running Convert.vi ==="
 try {
     $vi = $app.GetVIReference($ConvertVI, '', $false, 0)
     Write-Host "  opened Convert.vi: $($vi.Name)"
