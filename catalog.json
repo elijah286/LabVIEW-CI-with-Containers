@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "2.1.1",
+  "version": "2.1.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.1.2",
+        "date": "2026-06-17",
+        "title": "Fix cascading dashboard builds on fresh installs",
+        "summary": "Removed the broad 'on: status' trigger from the dashboard workflow that was causing cascading rebuilds during fresh CI installs. When multiple CI workflows started simultaneously (Mass Compile, VI Analyzer, etc.), each status update would trigger a dashboard rebuild, creating a backlog of running builds. The dashboard continues to update correctly via workflow_run, push, schedule, and manual triggers\u2014this change just eliminates the noise.",
+        "highlights": [
+          "Fresh installs no longer spawn cascading dashboard builds from status events.",
+          "Dashboard still updates after CI workflows complete and on config changes.",
+          "Reduces GitHub Actions usage and clears the Actions tab of duplicate builds on initial setup."
+        ]
+      },
       {
         "version": "2.1.1",
         "date": "2026-06-17",
