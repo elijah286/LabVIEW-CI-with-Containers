@@ -587,6 +587,21 @@ if not lvci_version:
                 if _line and not _line[0].isspace(): _in_src = False
     except Exception:
         pass
+
+# Per-repo concurrency cap (config.concurrency.maxParallel in .github/labview-ci.yml,
+# default 5). Surfaced on the backfill card so a user queuing all of history knows the
+# runs are paced/queued rather than all firing at once.
+lvci_max_parallel = 5
+try:
+    for _cline in open('.github/labview-ci.yml', encoding='utf-8'):
+        _cs = _cline.strip()
+        if _cs.startswith('maxParallel:'):
+            _cv = _cs.split(':', 1)[1].split('#', 1)[0].strip()
+            if _cv.isdigit():
+                lvci_max_parallel = int(_cv)
+            break
+except Exception:
+    pass
 lvci_is_source = (not lvci_src_repo) or (lvci_src_repo.lower() == repo.lower())
 lvci_cfg_json  = json.dumps({
     'version': lvci_version, 'sourceRepo': lvci_src_repo,
@@ -741,6 +756,15 @@ run_dialog_css = (
     '.lvci-bf-tok{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;font-size:.84em;color:var(--fg-muted)}'
     '.lvci-bf-status{font-size:.82em;margin-top:10px}'
     '.lvci-bf-status:empty{display:none}'
+    # Concurrency note + the "How concurrency works" disclosure on the backfill card.
+    '.lvci-bf-note{display:block;margin-top:8px}'
+    '.lvci-bf-info{margin-top:8px;font-size:.92em}'
+    '.lvci-bf-info>summary{display:inline-block;cursor:pointer;color:var(--link);list-style:none;font-weight:600}'
+    '.lvci-bf-info>summary::-webkit-details-marker{display:none}'
+    '.lvci-bf-info>summary:hover{text-decoration:underline}'
+    '.lvci-bf-info[open]>summary{margin-bottom:8px}'
+    '.lvci-bf-infobody{color:var(--fg-muted);line-height:1.55;border-left:2px solid #1f6feb;padding-left:12px}'
+    '.lvci-bf-cfg{display:inline-block;margin-top:8px;color:var(--link);font-weight:600}'
     # "Populate history" dialog — form controls (start-from picker, activity
     # checkboxes, diff-based toggle). Reuses the run-modal chrome + cidash-btn.
     '.cidash-hist-sec{margin:0 0 16px}'
@@ -1612,6 +1636,27 @@ run_dialog = (r"""
 # below is an f-string; this is spliced in as {backfill_card}).
 backfill_card = ''
 if not any_output['on'] and not running_flag['on'] and run_count['n'] > 0:
+    _cfg_repo = html.escape(repo, quote=True)
+    bf_conc_html = (
+        '<span class="lvci-bf-note">'
+        f'This repository is currently set to run up to <b>{lvci_max_parallel}</b> '
+        f'CI job{"" if lvci_max_parallel == 1 else "s"} at a time. Anything past that '
+        '&mdash; or past your GitHub account&rsquo;s own concurrency limit &mdash; just '
+        'waits its turn and runs in order, so it&rsquo;s safe to queue the whole history at once.'
+        '</span>'
+        '<details class="lvci-bf-info">'
+        '<summary>&#9432; How concurrency works</summary>'
+        '<div class="lvci-bf-infobody">'
+        'GitHub caps how many CI jobs run at the same time <b>per account</b> &mdash; shared '
+        'across every repository you own (for example 20 jobs on Free, 40 on Pro), not per repo. '
+        f'This repository adds its own limit, <b>Max concurrent runners = {lvci_max_parallel}</b>, '
+        'so a large history backfill paces itself instead of monopolising your account&rsquo;s '
+        'runners; routine pushes and tooling updates draw from the same pool. Runs beyond the '
+        'limit are queued and start automatically as earlier ones finish &mdash; nothing is lost.'
+        f'<a href="#" class="lvci-bf-cfg" onclick="lvciOpen(&#39;configure.html?repo={_cfg_repo}&#39;,&#39;Configure Workers&#39;);return false;">'
+        f'Change this for {html.escape(repo_name)} &rarr;</a>'
+        '</div></details>'
+    )
     backfill_card = (
         '<div id="lvci-backfill" class="lvci-backfill" role="region" aria-label="Run CI for existing history" style="display:none">'
         '<div class="lvci-bf-main">'
@@ -1619,6 +1664,7 @@ if not any_output['on'] and not running_flag['on'] and run_count['n'] > 0:
         '<div class="lvci-bf-text">'
         '<strong>Populate the dashboard with your history</strong>'
         '<span>This dashboard has no results yet. Queue CI for all <b id="lvci-bf-count"></b> revisions in one click &mdash; processed <b>oldest&nbsp;&rarr;&nbsp;newest</b> so snapshots and diffs build on one another with no duplicated work. <a href="#" id="lvci-bf-custom" style="color:var(--link)">Choose activities or where to start&hellip;</a></span>'
+        + bf_conc_html +
         '</div>'
         '<div class="lvci-bf-actions">'
         '<button type="button" id="lvci-bf-run" class="cidash-btn cidash-go">&#9654; Run all history</button>'
