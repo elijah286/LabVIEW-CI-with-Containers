@@ -106,6 +106,13 @@
     .stalelist li{margin:0 0 2px;word-break:break-all}
     details.altinstall>summary{cursor:pointer;font-size:.86em;color:var(--link);user-select:none}
     details.altinstall>summary:hover{text-decoration:underline}
+    /* ---- install progress + lock ---- */
+    .ins-bar{height:6px;border-radius:6px;background:var(--chip);overflow:hidden;position:relative;margin:12px 0 6px}
+    .ins-bar[hidden]{display:none}
+    .ins-bar-fill{position:absolute;top:0;bottom:0;left:0;width:0;border-radius:6px;background:var(--link);transition:width .3s ease}
+    .ins-bar.done .ins-bar-fill{background:var(--accent);width:100%}
+    .ins-bar.err .ins-bar-fill{background:#cf222e}
+    .locked-area{opacity:.5;pointer-events:none;filter:saturate(.55)}
   </style>
 </head>
 <body>
@@ -157,9 +164,6 @@
         <label class="insopt"><input type="checkbox" id="optPages" checked>
           <span><strong>Turn on GitHub Pages &amp; set Workflow permissions for me</strong><small>Sets Actions to read/write and enables Pages (<code class="inl">gh-pages</code>) so the dashboard goes live with no manual settings. Needs a broader token &mdash; Administration + Pages &mdash; and falls back to manual steps if you decline them.</small></span>
         </label>
-        <label class="insopt"><input type="checkbox" id="optAutoMerge">
-          <span><strong>Auto-merge this PR when it&rsquo;s created</strong><small>Squash &amp; merge the install pull request immediately (skips the review step). Re-run the installer with this unchecked if you want to review before merging.</small></span>
-        </label>
       </div>
 
       <div class="tokpanel reinstall" id="insReinstallPanel" style="display:none">
@@ -202,6 +206,13 @@
         <button class="ghost" id="insTokForget" style="display:none" title="Remove the saved token from this browser">Forget token</button>
         <span class="status" id="insStatus"></span>
       </div>
+
+      <!-- Determinate install progress. The install runs in THIS browser (fetch
+           files -> build tree -> commit -> push -> open PR), so each phase is a
+           real, known step and the bar reflects honest progress. While it runs,
+           the form above locks (see lockInstallForm) so the choices can't change
+           mid-flight and a duplicate install can't start. -->
+      <div class="ins-bar" id="insBar" hidden aria-hidden="true"><div class="ins-bar-fill" id="insBarFill"></div></div>
 
       <ul class="insdone" id="insDone" style="display:none"></ul>
       <ol class="steps" id="insNext" style="display:none"></ol>
@@ -538,7 +549,28 @@
       li.innerHTML = html + `.`;
     }
 
-    function setInsStatus(html, kind) { const s = $("insStatus"); if (!s) return; s.className = "status" + (kind ? " " + kind : ""); s.innerHTML = html || ""; }
+    function setInsStatus(html, kind) {
+      const s = $("insStatus"); if (!s) return;
+      s.className = "status" + (kind ? " " + kind : "");
+      s.innerHTML = html || "";
+      // While the bar is live, advance it from the milestone messages (the install
+      // runs in the browser, so each status line is a real, known phase).
+      const wrap = $("insBar"); if (!wrap || wrap.hidden) return;
+      if (kind === "err") { setInsBar(null, "err"); return; }
+      const t = String(html || ""); let f = null, m;
+      if (/^Checking your repository/.test(t)) f = 0.05;
+      else if (/^Preparing the README/.test(t)) f = 0.58;
+      else if (/^Preparing/.test(t)) f = 0.08;
+      else if (/^Listing tooling files/.test(t)) f = 0.12;
+      else if ((m = t.match(/^Fetching (\d+)\/(\d+)/))) f = 0.12 + 0.45 * (+m[1] / Math.max(1, +m[2]));
+      else if (/^Reading your repository/.test(t)) f = 0.62;
+      else if ((m = t.match(/^Uploading asset (\d+)\/(\d+)/))) f = 0.62 + 0.16 * (+m[1] / Math.max(1, +m[2]));
+      else if (/^Creating the commit/.test(t)) f = 0.80;
+      else if (/^Pushing the install branch/.test(t)) f = 0.88;
+      else if (/^Opening the pull request/.test(t)) f = 0.93;
+      else if (/^Configuring repository settings/.test(t)) f = 0.97;
+      if (f != null) setInsBar(f);
+    }
     function refreshInsForget() { const f = $("insTokForget"); if (f) f.style.display = getInsTok() ? "" : "none"; }
     function showInsTokPanel() { const p = $("insTokPanel"); if (p) { p.style.display = ""; const i = $("insTokInput"); if (i) i.focus(); } }
     function hideInsTokPanel() { const p = $("insTokPanel"); if (p) p.style.display = "none"; }
@@ -810,11 +842,32 @@
       } catch (e) { setup.pages = "manual"; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
     }
 
+    function setInsBar(frac, stateCls) {
+      const w = $("insBar"); if (!w) return;
+      w.hidden = false;
+      if (frac != null) { const f = $("insBarFill"); if (f) f.style.width = (Math.max(0, Math.min(1, frac)) * 100) + "%"; }
+      w.className = "ins-bar" + (stateCls ? " " + stateCls : "");
+    }
+    function showInsBar() { const w = $("insBar"); if (w) { w.hidden = false; w.className = "ins-bar"; const f = $("insBarFill"); if (f) f.style.width = "0%"; } }
+    function hideInsBar() { const w = $("insBar"); if (w) w.hidden = true; }
+
+    // Lock the whole configurator while an install runs so the choices the user is
+    // watching (repo, capabilities, options) can't change mid-flight and a second
+    // install can't be started. Unlocks when the install finishes (success or
+    // error), so "apply to another repo" is simply: edit the repo + Install again.
+    function lockInstallForm(b) {
+      ["repo", "version", "download", "viewInstaller"].forEach(id => { const el = $(id); if (el) el.disabled = b; });
+      document.querySelectorAll("#osToggle input, #caps input, .insopts input").forEach(el => { el.disabled = b; });
+      const caps = $("caps"); if (caps) caps.classList.toggle("locked-area", b);
+      document.querySelectorAll(".insopts").forEach(el => el.classList.toggle("locked-area", b));
+    }
+
     function installBusy(b) {
       const ib = $("installBtn"); if (!ib) return;
       const noneReal = [...selected].filter(id => { const c = byId(id); return c && c.status !== "planned"; }).length === 0;
       ib.disabled = b || noneReal;
       ib.innerHTML = b ? "Installing&hellip;" : "&#11014; Install into your repo";
+      lockInstallForm(b);
     }
 
     function installPrBody(acts, osList, ver, fileCount, removed, kept) {
@@ -841,29 +894,6 @@
         "3. Open a pull request that changes a VI \u2014 the pipeline runs and reports back on the dashboard.", "",
         "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", "");
       return lines.join("\n");
-    }
-
-    async function mergeInstallPr(pr, repo) {
-      try {
-        setInsStatus("Merging pull request&hellip;", null);
-        const mergeResp = await gh(`/repos/${repo}/pulls/${pr.number}/merge`, {
-          method: "PUT",
-          body: {
-            commit_title: pr.title,
-            commit_message: pr.body,
-            merge_method: "squash"
-          }
-        });
-        if (!mergeResp.ok) {
-          const err = await mergeResp.json();
-          console.warn("Merge failed:", err);
-          return false;
-        }
-        return true;
-      } catch (e) {
-        console.warn("Error auto-merging PR:", e);
-        return false;
-      }
     }
 
     function installSuccess(pr, repo, setup) {
@@ -895,19 +925,6 @@
           note.innerHTML = `Heads up: your token didn&rsquo;t include <strong>Administration</strong> + <strong>Pages</strong>, so those two settings were left for you above. Re-create the token with those permissions (re-open the token panel) to have the configurator do it for you next time.`;
           note.style.display = "";
         } else { note.style.display = "none"; }
-      }
-
-      // Auto-merge if the checkbox is enabled
-      if ($("optAutoMerge") && $("optAutoMerge").checked) {
-        mergeInstallPr(pr, repo).then(success => {
-          if (success) {
-            setInsStatus(`&#10003; Done — pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`, "ok");
-            const nextEl = $("insNext");
-            if (nextEl) nextEl.style.display = "none";
-          } else {
-            setInsStatus(`&#10003; Opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but auto-merge failed (check the link above to merge manually).`, "ok");
-          }
-        });
       }
     }
 
@@ -1108,6 +1125,7 @@
       const owner = repo.split("/")[0];
       const s = source();
       installBusy(true);
+      showInsBar();
       setInsStatus("Preparing&hellip;", null);
       try {
         const setup = {};
@@ -1248,6 +1266,7 @@
           await runPublishSetup(repo, setup);
         }
         installSuccess(pr, repo, setup);
+        setInsBar(1, "done");
       } catch (e) {
         setInsStatus(installError(e, repo), "err");
       } finally {

@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.3.0",
+  "version": "2.3.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.3.1",
+        "date": "2026-06-17",
+        "title": "Live progress and locked controls while CI tooling installs or updates",
+        "summary": "The dashboard's Update now and the Apply to New Repo configurator now show clear, live progress so you can always tell work is happening \u2014 and they lock their controls while that work runs so you can't accidentally start the same job twice. Update now follows the real server-side update as it happens: a five-step tracker (Start, Build update, Open PR, Approve checks, Merge) advances as the update workflow is queued, runs, and opens its pull request, then highlights that it's your turn to approve and merge, and turns green once the PR is merged. While those automatic steps run, the version picker and buttons are disabled; they re-enable the moment the pull request is open. If you reload mid-update, the page restores the live tracker and keeps following along. Apply to New Repo gains a progress bar that fills through each real phase of the install (reading the repo, fetching files, committing, opening the pull request) and disables the whole form while installing, so your choices can't change underneath you; to set up another repository, just change the repo and install again.",
+        "highlights": [
+          "Update now shows a live five-step tracker that follows the real update workflow run and the pull request it opens, then clearly flags when it's your turn to approve and merge.",
+          "All update controls lock while the automatic steps run \u2014 no more accidentally dispatching the same update twice \u2014 and unlock as soon as the pull request is open.",
+          "Reloading during an update restores the live progress and keeps tracking it, instead of looking idle.",
+          "Apply to New Repo now has a progress bar through each install phase and disables the form while installing; to apply to another repository, change the repo and install again."
+        ]
+      },
       {
         "version": "2.3.0",
         "date": "2026-06-17",
