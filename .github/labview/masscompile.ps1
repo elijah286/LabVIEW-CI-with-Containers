@@ -171,6 +171,16 @@ if ([string]::IsNullOrEmpty($LogText)) {
 $LogHtml  = Encode-Html $LogText
 $ReportTs = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss UTC')
 
+# Shared site header (lvci-header.js, deployed once at the Pages root) — so even
+# this safety-net report (emitted only when the friendly Python builder is skipped
+# or fails) still renders inside the dashboard chrome: brand, nav, version badge
+# and the revision picker. Mirrors the window.LVCI config the friendly report sets
+# so the header behaves identically. sha/short come from the workflow via GITHUB_SHA.
+$HdrRepo  = "$env:GITHUB_REPOSITORY"
+$HdrSha   = "$env:GITHUB_SHA"
+$HdrShort = if ($HdrSha.Length -ge 7) { $HdrSha.Substring(0, 7) } else { $HdrSha }
+$HdrCfg   = "window.LVCI={context:'masscompile-report',repo:'$HdrRepo',pagesUrl:'../..',sha:'$HdrSha',short:'$HdrShort',platform:'windows',rawUrl:'masscompile.log'};"
+
 $Html = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -178,9 +188,12 @@ $Html = @"
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Mass Compile — LabVIEW-CI-with-Containers</title>
+  <script>$HdrCfg</script>
+  <script src="../../lvci-header.js" defer></script>
   <style>
     *{box-sizing:border-box}
-    body{margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3}
+    .wrap{max-width:1180px;margin:0 auto;padding:20px}
     .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:16px}
     h1{margin:0 0 12px;font-size:1.3em}
     .badge{display:inline-block;padding:3px 10px;border-radius:4px;font-weight:700;font-size:.85em;color:#fff;background:$StatusColor}
@@ -189,18 +202,20 @@ $Html = @"
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Mass Compile — LabVIEW-CI-with-Containers</h1>
-    <span class="badge">$StatusLabel</span>
-    <div class="meta">
-      <span>Date: $ReportTs</span>
-      <span>Duration: ${Duration}s</span>
-      <span>Project VIs: $TotalVIs</span>
-      <span>Compiled OK: $OkVIs</span>
-      <span>Bad: $BadVIs</span>
+  <div class="wrap">
+    <div class="card">
+      <h1>Mass Compile — LabVIEW-CI-with-Containers</h1>
+      <span class="badge">$StatusLabel</span>
+      <div class="meta">
+        <span>Date: $ReportTs</span>
+        <span>Duration: ${Duration}s</span>
+        <span>Project VIs: $TotalVIs</span>
+        <span>Compiled OK: $OkVIs</span>
+        <span>Bad: $BadVIs</span>
+      </div>
     </div>
+    <pre>$LogHtml</pre>
   </div>
-  <pre>$LogHtml</pre>
 </body>
 </html>
 "@

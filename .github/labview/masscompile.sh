@@ -66,13 +66,23 @@ JSON
 # skipped; the runner's build-masscompile-report.py overwrites this with the
 # rich, navigable report.
 LOG_HTML="$(sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$LOG_FILE")"
+# Shared site header (lvci-header.js, deployed once at the Pages root) so even this
+# safety-net report (emitted only when the friendly Python builder is skipped/fails)
+# renders inside the dashboard chrome. Linux reports live at masscompile/<sha>/linux/,
+# so the shared asset is three levels up. Mirrors the friendly report's window.LVCI.
+HDR_REPO="${GITHUB_REPOSITORY:-}"
+HDR_SHA="${GITHUB_SHA:-}"
+HDR_SHORT="${HDR_SHA:0:7}"
 cat > "$HTML_OUT" <<HTML
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mass Compile (Linux) — LabVIEW-CI-with-Containers</title>
-<style>body{margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3}
+<script>window.LVCI={context:'masscompile-report',repo:'$HDR_REPO',pagesUrl:'../../..',sha:'$HDR_SHA',short:'$HDR_SHORT',platform:'linux',rawUrl:'masscompile.log'};</script>
+<script src="../../../lvci-header.js" defer></script>
+<style>body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3}
+.wrap{max-width:1180px;margin:0 auto;padding:20px}
 pre{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:14px;font-size:.75em;white-space:pre-wrap;word-break:break-all}</style>
-</head><body><h1>Mass Compile (Linux)</h1><pre>$LOG_HTML</pre></body></html>
+</head><body><div class="wrap"><h1>Mass Compile (Linux)</h1><pre>$LOG_HTML</pre></div></body></html>
 HTML
 
 echo ""

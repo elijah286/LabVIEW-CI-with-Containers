@@ -49,6 +49,7 @@ runs:
         # the runner host; mounting it makes masscompile.ps1 available at C:\ci-action.
         docker run --rm `
           -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+          -e "GITHUB_SHA=${{ github.sha }}" `
           -v "${{ github.workspace }}:C:\workspace" `
           -v "${{ github.action_path }}:C:\ci-action" `
           "${{ inputs.image }}" `

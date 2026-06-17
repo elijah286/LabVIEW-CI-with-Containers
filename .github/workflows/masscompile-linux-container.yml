@@ -96,6 +96,7 @@ jobs:
           mkdir -p "${{ github.workspace }}/ci-out/masscompile"
           docker run --rm \
             -e "GITHUB_REPOSITORY=${{ github.repository }}" \
+            -e "GITHUB_SHA=${{ steps.sha.outputs.sha }}" \
             -v "${{ github.workspace }}:/workspace" \
             ${{ env.LABVIEW_CONTAINER_IMAGE }} \
             bash /workspace/.github/labview/masscompile.sh \
