@@ -1,10 +1,10 @@
 [
   {
-    "sha": "e983941640fcc7a5e271b518f4d031e6bec1485b",
-    "short": "e983941",
-    "message": "feat: masscompile parity + vidiff + snapshots as shared reusable capabilities [release: minor]",
+    "sha": "b01e9417c0dc2f10c4dc6b95af3315f3f5ffcfee",
+    "short": "b01e941",
+    "message": "VI Snapshots: stage position-aware (toimages) backend — gated no-op",
     "author": "elijah286",
-    "date": "2026-06-15T17:37:45-05:00",
+    "date": "2026-06-17T12:39:53-05:00",
     "vi_count": 51
   }
 ]
