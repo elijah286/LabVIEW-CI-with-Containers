@@ -848,7 +848,7 @@
   function updClear() { try { localStorage.removeItem(UPD_KEY); } catch (e) {} }
   window.lvciMarkUpdating = function (v) {
     if (!v) return;
-    try { localStorage.setItem(UPD_KEY, JSON.stringify({ v: v, ts: Date.now() })); } catch (e) {}
+    try { localStorage.setItem(UPD_KEY, JSON.stringify({ v: v, ts: Date.now(), repo: C.repo })); } catch (e) {}
     renderBadge();
   };
 
