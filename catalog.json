@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.6.0",
+  "version": "2.6.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.6.1",
+        "date": "2026-06-17",
+        "title": "A cleaner header: version and updates now live in one menu",
+        "summary": "The dashboard header has been tidied for a more professional, less cluttered look. The standalone version badge that used to sit in the top bar is gone; the installed version and the \"What's new / Update\" action now live together as a single entry inside the header's overflow (the three-dot More menu on desktop, the menu on mobile), so the version number no longer duplicates the update action. When an update is available - or one you started is still in progress - a single amber dot appears on the More button (or the hamburger on mobile), giving an at-a-glance cue without crowding the bar. A live \"N running\" chip now appears in the bar only while CI runs are in flight and disappears when they finish, so the bar stays clean when idle while still surfacing activity. This release also fixes a problem where an \"Updating to v...\" state begun on one repository's dashboard could briefly show on another repository's dashboard.",
+        "highlights": [
+          "The always-on version badge is gone; the installed version and a \"What's new\" / \"Update available\" action are now a single entry in the header's More menu (and the mobile menu), removing the duplicate update surface.",
+          "A single amber dot on the More button (or the hamburger on mobile) signals at a glance when an update is available or in progress.",
+          "A live \"N running\" chip appears in the bar only while CI is active, then disappears - the bar stays uncluttered when idle while CI activity stays visible.",
+          "Fixes a cross-repository issue where an \"Updating to v...\" state started on one dashboard could appear on another; the in-progress flag is now scoped to its own repository."
+        ]
+      },
       {
         "version": "2.6.0",
         "date": "2026-06-17",
