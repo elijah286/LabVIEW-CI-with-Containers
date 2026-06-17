@@ -140,7 +140,28 @@
     </section>
 
     <section>
-      <h2>3. Review &amp; apply</h2>
+      <h2>3. Worker container</h2>
+      <p class="hint">Choose which prebuilt container image your CI activities run in, and the VIPC dependency files baked into it. Stored in <code class="inl">.github/labview-ci.yml</code> under <code class="inl">config.container</code>; the image is built and pushed to GHCR by the <code class="inl">Build LabVIEW CI Image</code> workflow when you apply.</p>
+
+      <div class="field" style="max-width:560px">
+        <label class="fl" for="containerUse">Container used for future actions</label>
+        <select id="containerUse"></select>
+        <input type="text" id="containerUseCustom" placeholder="image tag, e.g. win-ab12cd34ef56 or 2026-20260616" style="margin-top:8px" hidden>
+        <div class="hint" style="margin-top:4px"><strong>Latest</strong> always uses the most recently built image, so your dependencies stay current. Pin to a specific build to freeze the container for reproducibility.</div>
+      </div>
+
+      <div class="subhead">VIPC dependencies baked into the container</div>
+      <p class="hint">Each VIPC file is applied to the worker image. Turn on <strong>Monitor</strong> to rebuild the container automatically whenever that file changes &mdash; so the container always has the dependencies the project needs.</p>
+      <div class="pkgs" id="vipcs"></div>
+      <div class="addpkg">
+        <input type="text" id="newVipcPath" placeholder="path to a .vipc file (e.g. COTC Dependencies.vipc)">
+        <button class="ghost" id="addVipcBtn">Add VIPC</button>
+      </div>
+      <div class="hint" id="vipcNote" style="margin-top:8px"></div>
+    </section>
+
+    <section>
+      <h2>4. Review &amp; apply</h2>
       <p class="hint">Two apply paths. Both are reviewable before anything runs.</p>
 
       <div class="subhead">Option A — open a pull request (recommended)</div>
@@ -177,6 +198,9 @@
     let pkgObj = null;                       // parsed ci-tooling.packages.json
     const osSel = new Set(["windows", "linux"]);
     const actSel = new Set();
+    let winLatest = null;                    // workers/windows/latest.json (current build)
+    let containerUse = "latest";             // config.container.use (tag activities pull)
+    let vipcList = [];                       // [{ path, monitor }] baked into the worker image
 
     const $ = (id) => document.getElementById(id);
     const csv = (set) => [...set].join(",");
@@ -213,14 +237,25 @@
 
     // ---- minimal labview-ci.yml parser (our own simple format) -------------
     function parseManifest(text) {
-      const out = { version: "", os: [], activities: [], runners: null };
-      let inActs = false;
+      const out = { version: "", os: [], activities: [], runners: null, containerUse: "", vipc: [] };
+      let inActs = false, inContainer = false, inVipc = false, curVipc = null;
       for (const line of text.split(/\r?\n/)) {
-        if (/^\s*activities:\s*$/.test(line)) { inActs = true; continue; }
+        if (/^\s*activities:\s*$/.test(line)) { inActs = true; inContainer = false; inVipc = false; continue; }
+        if (/^\s*container:\s*$/.test(line)) { inContainer = true; inActs = false; inVipc = false; continue; }
         if (inActs) {
           const m = line.match(/^\s*-\s*(\S+)/);
           if (m) { out.activities.push(m[1]); continue; }
           inActs = false;
+        }
+        if (inContainer) {
+          let mc;
+          if ((mc = line.match(/^\s{4}use:\s*"?([^"\s]+)"?/))) { out.containerUse = mc[1]; continue; }
+          if (/^\s{4}vipc:\s*$/.test(line)) { inVipc = true; continue; }
+          if (inVipc) {
+            if ((mc = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/))) { curVipc = { path: mc[1].trim(), monitor: true }; out.vipc.push(curVipc); continue; }
+            if (curVipc && (mc = line.match(/^\s{8}monitor:\s*(\S+)/))) { curVipc.monitor = mc[1].trim().toLowerCase() === "true"; continue; }
+          }
+          if (/^\s{0,3}\S/.test(line)) { inContainer = false; inVipc = false; }
         }
         let m;
         if ((m = line.match(/^\s*labviewVersion:\s*"?([^"\s]+)"?/))) out.version = m[1];
@@ -278,6 +313,92 @@
       $("antidoc").disabled = !p;
     }
 
+    // ---- worker container --------------------------------------------------
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function containerUseValue() {
+      const sel = $("containerUse");
+      if (!sel) return containerUse || "latest";
+      if (sel.value === "__custom__") return ($("containerUseCustom").value || "").trim() || "latest";
+      return sel.value || "latest";
+    }
+    function renderContainerUse() {
+      const sel = $("containerUse"); if (!sel) return;
+      const cur = (winLatest && winLatest.version) ? String(winLatest.version) : "";
+      const opts = [["latest", "Latest build \u2014 recommended (auto-updates with your dependencies)"]];
+      if (cur) opts.push([cur, "Pinned: " + cur + " (current build)"]);
+      opts.push(["__custom__", "Pin a specific tag\u2026"]);
+      sel.innerHTML = "";
+      opts.forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; sel.appendChild(o); });
+      const custom = $("containerUseCustom");
+      if (!containerUse || containerUse === "latest") {
+        sel.value = "latest"; if (custom) custom.hidden = true;
+      } else if (cur && containerUse === cur) {
+        sel.value = cur; if (custom) custom.hidden = true;
+      } else {
+        sel.value = "__custom__"; if (custom) { custom.hidden = false; custom.value = containerUse; }
+      }
+    }
+    function renderVipcs() {
+      const host = $("vipcs"); if (!host) return; host.innerHTML = "";
+      if (!vipcList.length) {
+        host.innerHTML = '<div class="hint">No VIPC files configured yet. The image still builds; add a <code class="inl">.vipc</code> to bake project dependencies into the container.</div>';
+        return;
+      }
+      vipcList.forEach((v, i) => {
+        const row = document.createElement("div"); row.className = "pkg";
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = v.monitor !== false;
+        cb.title = "Monitor this file and rebuild the container automatically when it changes";
+        cb.addEventListener("change", () => { v.monitor = cb.checked; renderVipcs(); update(); });
+        const mid = document.createElement("div");
+        mid.innerHTML = '<span class="pname">' + escapeHtml(v.path) + "</span>" +
+          '<div class="psum">' + (v.monitor !== false
+            ? "Monitored \u2014 rebuilds the container when this file changes"
+            : "Baked once \u2014 not monitored for changes") + "</div>";
+        const rm = document.createElement("button"); rm.type = "button"; rm.className = "ghost"; rm.textContent = "Remove";
+        rm.addEventListener("click", () => { vipcList.splice(i, 1); renderVipcs(); update(); });
+        row.appendChild(cb); row.appendChild(mid); row.appendChild(rm);
+        host.appendChild(row);
+      });
+    }
+    function renderContainer() { renderContainerUse(); renderVipcs(); }
+    function setVipcNote(found) {
+      const el = $("vipcNote"); if (!el) return;
+      el.textContent = (found && found.length)
+        ? ("Found " + found.length + " VIPC file" + (found.length === 1 ? "" : "s") + " in the repository.")
+        : "";
+    }
+    function containerYamlLines() {
+      const lines = ["  container:", "    use: " + (containerUseValue() || "latest")];
+      if (vipcList.length) {
+        lines.push("    vipc:");
+        vipcList.forEach(v => {
+          lines.push('      - path: "' + String(v.path).replace(/"/g, "") + '"');
+          lines.push("        monitor: " + (v.monitor !== false ? "true" : "false"));
+        });
+      }
+      return lines;
+    }
+    // Best-effort discovery of the repo's .vipc files (unauthenticated; silent on
+    // failure / rate-limit). Pre-fills the list so the project's dependency files
+    // are visible without hand-typing each path.
+    async function discoverVipc(repo, ref) {
+      try {
+        const url = "https://api.github.com/repos/" + repo + "/git/trees/" +
+          encodeURIComponent(ref || "main") + "?recursive=1";
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) return;
+        const data = await r.json();
+        const found = (data.tree || []).filter(t => t.type === "blob" && /\.vipc$/i.test(t.path)).map(t => t.path);
+        const have = new Set(vipcList.map(v => v.path));
+        let added = false;
+        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true }); added = true; } });
+        if (added) { renderVipcs(); update(); }
+        setVipcNote(found);
+      } catch (_) {}
+    }
+
     // ---- output generation -------------------------------------------------
     function genYaml() {
       const s = source();
@@ -294,6 +415,7 @@
         "  os: [" + [...osSel].join(", ") + "]",
         "  concurrency:",
         "    maxParallel: " + (parseInt($("runners").value, 10) || 1),
+        ...containerYamlLines(),
         "activities:",
         ...acts.map(a => "  - " + a),
         "",
@@ -318,12 +440,15 @@
       const repo = $("repo").value.trim();
       const r = repo.includes("/") ? ` -R ${repo}` : "";
       const antidoc = $("antidoc").checked ? "true" : "false";
+      const cVipc = vipcList.map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
+      const cLine = ` \\\n  -f container_use=${containerUseValue() || "latest"}` +
+        (cVipc ? ` \\\n  -f container_vipc="${cVipc}"` : "");
       return `gh workflow run reconfigure.yml${r} \\\n` +
         `  -f labview_version=${$("version").value} \\\n` +
         `  -f operating_systems=${osChoice()} \\\n` +
         `  -f antidoc=${antidoc} \\\n` +
         `  -f concurrent_runners=${parseInt($("runners").value, 10) || 1} \\\n` +
-        `  -f activities=${csv(actSel) || "dashboard"}`;
+        `  -f activities=${csv(actSel) || "dashboard"}` + cLine;
     }
 
     function update() {
@@ -376,6 +501,9 @@
         if (m.os.length) { osSel.clear(); m.os.forEach(o => osSel.add(o)); document.querySelectorAll("#osToggle input").forEach(cb => cb.checked = osSel.has(cb.value)); }
         if (m.activities.length) { actSel.clear(); m.activities.forEach(a => actSel.add(a)); renderActivities(); }
         if (m.runners) $("runners").value = m.runners;
+        containerUse = m.containerUse || "latest";
+        vipcList = (m.vipc || []).map(v => ({ path: v.path, monitor: v.monitor !== false }));
+        renderContainer();
         loadedAny = true;
       } catch (_) { /* not installed yet */ }
       try {
@@ -387,6 +515,7 @@
         ? "Loaded current settings from " + repo + "@" + ref + "."
         : "No existing config found (repo may not have the pipeline yet) — showing defaults to download & commit.";
       update();
+      discoverVipc(repo, ref);
     }
 
     // ---- wiring ------------------------------------------------------------
@@ -415,6 +544,17 @@
         try { await navigator.clipboard.writeText($(src).textContent); $(btn).textContent = "Copied!"; setTimeout(() => $(btn).textContent = "Copy", 1400); } catch (_) {}
       });
       copy("copyGh", "ghCmd"); copy("copyYaml", "yamlPreview"); copy("copyJson", "jsonPreview");
+      $("containerUse").addEventListener("change", () => {
+        const sel = $("containerUse"); const custom = $("containerUseCustom");
+        if (custom) custom.hidden = (sel.value !== "__custom__");
+        containerUse = containerUseValue(); update();
+      });
+      $("containerUseCustom").addEventListener("input", () => { containerUse = containerUseValue(); update(); });
+      $("addVipcBtn").addEventListener("click", () => {
+        const p = $("newVipcPath").value.trim(); if (!p) return;
+        if (!vipcList.some(v => v.path === p)) vipcList.push({ path: p, monitor: true });
+        $("newVipcPath").value = ""; renderVipcs(); update();
+      });
     }
     function flash(msg) { const st = $("dlStatus"); st.className = "status ok"; st.textContent = msg; }
 
@@ -430,7 +570,10 @@
       catalog.capabilities.filter(c => c.recommended && c.status !== "planned").forEach(c => actSel.add(c.id));
       renderVersions(); renderActivities();
       pkgObj = await loadDefaultPackages();
-      renderPackages(); wire(); update();
+      renderPackages();
+      winLatest = await (async () => { try { return await fetchJson("./workers/windows/latest.json"); } catch (_) { return null; } })();
+      renderContainer();
+      wire(); update();
 
       // The dialog is scoped to the repo whose dashboard launched it (never asked).
       // Auto-detect it, reflect it read-only, and load that repo's current settings

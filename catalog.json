@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "1.14.1",
+  "version": "2.0.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.0.0",
+        "date": "2026-06-16",
+        "title": "Manage your worker container and its VIPC dependencies from Configure",
+        "summary": "The Configure dialog can now manage the container your CI runs in. A new Worker container section lets you choose which prebuilt image future actions use \u2014 the latest build, so your project's dependencies always stay current, or a specific pinned build for reproducibility \u2014 and lists the VIPC dependency files baked into that image. Each VIPC file can be set to Monitor, so the container is rebuilt and pushed to GHCR automatically whenever that file changes; files you don't monitor are baked once and left pinned. The worker image build always publishes a :latest tag, bakes exactly the VIPC files you list (from anywhere in the repo), and skips a rebuild when the only change is a VIPC you chose not to monitor. VI Analyzer, Mass Compile, and VIDiff on Windows all run inside the container you select. Existing pipelines keep working unchanged \u2014 with nothing configured, every activity uses the same image it did before.",
+        "highlights": [
+          "New \u201cWorker container\u201d section in Configure: pick which prebuilt GHCR image future actions use \u2014 Latest (auto-updates as your dependencies change) or a pinned build for reproducibility, with the current build offered as a one-click pin.",
+          "List the VIPC dependency files baked into the worker image and turn on Monitor per file, so the container is rebuilt and pushed to GHCR automatically whenever that file changes \u2014 keeping the container in sync with the dependencies the project needs.",
+          "The worker image build always publishes a :latest tag, bakes exactly the VIPC files you configure, and skips a rebuild when the only change is a VIPC you chose not to monitor.",
+          "VI Analyzer, Mass Compile, and VIDiff on Windows now run inside the container you select; with nothing configured they keep using their previous image, so existing pipelines are unaffected."
+        ]
+      },
       {
         "version": "1.14.1",
         "date": "2026-06-16",
