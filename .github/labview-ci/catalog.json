@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "2.1.2",
+  "version": "2.1.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.1.3",
+        "date": "2026-06-17",
+        "title": "Starting an update affects only the repository you started it from",
+        "summary": "Starting a tooling update from one repository's dashboard no longer shows an 'Updating...' badge on your other repositories. Because every dashboard is served from the same GitHub Pages site (a single browser origin), the in-progress update indicator could appear on all of your repositories at once even though only the one you clicked was actually updating. The update state is now scoped to the specific repository you started the update from, so your other dashboards stay clear and keep showing their own version.",
+        "highlights": [
+          "Clicking the version badge or 'Update now' shows the 'Updating to v...' badge only on the repository you started the update from.",
+          "Other repositories' dashboards no longer display a false in-progress update just because they share the same Pages site and browser storage.",
+          "Only the in-progress indicator was scoped per repository; how updates are dispatched and applied is unchanged."
+        ]
+      },
       {
         "version": "2.1.2",
         "date": "2026-06-17",
