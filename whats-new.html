@@ -106,6 +106,9 @@
     .upsteps li.key::before{background:var(--warn);border-color:transparent;color:#fff}
     .upsteps li small{display:block;color:var(--fg-muted);font-size:.92em;margin-top:3px}
     .upsteps em{color:var(--warn);font-style:normal;font-weight:600}
+    .insopt{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:.9em;cursor:pointer}
+    .insopt input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px}
+    .insopt small{display:block;color:var(--fg-muted);font-size:.84em;margin-top:2px}
   </style>
 </head>
 <body>
@@ -139,17 +142,37 @@
       <h2>Update your CI tooling</h2>
       <p class="hint" id="updateLead">Updating is a few clicks: <strong>Update now</strong> kicks it off, then GitHub
         needs you to <strong>approve</strong> and <strong>merge</strong>. Here is the whole sequence so nothing waits on a step you did not know about:</p>
-      <ol class="upsteps" id="upSteps">
-        <li>Click <strong>Update now</strong> below. The first time, paste a one-time token &mdash; the dialog walks you
-          through it (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</li>
-        <li>The <strong>Apply LabVIEW CI update</strong> workflow runs and opens a <strong>pull request</strong> that adopts the new version.</li>
-        <li class="key"><strong>Approve the pull request&rsquo;s checks.</strong>
-          <small>Because the pull request is opened automatically, GitHub holds its checks for your approval and marks
-          them <em>&ldquo;Action required.&rdquo;</em> Open the PR (or the <strong>Actions</strong> tab), and on the paused run
-          click <strong>Approve and run</strong>. Until you do, the checks never start and the update cannot complete.</small></li>
-        <li><strong>Merge the pull request</strong> once its checks pass.</li>
-        <li>On the next refresh, the dashboard badge turns green and shows the new version.</li>
-      </ol>
+      <div class="upsteps" id="upStepsDefault">
+        <ol>
+          <li>Click <strong>Update now</strong> below. The first time, paste a one-time token &mdash; the dialog walks you
+            through it (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</li>
+          <li>The <strong>Apply LabVIEW CI update</strong> workflow runs and opens a <strong>pull request</strong> that adopts the new version.</li>
+          <li class="key"><strong>Approve the pull request&rsquo;s checks.</strong>
+            <small>Because the pull request is opened automatically, GitHub holds its checks for your approval and marks
+            them <em>&ldquo;Action required.&rdquo;</em> Open the PR (or the <strong>Actions</strong> tab), and on the paused run
+            click <strong>Approve and run</strong>. Until you do, the checks never start and the update cannot complete.</small></li>
+          <li><strong>Merge the pull request</strong> once its checks pass.</li>
+          <li>On the next refresh, the dashboard badge turns green and shows the new version.</li>
+        </ol>
+      </div>
+      <div class="upsteps" id="upStepsAutoMerge" style="display:none">
+        <ol>
+          <li>Click <strong>Update now</strong> below. The first time, paste a one-time token &mdash; the dialog walks you
+            through it (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</li>
+          <li>The <strong>Apply LabVIEW CI update</strong> workflow runs and opens a <strong>pull request</strong> that adopts the new version.</li>
+          <li class="key"><strong>Approve the pull request&rsquo;s checks.</strong>
+            <small>Because the pull request is opened automatically, GitHub holds its checks for your approval and marks
+            them <em>&ldquo;Action required.&rdquo;</em> Open the PR (or the <strong>Actions</strong> tab), and on the paused run
+            click <strong>Approve and run</strong>. Once checks pass, the auto-merge will complete automatically.</small></li>
+          <li>Wait for checks to pass &mdash; the PR will merge automatically.</li>
+          <li>On the next refresh, the dashboard badge turns green and shows the new version.</li>
+        </ol>
+      </div>
+      <div style="margin:12px 0 14px">
+        <label class="insopt"><input type="checkbox" id="optAutoMergeUpdate">
+          <span><strong>Auto-merge this PR when checks pass</strong><small>After you approve the checks, the update pull request will merge automatically (squash merge). Re-run the updater with this unchecked if you want to review the checks first.</small></span>
+        </label>
+      </div>
       <!-- One-time token setup (hidden until needed), mirroring the dashboard's Run now dialog. -->
       <div class="tokpanel" id="tokPanel" style="display:none">
         <h3>One-time setup &mdash; a token to start the update</h3>
@@ -441,6 +464,40 @@
       dispatchUpdate();
     }
 
+    // Auto-merge the update PR using GitHub API (squash merge)
+    async function mergeUpdatePr(pr, ver) {
+      try {
+        setCmdStatus("Attempting auto-merge after checks pass...", null);
+        const mergeResp = await fetch(`https://api.github.com/repos/${state.repo}/pulls/${pr.number}/merge`, {
+          method: "PUT",
+          headers: {
+            "Authorization": "Bearer " + getTok(),
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            commit_title: pr.title,
+            commit_message: pr.body,
+            merge_method: "squash"
+          })
+        });
+        if (mergeResp.ok) {
+          setCmdStatus(`&#10003; Update pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged to v${esc(ver)}. On the next refresh, the dashboard badge will show the new version.`, "ok");
+          return true;
+        }
+        if (mergeResp.status === 405) {
+          // Merge blocked (likely checks not approved or not passing)
+          return false;
+        }
+        console.warn("Merge failed with status:", mergeResp.status);
+        return false;
+      } catch (e) {
+        console.warn("Error auto-merging PR:", e);
+        return false;
+      }
+    }
+
     // After dispatch, the workflow force-pushes branch ci/update-tooling-v<ver>
     // and opens (or updates) a PR. Poll the public PR list briefly to surface a
     // direct "review & merge" link; degrade to the Pull requests page.
@@ -457,10 +514,33 @@
           .then((list) => {
             if (Array.isArray(list) && list.length) {
               const pr = list[0];
-              setCmdStatus(`&#10003; Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> opened. Two steps remain: ` +
-                `<strong>1.</strong> open it and <strong>approve its checks</strong> if GitHub shows <em style="color:var(--warn);font-style:normal;font-weight:600">&ldquo;Action required&rdquo;</em> ` +
-                `(click <strong>Approve and run</strong>), then <strong>2.</strong> ` +
-                `<a href="${esc(pr.html_url)}" target="_blank" rel="noopener"><strong>merge it</strong></a> to finish updating to <code>v${esc(ver)}</code>.`, "ok");
+              // If auto-merge is enabled, attempt to merge immediately; otherwise show manual steps
+              if ($("optAutoMergeUpdate") && $("optAutoMergeUpdate").checked) {
+                // Start polling for merge to succeed (checks need to pass first)
+                let mergeAttempts = 0;
+                const attemptMerge = async () => {
+                  mergeAttempts++;
+                  const success = await mergeUpdatePr(pr, ver);
+                  if (success) return;
+                  if (mergeAttempts < 20) {
+                    // Retry every 5 seconds for up to 100 seconds (checks may still be running)
+                    setTimeout(attemptMerge, 5000);
+                  } else {
+                    // Timeout: show manual merge link
+                    setCmdStatus(`Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> opened to v${esc(ver)}, ` +
+                      `but auto-merge couldn&rsquo;t complete (checks may still be running). ` +
+                      `<strong>Approve the checks</strong> if GitHub shows &ldquo;Action required,&rdquo; then ` +
+                      `<a href="${esc(pr.html_url)}" target="_blank" rel="noopener">merge manually</a>.`, "ok");
+                  }
+                };
+                attemptMerge();
+              } else {
+                // Manual merge flow
+                setCmdStatus(`&#10003; Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> opened. Two steps remain: ` +
+                  `<strong>1.</strong> open it and <strong>approve its checks</strong> if GitHub shows <em style="color:var(--warn);font-style:normal;font-weight:600">&ldquo;Action required&rdquo;</em> ` +
+                  `(click <strong>Approve and run</strong>), then <strong>2.</strong> ` +
+                  `<a href="${esc(pr.html_url)}" target="_blank" rel="noopener"><strong>merge it</strong></a> to finish updating to <code>v${esc(ver)}</code>.`, "ok");
+              }
               return;
             }
             if (tries < 8) setTimeout(tick, 2500);
@@ -543,6 +623,19 @@
       $("tokCancel").addEventListener("click", hideTokenPanel);
       $("tokForget").addEventListener("click", () => { clearTok(); refreshTokForget(); setCmdStatus("Token removed from this browser.", null); });
       const ti = $("tokInput"); if (ti) ti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveTokAndDispatch(); } });
+      // Toggle between manual and auto-merge steps
+      const amb = $("optAutoMergeUpdate");
+      if (amb) amb.addEventListener("change", () => {
+        const upDefault = $("upStepsDefault");
+        const upAuto = $("upStepsAutoMerge");
+        if (amb.checked) {
+          if (upDefault) upDefault.style.display = "none";
+          if (upAuto) upAuto.style.display = "";
+        } else {
+          if (upDefault) upDefault.style.display = "";
+          if (upAuto) upAuto.style.display = "none";
+        }
+      });
     }
 
     // ---- init ------------------------------------------------------------
