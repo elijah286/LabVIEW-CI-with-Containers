@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "version": "2.10.0",
+  "version": "3.0.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
       {
-        "version": "2.10.0",
+        "version": "3.0.0",
         "date": "2026-06-17",
-        "title": "Unit testing: configure frameworks, run in CI, jump to failures",
-        "summary": "Unit testing is now a first-class CI activity. A new Unit Testing page (in the header's menu) lets you turn on the LabVIEW unit-test frameworks you use (JKI Caraya and JKI VI Tester) and say where each one's tests live - a folder or a glob. They run in the Windows worker, and their different outputs are merged into one Unit Tests report per revision on the dashboard, where you can run them on demand just like the other activities and click any failure to open the VI under test in the VI Browser. NI's Unit Test Framework is scaffolded for when its headless runner lands.",
+        "title": "Unit testing, end to end: configure frameworks, run in CI, triage failures",
+        "summary": "A major release: unit testing is now a first-class part of the LabVIEW CI pipeline. On the new Unit Testing page you turn on the frameworks you use (JKI Caraya and JKI VI Tester) and say where each one's tests live - a folder or a glob. They run in the Windows worker, and their different outputs are merged into one Unit Tests report per revision on the dashboard, where you can run them on demand just like Mass Compile or VI Analyzer and click any failure to open the VI under test in the VI Browser. NI's Unit Test Framework is scaffolded for when its headless runner lands.",
         "highlights": [
-          "New Unit Testing configuration page: enable one or many frameworks and point each at its tests (directory or glob). Scales to future tools.",
-          "Unit Tests is now in the activity matrix and the dashboard's Unit Tests column - run it on demand with the same Run-now flow as Mass Compile or VI Analyzer.",
-          "Every framework's results are normalised to one report; failing tests deep-link to the VI under test in the VI Browser.",
+          "New Unit Testing configuration page: enable one or many frameworks and point each at its tests (directory or glob). Designed to scale to future tools.",
+          "Unit Tests is now in the activity matrix and the dashboard's Unit Tests column - run it on demand with the same Run-now flow as the other activities.",
+          "Every framework's results are normalised into one report; failing tests deep-link to the VI under test in the VI Browser.",
           "Windows-only for now (Caraya and VI Tester are VIPM packages). The Caraya runner is the reference; execution is being validated on a real worker."
         ]
       },
