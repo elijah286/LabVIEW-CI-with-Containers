@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "2.8.1",
+  "version": "2.8.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "2.8.2",
+        "date": "2026-06-17",
+        "title": "The backfill card explains how your runs are paced",
+        "summary": "The 'Populate the dashboard with your history' card now tells you how a big run will be paced before you start it. It shows the number of CI jobs this repository is set to run at once (its Max concurrent runners setting) and explains, in plain language, that anything past that - or past your GitHub account's own shared concurrency limit - simply waits its turn and runs in order, so it is safe to queue your whole history at once. A new 'How concurrency works' note clarifies that GitHub's real limit is per account (shared across every repository you own), not per repo, and includes a link that opens Configure Workers where you can change the limit for this repository.",
+        "highlights": [
+          "The backfill card now shows how many CI jobs this repository runs at once - its Max concurrent runners setting - read from your configuration.",
+          "Plain-language reassurance that extra runs are queued and start automatically as earlier ones finish, so queuing all of history at once is safe.",
+          "A 'How concurrency works' disclosure explains that GitHub's limit is per account (shared across all your repositories), not per repo.",
+          "A link opens Configure Workers so you can change the concurrency setting for this repository."
+        ]
+      },
       {
         "version": "2.8.1",
         "date": "2026-06-17",
