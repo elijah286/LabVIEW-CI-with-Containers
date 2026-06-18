@@ -39,9 +39,9 @@ def get_default_branch():
     return _default_branch
 
 # ── Fetch a JSON file straight from the deployed Pages site ─────
-# Used to read each commit's per-platform VIDiff changes.json so the
-# Snapshots column can report how many VIs were rendered on Windows vs
-# Linux. Returns None on any error (missing file, propagation lag, etc.).
+# Reads static gallery/report JSON deployed alongside the dashboard (the snapshot
+# blob index, masscompile summaries, …). Returns None on any error (missing file,
+# propagation lag, etc.).
 def http_json(url):
     req = urllib.request.Request(url, headers={'Accept': 'application/json'})
     try:
@@ -50,19 +50,59 @@ def http_json(url):
     except Exception:
         return None
 
-_snap_cache = {}
-def snapshot_counts(sha):
-    # Map platform -> number of VIs whose snapshots/diffs were rendered for
-    # this revision, sourced from vidiff/push-<sha>/<platform>/vidiff/changes.json.
-    if sha in _snap_cache:
-        return _snap_cache[sha]
-    counts = {}
-    for plat in ('windows', 'linux'):
-        data = http_json(f"{pages_url}/vidiff/push-{sha}/{plat}/vidiff/changes.json")
-        if data and isinstance(data.get('files'), list):
-            counts[plat] = len(data['files'])
-    _snap_cache[sha] = counts
-    return counts
+# ── Snapshot coverage: which of a revision's VIs have a rendered snapshot ─────
+# Snapshots are content-addressed by git blob SHA under vi-snapshots/by-blob/, so
+# whether a revision "has snapshots" is answered by the snapshot store itself —
+# NOT by VIDiff (which only renders CHANGED VIs and is what this column used to
+# read, leaving it blank for every revision that had snapshots but no diff run).
+# The set of blobs that have a deployed snapshot is read ONCE: a single blobs.json
+# index when build-snapshots.ps1 has written one, else the union of every manifest
+# listed in commits.json (also exact — build-gallery writes a full-tree manifest
+# per commit and the deploy keeps every by-blob file). A revision's coverage is
+# then its VI blobs intersected with that set, which also reveals partial coverage
+# (older revisions whose changed VIs were never rendered).
+_rendered_blobs_cache = {'set': None}
+def rendered_blobs():
+    if _rendered_blobs_cache['set'] is not None:
+        return _rendered_blobs_cache['set']
+    blobs = set()
+    idx = http_json(f"{pages_url}/vi-snapshots/blobs.json")
+    if isinstance(idx, list):
+        blobs = {b for b in idx if isinstance(b, str)}
+    elif isinstance(idx, dict) and isinstance(idx.get('blobs'), list):
+        blobs = {b for b in idx['blobs'] if isinstance(b, str)}
+    else:
+        commits = http_json(f"{pages_url}/vi-snapshots/commits.json")
+        if isinstance(commits, list):
+            for c in commits:
+                csha = c.get('sha') if isinstance(c, dict) else None
+                if not csha:
+                    continue
+                man = http_json(f"{pages_url}/vi-snapshots/{csha}/manifest.json")
+                if isinstance(man, list):
+                    for e in man:
+                        if isinstance(e, dict) and e.get('blob'):
+                            blobs.add(e['blob'])
+    _rendered_blobs_cache['set'] = blobs
+    return blobs
+
+_snap_cov_cache = {}
+def snapshot_coverage(sha):
+    # (have, total) for a revision: how many of its VIs have a rendered snapshot
+    # vs how many VIs it has. total = vi_tree (the same VI set the browser shows);
+    # have = those whose content blob is in the rendered set.
+    if sha in _snap_cov_cache:
+        return _snap_cov_cache[sha]
+    vis = vi_tree(sha)
+    total = len(vis)
+    have = 0
+    if total:
+        rb = rendered_blobs()
+        if rb:
+            have = sum(1 for v in vis if v.get('blob') in rb)
+    res = (have, total)
+    _snap_cov_cache[sha] = res
+    return res
 
 _mc_cache = {}
 def masscompile_summary(sha):
@@ -195,7 +235,14 @@ RUN_TARGETS = {
         'windows': {'wf': 'vidiff-windows-container.yml', 'inputs': {'head_sha': '{sha}', 'base_sha': '{parent}'}},
         'linux':   {'wf': 'vidiff-linux-container.yml',   'inputs': {'head_sha': '{sha}', 'base_sha': '{parent}'}}}},
     'snapshots': {'label': 'VI Snapshots', 'platforms': {
-        'all': {'wf': 'vi-snapshots.yml', 'inputs': {'mode': 'head'}}}},
+        # Snapshots are content-addressed and deduped, so a single backfill renders
+        # exactly the MISSING VIs across all history (already-rendered blobs are
+        # skipped instantly). Dispatching backfill — not head — means clicking Run
+        # on an empty snapshot cell actually fills that revision (head would only
+        # ever re-render the current HEAD). 'backfill' is a long-standing input on
+        # every consumer's vi-snapshots.yml (the "Populate history" card uses it),
+        # so this needs no workflow-file change to reach existing installs.
+        'all': {'wf': 'vi-snapshots.yml', 'inputs': {'mode': 'backfill'}}}},
     # Unit tests run in the Windows worker only: Caraya and VI Tester are
     # VIPM packages (Windows-only). The runner emits JUnit that
     # build-unittest-report.py normalises into one report.
@@ -209,6 +256,16 @@ RUN_TARGETS = {
 }
 import json as _json
 run_targets_json = _json.dumps(RUN_TARGETS)
+
+# Small "image" glyph (GitHub octicon) shown beside a commit message when that
+# revision has rendered VI snapshots, so snapshot coverage is discoverable from
+# the main table — not just the Snapshots column.
+SNAP_ICON = ('<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" '
+             'aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto">'
+             '<path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 '
+             '.354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 '
+             '0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 '
+             '1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg>')
 
 # ── Framed per-revision reports ─────────────────────────────────────────────────────
 # Per-revision reports (Mass Compile, VI Analyzer) open INSIDE the dashboard
@@ -475,29 +532,34 @@ for c in commits_data:
     # changed VIs (each links to its diff report), rather than a separate table.
     diff_badge= badge('diff',      'CI / VIDiff (windows)', 'CI / VIDiff (linux)',
                        url_override=f'{pages_url}/vi-snapshots/index.html?sha={sha}&changed=1', cap='vidiff')
-    # Snapshots column: per-platform count of VIs rendered for this revision
-    # (from each container's VIDiff changes.json), each a deep link into the VI
-    # Browser with that platform preselected and the view filtered to changes.
+    # Snapshots column: how many of this revision's VIs have a rendered snapshot
+    # (content-addressed by git blob), linking into the VI Browser for the commit.
+    # Snapshots are a single content-addressed gallery (not per-platform) and are
+    # independent of VIDiff. None yet -> one-click run; partial coverage is flagged
+    # amber so the missing VIs are visible (fill them by running this revision, or
+    # via "Populate history" — a backfill renders all history oldest -> newest).
     if not is_project:
         snap_badge = '<td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>'
     else:
         _snap_run = fresh_pending('CI / VI Snapshots')
-        _counts = snapshot_counts(sha)
+        _have, _total = snapshot_coverage(sha)
         if _snap_run is not None:
             snap_badge = running_cell('snapshots', _snap_run.get('target_url', ''))
-        elif not _counts:
+        elif _have <= 0:
             snap_badge = run_cell('snapshots')
         else:
             any_output['on'] = True
-            _links = []
-            for _plat, _label in (('windows', 'Win'), ('linux', 'Linux')):
-                _n = _counts.get(_plat)
-                if _n is None:
-                    _links.append(f'<span style="color:var(--fg-muted)">{_label}(–)</span>')
-                else:
-                    _href = f'{pages_url}/vi-snapshots/index.html?sha={sha}&plat={_plat}&changed=1'
-                    _links.append(f'<a href="{_href}" style="color:var(--link)">{_label}({_n})</a>')
-            snap_badge = f'<td style="text-align:center;font-size:.78em;white-space:nowrap">{" / ".join(_links)}</td>'
+            _href = f'{pages_url}/vi-snapshots/index.html?sha={sha}'
+            if _have >= _total:
+                _bg, _txt = '#1f6feb', str(_total)
+                _tip = f'Snapshots rendered for all {_total} VIs in this revision'
+            else:
+                _bg, _txt = '#9a6700', f'{_have}/{_total}'
+                _tip = (f'{_have} of {_total} VIs have snapshots; {_total - _have} missing '
+                        f'- run this revision or use Populate history to backfill')
+            snap_badge = (f'<td style="text-align:center"><span title="{_tip}" '
+                          f'style="background:{_bg};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">'
+                          f'<a href="{_href}" style="color:inherit">{_txt}</a></span></td>')
 
     # Unit Tests column: pass/fail from a LabVIEW unit-test framework (UTF / JKI
     # VI Tester / Caraya) once a runner posts the "CI / Unit Tests" status. The
@@ -515,12 +577,26 @@ for c in commits_data:
     antidoc_badge = badge('docs', 'CI / Antidoc', cap='antidoc',
                           doc=('antidoc-report', 'antidoc'))
 
+    # Small camera/image glyph beside the commit message whenever this revision
+    # has any rendered VI snapshots, so snapshot coverage is discoverable straight
+    # from the main table (tooltip per request). Coverage is cached, so reusing it
+    # here costs nothing.
+    snap_glyph = ''
+    if is_project:
+        _gh, _gt = snapshot_coverage(sha)
+        if _gh > 0:
+            _gtip = ('Snapshots exist for this revision'
+                     if _gh >= _gt else
+                     f'Snapshots exist for this revision ({_gh} of {_gt} VIs)')
+            snap_glyph = (f'<a href="{pages_url}/vi-snapshots/index.html?sha={sha}" '
+                          f'class="snap-glyph" title="{_gtip}" aria-label="{_gtip}">{SNAP_ICON}</a>')
+
     rows_html.append(f"""
     <tr data-project="{proj_flag}">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="{pages_url}/vi-snapshots/index.html?sha={sha}" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">{short}</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{html.escape(msg)}"><a href="{pages_url}/vi-snapshots/index.html?sha={sha}" style="color:var(--fg)">{html.escape(msg)}</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="{html.escape(msg)}"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="{pages_url}/vi-snapshots/index.html?sha={sha}" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">{html.escape(msg)}</a>{snap_glyph}</span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">{html.escape(author)}</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">{date[:10]}</td>
       {mc_badge}
@@ -738,6 +814,10 @@ run_dialog_css = (
     'line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}'
     '.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}'
     'tr:hover .cidash-run{opacity:.85}'
+    '.snap-glyph{display:inline-flex;align-items:center;color:var(--fg-muted);'
+    'opacity:.6;text-decoration:none;flex:0 0 auto;transition:opacity .12s,color .12s}'
+    '.snap-glyph:hover{opacity:1;color:var(--link)}'
+    'tr:hover .snap-glyph{opacity:.85}'
     '.cidash-btn{border:1px solid var(--border);border-radius:6px;padding:8px 14px;'
     'font-size:.85em;font-weight:600;cursor:pointer;font-family:inherit}'
     '.cidash-go{background:#238636;color:#fff;border-color:transparent}'

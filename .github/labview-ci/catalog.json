@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.29",
+  "version": "3.4.30",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.30",
+        "date": "2026-06-18",
+        "title": "VI Snapshots column now reflects the real gallery, with a per-revision snapshot glyph",
+        "summary": "The dashboard's Snapshots column previously read VIDiff data, so it sat empty for revisions that DID have rendered snapshots. It now reads the content-addressed snapshot store directly - a new blobs.json index of every rendered VI blob (or, for galleries built before it, the per-commit manifests) - and reports how many of each revision's VIs have a snapshot. Full coverage shows a count; partial coverage is flagged amber so the missing VIs are visible (older revisions whose changed VIs were never rendered), and a revision with none offers a one-click run. That run, and the empty-cell history backfill, now dispatch an incremental backfill that renders exactly the missing VIs across all history (already-rendered content is skipped). A small image glyph next to each commit message marks revisions that have snapshots, with a 'Snapshots exist for this revision' tooltip.",
+        "highlights": [
+          "The Snapshots column reads the real snapshot store instead of VIDiff, so revisions that have snapshots no longer show an empty column.",
+          "Partial coverage is shown as have/total (amber) and a per-message image glyph marks revisions that have snapshots - making missing VIs visible at a glance.",
+          "Running snapshots from an empty cell now backfills the whole history incrementally, rendering exactly the VIs that were never captured."
+        ]
+      },
       {
         "version": "3.4.29",
         "date": "2026-06-18",

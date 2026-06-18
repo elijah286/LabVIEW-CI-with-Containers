@@ -248,6 +248,28 @@ Copy-Item (Join-Path $PagesDir 'vi-interactive.html') (Join-Path $OutDir 'vi-int
 $ViRenderSrc = Join-Path $PagesDir 'vi-render.js'
 if (Test-Path $ViRenderSrc) { Copy-Item $ViRenderSrc (Join-Path $OutDir 'vi-render.js') -Force }
 
+# -- Emit a flat index of every rendered blob (content-addressed) -------------
+# The dashboard reads this single file to know which of each revision's VIs have
+# a snapshot (snapshots are keyed by git blob SHA), so the Snapshots column and
+# the per-revision glyph reflect the real gallery without crawling by-blob/. The
+# set is every blob that now has a by-blob HTML (already-deployed seed + rendered
+# this run); it deploys alongside commits.json under vi-snapshots/.
+$BlobsIndex = Join-Path $OutDir 'blobs.json'
+try {
+    $sortedBlobs = @($Rendered) | Sort-Object
+    if ($sortedBlobs.Count -eq 0) {
+        $blobsJson = '[]'
+    } else {
+        # Build the array literal by hand: ConvertTo-Json renders a single-element
+        # set as a bare string, not a JSON array. Blob SHAs are hex - no escaping.
+        $blobsJson = '[' + (($sortedBlobs | ForEach-Object { '"' + $_ + '"' }) -join ',') + ']'
+    }
+    [System.IO.File]::WriteAllText($BlobsIndex, $blobsJson, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "Wrote blobs.json with $($sortedBlobs.Count) rendered blob(s)."
+} catch {
+    Write-Warning "Could not write blobs.json: $_"
+}
+
 Write-Host ""
 Write-Host "=== Snapshots done: $processed commit(s) processed, $totalRendered VI(s) rendered this run ==="
 
