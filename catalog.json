@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.23",
+  "version": "3.4.24",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.24",
+        "date": "2026-06-18",
+        "title": "The one-time token offer also covers repos that block GitHub Actions from opening pull requests",
+        "summary": "Update now finishes through a pull request that the update workflow opens for you. When your repository does not allow GitHub Actions to create pull requests, that automatic step is blocked and no pull request appears - even though the update itself built and pushed correctly. The What's New page used to assume a missing pull request always meant a workflow-file-only update and said so, which was confusing when the real reason was the repository's pull-request permission. It now explains both causes and offers the same one-time token either way: the pre-filled token already requests Pull requests permission, so once it is saved as the repository's TOOLING_UPDATE_TOKEN secret the update restarts and opens its pull request as you, bypassing the Actions restriction, with no trip to repository settings. Prefer to finish by hand? The message still links the workflow run, whose summary has a direct 'open the pull request' link.",
+        "highlights": [
+          "The inline one-time token now appears for both reasons a pull request can be missing: an update that changes protected workflow files, and a repository that does not allow GitHub Actions to open pull requests.",
+          "Saving the token (which already requests Pull requests permission) restarts the update so it opens the pull request as you - bypassing the 'Allow GitHub Actions to create and approve pull requests' setting - without changing any repository settings.",
+          "Clearer wording: the page no longer claims 'this release changes only workflow files' when the real cause is the pull-request permission, and it still links the workflow run for anyone who prefers to open the pull request by hand."
+        ]
+      },
       {
         "version": "3.4.23",
         "date": "2026-06-18",

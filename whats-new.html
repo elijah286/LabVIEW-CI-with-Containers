@@ -263,17 +263,20 @@
         </details>
         <div class="up-prog-foot" id="upProgFoot" hidden></div>
       </div>
-      <!-- Inline recovery for the "workflow-file-only" update: a release that changes
-           only .github/workflows/** can't be pushed by the repo's built-in token, so
-           no pull request opens. Create a one-time fine-grained token (Contents +
-           Workflows + Pull requests + Secrets = write); the page seals it in the
-           browser and stores it as the TOOLING_UPDATE_TOKEN repository secret, then
-           restarts the update -- no trip to repository settings. -->
+      <!-- Inline recovery for an update whose pull request the repo's built-in token
+           can't open. TWO causes, same fix: (a) the release changes .github/workflows/**
+           which the built-in token may not push, or (b) the repo doesn't allow GitHub
+           Actions to create pull requests. A one-time fine-grained token (Contents +
+           Workflows + Pull requests + Secrets = write) pushes the update AND opens the
+           PR (gh runs as the user, bypassing the Actions-PR setting). The page seals it
+           in the browser, stores it as the TOOLING_UPDATE_TOKEN secret, then restarts
+           the update -- no trip to repository settings. -->
       <div class="tokpanel" id="wfTokPanel" style="display:none">
-        <h3>Finish the update &mdash; add a one-time workflow token</h3>
-        <p class="note">This release changes only GitHub <strong>workflow files</strong>, which the repository&rsquo;s
-          built-in token isn&rsquo;t allowed to push &mdash; so the update couldn&rsquo;t open its pull request. Add a one-time
-          token below and the update finishes right here.</p>
+        <h3>Finish the update &mdash; add a one-time token to open the pull request</h3>
+        <p class="note">The update is built, but the repository&rsquo;s built-in token couldn&rsquo;t open its
+          <strong>pull request</strong> &mdash; either this release touches GitHub <strong>workflow files</strong> the
+          built-in token can&rsquo;t push, or this repository doesn&rsquo;t allow GitHub Actions to open pull requests.
+          A one-time token below pushes the update <strong>and opens the PR for you</strong>, finishing right here.</p>
         <ol>
           <li><a id="wfTokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a> &mdash; opens with the name, owner, and <strong>Contents + Workflows + Pull requests + Secrets = Read and write</strong> already filled in.</li>
           <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code id="wfTokRepo"></code>. <span class="note">(The one step GitHub can&rsquo;t pre-fill from a link.)</span></li>
@@ -745,13 +748,14 @@
     }
 
     // Pre-fill the fine-grained token form with exactly the permissions the workflow
-    // needs to push workflow files + open the PR, plus Secrets so the browser can
-    // store it as the secret. GitHub can't pre-select the repo, so that stays manual.
+    // needs to push the update + open the PR (Pull requests is what lets it open the
+    // PR when the repo blocks the Actions bot), plus Secrets so the browser can store
+    // it as the secret. GitHub can't pre-select the repo, so that stays manual.
     function wfTokenUrl() {
       const owner = (state.repo || "").split("/")[0];
       const qp = new URLSearchParams({
-        name: "LabVIEW CI workflow update",
-        description: "Finish a workflow-file update for " + (state.repo || "this repo") + " (TOOLING_UPDATE_TOKEN).",
+        name: "LabVIEW CI tooling update",
+        description: "Finish a LabVIEW CI update for " + (state.repo || "this repo") + ": push the update and open its pull request (TOOLING_UPDATE_TOKEN).",
         contents: "write", workflows: "write", pull_requests: "write", secrets: "write"
       });
       if (owner) qp.set("target_name", owner);
@@ -779,7 +783,8 @@
           hideWfTokenPanel();
           // Clear the stuck REVIEW phase so the duplicate guard doesn't block the
           // re-dispatch, then re-run with the existing dispatch token. The workflow
-          // now has TOOLING_UPDATE_TOKEN and can push the workflow files + open the PR.
+          // now has TOOLING_UPDATE_TOKEN and can push the update + open the PR as the
+          // user (which also bypasses a repo that blocks the Actions bot from PRs).
           resetProgress();
           dispatchUpdate();
           setCmdStatus("Saved the <code>TOOLING_UPDATE_TOKEN</code> secret &mdash; restarting the update&hellip;", "ok");
@@ -799,7 +804,8 @@
     // After dispatch, the workflow force-pushes branch ci/adopt-tooling-v<ver>
     // (older tooling used ci/update-tooling-v<ver>) and opens (or updates) a PR.
     // Poll the open PR list and match either branch so a real PR is never missed;
-    // if none appears it's the workflow-file-only case, handled inline above.
+    // if none appears the built-in token couldn't open the PR -> offer a one-time
+    // token inline (handled below).
     function pollForPr(ver, tries) {
       tries = tries || 0;
       const branches = ["ci/adopt-tooling-v" + ver, "ci/update-tooling-v" + ver];
@@ -822,18 +828,19 @@
             return;
           }
           if (tries < 12) { later(() => pollForPr(ver, tries + 1), 2500); return; }
-          // No PR after the workflow finished: the workflow-file-only case -- this
-          // release changed only .github/workflows/** files, which the repo's
-          // built-in token can't push, so no PR could open. Offer the one-time
-          // TOOLING_UPDATE_TOKEN inline (create link + paste field) so the user can
-          // finish here; keep the run-summary link as a fallback for other causes.
+          // The run finished but opened no PR. Two causes, one fix: the built-in
+          // token either (a) couldn't push a workflow-file-only change, or (b) isn't
+          // allowed to open pull requests in this repo. A one-time TOOLING_UPDATE_TOKEN
+          // (Contents + Workflows + Pull requests + Secrets) pushes the update AND
+          // opens the PR as the user, so offer it inline; keep the run-summary link
+          // as a fallback for anything else.
           showWfTokenRecovery();
           setPhase(PH.REVIEW,
-            `The update ran, but no pull request appeared &mdash; this usually means the new version changes only ` +
-            `GitHub <strong>workflow files</strong>, which the repository&rsquo;s built-in token can&rsquo;t push. ` +
-            `<strong>Add a one-time token below to finish without leaving this page.</strong> ` +
-            `Still stuck? Check <a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a> or the ` +
-            `<a href="${esc(prog.runUrl || `https://github.com/${state.repo}/actions`)}" target="_blank" rel="noopener">workflow run</a> summary.`);
+            `The update ran, but no pull request opened &mdash; the repository&rsquo;s built-in token either can&rsquo;t push a ` +
+            `<strong>workflow-file</strong> change or isn&rsquo;t allowed to <strong>open pull requests</strong> here. ` +
+            `<strong>Add a one-time token below</strong> and it pushes the update and opens the PR for you &mdash; no settings trip. ` +
+            `Prefer to do it by hand? Open the <a href="${esc(prog.runUrl || `https://github.com/${state.repo}/actions`)}" target="_blank" rel="noopener">workflow run</a> ` +
+            `(its summary has a direct &ldquo;open the pull request&rdquo; link) or check <a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a>.`);
         })
         .catch(() => { if (tries < 12) later(() => pollForPr(ver, tries + 1), 2500); });
     }
