@@ -257,6 +257,36 @@ RUN_TARGETS = {
 import json as _json
 run_targets_json = _json.dumps(RUN_TARGETS)
 
+# ── Active CI runs (queued / in progress) keyed by the commit they ran on ────
+# A freshly pushed revision starts its CI before any check posts a commit status,
+# so a brand-new row would otherwise show idle "run" arrows for activities that
+# are ALREADY queued on GitHub. Ask the Actions API which runs are queued or in
+# progress right now and key them by head_sha + capability, so each affected cell
+# reads "Queued"/"Running" the moment its run is created - well before that run
+# posts its first commit status (which only lands part-way through the job).
+_WF_TO_CAP = {}
+for _cap, _d in RUN_TARGETS.items():
+    for _p in (_d.get('platforms') or {}).values():
+        if _p.get('wf'):
+            _WF_TO_CAP[_p['wf']] = _cap
+_CAP_RUN_LABEL = {'masscompile': 'compile', 'vi-analyzer': 'analyze', 'vidiff': 'diff',
+                  'snapshots': 'snapshots', 'unit-tests': 'tests', 'antidoc': 'docs'}
+
+def fetch_active_runs():
+    by_sha = {}
+    for _st in ('in_progress', 'queued'):   # in_progress first so it wins over a stale 'queued'
+        data = gh_get(f'actions/runs?status={_st}&per_page=100')
+        for run in ((data or {}).get('workflow_runs') or []):
+            wf = (run.get('path') or '').rsplit('/', 1)[-1]
+            cap = _WF_TO_CAP.get(wf)
+            sha_ = run.get('head_sha')
+            if not cap or not sha_:
+                continue
+            by_sha.setdefault(sha_, {}).setdefault(cap, run)
+    return by_sha
+
+active_runs = fetch_active_runs()
+
 # Small "image" glyph (GitHub octicon) shown beside a commit message when that
 # revision has rendered VI snapshots, so snapshot coverage is discoverable from
 # the main table — not just the Snapshots column.
@@ -426,6 +456,16 @@ for c in commits_data:
         # with no re-run workflow (or unknown caps) fall back to a plain dash.
         if cap not in RUN_TARGETS:
             return EMPTY_CELL
+        # Already auto-running? If this activity has a queued / in-progress run for
+        # THIS commit (it just auto-started on push), surface it as Queued/Running
+        # instead of an idle run arrow - it posts its first commit status only
+        # part-way through, so the live run fills that gap until then.
+        ar = active_runs.get(sha, {}).get(cap)
+        if ar is not None:
+            caps_ran.add(cap)
+            if ar.get('status') == 'queued':
+                return queued_cell(ar.get('html_url', ''))
+            return running_cell(_CAP_RUN_LABEL.get(cap, cap), ar.get('html_url', ''))
         run_count['n'] += 1
         return ('<td style="text-align:center">'
                 f'<a href="#" class="cidash-run" data-cap="{cap}" data-sha="{sha}" '
@@ -459,6 +499,19 @@ for c in commits_data:
                  if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
         return ('<td style="text-align:center">'
                 '<span class="run-badge" title="Running — click to view progress">'
+                f'{body}</span></td>')
+
+    def queued_cell(url):
+        # A run that is QUEUED on GitHub Actions but has not started yet, so it has
+        # posted no commit status. Mirrors running_cell but reads "Queued", so a
+        # brand-new revision shows its activities are already on their way rather
+        # than an idle run arrow.
+        running_flag['on'] = True
+        inner = '<span class="run-spin"></span>Queued'
+        body  = (f'<a href="{url}" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">{inner}</a>'
+                 if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
+        return ('<td style="text-align:center">'
+                '<span class="run-badge" title="Queued on GitHub Actions - waiting for a runner">'
                 f'{body}</span></td>')
 
     def badge(label, *contexts, url_override=None, cap=None, doc=None):

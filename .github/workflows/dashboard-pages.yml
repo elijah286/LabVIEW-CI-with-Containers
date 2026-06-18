@@ -19,6 +19,10 @@ on:
       # Rebuild when the shared dashboard action (generator or its bundled pages)
       # changes, so this repo's own dashboard always reflects the latest tooling.
       - 'actions/dashboard/**'
+      # The repo's own example project: a new project revision should add its
+      # dashboard row right away. The build then surfaces each activity's queued
+      # or in-progress run from the Actions API, before any commit status posts.
+      - 'example/**'
   # Rebuild whenever ANY CI activity reports a commit status. The dashboard's
   # badges are sourced from each commit's statuses, so reacting to the `status`
   # event keeps it current for every workflow that posts one — present or future —
@@ -39,7 +43,12 @@ on:
       - "VIDiff Backfill — Windows Container"
       - "VIDiff Backfill — Linux Container"
       - "VI Snapshots and VI Browser"
-    types: [completed]
+      - "Run Unit Tests — Windows Container"
+      - "Run Antidoc — Windows Container"
+    # `requested` rebuilds the moment a run is CREATED, so a freshly pushed
+    # revision's row shows its activities as queued within seconds; `completed`
+    # then keeps the row current as each activity finishes.
+    types: [requested, completed]
   workflow_dispatch:
 
 # A single push fans out into many status events (each check reports pending then

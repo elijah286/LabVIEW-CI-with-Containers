@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.38",
+  "version": "3.4.39",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.39",
+        "date": "2026-06-18",
+        "title": "A new revision appears on the dashboard right away, with its activities shown as Queued or Running",
+        "summary": "When you push a new revision, its row now appears on the dashboard promptly - before any CI activity finishes - and each activity reads Queued or Running rather than an idle run button. Previously the dashboard only rebuilt once an activity posted a commit status (which lands part-way through a run) or finished, so a new revision could take a while to show up and, when it did, some activities looked idle even though they were already queued or running - or had already completed (snapshots, for example, often appeared done before the row did). The dashboard now reads the live Actions API for the runs that are queued or in progress for each commit and renders those cells accordingly, so the table reflects what is actually happening the moment its build runs. The source repository's own dashboard also rebuilds as soon as a new example revision is pushed and as soon as each run is created, so the row is added first and then fills in activity by activity as each one completes - a brand-new revision will not have snapshots for its new files until its snapshot run finishes, which is expected.",
+        "highlights": [
+          "A pushed revision's row now appears on the dashboard right away and shows each activity as Queued or Running - read live from the Actions API - instead of an idle run button until a status is posted.",
+          "The dashboard reflects queued and in-progress runs the moment its build runs, no longer waiting for an activity to post a commit status part-way through (or to finish) before a cell stops looking idle.",
+          "The source repo's dashboard rebuilds as soon as a new example revision is pushed and as soon as each run is created, so the row is added first and then updates activity by activity as each one completes."
+        ]
+      },
       {
         "version": "3.4.38",
         "date": "2026-06-18",
