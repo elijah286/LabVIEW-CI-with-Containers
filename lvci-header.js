@@ -520,12 +520,12 @@
         { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
         { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
         { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-        { label: 'About', svg: ICON.about, href: base + '/faq.html' }
+        { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'worker-manifest': [],
       'vi-browser': [
         { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-        { label: 'About', svg: ICON.about, href: base + '/faq.html' }
+        { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'report-viewer': [],
       'configure': [],
@@ -547,6 +547,23 @@
     var host = owner.toLowerCase() + '.github.io';
     return name.toLowerCase() === host ? ('https://' + host + '/')
                                        : ('https://' + host + '/' + name + '/');
+  }
+
+  // ── About link: the About/FAQ page (faq.html) lives ONLY on the canonical
+  //    source site — it is never staged onto consumer dashboards — so the menu
+  //    entry must point at the root tooling's copy, derived from srcRepo (which
+  //    loadVersion refines from the catalog + the source.json relocation pointer)
+  //    rather than this site's own base. Falls back to the local base only if the
+  //    source is somehow unknown. aboutExternal() is true on a consumer site (the
+  //    target is a different Pages site) so the link opens in a new tab, keeping
+  //    the user's own dashboard open — the same consumer→root rule Apply uses.
+  function aboutUrl() {
+    var su = sourcePagesUrl();
+    return su ? su + 'faq.html' : base + '/faq.html';
+  }
+  function aboutExternal() {
+    var su = trimSlash(sourcePagesUrl()).toLowerCase();
+    return !!su && su !== base.toLowerCase();
   }
 
   // ── Configure / Apply: open the dashboard's modal when present, else navigate
@@ -895,6 +912,7 @@
         }
         el.innerHTML = iconHtml(a) + esc(a.label);
         if (a.source) { el.style.display = 'none'; clientsEls.push(el); }
+        if (a.about) aboutEls.push(el);
         ddMenu.appendChild(el);
       });
       // Version / update entry — the single home for the installed version and
@@ -948,6 +966,7 @@
       secActs.forEach(function (a) {
         var el = actionEl(a, true);
         if (a.source) { el.style.display = 'none'; clientsEls.push(el); }
+        if (a.about) aboutEls.push(el);
         menu.appendChild(el);
       });
     }
@@ -1040,6 +1059,7 @@
   var runState = { active: 0, names: [] };
   var verEls = [];
   var clientsEls = [];
+  var aboutEls = [];
   // ── Tooling-upgrade (in-flight) state ────────────────────────────────
   // Distinct from a routine page rebuild: a REAL tooling update is being applied
   // — the apply-tooling-update workflow is running, OR an update PR was merged
@@ -1057,6 +1077,18 @@
   var REBUILD_ON = (ctx === 'dashboard');
   var buildWas = false;
 
+  // Re-point the About menu entries at the (possibly relocated) source site once
+  // loadVersion has refined srcRepo — see aboutUrl(). Keeps href + new-tab target
+  // in sync; a no-op until the menu has been built.
+  function refreshAbout() {
+    var href = aboutUrl(), ext = aboutExternal();
+    aboutEls.forEach(function (el) {
+      el.href = href;
+      if (ext) { el.target = '_blank'; el.rel = 'noopener'; }
+      else { el.removeAttribute('target'); el.removeAttribute('rel'); }
+    });
+  }
+
   // ── Version badge: read same-origin catalog.json for the installed version,
   //    and (on consumer repos) compare to the source repo to flag an update. ─
   function loadVersion() {
@@ -1070,6 +1102,7 @@
         renderBadge();
         var src = (cat.source && cat.source.repo) || '';
         if (src) srcRepo = src;   // refine the Apply-to-New-Repo target from the live catalog
+        refreshAbout();           // re-point About at the (now known) source site's faq.html
         isConsumer = !!(src && repo && src.toLowerCase() !== repo.toLowerCase());
         if (!isConsumer) { revealClients(); return; }   // root repo: surface Clients even before a scan has published clients.json
         // Now that the deployed version + consumer status are known, check right
@@ -1083,7 +1116,7 @@
         fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/source.json', { cache: 'no-cache' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (p) {
-            if (p && p.repo && p.repo.toLowerCase() !== src.toLowerCase()) { src = p.repo; ref = p.ref || ref; srcRepo = src; }
+            if (p && p.repo && p.repo.toLowerCase() !== src.toLowerCase()) { src = p.repo; ref = p.ref || ref; srcRepo = src; refreshAbout(); }
             return fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/catalog.json', { cache: 'no-cache' });
           })
           .then(function (r) { return r.ok ? r.json() : null; })
