@@ -1010,6 +1010,17 @@
   var runState = { active: 0, names: [] };
   var verEls = [];
   var clientsEls = [];
+  // ── Tooling-upgrade (in-flight) state ────────────────────────────────
+  // Distinct from a routine page rebuild: a REAL tooling update is being applied
+  // — the apply-tooling-update workflow is running, OR an update PR was merged
+  // and this repo's committed catalog is now ahead of the deployed build. While
+  // set, the version menu entry reads "Updating to vX…" and links to the
+  // in-flight action; the re-start "Update available" affordance is suppressed so
+  // a second update can't be kicked off on top of the one already on its way.
+  var isConsumer = false;                 // set by loadVersion (false on the source repo)
+  var upState = { active: false, to: '', url: '' };
+  var headV = '', headVAt = 0;            // this repo's committed (HEAD) catalog version
+  var lastAct = [];                       // most recent active-run list (from the activity poll)
   // Page-rebuild banner: only the dashboard shows it (there "this page is being
   // regenerated" is literally true). buildWas remembers the prior poll so we can
   // auto-refresh exactly once when an in-flight rebuild finishes.
@@ -1028,8 +1039,11 @@
         if (upd && cmpVer(v, upd.v) >= 0) updClear();                        // deployed caught up
         renderBadge();
         var src = (cat.source && cat.source.repo) || '';
-        var isConsumer = src && repo && src.toLowerCase() !== repo.toLowerCase();
+        isConsumer = !!(src && repo && src.toLowerCase() !== repo.toLowerCase());
         if (!isConsumer) { revealClients(); return; }   // root repo: surface Clients even before a scan has published clients.json
+        // Now that the deployed version + consumer status are known, check right
+        // away whether a tooling upgrade is mid-flight (don't wait for the poll).
+        refreshHeadCatalog().then(resolveUpgrade);
         var ref = (cat.source && cat.source.ref) || 'main';
         // Follow the relocation pointer (.github/labview-ci/source.json): if the
         // tooling moved to a new official home, compare against THAT repo's latest
@@ -1118,6 +1132,47 @@
     setTimeout(function () { if (!anyModalOpen()) location.reload(); }, 4000);
   }
 
+  // ── Tooling-upgrade detection (consumer repos) ─────────────────────────
+  // Refresh this repo's committed (HEAD) catalog version (throttled). A value
+  // ahead of the deployed build means an update PR was merged and is deploying
+  // right now. Private/thin repos without a vendored catalog simply 404 here and
+  // fall back to the apply-tooling-update run check + the optimistic local flag.
+  function refreshHeadCatalog() {
+    if (!isConsumer || !repo) return Promise.resolve();
+    if (Date.now() - headVAt < 30000) return Promise.resolve();        // at most ~every 30s
+    headVAt = Date.now();
+    return fetch('https://raw.githubusercontent.com/' + repo + '/HEAD/.github/labview-ci/catalog.json', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (c) { if (c && c.version) headV = String(c.version); })
+      .catch(function () {});
+  }
+  // Decide whether a tooling upgrade is in flight (from the active runs + the
+  // committed catalog), record where it links, and repaint. Safe to call often.
+  function resolveUpgrade() {
+    var act = lastAct || [];
+    if (!isConsumer || !repo) {
+      if (upState.active) { upState = { active: false, to: '', url: '' }; renderBadge(); }
+      return;
+    }
+    // 1) The update workflow itself is running (just dispatched / opening the PR).
+    var atu = null;
+    for (var i = 0; i < act.length; i++) {
+      if (((act[i].path || '') + '').toLowerCase().indexOf('apply-tooling-update.yml') >= 0) { atu = act[i]; break; }
+    }
+    if (atu) {
+      upState = { active: true, to: verState.to || '', url: atu.html_url || ('https://github.com/' + repo + '/actions') };
+      renderBadge(); return;
+    }
+    // 2) An update PR was merged: the committed catalog is ahead of the deployed
+    //    build, so the dashboard is rebuilding/deploying it — link to that run.
+    if (headV && verState.v && cmpVer(headV, verState.v) > 0) {
+      var dep = pickRebuild(act);
+      upState = { active: true, to: headV, url: (dep && dep.html_url) || ('https://github.com/' + repo + '/actions') };
+      renderBadge(); return;
+    }
+    if (upState.active) { upState = { active: false, to: '', url: '' }; renderBadge(); }
+  }
+
   // ── CI activity: poll the Actions API for in-flight runs. While any are
   //    queued/running, the badge above shows "N running" (with a spinner) in
   //    place of the version — so the dashboard visibly reflects work in
@@ -1158,6 +1213,11 @@
           if (buildWas && !rb) autoRefresh();   // a rebuild we were showing just finished
           buildWas = !!rb;
         }
+        // Tooling-upgrade indicator: remember the active runs, refresh the
+        // committed catalog, then decide whether a real update is mid-flight (so
+        // the menu links to it instead of offering to start another).
+        lastAct = act;
+        refreshHeadCatalog().then(resolveUpgrade);
       }).catch(function () { /* network blip: keep prior badge state */ });
   }
   function startActivity() {
@@ -1184,7 +1244,14 @@
   // update flag). Safe to call repeatedly; each surface no-ops when not on the page.
   function renderBadge() {
     var upd = updGet();
-    var updating = !!(upd && (!verState.v || cmpVer(verState.v, upd.v) < 0));
+    var localUpdating = !!(upd && (!verState.v || cmpVer(verState.v, upd.v) < 0));
+    // A real upgrade is in flight when the server says so (apply-tooling-update
+    // running, or a merged update deploying) OR this browser optimistically
+    // flagged one. Either way: show progress + link to it, never offer re-start.
+    var updating = upState.active || localUpdating;
+    var upTo = upState.active ? (upState.to || (upd && upd.v) || verState.to || '')
+                              : (upd ? upd.v : '');
+    var upUrl = upState.active ? upState.url : (repo ? ('https://github.com/' + repo + '/pulls') : '');
     var behind = !updating && verState.behind;
     var hasUpdate = updating || behind;
 
@@ -1216,15 +1283,22 @@
       a.classList.toggle('behind', hasUpdate);
       if (updating) {
         if (ic) ic.innerHTML = ICON.update;
-        if (lbl) lbl.textContent = 'Updating to v' + upd.v + '\u2026';
-        if (tag) tag.textContent = verState.v ? ('v' + verState.v + ' \u2192 v' + upd.v) : ('v' + upd.v);
-        a.title = 'An update to v' + upd.v + ' is in progress (merge the update PR to finish).';
+        if (lbl) lbl.textContent = upTo ? ('Updating to v' + upTo + '\u2026') : 'Updating\u2026';
+        if (tag) tag.textContent = (verState.v && upTo) ? ('v' + verState.v + ' \u2192 v' + upTo)
+                                  : (upTo ? ('v' + upTo) : (verState.v ? ('v' + verState.v) : ''));
+        // Link straight to the in-flight action; don't reopen What's New, which
+        // would let you dispatch a second update on top of the running one.
+        if (upUrl) { a.href = upUrl; a.target = '_blank'; a.rel = 'noopener'; }
+        else { a.href = base + '/whats-new.html'; a.removeAttribute('target'); a.removeAttribute('rel'); }
+        a.title = (upTo ? ('Updating to v' + upTo) : 'An update') + ' is in progress \u2014 click to watch the running action.';
       } else if (behind) {
+        a.href = base + '/whats-new.html'; a.removeAttribute('target'); a.removeAttribute('rel');
         if (ic) ic.innerHTML = ICON.update;
         if (lbl) lbl.textContent = 'Update available';
         if (tag) tag.textContent = 'v' + verState.v + ' \u2192 v' + verState.to;
         a.title = 'Update available: v' + verState.v + ' \u2192 v' + verState.to;
       } else {
+        a.href = base + '/whats-new.html'; a.removeAttribute('target'); a.removeAttribute('rel');
         if (ic) ic.innerHTML = ICON.news;
         if (lbl) lbl.textContent = 'What\u2019s new';
         if (tag) tag.textContent = verState.v ? ('v' + verState.v) : '';
