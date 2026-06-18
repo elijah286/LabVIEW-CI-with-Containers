@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.14",
+  "version": "3.4.15",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.15",
+        "date": "2026-06-18",
+        "title": "Relocatable tooling: redirect updates and installs to a new home",
+        "summary": "Adds a single relocation pointer (the new file .github/labview-ci/source.json) that names where the LabVIEW CI tooling officially lives, so the whole project can move to a new repository without breaking the repositories already using it. Nothing changes until the pointer is set. When the project moves - for example into an official NI-owned repository - changing this one file redirects everything automatically: the dashboard update check, the one-click Update now upgrade, the web installer, and the curl and PowerShell command-line installers all start pulling from the new home, and after a repository updates or installs once from there its own configuration is re-pinned to the new repository so it pulls directly from then on. This release also fixes the Windows PowerShell installer, whose built-in default source repository pointed at a client repo, so a no-argument install now fetches the tooling from the correct source. There is no change to an already-installed pipeline until you choose to update.",
+        "highlights": [
+          "New .github/labview-ci/source.json names where the tooling officially lives - the single place to redirect both updates and installation to a different repository (such as a future NI-owned repo).",
+          "Existing repositories follow the pointer automatically - update checks, the Update now upgrade, and both the web and command-line installers redirect to the new home and then re-pin the repository to it.",
+          "Fixed the Windows PowerShell installer default source so a no-argument install fetches the tooling from the correct repository."
+        ]
+      },
       {
         "version": "3.4.14",
         "date": "2026-06-18",

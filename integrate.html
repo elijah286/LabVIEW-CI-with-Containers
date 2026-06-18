@@ -82,6 +82,7 @@
     .status{font-size:.82em;color:var(--fg-muted);margin-top:8px;min-height:1.2em}
     .err{color:#cf222e}
     .ok{color:var(--accent)}
+    .warn{color:#9a6700}
     .tokpanel{border:1px solid var(--border);border-radius:8px;padding:14px 16px;background:var(--surface2);margin:0 0 14px}
     .tokpanel h3{font-size:.9em;margin:0 0 8px}
     .tokpanel ol{font-size:.84em;color:var(--fg-muted);margin:0 0 10px;padding-left:20px;line-height:1.7}
@@ -118,6 +119,10 @@
     .ins-bar.working .ins-bar-fill{background:var(--link);width:35%;transition:none;animation:insIndet 1.15s ease-in-out infinite}
     @keyframes insIndet{0%{left:-35%}100%{left:100%}}
     @media (prefers-reduced-motion:reduce){.ins-bar.working .ins-bar-fill{animation:none;left:0;width:85%}}
+    /* "warn" = the install finished but the dashboard isn't live yet (e.g. GitHub
+       Pages isn't enabled). Amber and deliberately short of 100% so it never reads
+       as the green "done"/live success. */
+    .ins-bar.warn .ins-bar-fill{background:#bf8700;width:88%;transition:none;animation:none;left:0}
     .locked-area{opacity:.5;pointer-events:none;filter:saturate(.55)}
   </style>
 </head>
@@ -271,6 +276,8 @@
     const NO_SUB_PREFIX = ".github/labview-ci/";
 
     let catalog = null;
+    let canonical = { repo: SOURCE_FALLBACK.repo, ref: SOURCE_FALLBACK.ref };  // effective tooling source after following the relocation pointer (source.json)
+    let relocated = null;         // {from,to} when the tooling has moved to a new official home
     let activeTab = "bash";
     const selected = new Set();   // capability ids the user checked
     const osSel = new Set(["windows"]);   // Windows is the supported default; Linux container jobs are experimental (NI base image) and opt-in via Configure Workers
@@ -282,13 +289,34 @@
     const ext = (p) => { const i = p.lastIndexOf("."); return i < 0 ? "" : p.slice(i).toLowerCase(); };
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+    // Relocation pointer (.github/labview-ci/source.json). The single switch that
+    // moves the whole tooling to a new official home (e.g. an NI-owned repo): if it
+    // names a DIFFERENT repo than the one we read it from, fresh installs follow it
+    // there, so the new client is recorded against the new repo. No-op (no redirect)
+    // when the file is absent/unreachable or already names this repo.
+    async function resolveCanonical(repo, ref) {
+      try {
+        const r = await fetch(`https://raw.githubusercontent.com/${repo}/${ref}/.github/labview-ci/source.json`, { cache: "no-store" });
+        if (r.ok) {
+          const p = await r.json();
+          if (p && p.repo && p.repo.toLowerCase() !== repo.toLowerCase()) {
+            relocated = { from: repo, to: p.repo };
+            return { repo: p.repo, ref: p.ref || ref };
+          }
+        }
+      } catch (_) { /* no redirect */ }
+      return { repo, ref };
+    }
+
     async function loadCatalog() {
       // Apply-to-new-repo must always source the tooling from the ROOT repo so
       // every fresh install points back here (accurate client discovery), even
-      // when this page is opened on a consumer site. Prefer the root's published
-      // catalog; fall back to a local copy only if the root is unreachable.
+      // when this page is opened on a consumer site. Follow the relocation pointer
+      // first so a moved project installs from its new home. Prefer the canonical
+      // repo's published catalog; fall back to a local copy only if it is unreachable.
+      canonical = await resolveCanonical(SOURCE_FALLBACK.repo, SOURCE_FALLBACK.ref);
       const candidates = [
-        `https://raw.githubusercontent.com/${SOURCE_FALLBACK.repo}/${SOURCE_FALLBACK.ref}/.github/labview-ci/catalog.json`,
+        `https://raw.githubusercontent.com/${canonical.repo}/${canonical.ref}/.github/labview-ci/catalog.json`,
         "./catalog.json", "./labview-ci/catalog.json"];
       for (const url of candidates) {
         try {
@@ -869,9 +897,9 @@
           const cr = await gh(`/repos/${repo}/pages`, { method: "POST", body: { source: { branch: "gh-pages", path: "/" } } });
           if (cr.ok) setup.pages = "done";
           else if (cr.status === 409) setup.pages = "exists";
-          else await ghJson(cr);
-        } else await ghJson(pg);
-      } catch (e) { setup.pages = "manual"; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
+          else { setup.pagesStatus = cr.status; await ghJson(cr); }
+        } else { setup.pagesStatus = pg.status; await ghJson(pg); }
+      } catch (e) { setup.pages = "manual"; if (setup.pagesStatus == null) setup.pagesStatus = e && e.status; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
     }
 
     // Best-effort: tag the repo with the client topic so the source repo's client
@@ -897,7 +925,8 @@
       const f = $("insBarFill");
       // In the indeterminate "working" state the CSS animation owns the width, so
       // clear any inline width left from the determinate phase (inline would win).
-      if (stateCls === "working") { if (f) f.style.width = ""; }
+      // "warn" likewise has a CSS-defined width.
+      if (stateCls === "working" || stateCls === "warn") { if (f) f.style.width = ""; }
       else if (frac != null && f) { f.style.width = (Math.max(0, Math.min(1, frac)) * 100) + "%"; }
       w.className = "ins-bar" + (stateCls ? " " + stateCls : "");
     }
@@ -1002,9 +1031,10 @@
     //                   valid, just mid-render; it auto-refreshes into the dashboard)
     //   "pending"     — never returned 200 within the cap (very unlikely once Pages is on)
     // onTick(elapsedMs) is called each poll so the caller can keep the bar/status alive.
-    async function waitForPagesLive(url, onTick) {
-      const FIRST200_CAP = 6 * 60 * 1000;   // wait up to ~6 min for the URL to stop 404ing
-      const REAL_CAP     = 90 * 1000;       // after the first 200, wait up to ~90s for the real page
+    async function waitForPagesLive(url, onTick, opts) {
+      opts = opts || {};
+      const FIRST200_CAP = opts.first200Cap || 6 * 60 * 1000;   // wait this long for the URL to stop 404ing
+      const REAL_CAP     = opts.realCap || 90 * 1000;           // after the first 200, wait for the real page
       const INTERVAL     = 4000;
       const t0 = Date.now();
       let firstOkAt = 0;
@@ -1041,10 +1071,6 @@
       const url = dashboardUrl(repo);
       const autoMerge = !!($("optAutoMerge") && $("optAutoMerge").checked);
       const pagesOn = setup.pages === "done" || setup.pages === "exists";
-      // We can only PROVE the dashboard is live when we merge it ourselves and a
-      // dashboard + Pages are part of this install. Otherwise we never reveal a
-      // clickable link (it would 404 until the user merges and Pages publishes).
-      const willPublish = autoMerge && setup.hasDashboard && pagesOn && !!setup.branch;
 
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
 
@@ -1059,6 +1085,7 @@
       // that case links right away.
       if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <span id="insLiveUrl"><code class="inl">${esc(url)}</code></span><small id="insLiveNote">It publishes within a minute of the install merge &mdash; no CI run required; the link activates here the moment it&rsquo;s live.</small>`);
       else if (setup.pages === "exists") done.push(`<strong>GitHub Pages</strong> is already on &mdash; dashboard at <span id="insLiveUrl"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></span>.`);
+      else if (setup.hasDashboard) done.push(`Your dashboard will be at <span id="insLiveUrl"><code class="inl">${esc(url)}</code></span> once <strong>GitHub Pages</strong> is on<small id="insLiveNote">GitHub Pages wasn&rsquo;t enabled automatically &mdash; turn it on at <a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a> (Source: <code class="inl">gh-pages</code> branch).</small>`);
       const doneEl = $("insDone");
       if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = done.length ? "" : "none"; }
 
@@ -1103,38 +1130,64 @@
           return;
         }
         const nx = $("insNext"); if (nx) nx.style.display = "none";
-        if (!willPublish) {
+
+        const mergedDashboard = setup.hasDashboard && !!setup.branch;
+        if (!mergedDashboard) {
+          // No dashboard to publish in this install — the merge is the whole story.
           setInsBar(1, "done");
           setInsStatus(`&#10003; Done \u2014 pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`, "ok");
           return;
         }
-        // Merged. Kick the dashboard build, then keep the bar in the indeterminate
-        // "working" state and WATCH the public URL — only reveal the link and finish
-        // the bar once GitHub Pages is actually serving the page, so it's never a 404.
+
+        // A dashboard was merged, so PUBLISHING it is part of the progress: keep the
+        // bar working and only finish (green "done") once GitHub Pages actually serves
+        // the page. If it can't go live (Pages not enabled), show an honest amber
+        // "not live yet — here's what to do" state instead of a misleading green done.
+        const pagesConfirmed = setup.pages === "done" || setup.pages === "exists";
+        const pagesNotLive = () => {
+          if (pagesConfirmed)
+            return `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`;
+          return `&#9888; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but your dashboard isn&rsquo;t live yet &mdash; <strong>GitHub Pages isn&rsquo;t enabled</strong> on <code class="inl">${esc(repo)}</code>. Turn it on at <a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a> (Source: <code class="inl">gh-pages</code> branch) and it will appear at <code class="inl">${esc(url)}</code>. Note: publishing Pages from a <strong>private</strong> repo needs GitHub Pro, Team, or Enterprise \u2014 or make the repo public.`;
+        };
+
+        // Pages is definitively unavailable for this repo (422) — don't make the user
+        // wait on a poll that can never succeed; show the guidance straight away.
+        if (!pagesConfirmed && setup.pagesStatus === 422) {
+          setInsBar(null, "warn");
+          setInsStatus(pagesNotLive(), "warn");
+          return;
+        }
+
         setInsBar(null, "working");
-        setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026 this takes about a minute.`, "ok");
+        setInsStatus(pagesConfirmed
+          ? `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026 this takes about a minute.`
+          : `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 checking whether your dashboard can publish\u2026`, "ok");
         publishDashboardNow(repo, setup.branch).then(() =>
           waitForPagesLive(url, (elapsed) => {
             if (insRunId !== myGen) return;
             const secs = Math.round(elapsed / 1000);
-            setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard\u2026 GitHub Pages is building it (${secs}s). The link appears here the moment it&rsquo;s live.`, "ok");
-          })
+            setInsStatus(pagesConfirmed
+              ? `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard\u2026 GitHub Pages is building it (${secs}s). The link appears here the moment it&rsquo;s live.`
+              : `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 waiting for GitHub Pages to publish (${secs}s)\u2026`, "ok");
+          }, { first200Cap: pagesConfirmed ? 6 * 60 * 1000 : 60 * 1000 })
         ).then(state => {
           if (insRunId !== myGen) return;
-          setInsBar(1, "done");
-          revealLiveLink();
-          if (state === "placeholder") {
-            setInsStatus(`&#10003; Done \u2014 your dashboard is publishing at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> and finishes rendering within a minute (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`, "ok");
-          } else if (state === "pending") {
-            setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> and started the dashboard build. It should be live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> shortly \u2014 if you see a placeholder, give it a minute and refresh.`, "ok");
-          } else {
-            setInsStatus(`&#10003; Done \u2014 your dashboard is live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`, "ok");
+          if (state === "live" || state === "placeholder") {
+            setInsBar(1, "done");
+            revealLiveLink();
+            setInsStatus(state === "live"
+              ? `&#10003; Done \u2014 your dashboard is live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`
+              : `&#10003; Done \u2014 your dashboard is publishing at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> and finishes rendering within a minute (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`, "ok");
+            return;
           }
+          // "pending": the page never came up. Never show a green "done" or a 404
+          // link — reflect reality with the amber warn state + what to do next.
+          setInsBar(null, "warn");
+          setInsStatus(pagesNotLive(), "warn");
         }).catch(() => {
           if (insRunId !== myGen) return;
-          setInsBar(1, "done");
-          revealLiveLink();
-          setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> and started the dashboard build. It should be live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> within a minute.`, "ok");
+          setInsBar(null, "warn");
+          setInsStatus(pagesNotLive(), "warn");
         });
       });
     }
@@ -1546,6 +1599,16 @@
         return;
       }
       renderVersions(); renderCaps(); wire(); update(); refreshInsForget();
+
+      // The tooling has relocated: tell the user their install comes from the new
+      // official home (and this page followed the pointer to get there).
+      if (relocated) {
+        document.querySelector(".wrap").insertAdjacentHTML("afterbegin",
+          `<section style="border:1px solid #1f6feb;background:rgba(31,111,235,.1);border-radius:8px;padding:14px 16px;margin-bottom:16px">` +
+          `<strong>This LabVIEW CI tooling has a new home.</strong><p class="hint" style="margin:6px 0 0">` +
+          `It moved to <a href="https://github.com/${esc(relocated.to)}" target="_blank" rel="noopener"><code class="inl">${esc(relocated.to)}</code></a>. ` +
+          `You are installing the current official version from there — nothing else to do.</p></section>`);
+      }
 
       // Central-hosted model: a consumer dashboard can deep-link here with
       // ?repo=owner/name to pre-fill the target. Installs still reference the
