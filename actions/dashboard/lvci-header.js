@@ -337,6 +337,7 @@
     configure: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1.5" y1="14" x2="6.5" y2="14"/><line x1="9.5" y1="8" x2="14.5" y2="8"/><line x1="17.5" y1="16" x2="22.5" y2="16"/></svg>',
     update: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
     about: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="16" x2="12" y2="11.5"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    clients: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-6A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10.5" cy="8" r="3.5"/><path d="M21 20v-1.5a3.5 3.5 0 0 0-2.6-3.4"/><path d="M15.5 4.6a3.5 3.5 0 0 1 0 6.8"/></svg>',
     news: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M11.5 3l1.8 5.2 5.2 1.8-5.2 1.8L11.5 17l-1.8-5.2L4.5 10l5.2-1.8z"/><path d="M18 14l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
     history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>',
     tests: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6L5.4 17.5A1.5 1.5 0 0 0 6.7 20h10.6a1.5 1.5 0 0 0 1.3-2.5L14 9V3"/><line x1="7.5" y1="14" x2="16.5" y2="14"/></svg>',
@@ -408,11 +409,7 @@
   //    capabilities — Builds, Documentation, Unit Tests — are a one-line add. ─
   var NAV = [
     { key: 'dashboard',   label: 'Dashboard',    href: base + '/' },
-    { key: 'vi-browser',  label: 'VI Browser',   href: base + '/vi-snapshots/' },
-    // Clients: the registry of repos running this tooling. Root/source repo ONLY
-    // - hidden by default and revealed by loadClients() wherever clients.json
-    // (which only the root publishes) is served, so it never shows on a consumer.
-    { key: 'clients',     label: 'Clients',      href: base + '/clients.html', source: true }
+    { key: 'vi-browser',  label: 'VI Browser',   href: base + '/vi-snapshots/' }
     // Future (uncomment / extend as capabilities land):
     // { key: 'builds', label: 'Builds', href: base + '/builds/', soon: true },
     // { key: 'docs',   label: 'Docs',   href: base + '/docs/',   soon: true }
@@ -514,10 +511,12 @@
         { label: 'Populate history', svg: ICON.history, kind: 'runhistory' },
         { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
         { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
+        { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
         { label: 'About', svg: ICON.about, href: base + '/faq.html' }
       ],
       'worker-manifest': [],
       'vi-browser': [
+        { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
         { label: 'About', svg: ICON.about, href: base + '/faq.html' }
       ],
       'report-viewer': [],
@@ -808,9 +807,7 @@
       a.href = n.href;
       a.style.position = 'relative';
       if (n.key === activeKey) a.className = 'on';
-      a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '')
-        + (n.source ? ' <span class="lvci-ncount" hidden></span>' : '');
-      if (n.source) { a.style.display = 'none'; clientsEls.push(a); }
+      a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '');
       nav.appendChild(a);
     });
     hdr.appendChild(nav);
@@ -867,6 +864,7 @@
           });
         }
         el.innerHTML = iconHtml(a) + esc(a.label);
+        if (a.source) { el.style.display = 'none'; clientsEls.push(el); }
         ddMenu.appendChild(el);
       });
       // Version / update entry — the single home for the installed version and
@@ -906,9 +904,7 @@
     NAV.forEach(function (n) {
       var a = document.createElement('a');
       a.href = n.href;
-      a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '')
-        + (n.source ? ' <span class="lvci-ncount" hidden></span>' : '');
-      if (n.source) { a.style.display = 'none'; clientsEls.push(a); }
+      a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '');
       menu.appendChild(a);
     });
     var acts = buildActions();
@@ -919,7 +915,11 @@
     var secActs = buildSecondaryActions();
     if (secActs.length) {
       var sep = document.createElement('div'); sep.className = 'lvci-sep'; menu.appendChild(sep);
-      secActs.forEach(function (a) { menu.appendChild(actionEl(a, true)); });
+      secActs.forEach(function (a) {
+        var el = actionEl(a, true);
+        if (a.source) { el.style.display = 'none'; clientsEls.push(el); }
+        menu.appendChild(el);
+      });
     }
     // Version / update entry (mobile) — same single home as the dropdown.
     var sepV = document.createElement('div'); sepV.className = 'lvci-sep'; menu.appendChild(sepV);

@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.0",
+  "version": "3.4.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.1",
+        "date": "2026-06-18",
+        "title": "Clients directory moves into the More menu",
+        "summary": "The Clients directory link now lives in the header's More (...) menu, alongside About and What's new, instead of as a primary navigation tab - a better fit for a management view. It still appears only on the source repository that originates the tooling, never on a consumer site, and opens the same page (with the Scan for clients button) that lists every public repository discovered to be running this tooling.",
+        "highlights": [
+          "The Clients link is now in the header's More menu, next to About and What's new.",
+          "It still shows only on the root/source repository and never on a consumer site.",
+          "Same Clients page: lists discovered public repos and offers a Scan for clients button."
+        ]
+      },
       {
         "version": "3.4.0",
         "date": "2026-06-18",
