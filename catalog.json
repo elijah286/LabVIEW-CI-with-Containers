@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.8",
+  "version": "3.4.9",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.9",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0: clearer setup-token guidance (repository access + which permission)",
+        "summary": "The VI Browser 2.0 setup-token prompt now spells out the step the token URL cannot pre-fill: under Repository access, choose Only select repositories and pick this repo. A token left at the read-only default cannot write and returns a 403, which was the most common remaining cause of a stuck connect even after the permission params were fixed. When a token is then rejected, the error names exactly which permission is missing - 'cannot write Secrets' (check repository access plus Secrets: Read and write) versus 'the render token saved, but cannot write Variables' - so you know precisely what to fix instead of a generic message. The link still pre-checks Secrets and Variables.",
+        "highlights": [
+          "Setup-token prompt now tells you to select this repository under Repository access (the step the URL cannot pre-fill, and the most common 403 cause).",
+          "403 errors now name the exact missing permission - Secrets vs Variables - and note when the secret already saved.",
+          "VI Browser 2.0 only; the token link still pre-checks Secrets + Variables (Read and write)."
+        ]
+      },
       {
         "version": "3.4.8",
         "date": "2026-06-18",
