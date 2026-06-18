@@ -640,7 +640,7 @@ def main() -> int:
     activities = parse_csv(args.activities) or prev.get("activities") or [
         c["id"] for c in catalog.get("capabilities", []) if c.get("recommended")
     ]
-    os_list = parse_csv(args.os) or prev.get("os") or list(defaults.get("os", ["windows", "linux"]))
+    os_list = parse_csv(args.os) or prev.get("os") or list(defaults.get("os", ["windows"]))
     valid_os = {"windows", "linux"}
     bad_os = [o for o in os_list if o not in valid_os]
     if bad_os:

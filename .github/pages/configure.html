@@ -172,8 +172,9 @@
             <label class="fl">Operating systems</label>
             <div class="toggle-row" id="osToggle">
               <label class="toggle"><input type="checkbox" value="windows" checked> Windows</label>
-              <label class="toggle"><input type="checkbox" value="linux" checked> Linux</label>
+              <label class="toggle"><input type="checkbox" value="linux"> Linux</label>
             </div>
+            <p class="hint" style="margin-top:6px">Linux container jobs run on the NI base image and are <strong>experimental</strong> &mdash; opt in only if you want them. Windows is the supported default.</p>
           </div>
           <div class="field">
             <label class="fl" for="runners">Max concurrent runners
@@ -302,7 +303,7 @@
 
     let catalog = null;
     let pkgObj = null;                       // parsed ci-tooling.packages.json
-    const osSel = new Set(["windows", "linux"]);
+    const osSel = new Set(["windows"]);      // Linux container jobs are experimental (NI base image); opt in via the toggle below
     const actSel = new Set();
     let winLatest = null;                    // workers/windows/latest.json (current build)
     let containerUse = "latest";             // config.container.use (default tag activities pull)

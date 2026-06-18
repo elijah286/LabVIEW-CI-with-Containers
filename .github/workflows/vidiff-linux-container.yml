@@ -5,11 +5,13 @@ on:
     paths:
       - '**.vi'
       - '**.ctl'
+      - '!.github/**'
   push:
     branches: [main]
     paths:
       - '**.vi'
       - '**.ctl'
+      - '!.github/**'
   workflow_dispatch:
     inputs:
       base_sha:

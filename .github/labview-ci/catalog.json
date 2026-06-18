@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.13",
+  "version": "3.4.14",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.14",
+        "date": "2026-06-18",
+        "title": "Installing no longer floods a new repo with CI runs, and Linux container jobs are opt-in",
+        "summary": "Two fixes to what happens right after Apply to New Repo. First, opening the install pull request used to start the entire CI matrix - Mass Compile, VI Analyzer and VIDiff, on both Windows and Linux - even though you had not changed any of your own VIs. That happened because the tooling ships a few helper VIs (the PrintToSingleFileHtml diff helpers) and the VI workflows watched every '**.vi' path, so the install's own files tripped them. Those workflows now ignore changes under '.github/**', so a tooling-only commit or the install pull request no longer triggers them - only real changes to your VIs do. Second, the Linux container jobs run on the NI base image and are still experimental, yet they were installed and run by default and reliably failed on a fresh repo; installing now defaults to Windows only, with Linux offered as an opt-in (the installer and Configure Workers both leave Linux unchecked and label it experimental). Already-installed repositories are unchanged until you re-run the installer or reconfigure.",
+        "highlights": [
+          "Opening the install pull request no longer fans out the whole CI matrix: the VI workflows now ignore '.github/**', so only changes to your own VIs trigger Mass Compile, VI Analyzer and VIDiff.",
+          "Linux container jobs (experimental, NI base image) are no longer installed or run by default - they are an opt-in in the installer and Configure Workers, so a fresh repo no longer shows failing Linux checks.",
+          "Windows is the supported default; existing installs are unchanged until you re-run the installer or reconfigure."
+        ]
+      },
       {
         "version": "3.4.13",
         "date": "2026-06-18",
@@ -1024,8 +1035,7 @@
   "defaults": {
     "labviewVersion": "2026",
     "os": [
-      "windows",
-      "linux"
+      "windows"
     ],
     "branch": "main"
   },
