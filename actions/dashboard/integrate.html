@@ -182,6 +182,9 @@
         <label class="insopt"><input type="checkbox" id="optAutoMerge" checked>
           <span><strong>Publish the dashboard right away (auto-merge the install PR)</strong><small>Squash &amp; merge the install pull request immediately so the dashboard goes live and the README link lands as the first thing &mdash; no review wait and no CI run required. Uncheck to review the PR first; the dashboard then publishes the moment you merge.</small></span>
         </label>
+        <label class="insopt"><input type="checkbox" id="optUpdateToken" checked>
+          <span><strong>Enable one-click tooling updates</strong><small>Stores your token (encrypted in your browser) as this repo&rsquo;s <code class="inl">TOOLING_UPDATE_TOKEN</code> secret so future <em>Update now</em> clicks open their pull request automatically &mdash; without turning on &ldquo;Allow GitHub Actions to create and approve pull requests.&rdquo; Needs <strong>Secrets</strong> on your token; if you skip it, the What&rsquo;s New page just prompts for a one-time token at update time.</small></span>
+        </label>
       </div>
 
       <div class="tokpanel reinstall" id="insReinstallPanel" style="display:none">
@@ -587,6 +590,7 @@
     // Pre-filled fine-grained token creation link (GitHub honours these query
     // params), so the user lands on the form with the right scopes selected.
     function wantsPages() { const c = $("optPages"); return !!(c && c.checked); }
+    function wantsUpdateToken() { const c = $("optUpdateToken"); return !!(c && c.checked); }
     function tokenUrl() {
       const repo = $("repo").value.trim();
       const owner = repo.includes("/") ? repo.split("/")[0] : "";
@@ -598,6 +602,7 @@
       // permissions for you; pages:write turns on Pages when you opt in.
       const perms = { contents: "write", pull_requests: "write", workflows: "write", actions: "write", actions_variables: "write", administration: "write" };
       if (wantsPages()) { perms.pages = "write"; }
+      if (wantsUpdateToken()) { perms.secrets = "write"; }
       const p = new URLSearchParams(Object.assign({
         name: "LabVIEW CI installer",
         description: "Installs the LabVIEW CI pipeline" + (repo ? " into " + repo : "") + " and opens a pull request; also queues CI runs from the dashboard."
@@ -609,6 +614,7 @@
       const li = $("insTokPerms"); if (!li) return;
       let html = `Confirm <strong>Permissions</strong> &mdash; <strong>Contents</strong>, <strong>Pull requests</strong>, <strong>Workflows</strong>, <strong>Actions</strong>, <strong>Variables</strong>, and <strong>Administration</strong> set to <strong>Read and write</strong> (Workflows lets the install add files under <code class="inl">.github/workflows/</code>; Actions lets this token queue CI runs; Variables lets the install pin your settings as Actions variables; Administration lets the install tag your repo so it&rsquo;s listed in the directory)`;
       if (wantsPages()) html += `, plus <strong>Pages</strong> (Read and write) so the configurator can turn on Pages for you`;
+      if (wantsUpdateToken()) html += `, plus <strong>Secrets</strong> (Read and write) so the configurator can store a one-time update token for one-click updates`;
       li.innerHTML = html + `.`;
     }
 
@@ -632,6 +638,7 @@
       else if (/^Pushing the install branch/.test(t)) f = 0.88;
       else if (/^Opening the pull request/.test(t)) f = 0.93;
       else if (/^Configuring repository settings/.test(t)) f = 0.97;
+      else if (/^Saving the update token/.test(t)) f = 0.985;
       if (f != null) setInsBar(f);
     }
     function refreshInsForget() { const f = $("insTokForget"); if (f) f.style.display = getInsTok() ? "" : "none"; }
@@ -740,6 +747,60 @@
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       return new TextDecoder().decode(bytes);
+    }
+    function b64ToBytes(b) {
+      const s = atob(String(b || "").replace(/\s+/g, "")); const u = new Uint8Array(s.length);
+      for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u;
+    }
+
+    // In-browser libsodium sealed-box (same stack the What's New updater uses): seal a
+    // value with the repo's public key so it can be PUT as an Actions secret. Loaded on
+    // demand from a CDN with SRI + a fallback host; never bundled.
+    let sealReady = null;
+    function addSealScript(src, integ) {
+      return new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = src; if (integ) s.integrity = integ; s.crossOrigin = "anonymous";
+        let settled = false;
+        const timer = setTimeout(() => { if (settled) return; settled = true; s.onload = s.onerror = null; rej(new Error("timeout")); }, 12000);
+        s.onload = () => { if (settled) return; settled = true; clearTimeout(timer); res(); };
+        s.onerror = () => { if (settled) return; settled = true; clearTimeout(timer); rej(new Error("error")); };
+        document.head.appendChild(s);
+      });
+    }
+    function loadSealCdn(pkg, integ) {
+      return addSealScript("https://cdn.jsdelivr.net/npm/" + pkg, integ)
+        .catch(() => addSealScript("https://unpkg.com/" + pkg, integ));
+    }
+    function loadSealedBox() {
+      if (sealReady) return sealReady;
+      if (window.nacl && window.sealedBox) { sealReady = Promise.resolve(window.sealedBox); return sealReady; }
+      sealReady = loadSealCdn("tweetnacl@1.0.3/nacl-fast.min.js", "sha384-05+sicyRJQ56XpL4U9HJ8YbtSzFDvAg7apPKOGV6A0JsAJKFM68jp5oLnUjG5mEp")
+        .then(() => loadSealCdn("tweetnacl-sealedbox-js@1.2.0/sealedbox.web.js", "sha384-gCr/Ers2SYUTIvvm+iWV5lakrZ/tTqxgYQckm0Znr3blQzNfOPirDZlpvkINLyhv"))
+        .then(() => { if (!window.nacl || !window.sealedBox) throw new Error("Encryption library unavailable."); return window.sealedBox; })
+        .catch(() => { sealReady = null; throw new Error("Couldn't load the in-browser encryption library (network blocked?). Check your connection and try again."); });
+      return sealReady;
+    }
+    function sealForRepo(v, pk) { return loadSealedBox().then((sb) => b64bytes(sb.seal(new TextEncoder().encode(v), b64ToBytes(pk)))); }
+
+    // Best-effort: store the install token (encrypted) as the repo's TOOLING_UPDATE_TOKEN
+    // secret so future "Update now" runs open their pull request via the token -- no need to
+    // allow the Actions bot to create PRs. Needs the token's Secrets:write; records the
+    // outcome in `setup` (the What's New page still offers a one-time token if this is skipped).
+    async function storeToolingToken(repo, setup) {
+      const tok = getInsTok();
+      if (!tok) { setup.toolingToken = "manual"; return; }
+      try {
+        const pk = await ghJson(await gh(`/repos/${repo}/actions/secrets/public-key`));
+        const enc = await sealForRepo(tok, pk.key);
+        const put = await gh(`/repos/${repo}/actions/secrets/TOOLING_UPDATE_TOKEN`,
+          { method: "PUT", body: { encrypted_value: enc, key_id: pk.key_id } });
+        if (!put.ok) await ghJson(put);
+        setup.toolingToken = "done";
+      } catch (e) {
+        setup.toolingToken = "manual";
+        if (e && (e.status === 403 || e.status === 404)) setup.toolingTokenPerm = true;
+      }
     }
 
     // The published dashboard URL for a repo (owner.github.io/repo, or the bare
@@ -1129,6 +1190,7 @@
       if (setup.removed && setup.removed.length) done.push(`Removed <strong>${setup.removed.length}</strong> old tooling file${setup.removed.length > 1 ? "s" : ""} no longer used (in the pull request).`);
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
+      if (setup.toolingToken === "done") done.push(`Saved a one-time <strong>update token</strong> &mdash; future <em>Update now</em> clicks open their pull request automatically.`);
       // Show the dashboard URL as PLAIN TEXT until Pages is confirmed serving it
       // (revealLiveLink upgrades #insLiveUrl to a real link) so we never present a
       // link that 404s. When Pages already existed it's almost certainly live, so
@@ -1150,6 +1212,7 @@
       const notes = [];
       if (setup.hasDashboard && !pagesOn) notes.push(pagesHelp());
       else if (setup.adminMissing) notes.push(`Heads up: your token didn&rsquo;t include <strong>Administration</strong> (Read and write), so this repo couldn&rsquo;t be tagged for the client directory. Re-create the token with <strong>Administration</strong> (re-open the token panel) so the configurator can do it for you next time.`);
+      if (setup.toolingToken === "manual" && wantsUpdateToken()) notes.push(`One-click updates aren&rsquo;t set up: your token couldn&rsquo;t write <strong>Secrets</strong> on this repo. That&rsquo;s fine &mdash; you can update anytime and the <strong>What&rsquo;s New</strong> page will prompt for a one-time token when you click <em>Update now</em>.`);
       const note = $("insNote");
       if (note) { note.innerHTML = notes.join("<br><br>"); note.style.display = notes.length ? "" : "none"; }
 
@@ -1576,6 +1639,9 @@
         }
         // Always best-effort: tag the repo so the source's client directory finds it.
         await tagClientTopic(repo, setup);
+        // Best-effort: store the update token so future "Update now" runs can open their
+        // pull request via the token (opt-in; needs the token's Secrets:write).
+        if (wantsUpdateToken()) { setInsStatus("Saving the update token&hellip;", null); await storeToolingToken(repo, setup); }
         // installSuccess now owns the final bar state: it flips to "done" right away
         // for the non-publishing paths, or keeps the bar in the indeterminate
         // "working" state while it waits for GitHub Pages to actually serve the
@@ -1602,7 +1668,7 @@
       });
       $("repo").addEventListener("input", update);
       $("version").addEventListener("change", update);
-      ["optReadme", "optPages"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", update); });
+      ["optReadme", "optPages", "optUpdateToken"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", update); });
       document.querySelectorAll(".tab").forEach(t => {
         t.addEventListener("click", () => {
           document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));

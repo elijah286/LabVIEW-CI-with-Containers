@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.25",
+  "version": "3.4.26",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.26",
+        "date": "2026-06-18",
+        "title": "Apply to New Repo can set up one-click tooling updates",
+        "summary": "The installer can now make future tooling updates a single click. A new option - Enable one-click tooling updates, on by default - stores your install token, encrypted in your browser and saved only as the new repository's TOOLING_UPDATE_TOKEN secret, so that when you later click Update now the update workflow opens its pull request using that token. This avoids the common case where a repository does not allow GitHub Actions to open pull requests (the default), which otherwise leaves an update built and pushed but with no pull request until you open it by hand. The option adds Secrets to the permissions the pre-filled token requests; if you skip it, or your token cannot write Secrets, nothing breaks - the What's New page still offers a one-time token at update time. The token is sealed with the repository's public key before storage and is sent only to api.github.com, never to the page or to CI.",
+        "highlights": [
+          "New install option (default on): stores your token as the repository's TOOLING_UPDATE_TOKEN secret so future Update now clicks open their pull request automatically - no need to allow the Actions bot to create pull requests.",
+          "The token is sealed in your browser (libsodium) with the repository's public key and saved only as a repository secret - sent only to api.github.com, never to the page or CI.",
+          "Optional and safe to skip: the pre-filled token requests Secrets only when the option is checked, and if it is not set up the What's New page prompts for a one-time token when you update."
+        ]
+      },
       {
         "version": "3.4.25",
         "date": "2026-06-18",
