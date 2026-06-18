@@ -293,8 +293,13 @@
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
     async function loadCatalog() {
-      const candidates = ["./catalog.json", "./labview-ci/catalog.json",
-        `https://raw.githubusercontent.com/${SOURCE_FALLBACK.repo}/${SOURCE_FALLBACK.ref}/.github/labview-ci/catalog.json`];
+      // Apply-to-new-repo must always source the tooling from the ROOT repo so
+      // every fresh install points back here (accurate client discovery), even
+      // when this page is opened on a consumer site. Prefer the root's published
+      // catalog; fall back to a local copy only if the root is unreachable.
+      const candidates = [
+        `https://raw.githubusercontent.com/${SOURCE_FALLBACK.repo}/${SOURCE_FALLBACK.ref}/.github/labview-ci/catalog.json`,
+        "./catalog.json", "./labview-ci/catalog.json"];
       for (const url of candidates) {
         try {
           const r = await fetch(url, { cache: "no-store" });

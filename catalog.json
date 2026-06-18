@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.2.0",
+  "version": "3.3.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.3.0",
+        "date": "2026-06-18",
+        "title": "See who is running your tooling: a Clients directory on the dashboard",
+        "summary": "The source repository now publishes a Clients directory - a new top-level menu entry that lists every public repository discovered to be running this LabVIEW CI tooling and links straight to each one's dashboard. Discovery is pull-based: a scheduled workflow queries GitHub's code-search index for repositories that reference this tooling, verifies each is public and really installed it, and publishes the list to the Pages site, so nothing is asked of client repositories and no external service is involved. The Clients entry appears only on the source repository, where the list is published, and never on a consumer site. Apply-to-new-repo affordances now always source the tooling from this root repository, so every fresh install is discoverable and the count stays accurate.",
+        "highlights": [
+          "A new source-only Clients menu lists every public repository running this tooling and links to each one's CI dashboard.",
+          "Discovery is pull-based via GitHub code search - clients are never modified and no external service or shared secret is needed; only public repositories are listed.",
+          "Every Apply-to-new-repo install now sources from the root repository, so new installs are discoverable and the client count stays accurate."
+        ]
+      },
       {
         "version": "3.2.0",
         "date": "2026-06-18",
