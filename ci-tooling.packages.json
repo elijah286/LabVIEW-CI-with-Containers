@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "Base-image VIPM tooling",
-  "description": "Human-editable source of truth for the third-party LabVIEW tooling baked into the CI worker image by default. `build-tooling-vipc.py` turns the `vipmPackages` list below into `ci-tooling.vipc`, which the Dockerfile's existing VIPM hook applies at image-build time (vipm apply_vipc). Because this whole `.github/labview/vipm/` folder is part of the portability catalog's `custom-image` capability, editing this list + regenerating is all another repo needs to change its baked-in tooling.",
+  "description": "THIS REPO's VIPM packages baked into the CI worker image - preserved across tooling updates (it is in the catalog's userConfig.files), so your additions are never clobbered. build-tooling-vipc.py merges these OVER the tooling-pushed defaults in ci-tooling.defaults.json (your entries win on a name collision; a differing default version is surfaced as a notice) and turns the result into ci-tooling.vipc, which the Dockerfile's VIPM hook applies at image-build time (vipm apply_vipc). Edit this list + regenerate (Reconfigure) to change your repo's baked-in tooling; new tooling defaults arrive additively via ci-tooling.defaults.json when you take a new version.",
 
   "target": {
     "name": "LabVIEW",

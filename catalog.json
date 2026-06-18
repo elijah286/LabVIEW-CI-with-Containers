@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.3.3",
+  "version": "3.4.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.0",
+        "date": "2026-06-18",
+        "title": "Container packages: the tooling can now ship baked-in VIPM tools additively",
+        "summary": "Until now the worker image's VIPM package list (ci-tooling.packages.json) was entirely repo-owned and preserved across updates, so LabVIEW CI could never add a baked-in package to repositories that already installed it. A new tooling-managed file, ci-tooling.defaults.json, closes that gap: it is replaced by updates (it is not in userConfig.files), so packages added to it are pushed to every repo, while build-tooling-vipc.py merges them UNDER your own ci-tooling.packages.json. Your packages always win on a name collision - a pin you set is never overridden, and a differing default version is surfaced as a notice - and a package that exists only in the defaults is added to your worker the next time you regenerate the VIPC (Reconfigure or Update). Because every change still bumps this version, you see exactly when a new tool is offered and choose to adopt it. The defaults file starts empty, so existing workers rebuild byte-identically until a default is actually added.",
+        "highlights": [
+          "New tooling-owned, version-locked ci-tooling.defaults.json lets LabVIEW CI ship baked-in VIPM packages to every repo, merged additively under your own list.",
+          "Your repo's packages are never clobbered: ci-tooling.packages.json stays preserved and wins on any name collision, with a notice when a default pins a different version.",
+          "No behavior change until a default is added - the defaults file starts empty and the generated worker VIPC is byte-identical."
+        ]
+      },
       {
         "version": "3.3.3",
         "date": "2026-06-18",
