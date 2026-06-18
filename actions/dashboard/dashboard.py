@@ -1844,7 +1844,7 @@ html = f"""<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <script>window.LVCI={{context:'dashboard',repo:'{repo}',pagesUrl:'{pages_url}'}};</script>
+  <script>window.LVCI={{context:'dashboard',repo:'{repo}',pagesUrl:'{pages_url}',isSource:{'true' if lvci_is_source else 'false'}}};</script>
   <script src="lvci-header.js" defer></script>
   <div id="lvci-modal" onclick="if(event.target===this)lvciClose()" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55)">
     <div style="position:absolute;inset:24px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.5)">

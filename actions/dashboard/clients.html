@@ -31,7 +31,8 @@
          background:var(--bg);color:var(--fg);line-height:1.5}
     a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
     .wrap{max-width:980px;margin:0 auto;padding:32px 20px 64px}
-    h1{font-size:1.6em;margin:0 0 6px;display:flex;align-items:center;gap:10px}
+    h1{font-size:1.6em;margin:0;display:flex;align-items:center;gap:10px}
+    .head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 6px}
     .count{font-size:.55em;font-weight:700;color:var(--fg-muted);background:var(--chip);
            border:1px solid var(--border);border-radius:999px;padding:2px 10px}
     .intro{color:var(--fg-muted);font-size:.95em;margin:0 0 6px}
@@ -57,8 +58,11 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Clients <span class="count" id="count" hidden></span></h1>
-    <p class="intro">Public repositories discovered to be running this LabVIEW CI tooling. Each links to that repository&rsquo;s own CI dashboard.</p>
+    <div class="head">
+      <h1>Clients <span class="count" id="count" hidden></span></h1>
+      <a id="scan" class="btn primary" target="_blank" rel="noopener" hidden>&#8635; Scan for clients</a>
+    </div>
+    <p class="intro">Public repositories discovered to be running this LabVIEW CI tooling. Each links to that repository&rsquo;s own CI dashboard. <strong>Scan for clients</strong> runs the discovery workflow that queries GitHub for repositories installed from this one.</p>
     <p class="meta" id="meta"></p>
     <div id="grid" class="grid" hidden></div>
     <div id="state" class="state">
@@ -72,6 +76,21 @@
       var state = document.getElementById('state');
       var countEl = document.getElementById('count');
       var metaEl = document.getElementById('meta');
+      var scanEl = document.getElementById('scan');
+      function deriveRepo() {
+        try {
+          var m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+          var seg = location.pathname.split('/').filter(Boolean)[0];
+          if (m && seg && seg.indexOf('.') < 0) return m[1] + '/' + seg;
+        } catch (e) {}
+        return '';
+      }
+      function setScan(repo) {
+        if (!scanEl || !repo) return;
+        scanEl.href = 'https://github.com/' + repo + '/actions/workflows/discover-clients.yml';
+        scanEl.hidden = false;
+      }
+      setScan(deriveRepo());
       function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
           return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -106,12 +125,13 @@
       fetch('clients.json', { cache: 'no-cache' })
         .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
         .then(function (data) {
+          if (data && data.source) setScan(data.source);
           var list = (data && data.clients) || [];
           if (data && data.generated) {
             metaEl.textContent = 'Last scanned ' + fmtDate(data.generated) + ' \u00b7 public repositories only.';
           }
           if (!list.length) {
-            showState('No clients discovered yet', 'Repositories that install this tooling will appear here after the next scan.');
+            showState('No clients discovered yet', 'New installs that source from this repository will appear here after the next scan.');
             return;
           }
           countEl.textContent = list.length; countEl.hidden = false;
@@ -119,7 +139,7 @@
           grid.hidden = false; state.hidden = true;
         })
         .catch(function () {
-          showState('Registry unavailable', 'The client registry could not be loaded right now.');
+          showState('No scan has run yet', 'Use \u201cScan for clients\u201d above to discover repositories that installed this tooling.');
         });
     })();
   </script>
