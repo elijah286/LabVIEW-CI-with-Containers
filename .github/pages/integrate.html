@@ -250,6 +250,28 @@
       </ol>
       <p class="hint" style="margin-top:12px">None of these choices are permanent — change the LabVIEW version, platforms, activities, and container dependencies any time from <strong>⚙ Configure Workers</strong> on the dashboard (it opens a pull request with your changes). To pull later tooling improvements, re-run the installer with <code class="inl">--update</code>.</p>
     </section>
+
+    <section id="toimgSection">
+      <h2>VI Browser 2.0 &mdash; position-aware renders <span class="hint" style="font-weight:400">(optional)</span></h2>
+      <p class="hint">The in-place VI Browser draws each VI&rsquo;s Case / Event / Sequence structures right where they sit on the block diagram. It needs a private render image (built separately) plus a read-token so CI can pull it. Set them here; until then the browser shows the classic 1.0 view automatically.</p>
+      <div class="tokpanel" id="toimgPanel">
+        <div class="status" id="toimgStatus">Enter your repository above to check current settings.</div>
+        <ol>
+          <li><strong>Render image</strong> &mdash; the private image reference:
+            <div class="tokrow"><input id="toimgImage" type="text" autocomplete="off" placeholder="ghcr.io/owner/lvci-toimages:latest" style="flex:1"></div>
+          </li>
+          <li><strong>Render token</strong> &mdash; a token with <code class="inl">read:packages</code> for that image (saved as the <code class="inl">TOIMAGES_REGISTRY_TOKEN</code> repo secret):
+            <div class="tokrow"><input id="toimgPat" type="password" autocomplete="off" placeholder="github_pat_&hellip; (blank = keep existing secret)" style="flex:1"></div>
+          </li>
+        </ol>
+        <p class="note">The render token is sealed with this repository&rsquo;s public key <strong>in your browser</strong> (a libsodium sealed box) before anything is sent &mdash; GitHub never receives, and this page never stores, the raw token. Saving reuses the install token from step 3, which must include <strong>Secrets</strong> and <strong>Variables</strong> (Read and write).</p>
+        <div class="tokrow">
+          <button type="button" class="primary" id="toimgSave">Save</button>
+          <button type="button" class="ghost" id="toimgRefresh">Refresh status</button>
+          <span class="status" id="toimgResult"></span>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script>
@@ -536,7 +558,7 @@
       // contents/pull_requests/workflows let the install commit files and open the
       // PR; actions:write lets this SAME token queue CI runs from the dashboard
       // afterward (Run now / Run all history), so setup and running share one token.
-      const perms = { contents: "write", pull_requests: "write", workflows: "write", actions: "write" };
+      const perms = { contents: "write", pull_requests: "write", workflows: "write", actions: "write", secrets: "write", variables: "write" };
       if (wantsPages()) { perms.administration = "write"; perms.pages = "write"; }
       const p = new URLSearchParams(Object.assign({
         name: "LabVIEW CI installer",
@@ -547,7 +569,7 @@
     }
     function renderTokPanel() {
       const li = $("insTokPerms"); if (!li) return;
-      let html = `Confirm <strong>Permissions</strong> &mdash; <strong>Contents</strong>, <strong>Pull requests</strong>, <strong>Workflows</strong>, and <strong>Actions</strong> set to <strong>Read and write</strong> (Workflows lets the install add files under <code class="inl">.github/workflows/</code>; Actions lets this same token queue CI runs from the dashboard later)`;
+      let html = `Confirm <strong>Permissions</strong> &mdash; <strong>Contents</strong>, <strong>Pull requests</strong>, <strong>Workflows</strong>, <strong>Actions</strong>, <strong>Secrets</strong>, and <strong>Variables</strong> set to <strong>Read and write</strong> (Workflows lets the install add files under <code class="inl">.github/workflows/</code>; Actions lets this token queue CI runs; Secrets + Variables let the VI Browser 2.0 panel save its image and token)`;
       if (wantsPages()) html += `, plus <strong>Administration</strong> and <strong>Pages</strong> (Read and write) so the configurator can set Workflow permissions and turn on Pages for you`;
       li.innerHTML = html + `.`;
     }
@@ -1284,6 +1306,91 @@
       installToRepo();
     }
 
+    // ---- VI Browser 2.0: private render image + read-token ---------------
+    // The render token is sealed in-browser with the repo public key before it is
+    // sent (GitHub requires libsodium crypto_box_seal). tweetnacl + sealedbox are
+    // loaded only on first use and pinned by SRI. All calls reuse the install
+    // token via gh(); the raw token is never stored by this page.
+    const TOIMG_VAR = "TOIMAGES_IMAGE";
+    const TOIMG_SECRET = "TOIMAGES_REGISTRY_TOKEN";
+    let _sealReady = null;
+    function loadSealedBox() {
+      if (_sealReady) return _sealReady;
+      const add = (src, integrity) => new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = src; s.integrity = integrity; s.crossOrigin = "anonymous";
+        s.onload = res; s.onerror = () => rej(new Error("Could not load the encryption library (is the network blocked?)."));
+        document.head.appendChild(s);
+      });
+      _sealReady = (async () => {
+        await add("https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js",
+                  "sha384-05+sicyRJQ56XpL4U9HJ8YbtSzFDvAg7apPKOGV6A0JsAJKFM68jp5oLnUjG5mEp");
+        await add("https://cdn.jsdelivr.net/npm/tweetnacl-sealedbox-js@1.2.0/sealedbox.web.js",
+                  "sha384-gCr/Ers2SYUTIvvm+iWV5lakrZ/tTqxgYQckm0Znr3blQzNfOPirDZlpvkINLyhv");
+        if (!window.nacl || !window.sealedBox) throw new Error("Encryption library loaded but unavailable.");
+        return window.sealedBox;
+      })();
+      return _sealReady;
+    }
+    const _b64ToBytes = (b64) => { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+    const _bytesToB64 = (u) => { let s = ""; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); };
+    async function sealForRepo(value, publicKeyB64) {
+      const sb = await loadSealedBox();
+      return _bytesToB64(sb.seal(new TextEncoder().encode(value), _b64ToBytes(publicKeyB64)));
+    }
+    function toimgRepo() { return ($("repo").value || "").trim(); }
+    function setToimgStatus(html, kind) { const s = $("toimgStatus"); if (s) { s.className = "status" + (kind ? " " + kind : ""); s.innerHTML = html; } }
+    function setToimgResult(html, kind) { const s = $("toimgResult"); if (s) { s.className = "status" + (kind ? " " + kind : ""); s.innerHTML = html; } }
+    function toimgErr(e, repo) {
+      const st = e && e.status;
+      if (st === 401) return "That install token was rejected (401). Re-create it in step 3.";
+      if (st === 403) return "The install token is missing <strong>Secrets</strong> / <strong>Variables</strong> permission. Re-create it (step 3) with those set to Read and write.";
+      if (st === 404) return `The token cannot see <code class="inl">${esc(repo)}</code> (or its secrets). Check the repo name and the token&rsquo;s repository access.`;
+      return (e && e.message) || "Something went wrong.";
+    }
+    async function refreshToimgStatus() {
+      const repo = toimgRepo();
+      if (!repo.includes("/")) { setToimgStatus("Enter your repository above to check current settings.", null); return; }
+      if (!getInsTok()) { setToimgStatus("Paste your install token in step 3 to read or change these settings.", null); return; }
+      setToimgStatus("Checking current settings\u2026", null);
+      try {
+        let img = null, secretSet = false;
+        try { const v = await ghJson(await gh(`/repos/${repo}/actions/variables/${TOIMG_VAR}`)); img = v && v.value; }
+        catch (e) { if (e.status !== 404) throw e; }
+        try { await ghJson(await gh(`/repos/${repo}/actions/secrets/${TOIMG_SECRET}`)); secretSet = true; }
+        catch (e) { if (e.status !== 404) throw e; }
+        const imgInput = $("toimgImage"); if (imgInput && !imgInput.value && img) imgInput.value = img;
+        setToimgStatus(`Image: <strong>${img ? esc(img) : "not set"}</strong> &middot; Render token: <strong>${secretSet ? "set" : "not set"}</strong>`, (secretSet && img) ? "ok" : null);
+      } catch (e) { setToimgStatus(toimgErr(e, repo), "err"); }
+    }
+    async function saveToimg() {
+      const repo = toimgRepo();
+      if (!repo.includes("/")) { setToimgResult("Enter your repository above first.", "err"); return; }
+      if (!getInsTok()) { setToimgResult("Set your install token in step 3 first.", "err"); return; }
+      const img = ($("toimgImage").value || "").trim();
+      const pat = $("toimgPat").value || "";
+      if (!img && !pat) { setToimgResult("Enter an image reference and/or a render token.", "err"); return; }
+      const btn = $("toimgSave"); if (btn) btn.disabled = true;
+      try {
+        if (img) {
+          setToimgResult("Saving image reference\u2026", null);
+          let resp = await gh(`/repos/${repo}/actions/variables/${TOIMG_VAR}`, { method: "PATCH", body: { name: TOIMG_VAR, value: img } });
+          if (resp.status === 404) resp = await gh(`/repos/${repo}/actions/variables`, { method: "POST", body: { name: TOIMG_VAR, value: img } });
+          await ghJson(resp);
+        }
+        if (pat) {
+          setToimgResult("Encrypting and saving the render token\u2026", null);
+          const pk = await ghJson(await gh(`/repos/${repo}/actions/secrets/public-key`));
+          const enc = await sealForRepo(pat, pk.key);
+          await ghJson(await gh(`/repos/${repo}/actions/secrets/${TOIMG_SECRET}`, { method: "PUT", body: { encrypted_value: enc, key_id: pk.key_id } }));
+          $("toimgPat").value = "";
+        }
+        setToimgResult("Saved. The next VI Snapshots run will render 2.0.", "ok");
+        refreshToimgStatus();
+      } catch (e) { setToimgResult(toimgErr(e, repo), "err"); }
+      finally { if (btn) btn.disabled = false; }
+    }
+
     // ---- wiring ----------------------------------------------------------
     function wire() {
       document.querySelectorAll("#osToggle input").forEach(cb => {
@@ -1317,6 +1424,9 @@
       const _rg = $("insReinstallGo"); if (_rg) _rg.addEventListener("click", confirmReinstall);
       const _rc = $("insReinstallCancel"); if (_rc) _rc.addEventListener("click", () => { hideReinstallPanel(); installBusy(false); setInsStatus("Install cancelled \u2014 nothing was changed.", null); });
       const _ok = $("optKeep"); if (_ok) _ok.addEventListener("change", renderStalePreview);
+      const _ts = $("toimgSave"); if (_ts) _ts.addEventListener("click", saveToimg);
+      const _trf = $("toimgRefresh"); if (_trf) _trf.addEventListener("click", refreshToimgStatus);
+      const _rpo = $("repo"); if (_rpo) _rpo.addEventListener("change", refreshToimgStatus);
     }
 
     (async function init() {
@@ -1335,6 +1445,7 @@
       // source-of-truth repo (catalog.source), never the consumer's copy.
       const _qRepo = new URLSearchParams(location.search).get("repo");
       if (_qRepo) { $("repo").value = _qRepo; update(); }
+      refreshToimgStatus();
     })();
   })();
   </script>
