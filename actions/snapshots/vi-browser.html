@@ -306,23 +306,17 @@ function allFolderPaths(node, out = []) {
   return out;
 }
 
-// On a visitor's first ever open of the VI Browser, expand the whole folder tree
-// so the structure is visible at a glance. A localStorage flag keeps this a
-// one-time courtesy: on later visits the tree loads collapsed as before. The
-// in-memory guard makes it fire only for the first manifest built this load (not
-// on every commit switch) and also covers private-mode browsers where the flag
-// can't be persisted.
+// Expand the whole folder tree by default every time the VI Browser loads, so the
+// structure is visible at a glance. The in-memory guard makes it fire only for the
+// first manifest built this load (not on every commit switch), so your own
+// expand/collapse choices are preserved for the rest of the session.
 let didAutoExpand = false;
-function maybeAutoExpandFirstVisit() {
+function maybeAutoExpandTree() {
   if (didAutoExpand || !treeRoot) return;
-  let seen = false;
-  try { seen = localStorage.getItem('lvci.vi-browser.visited') === '1'; } catch (e) {}
-  if (seen) { didAutoExpand = true; return; }
   const folders = allFolderPaths(treeRoot);
   if (!folders.length) return;        // nothing to expand yet; retry on the next manifest
   folders.forEach(p => expanded.add(p));
   didAutoExpand = true;
-  try { localStorage.setItem('lvci.vi-browser.visited', '1'); } catch (e) {}
 }
 
 // A VI passes the active filters when it matches the text query AND, if the
@@ -426,7 +420,7 @@ function viEntryFromBlob(viRel, blob) {
 async function loadManifest(sha) {
   manifest = await getManifest(sha);
   treeRoot = buildTree(manifest);
-  maybeAutoExpandFirstVisit();   // first-ever visit opens with the tree fully expanded
+  maybeAutoExpandTree();   // tree opens fully expanded by default on every load
   activeHtml = null;
   await loadChanges(sha);
   updateChangedToggle();
@@ -564,7 +558,7 @@ function renderTree(node, depth, f, frag) {
     row.innerHTML =
       `<span class="twisty"></span>` +
       `<span class="icon">${ICON.vi}</span>` +
-      `<span class="label">${escapeHtml(v.vi_name)}</span>`;
+      `<span class="label">${escapeHtml(v.vi_rel.split('/').pop() || v.vi_name)}</span>`;
     row.addEventListener('click', () => openVI(row));
     const chg = changeMap[v.vi_rel];
     if (chg) {
