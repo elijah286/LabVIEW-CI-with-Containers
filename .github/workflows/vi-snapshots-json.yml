@@ -1,0 +1,133 @@
+# VI Snapshots JSON (in-place VI Browser 2.0)
+#
+# PUBLIC SCAFFOLDING - contains NO NI/LabVIEW source. It pulls a PRIVATE, prebuilt
+# image (LabVIEW Linux + Xvfb + lv_listener + a Convert.vi runner) that you build
+# in a SEPARATE private repo, runs it to emit position-aware <blob>.json next to
+# each existing <blob>.html, and deploys to gh-pages. The in-place 2.0 view lights
+# up for any VI that gets a JSON; everything else falls back to the 1.0 flat view.
+#
+# STRICT NO-OP until you configure (Settings -> Secrets and variables -> Actions):
+#   - variable  TOIMAGES_IMAGE           e.g. ghcr.io/<owner>/lvci-toimages:latest
+#   - secret    TOIMAGES_REGISTRY_TOKEN  token with read:packages for that image
+#   - (optional) variable TOIMAGES_REGISTRY       default ghcr.io
+#   - (optional) variable TOIMAGES_REGISTRY_USER  default the repo owner
+#
+# CONTRACT the private image MUST honor when run (this is its entire interface):
+#   mounts:  /work  = repo worktree, read-only   |   /out = output dir, writable
+#   env:     WORKSPACE   = /work
+#            WORKLIST    = path to a TSV of "<blob>\t<relpath>" lines (under /out)
+#            OUT_BY_BLOB = /out/by-blob
+#   action:  the image's own entrypoint starts Xvfb + LabVIEW + lv_listener, then
+#            for each worklist line runs Convert.vi with "VI Path in" =
+#            $WORKSPACE/<relpath> and writes "JSON out" (UTF-8, no BOM) to
+#            $OUT_BY_BLOB/<blob[0:2]>/<blob>.json. Missing/failed VIs are skipped
+#            (no JSON => that VI simply stays on the 1.0 view).
+
+name: VI Snapshots JSON
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "head = the current commit's VIs; backfill = re-enumerate all VIs"
+        type: choice
+        options: [head, backfill]
+        default: head
+  workflow_run:
+    workflows: ["VI Snapshots and VI Browser"]
+    types: [completed]
+
+concurrency:
+  group: vi-snapshots-json-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: read
+
+env:
+  TOIMAGES_IMAGE: ${{ vars.TOIMAGES_IMAGE }}
+  TOIMAGES_REGISTRY: ${{ vars.TOIMAGES_REGISTRY || 'ghcr.io' }}
+  TOIMAGES_REGISTRY_USER: ${{ vars.TOIMAGES_REGISTRY_USER || github.repository_owner }}
+
+jobs:
+  export-json:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Preflight - is the private toimages image configured?
+        id: preflight
+        env:
+          HAVE_TOKEN: ${{ secrets.TOIMAGES_REGISTRY_TOKEN != '' }}
+        run: |
+          if [ -z "${TOIMAGES_IMAGE}" ] || [ "${HAVE_TOKEN}" != "true" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::TOIMAGES_IMAGE / TOIMAGES_REGISTRY_TOKEN not set - skipping JSON generation (VI Browser uses the 1.0 view)."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Using private image: ${TOIMAGES_IMAGE}"
+          fi
+
+      - name: Checkout repository
+        if: steps.preflight.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout deployed gallery (gh-pages) for incremental seeding
+        if: steps.preflight.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: _pages
+          sparse-checkout: vi-snapshots/by-blob
+          sparse-checkout-cone-mode: false
+
+      - name: Log in to the private registry
+        if: steps.preflight.outputs.configured == 'true'
+        env:
+          TOKEN: ${{ secrets.TOIMAGES_REGISTRY_TOKEN }}
+        run: echo "$TOKEN" | docker login "$TOIMAGES_REGISTRY" -u "$TOIMAGES_REGISTRY_USER" --password-stdin
+
+      - name: Pull the private toimages image
+        if: steps.preflight.outputs.configured == 'true'
+        run: docker pull "$TOIMAGES_IMAGE"
+
+      - name: Build JSON worklist (skips blobs that already have a .json)
+        if: steps.preflight.outputs.configured == 'true'
+        run: |
+          mkdir -p ci-out/vi-snapshots/by-blob
+          bash .github/labview/build-json-worklist.sh \
+            "$GITHUB_WORKSPACE" \
+            "${{ github.sha }}" \
+            "$GITHUB_WORKSPACE/_pages/vi-snapshots/by-blob" \
+            "$GITHUB_WORKSPACE/ci-out/vi-snapshots/worklist.tsv"
+
+      - name: Generate <blob>.json via the private image
+        if: steps.preflight.outputs.configured == 'true'
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work:ro" \
+            -v "$GITHUB_WORKSPACE/ci-out/vi-snapshots:/out" \
+            -e WORKSPACE=/work \
+            -e WORKLIST=/out/worklist.tsv \
+            -e OUT_BY_BLOB=/out/by-blob \
+            "$TOIMAGES_IMAGE"
+
+      - name: Verify JSON output
+        id: verify
+        if: steps.preflight.outputs.configured == 'true'
+        run: |
+          n=$(find ci-out/vi-snapshots/by-blob -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
+          echo "Generated $n JSON file(s)."
+          if [ "$n" -gt 0 ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Deploy JSON to GitHub Pages (preserves existing HTML + JSON)
+        if: steps.preflight.outputs.configured == 'true' && steps.verify.outputs.ok == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ github.workspace }}/ci-out/vi-snapshots
+          destination_dir: vi-snapshots
+          keep_files: true
