@@ -575,7 +575,7 @@
       // contents/pull_requests/workflows let the install commit files and open the
       // PR; actions:write lets this SAME token queue CI runs from the dashboard
       // afterward (Run now / Run all history), so setup and running share one token.
-      const perms = { contents: "write", pull_requests: "write", workflows: "write", actions: "write", secrets: "write", variables: "write" };
+      const perms = { contents: "write", pull_requests: "write", workflows: "write", actions: "write", secrets: "write", actions_variables: "write" };
       if (wantsPages()) { perms.administration = "write"; perms.pages = "write"; }
       const p = new URLSearchParams(Object.assign({
         name: "LabVIEW CI installer",

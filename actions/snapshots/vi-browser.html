@@ -1225,7 +1225,7 @@ loadCommits().catch(err => {
   }
 
   function setupTokenUrl() {
-    return "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI setup") + "&description=" + encodeURIComponent("Save the VI Browser 2.0 render token for " + repo) + "&target_name=" + encodeURIComponent(repo.split("/")[0]) + "&secrets=write&variables=write";
+    return "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI setup") + "&description=" + encodeURIComponent("Save the VI Browser 2.0 render token for " + repo) + "&target_name=" + encodeURIComponent(repo.split("/")[0]) + "&secrets=write&actions_variables=write";
   }
   function connect() {
     var st = $("nt-status"), token = ($("nt-token").value || "").trim();

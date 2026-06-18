@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.6",
+  "version": "3.4.7",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.7",
+        "date": "2026-06-18",
+        "title": "Setup-token links now pre-select the Variables permission",
+        "summary": "The pre-filled fine-grained token-creation links - the VI Browser 2.0 setup token and the installer token on the Integrate page - used the wrong URL parameter for the Variables permission (variables instead of GitHub's actual actions_variables), so GitHub silently ignored it and the generated token was missing Variables: Read and write. That left the token unable to save the TOIMAGES_IMAGE render-image variable even when Secrets was granted. The links now send actions_variables, so opening the token page pre-selects both Secrets and Variables (Read and write). Secrets and Actions were already correct.",
+        "highlights": [
+          "Token-creation links now correctly pre-select the Variables permission (GitHub's parameter is actions_variables, not variables).",
+          "Fixes both the VI Browser 2.0 setup token and the installer token on the Integrate page.",
+          "The pre-filled GitHub token form now has Secrets + Variables (Read and write) ready - no manual permission hunting."
+        ]
+      },
       {
         "version": "3.4.6",
         "date": "2026-06-18",
