@@ -576,8 +576,11 @@
       // contents/pull_requests/workflows let the install commit files and open the
       // PR; actions:write lets this SAME token queue CI runs from the dashboard
       // afterward (Run now / Run all history), so setup and running share one token.
-      const perms = { contents: "write", pull_requests: "write", workflows: "write", actions: "write", secrets: "write", actions_variables: "write" };
-      if (wantsPages()) { perms.administration = "write"; perms.pages = "write"; }
+      // administration:write lets the install tag this repo (topics) so the
+      // source repo's client directory can discover it, and set Workflow
+      // permissions for you; pages:write turns on Pages when you opt in.
+      const perms = { contents: "write", pull_requests: "write", workflows: "write", actions: "write", secrets: "write", actions_variables: "write", administration: "write" };
+      if (wantsPages()) { perms.pages = "write"; }
       const p = new URLSearchParams(Object.assign({
         name: "LabVIEW CI installer",
         description: "Installs the LabVIEW CI pipeline" + (repo ? " into " + repo : "") + " and opens a pull request; also queues CI runs from the dashboard."
@@ -587,8 +590,8 @@
     }
     function renderTokPanel() {
       const li = $("insTokPerms"); if (!li) return;
-      let html = `Confirm <strong>Permissions</strong> &mdash; <strong>Contents</strong>, <strong>Pull requests</strong>, <strong>Workflows</strong>, <strong>Actions</strong>, <strong>Secrets</strong>, and <strong>Variables</strong> set to <strong>Read and write</strong> (Workflows lets the install add files under <code class="inl">.github/workflows/</code>; Actions lets this token queue CI runs; Secrets + Variables let the VI Browser 2.0 panel save its image and token)`;
-      if (wantsPages()) html += `, plus <strong>Administration</strong> and <strong>Pages</strong> (Read and write) so the configurator can set Workflow permissions and turn on Pages for you`;
+      let html = `Confirm <strong>Permissions</strong> &mdash; <strong>Contents</strong>, <strong>Pull requests</strong>, <strong>Workflows</strong>, <strong>Actions</strong>, <strong>Secrets</strong>, <strong>Variables</strong>, and <strong>Administration</strong> set to <strong>Read and write</strong> (Workflows lets the install add files under <code class="inl">.github/workflows/</code>; Actions lets this token queue CI runs; Secrets + Variables let the VI Browser 2.0 panel save its image and token; Administration lets the install tag your repo so it&rsquo;s listed in the directory)`;
+      if (wantsPages()) html += `, plus <strong>Pages</strong> (Read and write) so the configurator can turn on Pages for you`;
       li.innerHTML = html + `.`;
     }
 
@@ -885,6 +888,23 @@
       } catch (e) { setup.pages = "manual"; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
     }
 
+    // Best-effort: tag the repo with the client topic so the source repo's client
+    // directory can discover it reliably (repository-topic search). Records the
+    // outcome in `setup`; a token without Administration flags adminMissing, which
+    // prompts the user (in installSuccess) to re-create the token with it.
+    async function tagClientTopic(repo, setup) {
+      const TOPIC = "labview-ci";
+      try {
+        const cur = await ghJson(await gh(`/repos/${repo}/topics`));
+        const names = (cur && cur.names) || [];
+        if (names.indexOf(TOPIC) >= 0) { setup.topic = "exists"; return; }
+        const put = await gh(`/repos/${repo}/topics`, { method: "PUT", body: { names: names.concat([TOPIC]) } });
+        if (put.ok) { setup.topic = "done"; return; }
+        setup.topic = "manual";
+        if (put.status === 403 || put.status === 404) setup.adminMissing = true; else await ghJson(put);
+      } catch (e) { setup.topic = "manual"; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
+    }
+
     function setInsBar(frac, stateCls) {
       const w = $("insBar"); if (!w) return;
       w.hidden = false;
@@ -1009,7 +1029,7 @@
       const note = $("insNote");
       if (note) {
         if (setup.adminMissing) {
-          note.innerHTML = `Heads up: your token didn&rsquo;t include <strong>Administration</strong> + <strong>Pages</strong>, so those two settings were left for you above. Re-create the token with those permissions (re-open the token panel) to have the configurator do it for you next time.`;
+          note.innerHTML = `Heads up: your token didn&rsquo;t include <strong>Administration</strong> (Read and write), so this repo couldn&rsquo;t be tagged for the client directory${setup.hasDashboard ? ", and the Workflow permissions / Pages settings were left for you above" : ""}. Re-create the token with <strong>Administration</strong> (re-open the token panel) so the configurator can do it for you next time.`;
           note.style.display = "";
         } else { note.style.display = "none"; }
       }
@@ -1377,6 +1397,8 @@
           setInsStatus("Configuring repository settings&hellip;", null);
           await runPublishSetup(repo, setup);
         }
+        // Always best-effort: tag the repo so the source's client directory finds it.
+        await tagClientTopic(repo, setup);
         installSuccess(pr, repo, setup);
         setInsBar(1, "done");
       } catch (e) {

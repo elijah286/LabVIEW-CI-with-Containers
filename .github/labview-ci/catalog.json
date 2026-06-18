@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.9",
+  "version": "3.4.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.10",
+        "date": "2026-06-18",
+        "title": "Apply to New Repo: auto-tag your repository so it appears in the client directory",
+        "summary": "Installing via Apply to New Repo now tags your repository with the labview-ci topic so the source repository's client directory can discover and link it reliably (topic search is complete where code search is not). This uses the install token's Administration permission, which the pre-filled token now requests. If your existing token lacks it, the install still completes and a note prompts you to re-create the token with Administration so the repo can be tagged next time - tagging is best-effort and never blocks the install.",
+        "highlights": [
+          "Installs tag the repo with the labview-ci topic so it is reliably listed in the source client directory.",
+          "The pre-filled install token now requests Administration (Read and write); if it is missing the install still succeeds and prompts you to re-create the token with it.",
+          "Tagging is best-effort and never blocks the install."
+        ]
+      },
       {
         "version": "3.4.9",
         "date": "2026-06-18",
