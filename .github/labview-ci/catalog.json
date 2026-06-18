@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.3",
+  "version": "3.4.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.4",
+        "date": "2026-06-18",
+        "title": "Apply to New Repo publishes the dashboard first, even if a CI check fails",
+        "summary": "Installing the pipeline into a new repository now makes the CI dashboard and its README link the first thing that goes live - independent of any CI run. Previously the dashboard only appeared after the first analysis run, so a failing check (for example the Windows VI Analyzer) could leave the site stuck on the publishing placeholder. The configurator now squash-merges the install pull request by default and dispatches the dashboard build immediately, so the dashboard publishes within a minute of applying, and the placeholder and on-screen guidance no longer say it waits for a CI run. Changing a VI still fills in the analysis columns (VI Analyzer, VIDiff, Mass Compile), but a failing check never keeps the dashboard from publishing. Uncheck the new default to review the install pull request first - the dashboard then publishes the moment you merge.",
+        "highlights": [
+          "The dashboard and README link publish as the first thing on Apply to New Repo - no CI run required, and a failing VI Analyzer no longer blocks the dashboard.",
+          "The install pull request now auto-merges by default and the dashboard build is dispatched immediately, so the site goes live within a minute (uncheck to review first).",
+          "Corrected the publishing placeholder and the installer guidance that wrongly said the dashboard appears only after the first CI run."
+        ]
+      },
       {
         "version": "3.4.3",
         "date": "2026-06-18",

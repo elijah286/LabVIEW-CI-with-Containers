@@ -165,6 +165,9 @@
         <label class="insopt"><input type="checkbox" id="optPages" checked>
           <span><strong>Turn on GitHub Pages &amp; set Workflow permissions for me</strong><small>Sets Actions to read/write and enables Pages (<code class="inl">gh-pages</code>) so the dashboard goes live with no manual settings. Needs a broader token &mdash; Administration + Pages &mdash; and falls back to manual steps if you decline them.</small></span>
         </label>
+        <label class="insopt"><input type="checkbox" id="optAutoMerge" checked>
+          <span><strong>Publish the dashboard right away (auto-merge the install PR)</strong><small>Squash &amp; merge the install pull request immediately so the dashboard goes live and the README link lands as the first thing &mdash; no review wait and no CI run required. Uncheck to review the PR first; the dashboard then publishes the moment you merge.</small></span>
+        </label>
       </div>
 
       <div class="tokpanel reinstall" id="insReinstallPanel" style="display:none">
@@ -243,11 +246,11 @@
     <section>
       <h2>4. Finish setup</h2>
       <ol class="steps">
-        <li>Merge the install pull request (or, if you used the manual option, commit the added <code class="inl">.github/</code> files).</li>
+        <li>Merge the install pull request — the <strong>dashboard publishes itself</strong> from that merge (no CI run required), and the README link lands in the same merge.</li>
         <li>Enable <strong>GitHub Pages</strong> from the <code class="inl">gh-pages</code> branch (Settings &rsaquo; Pages).</li>
         <li>Set <strong>Workflow permissions</strong> to <em>Read and write</em> (Settings &rsaquo; Actions &rsaquo; General).</li>
         <li id="varsStep">Optionally pin settings as Actions variables (shown after you choose options).</li>
-        <li>Open a pull request that changes a VI — the pipeline runs and reports back.</li>
+        <li>Open a pull request that changes a VI whenever you want the analysis columns (VI Analyzer, VIDiff, Mass Compile) to fill in — a failing check never keeps the dashboard from publishing.</li>
       </ol>
       <p class="hint" style="margin-top:12px">None of these choices are permanent — change the LabVIEW version, platforms, activities, and container dependencies any time from <strong>⚙ Configure Workers</strong> on the dashboard (it opens a pull request with your changes). To pull later tooling improvements, re-run the installer with <code class="inl">--update</code>.</p>
     </section>
@@ -849,7 +852,7 @@
         `<meta http-equiv="refresh" content="30">` +
         `<body style="font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;display:grid;place-items:center;min-height:100vh;margin:0">` +
         `<div style="text-align:center"><h1>LabVIEW CI dashboard</h1>` +
-        `<p>Publishing\u2026 this page appears after the first CI run completes.</p></div>`;
+        `<p>Publishing\u2026 your dashboard goes live within a minute of the install merge \u2014 no CI run required.</p></div>`;
       const blob = await ghJson(await gh(`/repos/${repo}/git/blobs`, { method: "POST", body: { content: b64text(html), encoding: "base64" } }));
       const tree = await ghJson(await gh(`/repos/${repo}/git/trees`, { method: "POST", body: { tree: [{ path: "index.html", mode: "100644", type: "blob", sha: blob.sha }] } }));
       const commit = await ghJson(await gh(`/repos/${repo}/git/commits`, { method: "POST", body: { message: "chore: initialize gh-pages for the LabVIEW CI dashboard", tree: tree.sha, parents: [] } }));
@@ -930,9 +933,53 @@
       lines.push("", "### After you merge", "",
         "1. **Workflow permissions** must be *Read and write* (Settings \u203a Actions \u203a General) \u2014 the configurator may have already set this for you.",
         "2. **GitHub Pages** must be enabled on the `gh-pages` branch (Settings \u203a Pages) \u2014 the configurator may have already enabled this for you; otherwise turn it on after the first run creates the branch.",
-        "3. Open a pull request that changes a VI \u2014 the pipeline runs and reports back on the dashboard.", "",
+        "3. The **dashboard publishes itself from this merge** \u2014 no CI run required. Open a pull request that changes a VI whenever you want the analysis columns (VI Analyzer, VIDiff, Mass Compile) to fill in; a failing check never blocks the dashboard.", "",
         "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", "");
       return lines.join("\n");
+    }
+
+    async function mergeInstallPr(pr, repo) {
+      try {
+        setInsStatus("Merging pull request&hellip;", null);
+        const mergeResp = await gh(`/repos/${repo}/pulls/${pr.number}/merge`, {
+          method: "PUT",
+          body: {
+            commit_title: pr.title,
+            commit_message: pr.body,
+            merge_method: "squash"
+          }
+        });
+        if (!mergeResp.ok) {
+          const err = await mergeResp.json();
+          console.warn("Merge failed:", err);
+          return false;
+        }
+        return true;
+      } catch (e) {
+        console.warn("Error auto-merging PR:", e);
+        return false;
+      }
+    }
+
+    // Kick the dashboard build the instant the install merges, so the dashboard +
+    // README link go live as the FIRST thing — never waiting on a CI run, the
+    // hourly schedule, or a VI change (a failing VI Analyzer must NOT keep the
+    // dashboard from publishing). The consumer's dashboard workflow already fires
+    // on the merge push; this dispatch guarantees a build even if that event is
+    // coalesced, and gives instant feedback. Best-effort: a 404 just means the
+    // workflow file isn't registered on the default branch yet (the merge-push
+    // build still covers it), so we briefly retry, then fall back silently.
+    async function publishDashboardNow(repo, branch) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await gh(`/repos/${repo}/actions/workflows/dashboard-pages.yml/dispatches`,
+            { method: "POST", body: { ref: branch } });
+          if (r.ok || r.status === 204) return true;
+          if (r.status !== 404) return false;   // real error (e.g. perms) — stop retrying
+        } catch (_) { /* transient network — retry */ }
+        await sleep(3000);                       // workflow not on the default branch yet
+      }
+      return false;
     }
 
     function installSuccess(pr, repo, setup) {
@@ -945,7 +992,7 @@
       if (setup.removed && setup.removed.length) done.push(`Removed <strong>${setup.removed.length}</strong> old tooling file${setup.removed.length > 1 ? "s" : ""} no longer used (in the pull request).`);
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
-      if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a><small>It goes live after the first CI run; until then it shows a &ldquo;publishing&hellip;&rdquo; placeholder.</small>`);
+      if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a><small>It publishes within a minute of the install merge &mdash; no CI run required; until then it shows a &ldquo;publishing&hellip;&rdquo; placeholder.</small>`);
       else if (setup.pages === "exists") done.push(`<strong>GitHub Pages</strong> is already on &mdash; dashboard at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>.`);
       const doneEl = $("insDone");
       if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = done.length ? "" : "none"; }
@@ -954,7 +1001,7 @@
       steps.push(`Review and merge pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>.`);
       if (setup.workflowPerms !== "done") steps.push(`Set <strong>Workflow permissions</strong> to <em>Read and write</em> (<a href="https://github.com/${esc(repo)}/settings/actions" target="_blank" rel="noopener">Settings &rsaquo; Actions &rsaquo; General</a>).`);
       if (setup.hasDashboard && setup.pages !== "done" && setup.pages !== "exists")
-        steps.push(`After the first run publishes the <code class="inl">gh-pages</code> branch, enable <strong>GitHub Pages</strong> from it (<a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a>).`);
+        steps.push(`After you merge, the dashboard build publishes the <code class="inl">gh-pages</code> branch \u2014 then enable <strong>GitHub Pages</strong> from it (<a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a>). No CI run is required.`);
       const nextEl = $("insNext");
       if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
 
@@ -964,6 +1011,28 @@
           note.innerHTML = `Heads up: your token didn&rsquo;t include <strong>Administration</strong> + <strong>Pages</strong>, so those two settings were left for you above. Re-create the token with those permissions (re-open the token panel) to have the configurator do it for you next time.`;
           note.style.display = "";
         } else { note.style.display = "none"; }
+      }
+
+      // Auto-merge if the checkbox is enabled
+      if ($("optAutoMerge") && $("optAutoMerge").checked) {
+        mergeInstallPr(pr, repo).then(success => {
+          if (success) {
+            const nextEl = $("insNext");
+            if (nextEl) nextEl.style.display = "none";
+            // The merge already triggers the dashboard build; dispatch it too so it
+            // publishes immediately as the first thing, independent of any CI run.
+            if (setup.hasDashboard && setup.branch) {
+              setInsStatus(`&#10003; Merged pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026`, "ok");
+              publishDashboardNow(repo, setup.branch).then(ok => {
+                setInsStatus(`&#10003; Done \u2014 merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> and ${ok ? "started the dashboard build" : "the merge is publishing the dashboard"}. It goes live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> within a minute \u2014 no CI run required.`, "ok");
+              });
+            } else {
+              setInsStatus(`&#10003; Done \u2014 pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`, "ok");
+            }
+          } else {
+            setInsStatus(`&#10003; Opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but auto-merge failed (check the link above to merge manually). The dashboard publishes itself the moment you merge \u2014 no CI run required.`, "ok");
+          }
+        });
       }
     }
 
@@ -1232,6 +1301,7 @@
         const meta = await ghWrite(`/repos/${repo}`, null, "read your repository");
         const branch = meta && meta.default_branch;
         if (!branch) throw new Error("Your repository has no commits yet. Push an initial commit (e.g. a README) first, then install.");
+        setup.branch = branch;   // remembered so we can dispatch the dashboard build right after an auto-merge
         const headRef = await ghWrite(`/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, null, "read the default branch");
         const headSha = headRef.object.sha;
         const baseCommit = await ghWrite(`/repos/${repo}/git/commits/${headSha}`, null, "read the base commit");
