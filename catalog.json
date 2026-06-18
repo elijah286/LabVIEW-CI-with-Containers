@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.22",
+  "version": "3.4.23",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.23",
+        "date": "2026-06-18",
+        "title": "Finish a workflow-only update without leaving the What's New page",
+        "summary": "When you click Update now and the new version changes only GitHub workflow files, your repository's built-in token cannot push them, so no pull request can be opened. The What's New page now recognizes this and lets you finish right there: it shows a one-time token field with a ready-made link that pre-selects exactly the permissions needed (Contents, Workflows, Pull requests and Secrets, all read and write), and when you paste the token it is encrypted in your browser, stored as the repository's TOOLING_UPDATE_TOKEN secret, and the update restarts on its own - no trip to repository settings and no command line. This release also fixes a tracking bug that could report a pull request as missing: the page watched the wrong branch name for the update's pull request, so an update that had actually opened its pull request looked stuck on 'no pull request appeared'. The page now matches the real update branch, so a genuine pull request is always detected and the token field appears only when an update truly needs one.",
+        "highlights": [
+          "When an update only changes workflow files and no pull request can open, the What's New page now offers an inline one-time token: a pre-filled creation link plus a paste field that finishes the update in place, instead of sending you to your repository settings.",
+          "The pasted token is sealed in your browser (libsodium) and saved only as the repository's TOOLING_UPDATE_TOKEN secret - sent only to api.github.com, never to the page or CI, and not kept in your browser - then the update restarts automatically.",
+          "Fixed a false 'no pull request appeared' state: the page watched the wrong branch name and missed a pull request that had actually opened. It now matches the real update branch, so a real pull request is always detected."
+        ]
+      },
       {
         "version": "3.4.22",
         "date": "2026-06-18",

@@ -263,6 +263,30 @@
         </details>
         <div class="up-prog-foot" id="upProgFoot" hidden></div>
       </div>
+      <!-- Inline recovery for the "workflow-file-only" update: a release that changes
+           only .github/workflows/** can't be pushed by the repo's built-in token, so
+           no pull request opens. Create a one-time fine-grained token (Contents +
+           Workflows + Pull requests + Secrets = write); the page seals it in the
+           browser and stores it as the TOOLING_UPDATE_TOKEN repository secret, then
+           restarts the update -- no trip to repository settings. -->
+      <div class="tokpanel" id="wfTokPanel" style="display:none">
+        <h3>Finish the update &mdash; add a one-time workflow token</h3>
+        <p class="note">This release changes only GitHub <strong>workflow files</strong>, which the repository&rsquo;s
+          built-in token isn&rsquo;t allowed to push &mdash; so the update couldn&rsquo;t open its pull request. Add a one-time
+          token below and the update finishes right here.</p>
+        <ol>
+          <li><a id="wfTokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a> &mdash; opens with the name, owner, and <strong>Contents + Workflows + Pull requests + Secrets = Read and write</strong> already filled in.</li>
+          <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code id="wfTokRepo"></code>. <span class="note">(The one step GitHub can&rsquo;t pre-fill from a link.)</span></li>
+          <li>Generate, then paste it below.</li>
+        </ol>
+        <p class="note">Encrypted in this browser (libsodium) and stored only as this repository&rsquo;s <code>TOOLING_UPDATE_TOKEN</code> secret &mdash; sent only to api.github.com, never to this page or CI, and not kept in your browser.</p>
+        <div class="tokrow">
+          <input id="wfTokInput" type="password" autocomplete="off" placeholder="github_pat_&hellip;">
+          <button type="button" class="primary" id="wfTokSave">Save &amp; finish update</button>
+          <button type="button" class="ghost" id="wfTokCancel">Cancel</button>
+        </div>
+        <div class="status" id="wfTokStatus"></div>
+      </div>
       <div class="status" id="cmdStatus" style="margin-bottom:4px"></div>
       <p class="hint" id="updateHowto"></p>
       <details id="cliDetails" style="margin-top:14px">
@@ -580,6 +604,7 @@
       prog.phase = PH.IDLE; prog.runId = 0; prog.runUrl = ""; prog.prUrl = ""; prog.prNum = 0;
       try { localStorage.removeItem("lvci_updating"); } catch (_) {}
       lockUpdateControls(false);
+      hideWfTokenPanel();
       renderProgress("");
       setCmdStatus("", null);
     }
@@ -627,6 +652,7 @@
       if (!ver) return;
       if (prog.phase >= PH.DISPATCH && prog.phase <= PH.REVIEW) return; // already running — no duplicates
       if (!getTok()) { showTokenPanel(); return; }
+      hideWfTokenPanel();
       prog.ver = ver; prog.ts = Date.now(); prog.runId = 0; prog.runUrl = ""; prog.prUrl = ""; prog.prNum = 0;
       clearTimers();
       setCmdStatus("", null);
@@ -666,20 +692,127 @@
       dispatchUpdate();
     }
 
-    // After dispatch, the workflow force-pushes branch ci/update-tooling-v<ver>
-    // and opens (or updates) a PR. Poll the public PR list to surface a direct
-    // "review & merge" link; if none appears the run summary explains why.
+    // ---- workflow-file-only recovery: install TOOLING_UPDATE_TOKEN inline -----
+    // Some releases change ONLY .github/workflows/** files. The repo's built-in
+    // GITHUB_TOKEN can't push workflow files, so apply-tooling-update.yml defers
+    // them and (when nothing else changed) opens no pull request. The repo-side fix
+    // is a TOOLING_UPDATE_TOKEN secret the workflow pushes + opens the PR with
+    // (Contents + Workflows + Pull requests = write). Rather than send the user to
+    // Settings, we let them create that token and store it here: it is sealed in the
+    // browser with the repo's public key (GitHub requires a libsodium crypto_box_seal)
+    // and PUT as the secret using its own Secrets:write, then the update is restarted.
+    let sealReady = null;
+    function addSealScript(src, integ) {
+      return new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = src; if (integ) s.integrity = integ; s.crossOrigin = "anonymous";
+        let settled = false;
+        const timer = setTimeout(() => { if (settled) return; settled = true; s.onload = s.onerror = null; rej(new Error("timeout")); }, 12000);
+        s.onload = () => { if (settled) return; settled = true; clearTimeout(timer); res(); };
+        s.onerror = () => { if (settled) return; settled = true; clearTimeout(timer); rej(new Error("error")); };
+        document.head.appendChild(s);
+      });
+    }
+    function loadSealCdn(pkg, integ) {
+      return addSealScript("https://cdn.jsdelivr.net/npm/" + pkg, integ)
+        .catch(() => addSealScript("https://unpkg.com/" + pkg, integ));
+    }
+    function loadSealedBox() {
+      if (sealReady) return sealReady;
+      if (window.nacl && window.sealedBox) { sealReady = Promise.resolve(window.sealedBox); return sealReady; }
+      sealReady = loadSealCdn("tweetnacl@1.0.3/nacl-fast.min.js", "sha384-05+sicyRJQ56XpL4U9HJ8YbtSzFDvAg7apPKOGV6A0JsAJKFM68jp5oLnUjG5mEp")
+        .then(() => loadSealCdn("tweetnacl-sealedbox-js@1.2.0/sealedbox.web.js", "sha384-gCr/Ers2SYUTIvvm+iWV5lakrZ/tTqxgYQckm0Znr3blQzNfOPirDZlpvkINLyhv"))
+        .then(() => { if (!window.nacl || !window.sealedBox) throw new Error("Encryption library unavailable."); return window.sealedBox; })
+        .catch(() => { sealReady = null; throw new Error("Couldn't load the in-browser encryption library (network blocked?). Check your connection and try again."); });
+      return sealReady;
+    }
+    function b64ToBytes(b) { const s = atob(b), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+    function bytesToB64(u) { let s = ""; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+    function sealForRepo(v, pk) { return loadSealedBox().then((sb) => bytesToB64(sb.seal(new TextEncoder().encode(v), b64ToBytes(pk)))); }
+
+    // Use the NEW token's own Secrets:write to seal + store itself as TOOLING_UPDATE_TOKEN.
+    function writeToolingSecret(token) {
+      const base = `https://api.github.com/repos/${state.repo}/actions/secrets`;
+      const h = { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Authorization": "Bearer " + token };
+      return fetch(base + "/public-key", { cache: "no-store", headers: h })
+        .then((r) => { if (!r.ok) { const e = new Error("HTTP " + r.status); e.status = r.status; throw e; } return r.json(); })
+        .then((pk) => sealForRepo(token, pk.key).then((enc) =>
+          fetch(`${base}/TOOLING_UPDATE_TOKEN`, {
+            method: "PUT",
+            headers: Object.assign({ "Content-Type": "application/json" }, h),
+            body: JSON.stringify({ encrypted_value: enc, key_id: pk.key_id })
+          }).then((r) => { if (!r.ok) { const e = new Error("HTTP " + r.status); e.status = r.status; throw e; } })));
+    }
+
+    // Pre-fill the fine-grained token form with exactly the permissions the workflow
+    // needs to push workflow files + open the PR, plus Secrets so the browser can
+    // store it as the secret. GitHub can't pre-select the repo, so that stays manual.
+    function wfTokenUrl() {
+      const owner = (state.repo || "").split("/")[0];
+      const qp = new URLSearchParams({
+        name: "LabVIEW CI workflow update",
+        description: "Finish a workflow-file update for " + (state.repo || "this repo") + " (TOOLING_UPDATE_TOKEN).",
+        contents: "write", workflows: "write", pull_requests: "write", secrets: "write"
+      });
+      if (owner) qp.set("target_name", owner);
+      return "https://github.com/settings/personal-access-tokens/new?" + qp.toString();
+    }
+    function setWfTokStatus(html, kind) { const s = $("wfTokStatus"); if (!s) return; s.className = "status" + (kind ? " " + kind : ""); s.innerHTML = html || ""; }
+    function showWfTokenRecovery() {
+      const p = $("wfTokPanel"); if (!p) return;
+      const tr = $("wfTokRepo"); if (tr) tr.textContent = state.repo || "";
+      const tc = $("wfTokCreate"); if (tc) tc.href = wfTokenUrl();
+      const sv = $("wfTokSave"); if (sv) sv.disabled = false;
+      setWfTokStatus("", null);
+      p.style.display = "";
+    }
+    function hideWfTokenPanel() { const p = $("wfTokPanel"); if (p) p.style.display = "none"; }
+    function saveWfTokenAndRetry() {
+      const i = $("wfTokInput");
+      const v = (i && i.value || "").trim();
+      if (!v) { if (i) i.focus(); return; }
+      const btn = $("wfTokSave"); if (btn) btn.disabled = true;
+      setWfTokStatus(`Encrypting and saving the token to <code>${esc(state.repo)}</code>&hellip;`, null);
+      writeToolingSecret(v)
+        .then(() => {
+          if (i) i.value = "";
+          hideWfTokenPanel();
+          // Clear the stuck REVIEW phase so the duplicate guard doesn't block the
+          // re-dispatch, then re-run with the existing dispatch token. The workflow
+          // now has TOOLING_UPDATE_TOKEN and can push the workflow files + open the PR.
+          resetProgress();
+          dispatchUpdate();
+          setCmdStatus("Saved the <code>TOOLING_UPDATE_TOKEN</code> secret &mdash; restarting the update&hellip;", "ok");
+        })
+        .catch((e) => {
+          const s = e && e.status;
+          let msg;
+          if (s === 401) msg = "That token was rejected (401). Copy the whole <code>github_pat_&hellip;</code> value and try again.";
+          else if (s === 403) msg = `That token can&rsquo;t write <strong>Secrets</strong> on <code>${esc(state.repo)}</code>. On the token page set <strong>Secrets: Read and write</strong> (picking the repository alone isn&rsquo;t enough), regenerate, and paste it again.`;
+          else if (s === 404) msg = `That token can&rsquo;t see <code>${esc(state.repo)}</code>. Under <strong>Repository access</strong> choose <strong>Only select repositories</strong> and add this repository.`;
+          else msg = "Couldn&rsquo;t save the token: " + esc(e && e.message || String(e));
+          setWfTokStatus(msg, "err");
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    // After dispatch, the workflow force-pushes branch ci/adopt-tooling-v<ver>
+    // (older tooling used ci/update-tooling-v<ver>) and opens (or updates) a PR.
+    // Poll the open PR list and match either branch so a real PR is never missed;
+    // if none appears it's the workflow-file-only case, handled inline above.
     function pollForPr(ver, tries) {
       tries = tries || 0;
-      const owner = state.repo.split("/")[0] || "";
-      const branch = "ci/update-tooling-v" + ver;
-      const url = `https://api.github.com/repos/${state.repo}/pulls?state=open&head=${owner}:${branch}`;
+      const branches = ["ci/adopt-tooling-v" + ver, "ci/update-tooling-v" + ver];
+      const url = `https://api.github.com/repos/${state.repo}/pulls?state=open&per_page=100`;
       const pullsPage = `https://github.com/${state.repo}/pulls`;
       fetch(url, { cache: "no-store", headers: authHeaders() })
         .then((r) => r.ok ? r.json() : null)
         .then((list) => {
-          if (Array.isArray(list) && list.length) {
-            const pr = list[0];
+          const pr = Array.isArray(list)
+            ? list.find((p) => p && p.head && branches.indexOf(p.head.ref) !== -1)
+            : null;
+          if (pr) {
+            hideWfTokenPanel();
             prog.prUrl = pr.html_url; prog.prNum = pr.number;
             setPhase(PH.REVIEW,
               `Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> is open. ` +
@@ -689,14 +822,18 @@
             return;
           }
           if (tries < 12) { later(() => pollForPr(ver, tries + 1), 2500); return; }
-          // No PR after the workflow finished: most likely the workflow-scope edge
-          // case (only workflow files changed and the built-in token couldn't push
-          // them). Point at the run summary, which spells out the one-time token.
+          // No PR after the workflow finished: the workflow-file-only case -- this
+          // release changed only .github/workflows/** files, which the repo's
+          // built-in token can't push, so no PR could open. Offer the one-time
+          // TOOLING_UPDATE_TOKEN inline (create link + paste field) so the user can
+          // finish here; keep the run-summary link as a fallback for other causes.
+          showWfTokenRecovery();
           setPhase(PH.REVIEW,
-            `The update ran, but no pull request has appeared yet. If one doesn&rsquo;t show under ` +
-            `<a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a> shortly, open the ` +
-            `<a href="${esc(prog.runUrl || `https://github.com/${state.repo}/actions`)}" target="_blank" rel="noopener">workflow run</a> ` +
-            `&mdash; its summary explains any step that needs a one-time token.`);
+            `The update ran, but no pull request appeared &mdash; this usually means the new version changes only ` +
+            `GitHub <strong>workflow files</strong>, which the repository&rsquo;s built-in token can&rsquo;t push. ` +
+            `<strong>Add a one-time token below to finish without leaving this page.</strong> ` +
+            `Still stuck? Check <a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a> or the ` +
+            `<a href="${esc(prog.runUrl || `https://github.com/${state.repo}/actions`)}" target="_blank" rel="noopener">workflow run</a> summary.`);
         })
         .catch(() => { if (tries < 12) later(() => pollForPr(ver, tries + 1), 2500); });
     }
@@ -927,6 +1064,9 @@
       $("tokCancel").addEventListener("click", hideTokenPanel);
       $("tokForget").addEventListener("click", () => { clearTok(); refreshTokForget(); setCmdStatus("Token removed from this browser.", null); });
       const ti = $("tokInput"); if (ti) ti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveTokAndDispatch(); } });
+      const ws = $("wfTokSave"); if (ws) ws.addEventListener("click", saveWfTokenAndRetry);
+      const wc = $("wfTokCancel"); if (wc) wc.addEventListener("click", hideWfTokenPanel);
+      const wi = $("wfTokInput"); if (wi) wi.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveWfTokenAndRetry(); } });
       const det = $("upDetails"); if (det) det.addEventListener("toggle", () => { if (det.open) refreshJobs(); else stopJobsTimer(); });
     }
 
