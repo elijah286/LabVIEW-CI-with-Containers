@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.17",
+  "version": "3.4.18",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.18",
+        "date": "2026-06-18",
+        "title": "Apply to New Repo: reliably switch on GitHub Pages, explain when it can't, and link the live dashboard",
+        "summary": "The configurator now turns on GitHub Pages reliably for any repository that supports it, so you don't have to touch Settings. Enabling Pages is retried a few times to ride out the brief race right after the gh-pages branch is created (which previously left Pages off on a repo that fully supported it). When Pages genuinely can't be switched on, the installer explains exactly why and what to do: a private repository needs to be made public or upgraded to GitHub Pro, Team, or Enterprise; a token missing the Pages permission prompts you to Forget token and reinstall to create one that includes it. And when the dashboard goes live, a prominent \"Open your dashboard\" link is shown. No change to an already-installed pipeline.",
+        "highlights": [
+          "Turning on GitHub Pages now retries the transient race after the gh-pages branch is created, so it succeeds for any repo that supports it - no manual Settings step.",
+          "Situation-specific guidance when Pages can't be enabled: private repo (make public or upgrade to Pro/Team/Enterprise) vs a token missing the Pages permission (Forget token + reinstall).",
+          "A prominent 'Open your dashboard' link appears once the new dashboard is confirmed live."
+        ]
+      },
       {
         "version": "3.4.17",
         "date": "2026-06-18",
