@@ -1029,7 +1029,7 @@
         renderBadge();
         var src = (cat.source && cat.source.repo) || '';
         var isConsumer = src && repo && src.toLowerCase() !== repo.toLowerCase();
-        if (!isConsumer) return;
+        if (!isConsumer) { revealClients(); return; }   // root repo: surface Clients even before a scan has published clients.json
         var ref = (cat.source && cat.source.ref) || 'main';
         fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/catalog.json', { cache: 'no-cache' })
           .then(function (r) { return r.ok ? r.json() : null; })
@@ -1040,22 +1040,21 @@
       }).catch(function () {});
   }
   // ── Clients registry (root/source repo only) ────────────────────────────
-  // The root repo publishes clients.json (every repo discovered to run this
-  // tooling, via the scheduled discovery workflow). Its presence is the gate: we
-  // reveal the Clients nav entry only where that file is served, so it never
-  // appears on a consumer site (the fetch 404s and the entry stays hidden).
+  // The Clients nav entry belongs to the ROOT repo that originates this tooling.
+  // It is revealed when this repo is the source (no upstream — see loadVersion)
+  // or once the published clients.json is read (then it also shows a count). It
+  // stays hidden on consumer sites.
+  function revealClients(count) {
+    clientsEls.forEach(function (a) {
+      a.style.display = '';
+      if (count) { var c = a.querySelector('.lvci-ncount'); if (c) { c.textContent = count; c.hidden = false; } }
+    });
+  }
   function loadClients() {
     if (!clientsEls.length) return;
     fetch(base + '/clients.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (data) {
-        if (!data) return;
-        var n = (data.clients && data.clients.length) || data.count || 0;
-        clientsEls.forEach(function (a) {
-          a.style.display = '';
-          var c = a.querySelector('.lvci-ncount');
-          if (c && n) { c.textContent = n; c.hidden = false; }
-        });
-      }).catch(function () {});
+      .then(function (data) { if (data) revealClients((data.clients && data.clients.length) || data.count || 0); })
+      .catch(function () {});
   }
   function cmpVer(a, b) {
     var pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
@@ -1234,7 +1233,7 @@
     renderBadge();
   };
 
-  function init() { build(); loadVersion(); loadClients(); startActivity(); }
+  function init() { build(); if (cfg.isSource) revealClients(); loadVersion(); loadClients(); startActivity(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
