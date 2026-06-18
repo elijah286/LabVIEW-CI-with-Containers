@@ -43,6 +43,11 @@ API = "https://api.github.com"
 SOURCE_REPO = (os.environ.get("SOURCE_REPO") or "").strip()
 TOKEN = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or "").strip()
 OUT = os.environ.get("CLIENTS_OUT", "ci-out/clients/clients.json")
+# Repository topic that clients carry (set on the client repo at install time).
+# Repository search indexes topics as structured metadata, so it is far more
+# complete and prompt than the code-search text index - it surfaces public
+# clients that code search silently omits. Blank disables the topic pass.
+CLIENT_TOPIC = (os.environ.get("CLIENT_TOPIC", "labview-ci") or "").strip()
 
 # Cap pagination so a runaway query can't spin forever (100 results/page).
 MAX_PAGES = 10
@@ -120,6 +125,35 @@ def raw_catalog(repo):
     return _get(url, auth=False)
 
 
+def search_repos_by_topic(topic):
+    """Return (set_of_repo_full_names, ran_ok) for public repos carrying a topic.
+
+    Uses the repository-search API, whose topic index is structured metadata and
+    far more complete/prompt than the code-search text index - so it surfaces
+    clients that code search silently omits. Each hit is still verified by the
+    caller (its catalog must point back to this source).
+    """
+    repos = set()
+    ran_ok = False
+    page = 1
+    while page <= MAX_PAGES:
+        qs = urllib.parse.urlencode({"q": "topic:%s" % topic, "per_page": 100, "page": page})
+        data = _get(API + "/search/repositories?" + qs)
+        if data is None:
+            break
+        ran_ok = True
+        items = data.get("items") or []
+        for it in items:
+            full = it.get("full_name")
+            if full:
+                repos.add(full)
+        if len(items) < 100:
+            break
+        page += 1
+        time.sleep(2)
+    return repos, ran_ok
+
+
 def main():
     if not SOURCE_REPO:
         print("SOURCE_REPO is not set", file=sys.stderr)
@@ -142,8 +176,21 @@ def main():
             candidates.setdefault(repo, set()).add(via)
         time.sleep(2)
 
+    # Reliable pass: repos that carry the client topic. Topic search is complete
+    # where code search is not, so this is the primary signal - but every hit is
+    # still verified below (its catalog source must point back to this repo),
+    # which filters unrelated repos that happen to share the generic topic.
+    if CLIENT_TOPIC:
+        repos, ran_ok = search_repos_by_topic(CLIENT_TOPIC)
+        any_ok = any_ok or ran_ok
+        for repo in repos:
+            if repo.lower() == slug.lower():
+                continue
+            candidates.setdefault(repo, set()).add("topic")
+        time.sleep(2)
+
     if not any_ok:
-        print("code search did not execute for any query (token/permission?)", file=sys.stderr)
+        print("no search query executed (token/permission?)", file=sys.stderr)
         return 1
 
     clients = []

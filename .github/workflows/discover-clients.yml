@@ -36,6 +36,8 @@ jobs:
           GH_TOKEN: ${{ secrets.DISCOVERY_TOKEN || secrets.GITHUB_TOKEN }}
           SOURCE_REPO: ${{ github.repository }}
           CLIENTS_OUT: ci-out/clients/clients.json
+          # Repository topic clients carry; the reliable discovery signal.
+          CLIENT_TOPIC: labview-ci
         run: python3 .github/scripts/discover-clients.py
 
       - name: Deploy clients.json to GitHub Pages
