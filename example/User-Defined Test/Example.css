@@ -1,0 +1,44 @@
+BODY { margin: 15pt; background-color: white; }
+
+BODY,P
+    { font-family: Arial, Helvetica; 
+      font-size: small;
+    }
+
+TD {  font-size: small; 
+	  margin:0px; 
+	  padding:4px; 
+	  padding-top:2px; 
+	  padding-bottom:2px; 
+	  border-width:0px;
+	  background-color: #CCCCCC;}
+
+TH {  font-size: small; 
+	  margin:0px; 
+	  padding:4px; 
+	  padding-top:2px; 
+	  padding-bottom:2px; 
+	  border-width:0px;
+	  background-color: #AAAAAA;}
+
+TABLE,FORM {  font-size: small; 
+	  padding:0px; 
+	  margin:0px; 
+	  border-width:0px;
+	  border-color: red;
+	  background-color: #FFFFFF;}
+
+DT,DT A
+    { font-family: Arial, Helvetica;
+      font-weight: bold; }
+
+H1,H2,H4
+    { font-family: Arial, Helvetica; }
+
+TT,PRE
+    { font-family: Arial, Helvetica; }
+
+H3
+    { font-family: Arial, Helvetica; 
+      font-size: medium; 
+      font-weight: bold}
