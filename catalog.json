@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.19",
+  "version": "3.4.20",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.20",
+        "date": "2026-06-18",
+        "title": "Dashboard menu reflects an in-progress update instead of offering to start it again",
+        "summary": "When a tooling update is already on its way to your repository, the dashboard's More menu now reflects that instead of inviting you to start it over. Previously the menu kept showing 'Update available' - which re-opens the update flow - even while the newer version was being applied and the dashboard was rebuilding, so it looked like you still had to act and you could accidentally start a second update on top of the running one. Now, whenever the update workflow is running or an update has been merged and is deploying, the menu shows that the update is in progress and links straight to the in-flight action so you can watch it finish; the 'Update available' option is hidden until the current update lands. This works no matter which browser started the update. There is no change to an already-installed pipeline.",
+        "highlights": [
+          "The version entry in the More menu now reads 'Updating to v...' and links to the running action whenever a tooling update is being applied - the update workflow is running, or a merged update is deploying.",
+          "The 'Update available' option, which re-opens the update flow, is suppressed while an update is already in flight, so a second update can't be started on top of the running one.",
+          "Detection no longer depends on the browser that started the update: it checks the update workflow and compares your repository's committed version against the deployed dashboard."
+        ]
+      },
       {
         "version": "3.4.19",
         "date": "2026-06-18",
