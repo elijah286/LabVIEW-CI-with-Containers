@@ -848,8 +848,27 @@
       ].join("\n");
     }
 
+    // Splice the dashboard section in right after the README's first level-1
+    // heading (the project title) so the badge is visible at the top, instead of
+    // appended to the very end where a long README (e.g. an auto-generated VI
+    // snapshot table) buries it. Falls back to the very top when there's no H1.
+    function insertReadmeSection(existing, repo) {
+      const section = readmeSection(repo);
+      // First ATX H1 only: "# " needs whitespace after the single hash, so the
+      // "#" that starts a "## " level-2 heading never matches. Skip a "#" that
+      // sits inside a leading ``` code fence (there it's a shell comment).
+      const m = existing.match(/^#[ \t]+.*(?:\r?\n)?/m);
+      if (m && existing.slice(0, m.index).indexOf("```") === -1) {
+        const at = m.index + m[0].length;
+        const head = existing.slice(0, at);
+        const rest = existing.slice(at).replace(/^(?:\r?\n)+/, "");
+        return (head.endsWith("\n") ? head : head + "\n") + "\n" + section + (rest ? "\n" + rest : "");
+      }
+      return section + "\n" + existing;
+    }
+
     // Fetch the repo's README (if any) and return a {path, content} that adds the
-    // dashboard section — or null when it already links the dashboard.
+    // dashboard section near the top — or null when it already links the dashboard.
     async function buildReadmeFile(repo) {
       let path = "README.md", existing = null;
       const r = await gh(`/repos/${repo}/readme`);
@@ -857,8 +876,7 @@
       else if (r.status !== 404) await ghJson(r);
       if (existing != null) {
         if (/labview-ci:dashboard/.test(existing)) return null;
-        const sep = existing.endsWith("\n") ? "\n" : "\n\n";
-        return { path, content: existing + sep + readmeSection(repo), isText: true };
+        return { path, content: insertReadmeSection(existing, repo), isText: true };
       }
       return { path: "README.md", content: `# ${repo.split("/")[1]}\n\n` + readmeSection(repo), isText: true };
     }

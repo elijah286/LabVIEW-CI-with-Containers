@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.21",
+  "version": "3.4.22",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.22",
+        "date": "2026-06-18",
+        "title": "Apply to New Repo adds the dashboard badge at the top of your README",
+        "summary": "When the installer adds the CI dashboard link to your README it now places the badge and link right after your project title instead of at the very end. On a repository with a long README - for example one that already carries an auto-generated VI Browser snapshot table - the badge was easy to miss at the bottom; now it sits just under the title where it is visible without scrolling. The link is still added only once: it is skipped when your README already contains it, so re-installs and tooling updates never duplicate or move it, and a brand-new README still gets the title followed by the badge.",
+        "highlights": [
+          "The dashboard badge and link are inserted right after your README's level-1 title, so they are visible at the top instead of buried beneath a long README.",
+          "Still idempotent: the badge is added only when your README does not already contain it, so re-installs never duplicate it (an existing badge keeps its current position).",
+          "Robust placement: a README whose title sits inside a leading code block, or that has no top-level heading, gets the badge prepended cleanly at the very top."
+        ]
+      },
       {
         "version": "3.4.21",
         "date": "2026-06-18",
