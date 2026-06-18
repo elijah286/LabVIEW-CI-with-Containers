@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "3.1.1",
+  "version": "3.1.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.1.2",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0: the 'Get a render token' link now points to the right repository",
+        "summary": "On the VI Browser 2.0 lock screen - shown when a repository has not yet been provisioned with a render token - the 'Get a render token' link pointed at the wrong URL, so it could not take you to the private render repository. The link now points to the correct repository, so anyone with access lands where they can obtain a token. Nothing else changed: the token is still entered on the Integrate page, sealed in your browser, and stored as the TOIMAGES_REGISTRY_TOKEN secret, and a repository without a token still shows the 1.0 view.",
+        "highlights": [
+          "Corrected the 'Get a render token' link on the VI Browser 2.0 lock screen so it opens the right private render repository.",
+          "No change to entering or using the token - only the link target was fixed."
+        ]
+      },
       {
         "version": "3.1.1",
         "date": "2026-06-17",
