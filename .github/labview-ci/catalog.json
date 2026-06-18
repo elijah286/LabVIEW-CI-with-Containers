@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.24",
+  "version": "3.4.25",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.25",
+        "date": "2026-06-18",
+        "title": "The About link on client dashboards now opens the project's About page",
+        "summary": "On a dashboard for a repository that installed this tooling, the About item in the menu pointed at that site's own copy of the About page - but that page is only published on the main LabVIEW CI project site, so on a client dashboard the link led nowhere. About now always opens the About page on the main project site, in a new tab so your own dashboard stays open. The link is built from the project's published source location and follows the relocation pointer, so it keeps working automatically if the tooling ever moves to a new home.",
+        "highlights": [
+          "The About menu item on a client dashboard now opens the main project's About page, instead of a copy that is never published on client sites.",
+          "On a client dashboard the link opens in a new tab so your own dashboard stays open; on the main project site it still opens in place.",
+          "The link is derived from the published source location and follows the relocation pointer, so it keeps working if the project ever moves to a new repository."
+        ]
+      },
       {
         "version": "3.4.24",
         "date": "2026-06-18",
