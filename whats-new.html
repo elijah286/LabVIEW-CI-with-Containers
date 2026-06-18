@@ -187,6 +187,7 @@
       <p class="hint" id="statusHint">Comparing the version this repository runs against the latest published by the source repository.</p>
       <div class="vline" id="versionLine"></div>
       <div class="status" id="loadStatus"></div>
+      <div class="status" id="movedNote" style="display:none"></div>
     </section>
 
     <section id="notesSec" style="display:none">
@@ -299,7 +300,7 @@
     const $ = (id) => document.getElementById(id);
 
     let activeTab = "bash";
-    const state = { repo: "", from: "", srcRepo: "", srcRef: "main", latest: "", releases: [], missing: [], target: "", branch: "" };
+    const state = { repo: "", from: "", srcRepo: "", srcRef: "main", latest: "", releases: [], missing: [], target: "", branch: "", movedTo: "" };
 
     // ---- helpers ---------------------------------------------------------
     function cmpVer(a, b) {
@@ -945,6 +946,29 @@
       }
       if (!state.srcRepo) state.srcRepo = SOURCE_FALLBACK.repo;
       if (!state.srcRef) state.srcRef = SOURCE_FALLBACK.ref;
+
+      // Follow the relocation pointer (.github/labview-ci/source.json in the source
+      // repo): if the tooling moved to a new official home, check THERE for updates
+      // and tell the user their next update will move them. The update itself (the
+      // apply-tooling-update workflow dispatched by "Update now") follows the same
+      // pointer server-side and re-pins this repository to the new home.
+      try {
+        const ptr = await fetchJson(rawUrl(state.srcRepo, state.srcRef, ".github/labview-ci/source.json"));
+        if (ptr && ptr.repo && ptr.repo.toLowerCase() !== state.srcRepo.toLowerCase()) {
+          state.movedTo = state.srcRepo;
+          state.srcRepo = ptr.repo;
+          state.srcRef = ptr.ref || state.srcRef;
+        }
+      } catch (_) { /* no redirect */ }
+      if (state.movedTo) {
+        const mn = $("movedNote");
+        if (mn) {
+          mn.style.display = "";
+          mn.innerHTML = `<strong>New home.</strong> This LabVIEW CI tooling has moved to ` +
+            `<a href="https://github.com/${esc(state.srcRepo)}" target="_blank" rel="noopener"><code>${esc(state.srcRepo)}</code></a>. ` +
+            `Updates are now pulled from there; running the update once moves this repository to the new official source.`;
+        }
+      }
 
       const ls = $("loadStatus");
       const source = await loadSourceCatalog(state.srcRepo, state.srcRef);
