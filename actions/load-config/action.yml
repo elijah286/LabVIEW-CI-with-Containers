@@ -20,6 +20,7 @@
 #   has-vidiff        "true" | "false"
 #   has-snapshots     "true" | "false"
 #   has-unit-tests    "true" | "false"
+#   has-antidoc       "true" | "false"
 name: 'Load LabVIEW CI config'
 description: 'Parse .github/labview-ci.yml and expose settings as outputs for gating jobs.'
 author: 'labview-ci'
@@ -41,6 +42,7 @@ outputs:
   has-vidiff:      { description: 'vidiff active', value: '${{ steps.cfg.outputs.has-vidiff }}' }
   has-snapshots:   { description: 'snapshots active', value: '${{ steps.cfg.outputs.has-snapshots }}' }
   has-unit-tests:  { description: 'unit-tests active', value: '${{ steps.cfg.outputs.has-unit-tests }}' }
+  has-antidoc:     { description: 'antidoc active', value: '${{ steps.cfg.outputs.has-antidoc }}' }
 
 runs:
   using: 'composite'
@@ -89,6 +91,6 @@ runs:
         print(f'os-linux={b("linux" in os_list)}')
         print(f'max-parallel={max_parallel}')
         print(f'activities={",".join(activities)}')
-        for a in ('masscompile', 'vi-analyzer', 'vidiff', 'snapshots', 'unit-tests'):
+        for a in ('masscompile', 'vi-analyzer', 'vidiff', 'snapshots', 'unit-tests', 'antidoc'):
             print(f'has-{a}={b(a in activities)}')
         PY

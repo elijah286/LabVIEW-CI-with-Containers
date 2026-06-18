@@ -201,6 +201,11 @@ RUN_TARGETS = {
     # build-unittest-report.py normalises into one report.
     'unit-tests': {'label': 'Unit Tests', 'platforms': {
         'windows': {'wf': 'unit-tests-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
+    # Antidoc (Wovalab) documentation generation runs in the Windows worker only
+    # (the Antidoc CLI is a VIPM package baked into the custom image). Doc-gen is
+    # heavier than the per-VI checks, so it is on-demand / push-to-default-branch.
+    'antidoc': {'label': 'Antidoc', 'platforms': {
+        'windows': {'wf': 'run-antidoc-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
 }
 import json as _json
 run_targets_json = _json.dumps(RUN_TARGETS)
@@ -213,7 +218,7 @@ run_targets_json = _json.dumps(RUN_TARGETS)
 # is opened, and reports that predate the header (or carry none of their own)
 # still appear inside the chrome. Diff/Snapshots already open the VI Browser (its
 # own headered page), so only these two doctypes are wrapped here.
-DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile'}
+DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile', 'antidoc-report': 'Antidoc'}
 
 def viewer_url(report_url, doctype, sha, short, platform=''):
     """Wrap a deployed report's absolute Pages URL so it opens framed under the
@@ -504,6 +509,11 @@ for c in commits_data:
     # in the shared chrome (report-viewer), like the other per-revision reports.
     unit_badge = badge('tests', 'CI / Unit Tests', cap='unit-tests',
                        doc=('unit-tests-report', 'unit-tests'))
+    # Antidoc column: links to the generated documentation, framed in the
+    # dashboard chrome via report-viewer. An empty project cell offers a
+    # one-click run (cap='antidoc' dispatches run-antidoc-windows-container.yml).
+    antidoc_badge = badge('docs', 'CI / Antidoc', cap='antidoc',
+                          doc=('antidoc-report', 'antidoc'))
 
     rows_html.append(f"""
     <tr data-project="{proj_flag}">
@@ -518,6 +528,7 @@ for c in commits_data:
       {diff_badge}
       {snap_badge}
       {unit_badge}
+      {antidoc_badge}
     </tr>""")
 
 rows = '\n'.join(rows_html)
@@ -1534,7 +1545,8 @@ run_dialog = (r"""
       ['snapshots',   'VI Snapshots', 'Renders every changed VI (one backfill pass)'],
       ['vidiff',      'VIDiff',       'Visual diff of the VIs each revision changed'],
       ['masscompile', 'Mass Compile', 'Compiles the whole project, each revision'],
-      ['vi-analyzer', 'VI Analyzer',  'Runs the VI Analyzer suite, each revision']
+      ['vi-analyzer', 'VI Analyzer',  'Runs the VI Analyzer suite, each revision'],
+      ['antidoc',     'Antidoc',      'Generates project documentation, each revision']
     ];
     var DIFF_CAPS = { snapshots:1, vidiff:1 };  // the lean "diff-based" subset
     function histModal(){ return document.getElementById('cidash-hist-modal'); }
@@ -1883,6 +1895,7 @@ html = f"""<!DOCTYPE html>
         <th style="text-align:center">VIDiff</th>
         <th style="text-align:center">Snapshots</th>
         <th style="text-align:center">Unit Tests</th>
+        <th style="text-align:center">Antidoc</th>
       </tr>
     </thead>
     <tbody>{rows}</tbody>
@@ -1930,7 +1943,8 @@ html = f"""<!DOCTYPE html>
         {{key:'vi-analyzer', label:'VI Analyzer',  idx:5}},
         {{key:'vidiff',      label:'VIDiff',       idx:6}},
         {{key:'snapshots',   label:'Snapshots',    idx:7}},
-        {{key:'unit-tests',  label:'Unit Tests',   idx:8}}
+        {{key:'unit-tests',  label:'Unit Tests',   idx:8}},
+        {{key:'antidoc',     label:'Antidoc',      idx:9}}
       ];
       const btn = document.getElementById('cidash-colbtn');
       const panel = document.getElementById('cidash-colpanel');

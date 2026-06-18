@@ -1076,6 +1076,33 @@
         "linux": []
       },
       "notes": "Runs the configured LabVIEW unit-test frameworks (Caraya, JKI VI Tester) headlessly in the Windows worker via g-cli, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Windows-only because Caraya and VI Tester are VIPM packages; choose which tools run and where their tests live on the Unit Testing page. NI UTF headless execution is scaffolded (coming soon)."
+    },
+    {
+      "id": "antidoc",
+      "name": "Antidoc",
+      "summary": "Generates browsable project documentation with Antidoc (Wovalab) inside the Windows worker and publishes it to Pages, framed in the dashboard. Antidoc renders the project structure, VI descriptions and block-diagram images headlessly through the Antidoc CLI.",
+      "status": "stable",
+      "recommended": false,
+      "supportsOs": [
+        "windows"
+      ],
+      "requires": [],
+      "recommends": [
+        "dashboard",
+        "custom-image"
+      ],
+      "statusContext": "CI / Antidoc",
+      "files": {
+        "any": [
+          ".github/labview/build-antidoc-report.py"
+        ],
+        "windows": [
+          ".github/workflows/run-antidoc-windows-container.yml",
+          ".github/labview/run-antidoc.ps1"
+        ],
+        "linux": []
+      },
+      "notes": "Antidoc is a VIPM package (wovalab_lib_antidoc_cli) baked into the custom worker image, so enable the Shared LabVIEW image and turn on 'Use Antidoc' in Configure. Documentation generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default), so the doc-gen step needs network access."
     }
   ]
 }

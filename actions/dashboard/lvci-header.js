@@ -418,6 +418,7 @@
     'vi-analyzer-report': 'dashboard',
     'masscompile-report': 'dashboard',
     'unit-tests-report': 'dashboard',
+    'antidoc-report': 'dashboard',
     'unit-tests-config': 'dashboard',
     'worker-manifest': 'dashboard',
     'report-viewer': 'dashboard',
@@ -454,6 +455,11 @@
       regenLabel: 'Re-run tests', rawLabel: 'Test results (JSON)', rawName: 'results.json',
       workflow: { windows: 'unit-tests-windows-container.yml',
                   linux:   'unit-tests-linux-container.yml' }
+    },
+    'antidoc-report': {
+      prefix: 'antidoc', cap: 'antidoc', label: 'Antidoc',
+      regenLabel: 'Regenerate docs', rawLabel: 'Run log', rawName: 'antidoc.log',
+      workflow: { windows: 'run-antidoc-windows-container.yml' }
     }
   };
   var DOC = DOCTYPES[ctx] || null;   // non-null only on a per-revision report

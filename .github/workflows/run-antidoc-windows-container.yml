@@ -1,0 +1,297 @@
+name: Run Antidoc — Windows Container
+
+# Generates project documentation with Antidoc (Wovalab) inside the custom CI
+# worker image, publishes it to the caller's Pages, and posts the "CI / Antidoc"
+# commit status so the dashboard's Antidoc column shows the result.
+#
+# Antidoc is baked into the worker image as a VIPM package (Configure ->
+# "Use Antidoc"); it runs through g-cli headlessly. Doc generation is heavier than
+# the per-VI checks and renders diagrams via a Kroki server at run time, so this
+# does NOT auto-run on every pull request: it runs on pushes to the default branch
+# and on demand (the dashboard's per-commit "Run" button, or workflow_dispatch).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to document (leave blank for current HEAD)'
+        required: false
+        default: ''
+
+env:
+  # Custom CI image (built by build-labview-image.yml). GHCR repository names MUST be
+  # lowercase, but github.event.repository.name preserves the repo's original case,
+  # which docker pull rejects — so the image ref is resolved + lowercased at runtime
+  # by "Resolve container image name". Declared empty here so the key always exists.
+  LABVIEW_CONTAINER_IMAGE: ''
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  statuses: write
+  packages: read
+
+# Serialize report deploys to gh-pages with the other report-deploy workflows
+# (mass compile + VI Analyzer) so concurrent pushes queue instead of racing and
+# bouncing each other's deploy.
+concurrency:
+  group: report-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  antidoc:
+    runs-on: windows-2022   # windows-latest = Server 2025, broken Docker daemon
+
+    steps:
+      - name: Determine target SHA
+        id: sha
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INPUT="${{ github.event.inputs.commit_sha }}"
+          if [ -n "$INPUT" ]; then
+            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha')
+            echo "sha=$FULL" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"Antidoc in progress\",\"context\":\"CI / Antidoc\"}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Restore CI scripts from main
+        if: github.event.inputs.commit_sha != ''
+        shell: bash
+        run: git checkout origin/main -- .github/labview .github/workflows
+
+      # GHCR rejects upper-case repository names. config.container.actions.antidoc
+      # wins, then the project-wide config.container.use; with neither set Antidoc
+      # defaults to the custom worker image at the version tag (it needs the baked
+      # Antidoc VIPC). "base" forces the bare NI image; "latest"/"<tag>" select that
+      # tag of the custom worker image.
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          IMAGE_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          ACTION_ID="antidoc"
+          CFG=.github/labview-ci.yml
+          sel=""
+          if [ -f "$CFG" ]; then
+            sel=$(awk -v act="$ACTION_ID" '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; ina=0; next}
+              inc && /^    actions:[[:space:]]*$/ {ina=1; next}
+              ina && /^      [A-Za-z0-9_.-]+:/ {
+                k=$1; sub(/:.*/,"",k);
+                v=$0; sub(/^[[:space:]]*[A-Za-z0-9_.-]+:[[:space:]]*/,"",v); gsub(/"/,"",v); gsub(/[[:space:]]/,"",v);
+                if (k==act) {print v; exit}
+                next
+              }
+              ina && /^    [A-Za-z]/ {ina=0}
+              inc && /^[^[:space:]]/ {inc=0; ina=0}
+            ' "$CFG" | tr -d '[:space:]')
+            if [ -z "$sel" ]; then
+              sel=$(awk '
+                /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+                inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+                inc && /^[^[:space:]]/ {inc=0}
+              ' "$CFG" | tr -d '[:space:]')
+            fi
+          fi
+          if [ -z "$sel" ]; then
+            img="${custom}:${IMAGE_TAG}"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+            img="${BASE_IMAGE}"
+          elif [ "$sel" = "latest" ]; then
+            img="${custom}:latest"
+          else
+            img="${custom}:${sel}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
+          if ($null -eq $svc) {
+            throw 'Docker service not found on this runner.'
+          }
+          if ($svc.Status -ne 'Running') {
+            Start-Service docker
+          }
+          docker version
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # If this push changed the worker image inputs (a .vipc, the Dockerfile, or
+      # the VIPM assets — e.g. enabling Antidoc), wait for "Build LabVIEW CI Image"
+      # to finish for this commit so docs are generated on the freshly-built worker
+      # that actually contains Antidoc. Bounded and best-effort.
+      - name: Wait for worker image build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ steps.sha.outputs.sha }}"
+          WF="Build LabVIEW CI Image"
+          BEFORE="${{ github.event.before }}"
+          changed=false
+          if [ -n "${BEFORE:-}" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            if git diff --name-only "$BEFORE" "$SHA" \
+                 | grep -Eq '(\.vipc$|^\.github/docker/labview-ci\.Dockerfile$|^\.github/labview/vipm/)'; then
+              changed=true
+            fi
+          fi
+          if [ "$changed" != "true" ]; then
+            echo "No worker-affecting change in this push; not waiting."
+            exit 0
+          fi
+          echo "Worker inputs changed - waiting for '$WF' to finish for $SHA."
+          appear_deadline=$(( $(date +%s) + 300 ))
+          overall_deadline=$(( $(date +%s) + 1800 ))
+          seen=false
+          api="repos/${{ github.repository }}/actions/runs?head_sha=$SHA&per_page=50"
+          while :; do
+            total=$(gh api "$api" --jq "[.workflow_runs[]|select(.name==\"$WF\")]|length" 2>/dev/null || echo 0)
+            pending=$(gh api "$api" --jq "[.workflow_runs[]|select(.name==\"$WF\")|select(.status!=\"completed\")]|length" 2>/dev/null || echo 0)
+            now=$(date +%s)
+            if [ "${total:-0}" -gt 0 ]; then seen=true; fi
+            if [ "$seen" = "true" ] && [ "${pending:-0}" -eq 0 ]; then echo "Worker image build complete."; break; fi
+            if [ "$seen" != "true" ] && [ "$now" -ge "$appear_deadline" ]; then echo "Build did not appear in time; proceeding."; break; fi
+            if [ "$now" -ge "$overall_deadline" ]; then echo "Timed out waiting; proceeding."; break; fi
+            echo "  ... still waiting (total=$total pending=$pending)"
+            sleep 20
+          done
+
+      - name: Pull LabVIEW container image
+        id: pull
+        shell: powershell
+        run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
+        continue-on-error: true
+
+      - name: Generate documentation inside container
+        if: steps.pull.outcome == 'success'
+        shell: powershell
+        id: antidoc
+        run: |
+          docker run --rm `
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+            -e "GITHUB_SHA=${{ steps.sha.outputs.sha }}" `
+            -v "${{ github.workspace }}:C:\workspace" `
+            $Env:LABVIEW_CONTAINER_IMAGE `
+            powershell -NonInteractive -ExecutionPolicy Bypass `
+              -File "C:\workspace\.github\labview\run-antidoc.ps1" `
+              -WorkspaceRoot  "C:\workspace" `
+              -ReportDir      "C:\workspace\ci-out\antidoc" `
+              -LabVIEWPath    "C:\Program Files\National Instruments\LabVIEW ${{ vars.LABVIEW_VERSION || '2026' }}\LabVIEW.exe"
+        continue-on-error: true
+
+      - name: Check report directory
+        id: report
+        shell: bash
+        run: |
+          if [ -f "${{ github.workspace }}/ci-out/antidoc/index.html" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build friendly Antidoc report
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        continue-on-error: true   # a formatting hiccup must never block deploying the raw docs
+        run: |
+          REPORT_DIR="${{ github.workspace }}/ci-out/antidoc"
+          python .github/labview/build-antidoc-report.py \
+            --in        "$REPORT_DIR" \
+            --out       "$REPORT_DIR" \
+            --platform  windows \
+            --sha       "${{ steps.sha.outputs.sha }}" \
+            --repo      "${{ github.repository }}" \
+            --pages-url "${{ env.PAGES_URL }}" \
+            --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
+            --author     "$(git log -1 --pretty=%an  ${{ steps.sha.outputs.sha }})" \
+            --date       "$(git log -1 --pretty=%cI  ${{ steps.sha.outputs.sha }})"
+
+      - name: Upload report artifact
+        if: steps.report.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: antidoc-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/antidoc/
+          if-no-files-found: warn
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        run: |
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy report to GitHub Pages
+        if: steps.report.outputs.exists == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ github.workspace }}/ci-out/antidoc
+          destination_dir: antidoc/${{ steps.sha.outputs.sha }}
+          keep_files: true
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.report.outputs.exists }}" = "true" ]; then
+            URL="${{ env.PAGES_URL }}/antidoc/${{ steps.sha.outputs.sha }}/index.html"
+          else
+            URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.antidoc.outcome }}" = "success" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"Antidoc $STATE\",\"context\":\"CI / Antidoc\"}"
