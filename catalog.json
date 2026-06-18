@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.34",
+  "version": "3.4.35",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.35",
+        "date": "2026-06-18",
+        "title": "Populate history dialog: lists the workers you actually installed, can target only workers that have never run, and the banner opens it instead of launching everything",
+        "summary": "The Populate history dialog now reflects what each repository actually has installed and no longer hides or greys out activities by default. It lists exactly the workers that have runnable revisions (so a newly added worker such as Unit Tests now appears, and on a fresh install every installed activity is shown and selected with nothing greyed out), and it adds an \"Only workers that have never run\" option that queues just the activities with no results anywhere - leaving already-populated workers alone, which is handy right after you add a new worker. The \"Diff-based - modified files only\" preset is now off by default and no longer disables the other activities; ticking it simply narrows the selection to VI Snapshots and VIDiff, and you can still re-tick any worker by hand. Finally, the fresh-install banner button (and its inline link) now open the Populate history chooser instead of immediately launching CI for the whole history - so historical runs always start from the dialog and nothing is queued until you confirm.",
+        "highlights": [
+          "The dialog lists exactly the activities this repository actually installed, so newly added workers like Unit Tests appear and on a fresh install nothing is greyed out.",
+          "New \"Only workers that have never run\" option queues just the activities with no results anywhere, leaving already-populated workers untouched.",
+          "The Diff-based preset is now off by default and only (un)checks activities instead of disabling them, so you can re-tick any worker by hand.",
+          "The fresh-install banner button now opens the Populate history chooser instead of immediately launching everything - nothing is queued until you confirm."
+        ]
+      },
       {
         "version": "3.4.34",
         "date": "2026-06-18",
