@@ -165,7 +165,8 @@
         <div class="row">
           <div class="field">
             <label class="fl" for="version">LabVIEW version</label>
-            <select id="version"></select>
+            <select id="version" disabled aria-disabled="true" title="The CI tooling, container images, and baked dependencies are built for LabVIEW 2026."></select>
+            <p class="hint" style="margin-top:6px">Fixed to LabVIEW 2026 &mdash; the container images and tooling are built for it.</p>
           </div>
           <div class="field">
             <label class="fl">Operating systems</label>
@@ -395,11 +396,22 @@
     }
 
     // ---- rendering ---------------------------------------------------------
+    // LOCKED to the single supported LabVIEW year (catalog.defaults.labviewVersion).
+    // The container images / baked VIPC / LabVIEW.exe paths are all built for that
+    // year, so reconfiguring to another year asked for an image that doesn't exist
+    // and broke every container job. Ignore the repo's stored value and always show
+    // that year, disabled -- so saving heals a repo pinned to an unsupported year.
+    // FUTURE: re-enable as a 2017..2026 code-compatibility picker that writes the
+    // LabVIEW project "Save Setting" (2026 editor, older-compatible code), not the tag.
     function renderVersions(sel) {
-      const el = $("version"); const versions = catalog.labviewVersions || ["2026"];
-      const def = sel || (catalog.defaults && catalog.defaults.labviewVersion) || versions[versions.length - 1];
+      const el = $("version");
+      const locked = (catalog.defaults && catalog.defaults.labviewVersion) || "2026";
       el.innerHTML = "";
-      versions.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v; if (v === def) o.selected = true; el.appendChild(o); });
+      const o = document.createElement("option");
+      o.value = locked; o.textContent = locked; o.selected = true;
+      el.appendChild(o);
+      el.disabled = true;
+      el.setAttribute("aria-disabled", "true");
     }
 
     function renderActivities() {

@@ -135,7 +135,8 @@
         </div>
         <div class="field">
           <label class="fl" for="version">LabVIEW version</label>
-          <select id="version"></select>
+          <select id="version" disabled aria-disabled="true" title="The CI tooling, container images, and baked dependencies are built for LabVIEW 2026."></select>
+          <p class="hint" style="margin-top:6px">Fixed to LabVIEW 2026 &mdash; the container images and tooling are built for it.</p>
         </div>
         <div class="field">
           <label class="fl">Operating systems</label>
@@ -163,9 +164,6 @@
         </label>
         <label class="insopt"><input type="checkbox" id="optPages" checked>
           <span><strong>Turn on GitHub Pages &amp; set Workflow permissions for me</strong><small>Sets Actions to read/write and enables Pages (<code class="inl">gh-pages</code>) so the dashboard goes live with no manual settings. Needs a broader token &mdash; Administration + Pages &mdash; and falls back to manual steps if you decline them.</small></span>
-        </label>
-        <label class="insopt"><input type="checkbox" id="optAutoMerge">
-          <span><strong>Auto-merge this PR when it&rsquo;s created</strong><small>Squash &amp; merge the install pull request immediately (skips the review step). Re-run the installer with this unchecked if you want to review before merging.</small></span>
         </label>
       </div>
 
@@ -331,16 +329,24 @@
     }
 
     // ---- rendering -------------------------------------------------------
+    // The version field is LOCKED. The CI container images, baked VIPC, and the
+    // LabVIEW.exe path in every workflow target a single LabVIEW year
+    // (catalog.defaults.labviewVersion = 2026). Offering another year asked the
+    // jobs to pull a container image / use a LabVIEW path that doesn't exist,
+    // which failed every container run -- the bug a colleague hit by picking 2024.
+    // So render only that year, selected and disabled (grayed out).
+    // FUTURE: re-enable as a 2017..2026 *code-compatibility* picker that keeps the
+    // editor/container on 2026 but writes the LabVIEW project "Save Setting" so the
+    // 2026 editor saves code compatible with an older run-time.
     function renderVersions() {
       const sel = $("version");
-      const versions = catalog.labviewVersions || ["2026"];
-      const def = (catalog.defaults && catalog.defaults.labviewVersion) || versions[versions.length - 1];
+      const locked = (catalog.defaults && catalog.defaults.labviewVersion) || "2026";
       sel.innerHTML = "";
-      versions.forEach(v => {
-        const o = document.createElement("option");
-        o.value = v; o.textContent = v; if (v === def) o.selected = true;
-        sel.appendChild(o);
-      });
+      const o = document.createElement("option");
+      o.value = locked; o.textContent = locked; o.selected = true;
+      sel.appendChild(o);
+      sel.disabled = true;
+      sel.setAttribute("aria-disabled", "true");
     }
 
     function renderCaps() {
@@ -929,29 +935,6 @@
       return lines.join("\n");
     }
 
-    async function mergeInstallPr(pr, repo) {
-      try {
-        setInsStatus("Merging pull request&hellip;", null);
-        const mergeResp = await gh(`/repos/${repo}/pulls/${pr.number}/merge`, {
-          method: "PUT",
-          body: {
-            commit_title: pr.title,
-            commit_message: pr.body,
-            merge_method: "squash"
-          }
-        });
-        if (!mergeResp.ok) {
-          const err = await mergeResp.json();
-          console.warn("Merge failed:", err);
-          return false;
-        }
-        return true;
-      } catch (e) {
-        console.warn("Error auto-merging PR:", e);
-        return false;
-      }
-    }
-
     function installSuccess(pr, repo, setup) {
       setup = setup || {};
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
@@ -981,19 +964,6 @@
           note.innerHTML = `Heads up: your token didn&rsquo;t include <strong>Administration</strong> + <strong>Pages</strong>, so those two settings were left for you above. Re-create the token with those permissions (re-open the token panel) to have the configurator do it for you next time.`;
           note.style.display = "";
         } else { note.style.display = "none"; }
-      }
-
-      // Auto-merge if the checkbox is enabled
-      if ($("optAutoMerge") && $("optAutoMerge").checked) {
-        mergeInstallPr(pr, repo).then(success => {
-          if (success) {
-            setInsStatus(`&#10003; Done — pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`, "ok");
-            const nextEl = $("insNext");
-            if (nextEl) nextEl.style.display = "none";
-          } else {
-            setInsStatus(`&#10003; Opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but auto-merge failed (check the link above to merge manually).`, "ok");
-          }
-        });
       }
     }
 
@@ -1067,7 +1037,9 @@
         const acts = (m.activities || []).filter(a => { const c = byId(a); return c && c.status !== "planned"; });
         if (acts.length) activities = acts;
         if (m.os && m.os.length) osList = m.os.slice();
-        if (m.labviewVersion) version = m.labviewVersion;
+        // Do NOT carry a prior manifest's labviewVersion forward: the version is
+        // locked to the supported year (see renderVersions), so reinstalling a repo
+        // that was pinned to an unsupported year heals it instead of re-breaking.
       }
       return { activities, osList, version };
     }

@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.2",
+  "version": "3.4.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.3",
+        "date": "2026-06-18",
+        "title": "LabVIEW version is fixed to the supported year",
+        "summary": "The LabVIEW version field on the install and Configure Workers screens is now read-only and fixed to the year the CI tooling is built for (2026). The worker container images, baked VIPM dependencies, and LabVIEW paths all target that single year, so choosing a different one asked the Windows worker jobs to pull a container image tag that was never published and made them fail. Locking the field removes that pitfall, and reinstalling or reconfiguring a repository that was previously pinned to an unsupported year now heals it back to the supported year. A future update will reintroduce this control as a code-compatibility selector that keeps the 2026 editor but saves your code compatible with an older LabVIEW run-time using the new project save setting.",
+        "highlights": [
+          "The LabVIEW version selector is now read-only and fixed to the supported year (2026) in both the installer and Configure Workers.",
+          "This prevents the Windows container jobs from failing on a worker image tag that was never built for an unsupported year.",
+          "Reinstalling or reconfiguring a repository pinned to an old year now heals it back to the supported year."
+        ]
+      },
       {
         "version": "3.4.2",
         "date": "2026-06-18",
