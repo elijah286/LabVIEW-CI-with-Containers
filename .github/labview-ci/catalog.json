@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.26",
+  "version": "3.4.27",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.27",
+        "date": "2026-06-18",
+        "title": "Fix: the tooling-update workflow no longer fails to parse after Apply to New Repo",
+        "summary": "Fixes a YAML syntax error in the Apply LabVIEW CI update workflow (apply-tooling-update.yml) that made GitHub report it as an invalid workflow file. The relocation-pointer lookup used a multi-line inline Python command that broke out of the workflow's run block, so after an install GitHub surfaced a second, failing run by filename right next to the dashboard build - which looked like a duplicate 'Add LabVIEW CI pipeline' action that had failed. The lookup is now a single-line command, so the workflow parses correctly and stays dispatch-only: it runs only when you click Update now and no longer produces a spurious failing run when you Apply the tooling to a new repository. How updates work is otherwise unchanged.",
+        "highlights": [
+          "The Apply LabVIEW CI update workflow no longer fails GitHub's workflow-file validation (the 'invalid workflow file, line 89' error).",
+          "Applying the tooling to a new repository no longer shows a second, failing run next to the dashboard build - the update workflow is dispatch-only and runs only when you click Update now.",
+          "No change to how updates work; the relocation-pointer lookup was rewritten as a single-line command so it stays inside the workflow's run block."
+        ]
+      },
       {
         "version": "3.4.26",
         "date": "2026-06-18",

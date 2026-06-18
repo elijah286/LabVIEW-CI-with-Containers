@@ -79,12 +79,13 @@ jobs:
           # catalog's source.repo into .github/labview-ci.yml, so after this one redirected
           # update the client polls the new home directly (no more hops). Probe the source's
           # live channel (its default branch via HEAD); a pinned source_ref is honored as-is.
+          # NOTE: keep this python one-liner on a SINGLE line. A multi-line inline
+          # `python3 -c '...'` would sit at column 0 and break out of this YAML
+          # `run: |` block scalar (invalid-workflow-file error). The surrounding
+          # `2>/dev/null || echo ""` already yields "" on empty/invalid JSON, so no
+          # in-python try/except is needed.
           SUCC=$(curl -fsSL "https://raw.githubusercontent.com/${SRC_REPO}/HEAD/.github/labview-ci/source.json" 2>/dev/null \
-            | python3 -c 'import sys,json
-try:
-    print((json.load(sys.stdin).get("repo") or "").strip())
-except Exception:
-    print("")' 2>/dev/null || echo "")
+            | python3 -c 'import sys,json; print((json.load(sys.stdin).get("repo") or "").strip())' 2>/dev/null || echo "")
           if [ -n "$SUCC" ] && [ "$(printf %s "$SUCC" | tr A-Z a-z)" != "$(printf %s "$SRC_REPO" | tr A-Z a-z)" ]; then
             echo "::notice::LabVIEW CI tooling has relocated: ${SRC_REPO} -> ${SUCC}. Pulling the update from the new home."
             SRC_REPO="$SUCC"
