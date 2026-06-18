@@ -74,20 +74,77 @@ function Resolve-LabVIEWYear([string]$LvPath) {
   return '2026'
 }
 
+function Sync-PathFromRegistry {
+  # The g-cli installer (and other VIPM-installed CLIs) add their directory to the
+  # MACHINE PATH in the registry at install time. A Windows container's process
+  # PATH, however, is baked from the image ENV layer at build time and does NOT
+  # pick up that registry change -- the g-cli docs note you must "restart any
+  # terminals or build agents after install to include the new path variable".
+  # Re-read the persisted PATH from the registry and merge in anything missing so
+  # Get-Command can see a freshly-baked g-cli without an image rebuild. Best-effort:
+  # a failure here must never crash doc-gen before it can emit a report.
+  try {
+    $regPaths = @()
+    $machine = (Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name 'Path' -ErrorAction SilentlyContinue).Path
+    $user    = (Get-ItemProperty -Path 'HKCU:\Environment' -Name 'Path' -ErrorAction SilentlyContinue).Path
+    foreach ($raw in @($machine, $user)) {
+      if ($raw) { $regPaths += [System.Environment]::ExpandEnvironmentVariables($raw) }
+    }
+    $current = @($env:Path -split ';')
+    foreach ($entry in (($regPaths -join ';') -split ';')) {
+      $e = $entry.Trim()
+      if ($e -and ($current -notcontains $e)) {
+        $env:Path = $env:Path.TrimEnd(';') + ';' + $e
+        $current += $e
+      }
+    }
+  } catch {
+    Write-Host "  (PATH refresh from registry skipped: $($_.Exception.Message))"
+  }
+}
+
 function Resolve-GCli {
-  # Antidoc CLI runs through g-cli (wiresmith_technology_lib_g_cli). VIPM puts
-  # g-cli.exe on PATH; fall back to the common install locations just in case.
+  # Antidoc CLI runs through g-cli (wiresmith_technology_lib_g_cli). The installer
+  # adds g-cli to the machine PATH in the registry, so refresh the process PATH from
+  # the registry first (a Windows container does not inherit that change), then try
+  # PATH, then the known install locations, then a bounded recursive search.
+  Sync-PathFromRegistry
+
   $cmd = Get-Command 'g-cli.exe' -ErrorAction SilentlyContinue
   if ($null -eq $cmd) { $cmd = Get-Command 'g-cli' -ErrorAction SilentlyContinue }
   if ($null -ne $cmd -and $cmd.Source) { return $cmd.Source }
 
+  $pf  = ${env:ProgramFiles};      if (-not $pf)  { $pf  = 'C:\Program Files' }
+  $pfx = ${env:ProgramFiles(x86)}; if (-not $pfx) { $pfx = 'C:\Program Files (x86)' }
+
+  # g-cli has shipped under a few folder names ("G CLI" with a space from the
+  # Wiresmith/NI installers, "G-CLI" with a hyphen historically); check both, in
+  # both Program Files roots and the NI Shared area.
   $candidates = @(
-    'C:\Program Files\National Instruments\G-CLI\g-cli.exe',
-    'C:\Program Files (x86)\National Instruments\G-CLI\g-cli.exe',
-    'C:\Program Files\G-CLI\g-cli.exe',
-    'C:\Program Files (x86)\G-CLI\g-cli.exe'
+    (Join-Path $pf  'National Instruments\Shared\G CLI\g-cli.exe'),
+    (Join-Path $pfx 'National Instruments\Shared\G CLI\g-cli.exe'),
+    (Join-Path $pf  'Wiresmith Technology\G CLI\g-cli.exe'),
+    (Join-Path $pfx 'Wiresmith Technology\G CLI\g-cli.exe'),
+    (Join-Path $pf  'G CLI\g-cli.exe'),
+    (Join-Path $pfx 'G CLI\g-cli.exe'),
+    (Join-Path $pf  'National Instruments\G-CLI\g-cli.exe'),
+    (Join-Path $pfx 'National Instruments\G-CLI\g-cli.exe'),
+    (Join-Path $pf  'G-CLI\g-cli.exe'),
+    (Join-Path $pfx 'G-CLI\g-cli.exe')
   )
-  foreach ($c in $candidates) { if (Test-Path $c) { return $c } }
+  foreach ($c in $candidates) { if (Test-Path -LiteralPath $c) { return $c } }
+
+  # Last resort: a bounded recursive search of the common install roots. -Depth
+  # keeps this from walking the entire drive while still covering nested vendor
+  # folders (e.g. Program Files\National Instruments\Shared\G CLI\).
+  foreach ($root in @($pf, $pfx)) {
+    if (-not (Test-Path -LiteralPath $root)) { continue }
+    try {
+      $hit = Get-ChildItem -LiteralPath $root -Filter 'g-cli.exe' -File -Recurse -Depth 5 -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+      if ($hit) { return $hit.FullName }
+    } catch { }
+  }
   return ''
 }
 
@@ -151,7 +208,7 @@ $Start    = Get-Date
 $ExitCode = 0
 
 if (-not $GCli) {
-  $msg = 'ERROR: g-cli was not found in the image. Antidoc runs through g-cli (wiresmith_technology_lib_g_cli). Enable "Use Antidoc" in Configure so the Antidoc VIPC is baked into the worker image.'
+  $msg = 'ERROR: g-cli was not found in the worker image (searched the refreshed PATH, the registry PATH, and the common install locations). Antidoc runs through g-cli (wiresmith_technology_lib_g_cli), which installs as a dependency of the Antidoc CLI. Enable "Use Antidoc" in Configure so the Antidoc VIPC is baked into the worker image, and confirm the image has been rebuilt since.'
   Write-Warning $msg
   Add-Content -Path $LogFile -Value $msg
   $ExitCode = 9

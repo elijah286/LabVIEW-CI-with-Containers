@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.3.2",
+  "version": "3.3.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.3.3",
+        "date": "2026-06-18",
+        "title": "Antidoc: reliably find g-cli in the worker image",
+        "summary": "Antidoc documentation generation could fail with \"g-cli was not found in the image\" even when g-cli was baked into the worker. The g-cli installer adds itself to the machine PATH in the registry, but a Windows container does not inherit that change into its runtime PATH, so the runner could not see it. The Antidoc runner now refreshes its PATH from the registry (the equivalent of restarting a build agent after install) and falls back to the known install locations and a bounded search, so a worker that has Antidoc enabled finds g-cli and produces documentation.",
+        "highlights": [
+          "The Antidoc runner refreshes PATH from the registry so a g-cli baked into the worker image is found at run time.",
+          "Added more g-cli install-location fallbacks plus a bounded search, covering the \"G CLI\" and \"G-CLI\" folder names.",
+          "Clearer diagnostics when g-cli genuinely is not present, pointing at enabling \"Use Antidoc\" and rebuilding the image."
+        ]
+      },
       {
         "version": "3.3.2",
         "date": "2026-06-18",
