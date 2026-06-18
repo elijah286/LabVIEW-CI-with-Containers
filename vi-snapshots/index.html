@@ -187,11 +187,23 @@
         <div style="font-size:2.6em;line-height:1;margin-bottom:14px">&#128274;</div>
         <h2 style="margin:0 0 10px;font-size:1.3em;color:var(--fg)">VI Browser 2.0 needs a render token</h2>
         <p style="color:var(--fg-muted);margin:0 0 18px">The in-place renderer runs from a private image, so 2.0 only activates once this repository is provisioned with a render token. Until then, position-aware snapshots aren&rsquo;t available here.</p>
-        <ol style="display:inline-block;text-align:left;max-width:440px;margin:0 0 6px;padding-left:22px;color:var(--fg);line-height:1.7">
-          <li><a id="needtoken-link" href="https://github.com/elijah286/vi-browser" target="_blank" rel="noopener" style="color:var(--link);font-weight:600">Get a render token &#8599;</a> &mdash; request access to the private render repository.</li>
-          <li><a id="needtoken-enter" href="../integrate.html#toimgSection" style="color:var(--link);font-weight:600">Enter your render token &#8594;</a> &mdash; paste it into the dashboard&rsquo;s setup prompt to enable 2.0.</li>
+        <ol style="display:inline-block;text-align:left;max-width:470px;margin:0 0 6px;padding-left:22px;color:var(--fg);line-height:1.55">
+          <li style="margin-bottom:13px"><a id="needtoken-link" href="#" target="_blank" rel="noopener" style="color:var(--link);font-weight:600">Get a render token &#8599;</a> &mdash; opens GitHub with the <strong>read:packages</strong> scope preselected. You need access to the private render image.</li>
+          <li>
+            <div style="font-weight:600;margin-bottom:6px">Paste the render token to connect</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <input id="nt-token" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_&hellip; or github_pat_&hellip;" style="flex:1 1 210px;min-width:0;padding:7px 9px;border:1px solid var(--border,#d0d7de);border-radius:7px;background:var(--bg);color:var(--fg);font:inherit">
+              <button id="nt-connect" type="button" style="padding:7px 16px;border:0;border-radius:7px;background:var(--link);color:#fff;font-weight:600;cursor:pointer">Connect</button>
+            </div>
+            <div id="nt-repo-row" style="color:var(--fg-muted);font-size:.8em;margin-top:6px"></div>
+            <div id="nt-status" role="status" style="font-size:.85em;margin-top:6px;min-height:1.1em"></div>
+          </li>
         </ol>
-        <p style="color:var(--fg-muted);font-size:.85em;margin-top:16px">The render repository in step 1 is private, so that link 404s unless you have access &mdash; that&rsquo;s expected. Otherwise switch to <strong>1.0</strong> for the classic view.</p>
+        <div id="nt-step3" style="display:none;margin:8px 0 0">
+          <button id="nt-generate" type="button" style="padding:9px 18px;border:0;border-radius:8px;background:#2da44e;color:#fff;font-weight:600;font-size:1.02em;cursor:pointer">&#9889; Generate the 2.0 snapshot</button>
+          <div id="nt-gen-status" role="status" style="font-size:.85em;margin-top:8px;color:var(--fg-muted)"></div>
+        </div>
+        <p style="color:var(--fg-muted);font-size:.85em;margin-top:16px">The token is sealed in your browser (libsodium) and saved as the <strong>TOIMAGES_REGISTRY_TOKEN</strong> secret &mdash; it never reaches this page&rsquo;s host. Or switch to <strong>1.0</strong> for the classic view.</p>
       </div>
     </div>
     <div id="viewer-loading"><span class="spinner"></span><span>Rendering…</span></div>
@@ -1100,6 +1112,125 @@ loadCommits().catch(err => {
   document.getElementById('vi-list').innerHTML =
     `<div style="padding:16px;color:var(--error);font-size:.8em">Error loading gallery:<br>${err.message}</div>`;
 });
+</script>
+<script>
+/* VI Browser 2.0 setup wizard (render-token lock screen). Self-contained.
+   Turns the gate into an in-place flow: create a read:packages token, paste it to
+   seal + save the TOIMAGES_REGISTRY_TOKEN secret, then dispatch the JSON render
+   workflow. Reuses the install token (Secrets: write) and dispatch token
+   (Actions: write) the integrate/dashboard pages keep in this origin's
+   localStorage. A browser cannot test a GHCR pull (no CORS), so the real proof is
+   the dispatched workflow run. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var INSTALL_KEY = "lvci_install_token", DISPATCH_KEY = "lvci_dispatch_token";
+  var SECRET = "TOIMAGES_REGISTRY_TOKEN", IMG_VAR = "TOIMAGES_IMAGE";
+  var DEFAULT_IMAGE = "ghcr.io/elijah286/lvci-toimages:latest"; // only used if unset
+  var JSON_WF = "vi-snapshots-json.yml";
+  var integrateHref = "../integrate.html#toimgSection";
+
+  function detectRepo() {
+    var m = String(location.hostname).match(/^([^.]+)\.github\.io$/i);
+    var seg = location.pathname.split("/").filter(Boolean);
+    return (m && seg.length) ? (m[1] + "/" + seg[0]) : "";
+  }
+  var repo = detectRepo();
+  var lsGet = function (k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+  function setStatus(el, html, kind) { if (!el) return; el.innerHTML = html || ""; el.style.color = kind === "ok" ? "#2da44e" : (kind === "err" ? "#cf222e" : "var(--fg-muted)"); }
+
+  function gh(path, token, opts) {
+    opts = opts || {};
+    var h = { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+    if (token) h["Authorization"] = "Bearer " + token;
+    var body = opts.body;
+    if (body && typeof body !== "string") { body = JSON.stringify(body); h["Content-Type"] = "application/json"; }
+    return fetch("https://api.github.com" + path, { method: opts.method || "GET", headers: h, body: body, cache: "no-store" });
+  }
+  function ghJson(r) {
+    if (r.ok) return r.status === 204 ? null : r.json();
+    return r.json().catch(function () { return {}; }).then(function (j) { var e = new Error(j.message || ("HTTP " + r.status)); e.status = r.status; throw e; });
+  }
+
+  var sealReady = null;
+  function loadSealedBox() {
+    if (sealReady) return sealReady;
+    var add = function (src, integ) { return new Promise(function (res, rej) {
+      var s = document.createElement("script"); s.src = src; s.integrity = integ; s.crossOrigin = "anonymous";
+      s.onload = res; s.onerror = function () { rej(new Error("Could not load the encryption library (network blocked?).")); };
+      document.head.appendChild(s);
+    }); };
+    sealReady = add("https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js", "sha384-05+sicyRJQ56XpL4U9HJ8YbtSzFDvAg7apPKOGV6A0JsAJKFM68jp5oLnUjG5mEp")
+      .then(function () { return add("https://cdn.jsdelivr.net/npm/tweetnacl-sealedbox-js@1.2.0/sealedbox.web.js", "sha384-gCr/Ers2SYUTIvvm+iWV5lakrZ/tTqxgYQckm0Znr3blQzNfOPirDZlpvkINLyhv"); })
+      .then(function () { if (!window.nacl || !window.sealedBox) throw new Error("Encryption library unavailable."); return window.sealedBox; });
+    return sealReady;
+  }
+  function b64ToBytes(b) { var s = atob(b), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+  function bytesToB64(u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function sealForRepo(v, pk) { return loadSealedBox().then(function (sb) { return bytesToB64(sb.seal(new TextEncoder().encode(v), b64ToBytes(pk))); }); }
+
+  function tokenCreateUrl() { return "https://github.com/settings/tokens/new?scopes=read:packages&description=" + encodeURIComponent("LabVIEW CI render token (GHCR pull for VI Browser 2.0)"); }
+
+  function connect() {
+    var st = $("nt-status"), token = ($("nt-token").value || "").trim();
+    if (!token) { $("nt-token").focus(); return; }
+    if (!repo) { setStatus(st, "Couldn't detect this repository from the URL. Finish setup on the <a href='" + integrateHref + "'>Integrate page</a>.", "err"); return; }
+    var ins = lsGet(INSTALL_KEY);
+    if (!ins) { setStatus(st, "This browser has no setup token with <strong>Secrets: write</strong> for <code>" + esc(repo) + "</code>. Set it once on the <a href='" + integrateHref + "'>Integrate page</a>, then return.", "err"); return; }
+    var btn = $("nt-connect"); btn.disabled = true;
+    setStatus(st, "Sealing and saving the token\u2026", null);
+    ghJson(gh("/repos/" + repo + "/actions/secrets/public-key", ins))
+      .then(function (pk) { return sealForRepo(token, pk.key).then(function (enc) {
+        return gh("/repos/" + repo + "/actions/secrets/" + SECRET, ins, { method: "PUT", body: { encrypted_value: enc, key_id: pk.key_id } }).then(ghJson); }); })
+      .then(function () {
+        return ghJson(gh("/repos/" + repo + "/actions/variables/" + IMG_VAR, ins)).catch(function (e) { if (e.status === 404) return null; throw e; })
+          .then(function (v) { if (v && v.value) return v.value;
+            return gh("/repos/" + repo + "/actions/variables", ins, { method: "POST", body: { name: IMG_VAR, value: DEFAULT_IMAGE } }).then(ghJson).then(function () { return DEFAULT_IMAGE; }); });
+      })
+      .then(function (img) {
+        $("nt-token").value = "";
+        setStatus(st, "\u2713 Connected \u2014 render image <code>" + esc(img) + "</code> (<a href='" + integrateHref + "'>change</a>).", "ok");
+        $("nt-step3").style.display = "";
+      })
+      .catch(function (e) {
+        var s = e && e.status;
+        setStatus(st, s === 401 ? "Setup token rejected (401) \u2014 re-create it on the Integrate page."
+          : s === 403 ? "Setup token lacks <strong>Secrets: write</strong> on this repo."
+          : s === 404 ? "Setup token can't see <code>" + esc(repo) + "</code>."
+          : "Couldn't save the token: " + esc(e && e.message || String(e)), "err");
+      })
+      .then(function () { btn.disabled = false; });
+  }
+
+  function generate() {
+    var st = $("nt-gen-status"), dt = lsGet(DISPATCH_KEY);
+    if (!dt) {
+      var owner = repo.split("/")[0];
+      var u = "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI dispatch") + "&description=" + encodeURIComponent("Dispatch CI runs for " + repo) + "&target_name=" + encodeURIComponent(owner) + "&actions=write";
+      setStatus(st, "Running the snapshot needs an <strong>Actions: write</strong> token. <a href='" + u + "' target='_blank' rel='noopener'>Create one \u2197</a>, then return.", "err");
+      return;
+    }
+    var btn = $("nt-generate"); btn.disabled = true;
+    setStatus(st, "Queuing the 2.0 snapshot run\u2026", null);
+    gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(JSON_WF) + "/dispatches", dt, { method: "POST", body: { ref: "main", inputs: { mode: "head" } } })
+      .then(function (r) {
+        btn.disabled = false;
+        if (r.status === 204) { setStatus(st, "\u2713 Queued. When the run finishes, reload and the VI opens in 2.0. <a href='https://github.com/" + esc(repo) + "/actions/workflows/" + JSON_WF + "' target='_blank' rel='noopener'>View run \u2197</a>", "ok"); return; }
+        setStatus(st, r.status === 401 ? "Dispatch token rejected (401)." : r.status === 403 ? "Dispatch token lacks Actions: write on this repo." : r.status === 404 ? "Token can't see <code>" + esc(repo) + "</code>, or the workflow isn't on the default branch." : "Dispatch failed (HTTP " + r.status + ").", "err");
+      })
+      .catch(function (e) { btn.disabled = false; setStatus(st, "Network error: " + esc(e && e.message || String(e)), "err"); });
+  }
+
+  function init() {
+    var link = $("needtoken-link"); if (link) link.href = tokenCreateUrl();
+    var rr = $("nt-repo-row"); if (rr) rr.innerHTML = repo ? ("Repository: <code>" + esc(repo) + "</code>") : "Repository <em>not detected</em> \u2014 use the Integrate page.";
+    var c = $("nt-connect"); if (c) c.addEventListener("click", connect);
+    var t = $("nt-token"); if (t) t.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); connect(); } });
+    var g = $("nt-generate"); if (g) g.addEventListener("click", generate);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+})();
 </script>
 </body>
 </html>
