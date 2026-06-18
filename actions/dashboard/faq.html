@@ -24,10 +24,9 @@
     .wrap{max-width:820px;margin:0 auto;padding:32px 20px 64px}
     h1{font-size:1.6em;margin:0 0 8px}
     .intro{color:var(--fg-muted);font-size:.95em;margin:0 0 28px}
-    .repo-home{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 24px;padding:12px 16px;
-      background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:.92em}
-    .repo-home .label{color:var(--fg-muted)}
-    .repo-home a{font-weight:600;font-family:ui-monospace,Menlo,monospace}
+    .repo-home{margin:0 0 22px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);
+      border-radius:8px;font-size:.95em;color:var(--fg-muted)}
+    .repo-home a{font-weight:600;color:var(--link)}
     .faq-item{margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
     .faq-q{background:var(--surface);padding:14px 16px;font-weight:600;font-size:.95em;cursor:pointer;display:flex;
           justify-content:space-between;align-items:center;user-select:none}
@@ -48,11 +47,13 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Frequently Asked Questions</h1>
     <div class="repo-home">
-      <span class="label">Official home:</span>
-      <a class="lvci-repo-link" data-show-slug href="https://github.com/elijah286/LabVIEW-CI-with-Containers" target="_blank" rel="noopener">github.com/elijah286/LabVIEW-CI-with-Containers</a>
+      These tools were installed from the
+      <a class="lvci-repo-link" data-show-name href="https://github.com/elijah286/LabVIEW-CI-with-Containers" target="_blank" rel="noopener">LabVIEW-CI-with-Containers</a>
+      repo, which are maintained by
+      <a class="lvci-owner-link" href="https://github.com/elijah286" target="_blank" rel="noopener">elijah286</a>.
     </div>
+    <h1>Frequently Asked Questions</h1>
     <p class="intro">Common questions about LabVIEW CI setup, configuration, and operation.</p>
 
     <div class="faq-item">
@@ -230,11 +231,19 @@
     // (.github/labview-ci/source.json) to wherever the tooling officially lives now.
     var FALLBACK = { repo: "elijah286/LabVIEW-CI-with-Containers", ref: "main" };
     function paint(repo) {
+      var parts = String(repo).split("/"), owner = parts[0] || "", name = parts[1] || "";
       var url = "https://github.com/" + repo, slug = "github.com/" + repo;
+      var ownerUrl = "https://github.com/" + owner;
       var nodes = document.querySelectorAll("a.lvci-repo-link");
       for (var i = 0; i < nodes.length; i++) {
         nodes[i].setAttribute("href", url);
         if (nodes[i].hasAttribute("data-show-slug")) nodes[i].textContent = slug;
+        else if (nodes[i].hasAttribute("data-show-name")) nodes[i].textContent = name;
+      }
+      var owners = document.querySelectorAll("a.lvci-owner-link");
+      for (var k = 0; k < owners.length; k++) {
+        owners[k].setAttribute("href", ownerUrl);
+        owners[k].textContent = owner;
       }
     }
     function getJson(u) {
