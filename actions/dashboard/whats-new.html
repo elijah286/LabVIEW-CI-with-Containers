@@ -353,10 +353,30 @@
     // The consumer's own catalog is deployed next to this page (same origin); it
     // carries the source pointer and the installed version. Source repo's catalog
     // (the source of truth for "latest" + history) is read cross-origin from raw.
+    // In "central mode" this page is served from the SOURCE site for a DIFFERENT
+    // client (?repo=<client>), so the same-origin catalog.json belongs to the host,
+    // not the client -- read the client's deployed catalog cross-origin instead.
+    // Query params (?from/&src/&ref) still take precedence; this fills any gaps and
+    // keeps the page working from a bare ?repo= link.
     async function loadConsumerCatalog() {
+      const host = detectRepoFromUrl();
+      const central = !!state.repo && (!host || state.repo.toLowerCase() !== host.toLowerCase());
+      if (central) return loadRemoteCatalog(state.repo);
       for (const u of ["./catalog.json", "./labview-ci/catalog.json"]) {
         try { return await fetchJson(u); } catch (_) { /* try next */ }
       }
+      return null;
+    }
+    // Read a client's installed catalog without same-origin access: its published
+    // dashboard (gh-pages root = the deployed/installed copy) first, then raw on the
+    // common default branches. Public clients resolve here; for private clients the
+    // link's ?from/&src/&ref params carry what we need.
+    async function loadRemoteCatalog(repo) {
+      const [owner, name] = String(repo || "").split("/");
+      const urls = [];
+      if (owner && name) urls.push(`https://${owner}.github.io/${name}/catalog.json`);
+      for (const ref of ["main", "master"]) urls.push(rawUrl(repo, ref, ".github/labview-ci/catalog.json"));
+      for (const u of urls) { try { return await fetchJson(u); } catch (_) { /* try next */ } }
       return null;
     }
     async function loadSourceCatalog(repo, ref) {

@@ -84,6 +84,7 @@
   // it from the same-origin catalog (and any relocation pointer it follows).
   var SOURCE_FALLBACK_REPO = 'elijah286/LabVIEW-CI-with-Containers';
   var srcRepo = SOURCE_FALLBACK_REPO;
+  var srcRef = 'main';
 
   // ── Design tokens + styles (match the GitHub-style dark/light tokens the
   //    rest of the site uses, so the header blends into every page). ─────────
@@ -804,10 +805,26 @@
   // the old always-on version pill). Used in the More popover and the mobile
   // menu; renderBadge() fills its label/tag/icon and toggles the amber "behind"
   // state. Always links to What's New (release notes / the update flow).
+  //
+  // The What's New / update flow is served from the SOURCE site so a client always
+  // gets the latest update UI regardless of the (possibly old) tooling it has
+  // installed; we pass this repo + installed version + source pointer as query
+  // params (the page reads the client's catalog cross-origin for anything missing).
+  // On the source's own dashboard (not a consumer) it stays the local page.
+  function whatsNewUrl() {
+    var parts = (srcRepo || '').split('/'), owner = parts[0], name = parts[1];
+    if (!isConsumer || !owner || !name || srcRepo.toLowerCase() === (repo || '').toLowerCase())
+      return base + '/whats-new.html';
+    return 'https://' + owner + '.github.io/' + name + '/whats-new.html'
+      + '?repo=' + encodeURIComponent(repo)
+      + (verState.v ? '&from=' + encodeURIComponent(verState.v) : '')
+      + '&src=' + encodeURIComponent(srcRepo)
+      + '&ref=' + encodeURIComponent(srcRef || 'main');
+  }
   function makeVerItem() {
     var a = document.createElement('a');
     a.className = 'lvci-ddver';
-    a.href = base + '/whats-new.html';
+    a.href = whatsNewUrl();
     a.innerHTML = '<span class="lvci-ic">' + ICON.news + '</span>'
       + '<span class="lvci-ddver-label">What\u2019s new</span>'
       + '<span class="lvci-ddver-tag"></span>';
@@ -1104,11 +1121,13 @@
         if (src) srcRepo = src;   // refine the Apply-to-New-Repo target from the live catalog
         refreshAbout();           // re-point About at the (now known) source site's faq.html
         isConsumer = !!(src && repo && src.toLowerCase() !== repo.toLowerCase());
+        renderBadge();   // isConsumer/srcRepo known -> point What's New at the source site
         if (!isConsumer) { revealClients(); return; }   // root repo: surface Clients even before a scan has published clients.json
         // Now that the deployed version + consumer status are known, check right
         // away whether a tooling upgrade is mid-flight (don't wait for the poll).
         refreshHeadCatalog().then(resolveUpgrade);
         var ref = (cat.source && cat.source.ref) || 'main';
+        srcRef = ref;
         // Follow the relocation pointer (.github/labview-ci/source.json): if the
         // tooling moved to a new official home, compare against THAT repo's latest
         // version so the "update available" dot reflects the real source. No-op when
@@ -1116,7 +1135,7 @@
         fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/source.json', { cache: 'no-cache' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (p) {
-            if (p && p.repo && p.repo.toLowerCase() !== src.toLowerCase()) { src = p.repo; ref = p.ref || ref; srcRepo = src; refreshAbout(); }
+            if (p && p.repo && p.repo.toLowerCase() !== src.toLowerCase()) { src = p.repo; ref = p.ref || ref; srcRepo = src; srcRef = ref; refreshAbout(); }
             return fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/catalog.json', { cache: 'no-cache' });
           })
           .then(function (r) { return r.ok ? r.json() : null; })
@@ -1353,16 +1372,16 @@
         // Link straight to the in-flight action; don't reopen What's New, which
         // would let you dispatch a second update on top of the running one.
         if (upUrl) { a.href = upUrl; a.target = '_blank'; a.rel = 'noopener'; }
-        else { a.href = base + '/whats-new.html'; a.removeAttribute('target'); a.removeAttribute('rel'); }
+        else { a.href = whatsNewUrl(); a.removeAttribute('target'); a.removeAttribute('rel'); }
         a.title = (upTo ? ('Updating to v' + upTo) : 'An update') + ' is in progress \u2014 click to watch the running action.';
       } else if (behind) {
-        a.href = base + '/whats-new.html'; a.removeAttribute('target'); a.removeAttribute('rel');
+        a.href = whatsNewUrl(); a.removeAttribute('target'); a.removeAttribute('rel');
         if (ic) ic.innerHTML = ICON.update;
         if (lbl) lbl.textContent = 'Update available';
         if (tag) tag.textContent = 'v' + verState.v + ' \u2192 v' + verState.to;
         a.title = 'Update available: v' + verState.v + ' \u2192 v' + verState.to;
       } else {
-        a.href = base + '/whats-new.html'; a.removeAttribute('target'); a.removeAttribute('rel');
+        a.href = whatsNewUrl(); a.removeAttribute('target'); a.removeAttribute('rel');
         if (ic) ic.innerHTML = ICON.news;
         if (lbl) lbl.textContent = 'What\u2019s new';
         if (tag) tag.textContent = verState.v ? ('v' + verState.v) : '';
