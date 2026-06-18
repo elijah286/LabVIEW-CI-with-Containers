@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.36",
+  "version": "3.4.37",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.37",
+        "date": "2026-06-18",
+        "title": "The About page credits the repository these tools came from",
+        "summary": "The About page (opened from the dashboard menu) now starts with a short line naming where the tooling came from - 'These tools were installed from the <repo> repo, which are maintained by <owner>.' - with both the repository name and the owner shown as links. So from any client dashboard you can click About and go straight to the source project on GitHub. The names and links are resolved from the tooling's published source location and follow the relocation pointer, so they always point at the current official home and update automatically if the project ever moves to a new repository or owner.",
+        "highlights": [
+          "The About page now opens with a one-line credit naming the repository the tooling was installed from and the owner who maintains it.",
+          "Both the repository name and the owner name are clickable, so you can jump from any client's About page straight to the source project (and its owner) on GitHub.",
+          "The credit is resolved from the published source location and follows the relocation pointer, so it always points at the current official home and updates automatically if the project moves."
+        ]
+      },
       {
         "version": "3.4.36",
         "date": "2026-06-18",
