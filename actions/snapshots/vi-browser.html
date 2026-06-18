@@ -108,6 +108,16 @@
     #viewer-toggle button:hover:not(.active){background:var(--sidebar-hover);color:var(--fg)}
     #viewer-toggle button.active{background:var(--link);color:#fff}
     #viewer-toggle .sep{width:1px;background:var(--border)}
+    /* Front Panel / Block Diagram sub-switch (2.0 in-place view) */
+    #pane-toggle{display:none;align-items:center;border:1px solid var(--border);border-radius:7px;
+                 overflow:hidden;font-size:.92em}
+    #pane-toggle.show{display:inline-flex}
+    #pane-toggle button{border:none;background:var(--bg);color:var(--fg-muted);cursor:pointer;
+                        padding:3px 11px;font:inherit;font-weight:600}
+    #pane-toggle button:hover:not(.active):not(:disabled){background:var(--sidebar-hover);color:var(--fg)}
+    #pane-toggle button.active{background:var(--link);color:#fff}
+    #pane-toggle button:disabled{opacity:.4;cursor:default}
+    #pane-toggle .sep{width:1px;background:var(--border)}
     #viewer-mode-note{display:none;color:var(--fg-muted);font-size:.82em;font-style:italic}
     #viewer-mode-note.show{display:inline}
     #viewer{flex:1;overflow:hidden;position:relative}
@@ -159,6 +169,11 @@
       <button type="button" data-viewer="1" title="1.0 — classic gallery: front panel + block diagram, with each structure's cases in a stepper below the diagram">1.0</button>
       <span class="sep"></span>
       <button type="button" data-viewer="2" title="2.0 — in-place renderer: Case / Event structures navigated on the diagram itself, like the LabVIEW editor">2.0</button>
+    </span>
+    <span id="pane-toggle" title="Show this VI's front panel or its block diagram">
+      <button type="button" data-pane="fp" title="Front panel — the VI's user interface">Front&nbsp;Panel</button>
+      <span class="sep"></span>
+      <button type="button" data-pane="bd" title="Block diagram — the VI's code; Case/Event structures navigate in place">Block&nbsp;Diagram</button>
     </span>
     <span id="viewer-mode-note"></span>
     <span id="vi-title">Select a VI from the sidebar</span>
@@ -301,6 +316,11 @@ let currentDiffRow = null;       // the tree row backing the current view (for r
 // uses each VI's frames JSON and gracefully falls back to 1.0 when none exists yet.
 let viewerMode = (new URLSearchParams(location.search).get('viewer') === '2') ? '2' : '1';
 let currentSnapshot = null;      // { html, title } of the open plain snapshot (re-rendered on a 1.0/2.0 switch)
+// VI Browser 2.0 sub-view: 'fp' = front panel (frames[0]), 'bd' = block diagram
+// (frames[1] + its nested case frames). Sticky across VIs; defaults to the front
+// panel so the in-place view opens on what the previous build already showed.
+let vb2Pane = 'fp';
+let vb2Frames = null;            // frames of the current in-place render (so the FP/BD toggle re-renders without refetching)
 
 const ICON = {
   chevron: '<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M6 4l4 4-4 4z"/></svg>',
@@ -676,11 +696,41 @@ function showInPlace(frames, htmlUrl, title) {
   const nt0 = document.getElementById('vi-needtoken'); if (nt0) nt0.style.display = 'none';
   const dr0 = document.getElementById('vi-diffrun'); if (dr0) dr0.style.display = 'none'; hideRegenLink();
   try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
+  vb2Frames = frames;
+  syncPaneToggle();        // reveal the Front Panel / Block Diagram switch for this VI
+  renderActivePane();      // paint the active pane (front panel or block-diagram tree)
+  setViewerLoading(false);
+}
+
+// The 2.0 frames array is ordered [0] = front panel, [1] = block-diagram root
+// (its nested Case / Event / Sequence cases follow as child frames). The sub-toggle
+// renders one pane or the other in place; both pan & zoom via the same renderer.
+function vb2HasBD() { return Array.isArray(vb2Frames) && vb2Frames.length > 1; }
+
+function renderActivePane() {
+  if (!Array.isArray(vb2Frames) || !vb2Frames.length || !window.LVRender) return;
+  const showBD = vb2Pane === 'bd' && vb2HasBD();
   const canvas = document.getElementById('vi-canvas');
   canvas.style.display = 'block';
   if (lvController) { try { lvController.destroy(); } catch (e) {} }
-  lvController = window.LVRender.render(canvas, frames, {});
-  setViewerLoading(false);
+  lvController = window.LVRender.render(canvas, vb2Frames, { rootIndex: showBD ? 1 : 0 });
+}
+
+function syncPaneToggle() {
+  const wrap = document.getElementById('pane-toggle');
+  if (!wrap) return;
+  if (!Array.isArray(vb2Frames) || !vb2Frames.length) { wrap.classList.remove('show'); return; }
+  wrap.classList.add('show');
+  const hasBD = vb2HasBD();
+  const bd = wrap.querySelector('button[data-pane="bd"]');
+  if (bd) bd.disabled = !hasBD;
+  const eff = (vb2Pane === 'bd' && hasBD) ? 'bd' : 'fp';
+  wrap.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.pane === eff));
+}
+
+function hidePaneToggle() {
+  const wrap = document.getElementById('pane-toggle');
+  if (wrap) wrap.classList.remove('show');
 }
 
 function showNeedsToken(htmlUrl, title) {
@@ -699,6 +749,7 @@ function showNeedsToken(htmlUrl, title) {
   document.getElementById('viewer').style.display = 'block';
   const nt = document.getElementById('vi-needtoken'); if (nt) nt.style.display = 'block';
   const drn = document.getElementById('vi-diffrun'); if (drn) drn.style.display = 'none'; hideRegenLink();
+  hidePaneToggle();
   setViewerLoading(false);
   // Pick the right 2.0 panel (token prompt / running / no-frames / failed) instead of
   // always showing the token prompt. The wizard script owns repo + token + API logic.
@@ -712,6 +763,7 @@ function showInFrame(url, title) {
   const ntf = document.getElementById('vi-needtoken'); if (ntf) ntf.style.display = 'none';
   const drf = document.getElementById('vi-diffrun'); if (drf) drf.style.display = 'none';
   hideRegenLink();
+  hidePaneToggle();
   try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
   const frameEl = document.getElementById('vi-frame');
@@ -1181,6 +1233,7 @@ function showDiffRun(viRel, type, mode) {
   const nt = document.getElementById('vi-needtoken'); if (nt) nt.style.display = 'none';
   try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   hideRegenLink();
+  hidePaneToggle();
   document.getElementById('empty').style.display = 'none';
   document.getElementById('viewer').style.display = 'block';
   const hint = document.getElementById('viewer-hint'); if (hint) hint.style.display = 'none';
@@ -1352,6 +1405,17 @@ document.querySelectorAll('#viewer-toggle button').forEach(btn => {
   });
 });
 syncViewerToggle();
+
+// Front Panel / Block Diagram sub-toggle (2.0 in-place view). Re-renders the
+// already-loaded frames at the chosen root; the choice sticks across VIs.
+document.querySelectorAll('#pane-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled || btn.dataset.pane === vb2Pane) return;
+    vb2Pane = btn.dataset.pane;
+    syncPaneToggle();
+    renderActivePane();
+  });
+});
 
 loadCommits().catch(err => {
   document.getElementById('vi-list').innerHTML =
