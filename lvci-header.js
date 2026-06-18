@@ -1031,7 +1031,16 @@
         var isConsumer = src && repo && src.toLowerCase() !== repo.toLowerCase();
         if (!isConsumer) { revealClients(); return; }   // root repo: surface Clients even before a scan has published clients.json
         var ref = (cat.source && cat.source.ref) || 'main';
-        fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/catalog.json', { cache: 'no-cache' })
+        // Follow the relocation pointer (.github/labview-ci/source.json): if the
+        // tooling moved to a new official home, compare against THAT repo's latest
+        // version so the "update available" dot reflects the real source. No-op when
+        // the pointer is absent/unreachable or already names the recorded source.
+        fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/source.json', { cache: 'no-cache' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (p) {
+            if (p && p.repo && p.repo.toLowerCase() !== src.toLowerCase()) { src = p.repo; ref = p.ref || ref; }
+            return fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/catalog.json', { cache: 'no-cache' });
+          })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (s) {
             if (!s || !s.version) return;
