@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.12",
+  "version": "3.4.13",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.13",
+        "date": "2026-06-18",
+        "title": "Apply to New Repo: the dashboard link appears only once the page is really live",
+        "summary": "When the configurator auto-merges the install, it now waits for GitHub Pages to actually publish your dashboard before showing the link, so the link is never a dead 404. The install progress bar stays in an active \"publishing...\" state the whole time GitHub Pages is building the page (with a running timer), and only completes and reveals the clickable dashboard link once the page is confirmed live. Until then the dashboard URL is shown as plain text rather than a link you might click too early. No change to an already-installed pipeline.",
+        "highlights": [
+          "Publishing the dashboard is now part of the install progress - the bar keeps showing it is working until GitHub Pages serves the page.",
+          "The dashboard link is revealed only after the page is confirmed live, so it is never a 404.",
+          "Honest status while publishing, with an elapsed-time indicator; the link appears the moment the dashboard goes live."
+        ]
+      },
       {
         "version": "3.4.12",
         "date": "2026-06-18",

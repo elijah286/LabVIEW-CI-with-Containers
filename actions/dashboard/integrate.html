@@ -112,6 +112,12 @@
     .ins-bar-fill{position:absolute;top:0;bottom:0;left:0;width:0;border-radius:6px;background:var(--link);transition:width .3s ease}
     .ins-bar.done .ins-bar-fill{background:var(--accent);width:100%}
     .ins-bar.err .ins-bar-fill{background:#cf222e}
+    /* Indeterminate "working" state: used while we wait for GitHub Pages to actually
+       serve the dashboard (publishing). The duration is unknown, so a moving segment
+       shows it's still in progress rather than a stalled determinate bar. */
+    .ins-bar.working .ins-bar-fill{background:var(--link);width:35%;transition:none;animation:insIndet 1.15s ease-in-out infinite}
+    @keyframes insIndet{0%{left:-35%}100%{left:100%}}
+    @media (prefers-reduced-motion:reduce){.ins-bar.working .ins-bar-fill{animation:none;left:0;width:85%}}
     .locked-area{opacity:.5;pointer-events:none;filter:saturate(.55)}
   </style>
 </head>
@@ -266,8 +272,9 @@
     let catalog = null;
     let activeTab = "bash";
     const selected = new Set();   // capability ids the user checked
-    const osSel = new Set(["windows","linux"]);
+    const osSel = new Set(["windows"]);   // Windows is the supported default; Linux container jobs are experimental (NI base image) and opt-in via Configure Workers
     let priorState = null;        // set by detectPriorInstall when re-installing over an existing setup
+    let insRunId = 0;             // bumped per install run; guards the async publish-wait UI against a newer install
 
     const $ = (id) => document.getElementById(id);
     const csv = (set) => [...set].join(",");
@@ -830,7 +837,7 @@
       const ref = await gh(`/repos/${repo}/git/ref/heads/gh-pages`);
       if (ref.ok) return;
       if (ref.status !== 404) await ghJson(ref);
-      const html = `<!doctype html><meta charset="utf-8"><title>LabVIEW CI \u2014 setting up</title>` +
+      const html = `<!doctype html><meta charset="utf-8"><meta name="lvci-placeholder" content="1"><title>LabVIEW CI \u2014 setting up</title>` +
         `<meta http-equiv="refresh" content="30">` +
         `<body style="font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;display:grid;place-items:center;min-height:100vh;margin:0">` +
         `<div style="text-align:center"><h1>LabVIEW CI dashboard</h1>` +
@@ -886,7 +893,11 @@
     function setInsBar(frac, stateCls) {
       const w = $("insBar"); if (!w) return;
       w.hidden = false;
-      if (frac != null) { const f = $("insBarFill"); if (f) f.style.width = (Math.max(0, Math.min(1, frac)) * 100) + "%"; }
+      const f = $("insBarFill");
+      // In the indeterminate "working" state the CSS animation owns the width, so
+      // clear any inline width left from the determinate phase (inline would win).
+      if (stateCls === "working") { if (f) f.style.width = ""; }
+      else if (frac != null && f) { f.style.width = (Math.max(0, Math.min(1, frac)) * 100) + "%"; }
       w.className = "ins-bar" + (stateCls ? " " + stateCls : "");
     }
     function showInsBar() { const w = $("insBar"); if (w) { w.hidden = false; w.className = "ins-bar"; const f = $("insBarFill"); if (f) f.style.width = "0%"; } }
@@ -981,18 +992,72 @@
       return false;
     }
 
+    // Watch the published dashboard URL until GitHub Pages actually serves it, so the
+    // success link is NEVER revealed while it would 404. GitHub Pages returns
+    // `Access-Control-Allow-Origin: *` on every response (200 AND 404), so this
+    // cross-origin fetch can read both res.ok and the body. Resolves to:
+    //   "live"        — HTTP 200 and the real dashboard (the setup placeholder is gone)
+    //   "placeholder" — HTTP 200 but still the "publishing..." placeholder (the link is
+    //                   valid, just mid-render; it auto-refreshes into the dashboard)
+    //   "pending"     — never returned 200 within the cap (very unlikely once Pages is on)
+    // onTick(elapsedMs) is called each poll so the caller can keep the bar/status alive.
+    async function waitForPagesLive(url, onTick) {
+      const FIRST200_CAP = 6 * 60 * 1000;   // wait up to ~6 min for the URL to stop 404ing
+      const REAL_CAP     = 90 * 1000;       // after the first 200, wait up to ~90s for the real page
+      const INTERVAL     = 4000;
+      const t0 = Date.now();
+      let firstOkAt = 0;
+      for (;;) {
+        if (onTick) { try { onTick(Date.now() - t0); } catch (_) {} }
+        let ok = false, isPlaceholder = true;
+        try {
+          const ctrl = new AbortController();
+          const to = setTimeout(() => ctrl.abort(), 8000);
+          const bust = url + (url.indexOf("?") >= 0 ? "&" : "?") + "_=" + Date.now();
+          const res = await fetch(bust, { cache: "no-store", redirect: "follow", signal: ctrl.signal });
+          clearTimeout(to);
+          ok = res.ok;
+          if (ok) {
+            let body = ""; try { body = await res.text(); } catch (_) {}
+            isPlaceholder = /lvci-placeholder/.test(body) || /LabVIEW CI \u2014 setting up/.test(body) || body.trim() === "";
+          }
+        } catch (_) { /* network / CORS abort / timeout — treat as not-ready, keep polling */ }
+        const now = Date.now();
+        if (ok) {
+          if (!firstOkAt) firstOkAt = now;
+          if (!isPlaceholder) return "live";
+          if (now - firstOkAt >= REAL_CAP) return "placeholder";
+        } else if (!firstOkAt && now - t0 >= FIRST200_CAP) {
+          return "pending";
+        }
+        await sleep(INTERVAL);
+      }
+    }
+
     function installSuccess(pr, repo, setup) {
       setup = setup || {};
-      setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
+      const myGen = insRunId;       // the async publish-wait below bails if a newer install starts
       const url = dashboardUrl(repo);
+      const autoMerge = !!($("optAutoMerge") && $("optAutoMerge").checked);
+      const pagesOn = setup.pages === "done" || setup.pages === "exists";
+      // We can only PROVE the dashboard is live when we merge it ourselves and a
+      // dashboard + Pages are part of this install. Otherwise we never reveal a
+      // clickable link (it would 404 until the user merges and Pages publishes).
+      const willPublish = autoMerge && setup.hasDashboard && pagesOn && !!setup.branch;
+
+      setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
 
       const done = [];
       if (setup.kept) done.push(`Kept your existing settings &mdash; <strong>${esc(setup.kept)}</strong>.`);
       if (setup.removed && setup.removed.length) done.push(`Removed <strong>${setup.removed.length}</strong> old tooling file${setup.removed.length > 1 ? "s" : ""} no longer used (in the pull request).`);
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
-      if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a><small>It publishes within a minute of the install merge &mdash; no CI run required; until then it shows a &ldquo;publishing&hellip;&rdquo; placeholder.</small>`);
-      else if (setup.pages === "exists") done.push(`<strong>GitHub Pages</strong> is already on &mdash; dashboard at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>.`);
+      // Show the dashboard URL as PLAIN TEXT until Pages is confirmed serving it
+      // (revealLiveLink upgrades #insLiveUrl to a real link) so we never present a
+      // link that 404s. When Pages already existed it's almost certainly live, so
+      // that case links right away.
+      if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <span id="insLiveUrl"><code class="inl">${esc(url)}</code></span><small id="insLiveNote">It publishes within a minute of the install merge &mdash; no CI run required; the link activates here the moment it&rsquo;s live.</small>`);
+      else if (setup.pages === "exists") done.push(`<strong>GitHub Pages</strong> is already on &mdash; dashboard at <span id="insLiveUrl"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></span>.`);
       const doneEl = $("insDone");
       if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = done.length ? "" : "none"; }
 
@@ -1012,27 +1077,65 @@
         } else { note.style.display = "none"; }
       }
 
-      // Auto-merge if the checkbox is enabled
-      if ($("optAutoMerge") && $("optAutoMerge").checked) {
-        mergeInstallPr(pr, repo).then(success => {
-          if (success) {
-            const nextEl = $("insNext");
-            if (nextEl) nextEl.style.display = "none";
-            // The merge already triggers the dashboard build; dispatch it too so it
-            // publishes immediately as the first thing, independent of any CI run.
-            if (setup.hasDashboard && setup.branch) {
-              setInsStatus(`&#10003; Merged pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026`, "ok");
-              publishDashboardNow(repo, setup.branch).then(ok => {
-                setInsStatus(`&#10003; Done \u2014 merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> and ${ok ? "started the dashboard build" : "the merge is publishing the dashboard"}. It goes live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> within a minute \u2014 no CI run required.`, "ok");
-              });
-            } else {
-              setInsStatus(`&#10003; Done \u2014 pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`, "ok");
-            }
-          } else {
-            setInsStatus(`&#10003; Opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but auto-merge failed (check the link above to merge manually). The dashboard publishes itself the moment you merge \u2014 no CI run required.`, "ok");
-          }
-        });
+      // Upgrade the plain-text dashboard URL in the summary to a live link, once
+      // GitHub Pages is confirmed serving it.
+      function revealLiveLink() {
+        if (insRunId !== myGen) return;
+        const span = $("insLiveUrl");
+        if (span) span.innerHTML = `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>`;
+        const ln = $("insLiveNote");
+        if (ln) ln.innerHTML = `It&rsquo;s live &mdash; no CI run required.`;
       }
+
+      if (!autoMerge) {
+        // The install itself is done; the dashboard publishes when the user merges,
+        // so we can't confirm a live link yet (the URL stays plain text above).
+        setInsBar(1, "done");
+        return;
+      }
+
+      mergeInstallPr(pr, repo).then(success => {
+        if (insRunId !== myGen) return;     // a newer install took over the UI
+        if (!success) {
+          setInsBar(1, "done");
+          setInsStatus(`&#10003; Opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but auto-merge failed (check the link above to merge manually). The dashboard publishes itself the moment you merge \u2014 no CI run required.`, "ok");
+          return;
+        }
+        const nx = $("insNext"); if (nx) nx.style.display = "none";
+        if (!willPublish) {
+          setInsBar(1, "done");
+          setInsStatus(`&#10003; Done \u2014 pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`, "ok");
+          return;
+        }
+        // Merged. Kick the dashboard build, then keep the bar in the indeterminate
+        // "working" state and WATCH the public URL — only reveal the link and finish
+        // the bar once GitHub Pages is actually serving the page, so it's never a 404.
+        setInsBar(null, "working");
+        setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026 this takes about a minute.`, "ok");
+        publishDashboardNow(repo, setup.branch).then(() =>
+          waitForPagesLive(url, (elapsed) => {
+            if (insRunId !== myGen) return;
+            const secs = Math.round(elapsed / 1000);
+            setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard\u2026 GitHub Pages is building it (${secs}s). The link appears here the moment it&rsquo;s live.`, "ok");
+          })
+        ).then(state => {
+          if (insRunId !== myGen) return;
+          setInsBar(1, "done");
+          revealLiveLink();
+          if (state === "placeholder") {
+            setInsStatus(`&#10003; Done \u2014 your dashboard is publishing at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> and finishes rendering within a minute (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`, "ok");
+          } else if (state === "pending") {
+            setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> and started the dashboard build. It should be live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> shortly \u2014 if you see a placeholder, give it a minute and refresh.`, "ok");
+          } else {
+            setInsStatus(`&#10003; Done \u2014 your dashboard is live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`, "ok");
+          }
+        }).catch(() => {
+          if (insRunId !== myGen) return;
+          setInsBar(1, "done");
+          revealLiveLink();
+          setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> and started the dashboard build. It should be live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> within a minute.`, "ok");
+        });
+      });
     }
 
     function installError(e, repo) {
@@ -1235,6 +1338,7 @@
       const s = source();
       installBusy(true);
       showInsBar();
+      ++insRunId;                   // newer install invalidates any in-flight publish-wait UI updates
       setInsStatus("Preparing&hellip;", null);
       try {
         const setup = {};
@@ -1377,8 +1481,11 @@
         }
         // Always best-effort: tag the repo so the source's client directory finds it.
         await tagClientTopic(repo, setup);
+        // installSuccess now owns the final bar state: it flips to "done" right away
+        // for the non-publishing paths, or keeps the bar in the indeterminate
+        // "working" state while it waits for GitHub Pages to actually serve the
+        // dashboard (then it flips to "done" and reveals the live link).
         installSuccess(pr, repo, setup);
-        setInsBar(1, "done");
       } catch (e) {
         setInsStatus(installError(e, repo), "err");
       } finally {
