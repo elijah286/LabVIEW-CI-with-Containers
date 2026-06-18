@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.16",
+  "version": "3.4.17",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.17",
+        "date": "2026-06-18",
+        "title": "About page links to the tooling's canonical home",
+        "summary": "The About page (FAQ) now shows the tooling's official repository at the top and resolves every repository link on the page from the relocation pointer (.github/labview-ci/source.json) instead of a hard-coded address. If the tooling is ever moved to a new home, the About page's links automatically point to the new repository - on the source site and on every installed dashboard alike. There is no change to an already-installed pipeline.",
+        "highlights": [
+          "The About page shows the tooling's official repository link prominently at the top.",
+          "Every repository link on the About page now resolves from the relocation pointer, so they follow the tooling to a new home automatically."
+        ]
+      },
       {
         "version": "3.4.16",
         "date": "2026-06-18",
