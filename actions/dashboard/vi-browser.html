@@ -180,14 +180,18 @@
          beside the snapshot HTML; otherwise the iframe above shows the flat snapshot. -->
     <div id="vi-canvas" style="position:absolute;inset:0;display:none;z-index:2"></div>
     <!-- 2.0 not provisioned for this repo (no render token => no frames JSON):
-         show a gated empty state with a link to get a token, not a silent 1.0. -->
+         show a gated empty state with two steps -- get a token from the private
+         render repo, then enter it in the dashboard prompt -- not a silent 1.0. -->
     <div id="vi-needtoken" style="position:absolute;inset:0;display:none;z-index:3;overflow:auto;padding:28px;box-sizing:border-box;background:var(--bg)">
       <div style="max-width:560px;margin:7vh auto 0;text-align:center">
         <div style="font-size:2.6em;line-height:1;margin-bottom:14px">&#128274;</div>
         <h2 style="margin:0 0 10px;font-size:1.3em;color:var(--fg)">VI Browser 2.0 needs a render token</h2>
         <p style="color:var(--fg-muted);margin:0 0 18px">The in-place renderer runs from a private image, so 2.0 only activates once this repository is provisioned with a render token. Until then, position-aware snapshots aren&rsquo;t available here.</p>
-        <p><a id="needtoken-link" href="../integrate.html#toimgSection" style="color:var(--link);font-weight:600">Get a render token &amp; enable 2.0 &#8599;</a></p>
-        <p style="color:var(--fg-muted);font-size:.85em;margin-top:16px">The token only works if you have access to the private render repository. Otherwise switch to <strong>1.0</strong> for the classic view.</p>
+        <ol style="display:inline-block;text-align:left;max-width:440px;margin:0 0 6px;padding-left:22px;color:var(--fg);line-height:1.7">
+          <li><a id="needtoken-link" href="https://github.com/elijah286/lvci-toimages" target="_blank" rel="noopener" style="color:var(--link);font-weight:600">Get a render token &#8599;</a> &mdash; request access to the private render repository.</li>
+          <li><a id="needtoken-enter" href="../integrate.html#toimgSection" style="color:var(--link);font-weight:600">Enter your render token &#8594;</a> &mdash; paste it into the dashboard&rsquo;s setup prompt to enable 2.0.</li>
+        </ol>
+        <p style="color:var(--fg-muted);font-size:.85em;margin-top:16px">The render repository in step 1 is private, so that link 404s unless you have access &mdash; that&rsquo;s expected. Otherwise switch to <strong>1.0</strong> for the classic view.</p>
       </div>
     </div>
     <div id="viewer-loading"><span class="spinner"></span><span>Rendering…</span></div>
@@ -264,6 +268,25 @@ function buildTree(items) {
 function allFolderPaths(node, out = []) {
   for (const child of node.dirs.values()) { out.push(child.path); allFolderPaths(child, out); }
   return out;
+}
+
+// On a visitor's first ever open of the VI Browser, expand the whole folder tree
+// so the structure is visible at a glance. A localStorage flag keeps this a
+// one-time courtesy: on later visits the tree loads collapsed as before. The
+// in-memory guard makes it fire only for the first manifest built this load (not
+// on every commit switch) and also covers private-mode browsers where the flag
+// can't be persisted.
+let didAutoExpand = false;
+function maybeAutoExpandFirstVisit() {
+  if (didAutoExpand || !treeRoot) return;
+  let seen = false;
+  try { seen = localStorage.getItem('lvci.vi-browser.visited') === '1'; } catch (e) {}
+  if (seen) { didAutoExpand = true; return; }
+  const folders = allFolderPaths(treeRoot);
+  if (!folders.length) return;        // nothing to expand yet; retry on the next manifest
+  folders.forEach(p => expanded.add(p));
+  didAutoExpand = true;
+  try { localStorage.setItem('lvci.vi-browser.visited', '1'); } catch (e) {}
 }
 
 // A VI passes the active filters when it matches the text query AND, if the
@@ -367,6 +390,7 @@ function viEntryFromBlob(viRel, blob) {
 async function loadManifest(sha) {
   manifest = await getManifest(sha);
   treeRoot = buildTree(manifest);
+  maybeAutoExpandFirstVisit();   // first-ever visit opens with the tree fully expanded
   activeHtml = null;
   await loadChanges(sha);
   updateChangedToggle();
