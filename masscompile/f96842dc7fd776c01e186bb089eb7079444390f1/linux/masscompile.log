@@ -1,0 +1,20 @@
+LabVIEWCLI started logging in file:  /tmp/lvtemporary_23801.log
+Using LabVIEW: "/usr/local/natinst/LabVIEW-2026-64/labviewprofull"
+LabVIEW launched successfully.
+Connection established with LabVIEW at port number 3363.
+
+Operation output: 
+#### Starting Mass Compile: Thu, Jun 18, 2026 12:55:49 AM
+  Directory: "/workspace"
+/workspace/.github/labview/PrintToSingleFileHtml/PrintToSingleFileHtml.lvclass (PrintToSingleFileHtml.lvclass)
+    - The class expected to be at "/workspace/.github/labview/CoreOperation/CoreOperation.lvclass" was loaded from "/usr/local/natinst/share/nilvcli/Operations/CoreOperation/CoreOperation.lvclass".
+Search failed to find "NI_WebServices.lvlib:LV Image to PNG Data.vi" previously from "/<vilib>/wsapi/VIs/LV Image to PNG Data.vi"  +=+   Caller: "Image to Info.vi"
+  ### Bad VI:    "Image to Info.vi"	Path="/workspace/.github/labview/toimages/SubVIs/Image to Info.vi" 
+  ### Bad VI:    "Image to Info.vi"	Path="/workspace/.github/labview/toimages/SubVIs/Image to Info.vi" 
+  ### Bad subVI: "Convert.vi"	Path="/workspace/.github/labview/toimages/Convert.vi" 
+Search failed to find "PID DW.vi" previously from "/workspace/example/Curriculum/Generator Lessons/My Instruments 2023 LabVIEW/Jet VIs/PID DW.vi"  +=+   Caller: "Generator High Speed PIDDW.vi"
+  ### Bad VI:    "Generator High Speed PIDDW.vi"	Path="/workspace/example/Curriculum/Generator Lessons/subVIs/Generator High Speed PIDDW.vi" 
+#### Finished Mass Compile: Thu, Jun 18, 2026 12:55:57 AM
+
+MassCompile operation failed.
+
