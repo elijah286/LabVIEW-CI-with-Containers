@@ -120,6 +120,10 @@
                     border-top-color:var(--link);border-radius:50%;animation:spin .7s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     #nt-state .spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--link);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+    /* Run / regenerate a VIDiff report (shown when a changed VI has no side-by-side report yet) */
+    #vi-diffrun{position:absolute;inset:0;z-index:3;display:none;overflow:auto;padding:28px;box-sizing:border-box;background:var(--bg)}
+    #vi-diffrun button:disabled{opacity:.5;cursor:default}
+    #regen-link{cursor:pointer}
     #viewer-hint{margin-left:auto;color:var(--fg-muted);font-size:.92em;display:none}
     #viewer-hint kbd{font:inherit;background:var(--bg);border:1px solid var(--border);
                      border-radius:4px;padding:0 4px}
@@ -165,6 +169,7 @@
       <button type="button" data-plat="windows">Windows</button>
     </span>
     <a id="open-link" href="#" target="_blank" style="color:var(--link);display:none">Open in new tab ↗</a>
+    <a id="regen-link" href="#" title="Re-run VIDiff to refresh this diff report" style="color:var(--link);font-weight:600;display:none">&#8635; Regenerate diff</a>
     <span id="viewer-hint">Drag to pan &middot; <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+scroll to zoom &middot; <kbd>◀</kbd><kbd>▶</kbd> to scroll a structure's cases</span>
   </div>
   <div id="empty">
@@ -226,6 +231,29 @@
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <input id="nt-tokp-input" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_&hellip;" style="flex:1 1 200px;min-width:0;padding:6px 9px;border:1px solid var(--border,#d0d7de);border-radius:7px;background:var(--bg);color:var(--fg);font:inherit">
             <button id="nt-tokp-save" type="button" style="padding:6px 14px;border:0;border-radius:7px;background:var(--link);color:#fff;font-weight:600;cursor:pointer">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Run / regenerate a VIDiff side-by-side report. Shown when a changed VI has no
+         report yet, or via the toolbar "Regenerate diff" link when one already exists. -->
+    <div id="vi-diffrun" style="position:absolute;inset:0;z-index:3;display:none;overflow:auto;padding:28px;box-sizing:border-box;background:var(--bg)">
+      <div style="max-width:560px;margin:7vh auto 0;text-align:center">
+        <div style="font-size:2.4em;line-height:1;margin-bottom:14px">&#128270;</div>
+        <h2 id="dr-title" style="margin:0 0 10px;font-size:1.3em;color:var(--fg)">Diff report not generated yet</h2>
+        <p id="dr-msg" style="color:var(--fg-muted);margin:0 0 18px;line-height:1.55"></p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:center">
+          <button id="dr-file" type="button" style="padding:9px 18px;border:0;border-radius:8px;background:var(--link);color:#fff;font-weight:600;font-size:1em;cursor:pointer">Run for this VI only</button>
+          <button id="dr-rev" type="button" style="padding:9px 18px;border:0;border-radius:8px;background:#2da44e;color:#fff;font-weight:600;font-size:1em;cursor:pointer">Run for the entire revision</button>
+        </div>
+        <div id="dr-status" role="status" style="font-size:.85em;margin-top:12px;min-height:1.1em;color:var(--fg-muted)"></div>
+        <div style="margin-top:10px"><a id="dr-snap" href="#" style="color:var(--link);font-size:.85em">View the flat snapshot instead</a></div>
+        <!-- one-time dispatch-token prompt (Actions: write); reuses the 2.0 wizard's stored token -->
+        <div id="dr-tokp" style="display:none;margin:16px auto 0;max-width:470px;padding:11px 12px;border:1px solid var(--border,#d0d7de);border-radius:9px;background:rgba(127,127,127,.06);text-align:left">
+          <div id="dr-tokp-msg" style="font-size:.85em;margin-bottom:7px"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <input id="dr-tokp-input" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_&hellip;" style="flex:1 1 200px;min-width:0;padding:6px 9px;border:1px solid var(--border,#d0d7de);border-radius:7px;background:var(--bg);color:var(--fg);font:inherit">
+            <button id="dr-tokp-save" type="button" style="padding:6px 14px;border:0;border-radius:7px;background:var(--link);color:#fff;font-weight:600;cursor:pointer">Save &amp; run</button>
           </div>
         </div>
       </div>
@@ -564,11 +592,13 @@ function renderTree(node, depth, f, frag) {
     if (chg) {
       const badge = document.createElement('span');
       badge.className = 'chg ' + chg.type;
-      // "diff" only when a true side-by-side report exists; otherwise just the type.
-      badge.textContent = (chg.type === 'modified' && chg.isDiff) ? 'diff' : chg.type;
+      // A changed VI always shows a uniform "diff" badge (its colour still encodes
+      // added/modified/deleted). Clicking it opens the side-by-side report when one
+      // exists, or the panel to run VIDiff for it when it hasn't been generated yet.
+      badge.textContent = 'diff';
       badge.title = chg.isDiff
-        ? `View side-by-side diff report (${chg.type})`
-        : `VI ${chg.type} in this revision`;
+        ? `View the side-by-side diff report (${chg.type})`
+        : `${chg.type} in this revision \u2014 diff report not generated yet (click to run it)`;
       badge.addEventListener('click', (e) => { e.stopPropagation(); openDiff(v.vi_rel, chg.type, row); });
       row.appendChild(badge);
     }
@@ -644,6 +674,7 @@ function showInPlace(frames, htmlUrl, title) {
   document.getElementById('viewer').style.display = 'block';
   document.getElementById('vi-frame').style.display = 'none';
   const nt0 = document.getElementById('vi-needtoken'); if (nt0) nt0.style.display = 'none';
+  const dr0 = document.getElementById('vi-diffrun'); if (dr0) dr0.style.display = 'none'; hideRegenLink();
   try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   const canvas = document.getElementById('vi-canvas');
   canvas.style.display = 'block';
@@ -667,6 +698,7 @@ function showNeedsToken(htmlUrl, title) {
   document.getElementById('empty').style.display  = 'none';
   document.getElementById('viewer').style.display = 'block';
   const nt = document.getElementById('vi-needtoken'); if (nt) nt.style.display = 'block';
+  const drn = document.getElementById('vi-diffrun'); if (drn) drn.style.display = 'none'; hideRegenLink();
   setViewerLoading(false);
   // Pick the right 2.0 panel (token prompt / running / no-frames / failed) instead of
   // always showing the token prompt. The wizard script owns repo + token + API logic.
@@ -678,6 +710,8 @@ function showInFrame(url, title) {
   const canvas = document.getElementById('vi-canvas');
   if (canvas) canvas.style.display = 'none';
   const ntf = document.getElementById('vi-needtoken'); if (ntf) ntf.style.display = 'none';
+  const drf = document.getElementById('vi-diffrun'); if (drf) drf.style.display = 'none';
+  hideRegenLink();
   try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
   const frameEl = document.getElementById('vi-frame');
@@ -1066,12 +1100,200 @@ function openDiff(viRel, type, row) {
   setPlatformToggle(viRel);
   const rep = diffReportFor(viRel);
   if (rep) {
-    showInFrame(rep.url, `${viRel} \u2014 ${type === 'modified' ? 'diff' : type} \u00b7 ${rep.platform}`);
+    showInFrame(rep.url, `${viRel} \u2014 diff \u00b7 ${rep.platform}`);
+    setRegenLink(viRel);                       // a real diff is shown -> offer "Regenerate diff"
   } else {
-    const chg = changeMap[viRel];
-    showInFrame(chg ? chg.url : `${BASE}`, `${viRel} \u2014 ${type}`);
+    showDiffRun(viRel, type, 'norep');         // no report yet -> explain + offer to run VIDiff
   }
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Run / regenerate a VIDiff side-by-side report from the viewer
+//
+// A changed VI shows a "diff" badge whether or not its side-by-side report has
+// been generated. When it hasn't, openDiff() shows the panel below instead of the
+// flat snapshot: it explains the report hasn't been run and offers to run VIDiff
+// for just this VI or for every VI the revision changed. When a report IS shown, a
+// "Regenerate diff" link appears in the toolbar and opens the same panel.
+//
+// The run is a GitHub Actions workflow_dispatch (LabVIEW can't run in a browser),
+// reusing the same Actions:write token the 2.0 wizard stores in this origin's
+// localStorage. When the run finishes and the dashboard redeploys, reloading shows
+// the new report. base = the previous revision in the dropdown, so the generated
+// report matches the change set the browser computed.
+// ───────────────────────────────────────────────────────────────────────────
+const DR_TOKEN_KEY = 'lvci_dispatch_token';
+const DR_VIDIFF_WF = 'vidiff-windows-container.yml';
+let drVi = null, drType = null, drPendingScope = null;
+
+function drLsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+function drRepo() {
+  const m = String(location.hostname).match(/^([^.]+)\.github\.io$/i);
+  const seg = location.pathname.split('/').filter(Boolean);
+  return (m && seg.length) ? (m[1] + '/' + seg[0]) : '';
+}
+function drDispatchTokenUrl() {
+  const repo = drRepo();
+  return 'https://github.com/settings/personal-access-tokens/new?name='
+    + encodeURIComponent('LabVIEW CI dispatch')
+    + '&description=' + encodeURIComponent('Dispatch CI runs for ' + repo)
+    + '&target_name=' + encodeURIComponent(repo.split('/')[0]) + '&actions=write';
+}
+function drGh(path, token, opts) {
+  opts = opts || {};
+  const h = { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+  if (token) h['Authorization'] = 'Bearer ' + token;
+  let body = opts.body;
+  if (body && typeof body !== 'string') { body = JSON.stringify(body); h['Content-Type'] = 'application/json'; }
+  return fetch('https://api.github.com' + path, { method: opts.method || 'GET', headers: h, body, cache: 'no-store' });
+}
+function drStatus(html, kind) {
+  const el = document.getElementById('dr-status');
+  if (!el) return;
+  el.innerHTML = html || '';
+  el.style.color = kind === 'ok' ? '#2da44e' : (kind === 'err' ? '#cf222e' : 'var(--fg-muted)');
+}
+function drBusy(on) {
+  ['dr-file', 'dr-rev'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = !!on; });
+}
+
+// Toolbar "Regenerate diff" affordance — shown only while a real report is open.
+function setRegenLink(viRel) {
+  const el = document.getElementById('regen-link');
+  if (!el) return;
+  el.style.display = 'inline';
+  el.onclick = (e) => { e.preventDefault(); showDiffRun(viRel, (changeMap[viRel] || {}).type, 'regen'); };
+}
+function hideRegenLink() {
+  const el = document.getElementById('regen-link');
+  if (el) el.style.display = 'none';
+}
+
+// Switch the viewer to the run/regenerate panel. mode: 'norep' (no report yet) or
+// 'regen' (a report exists and can be refreshed).
+function showDiffRun(viRel, type, mode) {
+  drVi = viRel;
+  drType = type || (changeMap[viRel] || {}).type || 'modified';
+  // Tear down the other viewer surfaces.
+  const canvas = document.getElementById('vi-canvas'); if (canvas) canvas.style.display = 'none';
+  if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
+  const frameEl = document.getElementById('vi-frame'); if (frameEl) frameEl.style.display = 'none';
+  const nt = document.getElementById('vi-needtoken'); if (nt) nt.style.display = 'none';
+  try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
+  hideRegenLink();
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('viewer').style.display = 'block';
+  const hint = document.getElementById('viewer-hint'); if (hint) hint.style.display = 'none';
+  const open = document.getElementById('open-link'); if (open) open.style.display = 'none';
+  setViewerLoading(false);
+  document.getElementById('vi-title').textContent = `${viRel} \u2014 ${drType}`;
+
+  const fileName = viRel.split('/').pop() || viRel;
+  const t = document.getElementById('dr-title');
+  const m = document.getElementById('dr-msg');
+  if (mode === 'regen') {
+    if (t) t.textContent = 'Regenerate the diff report';
+    if (m) m.innerHTML = 'A side-by-side diff report already exists for <strong>' + escapeHtml(fileName)
+      + '</strong>. Re-run VIDiff to refresh it \u2014 just this VI, or every VI this revision changed.';
+  } else {
+    if (t) t.textContent = 'Diff report not generated yet';
+    if (m) m.innerHTML = 'This VI is flagged <strong>' + escapeHtml(drType) + '</strong> by comparing snapshots, '
+      + 'but its side-by-side <strong>VIDiff report</strong> hasn\u2019t been run. Run it now \u2014 just '
+      + '<strong>' + escapeHtml(fileName) + '</strong>, or every VI this revision changed.';
+  }
+
+  // Reset the transient bits, then reveal.
+  const tokp = document.getElementById('dr-tokp'); if (tokp) tokp.style.display = 'none';
+  drPendingScope = null;
+  drStatus('', null);
+  drBusy(false);
+  const snap = document.getElementById('dr-snap');
+  const chg = changeMap[viRel];
+  if (snap) {
+    if (chg && chg.url) { snap.style.display = ''; snap.onclick = (e) => { e.preventDefault(); showInFrame(chg.url, `${viRel} \u2014 snapshot`); }; }
+    else snap.style.display = 'none';
+  }
+  const panel = document.getElementById('vi-diffrun'); if (panel) panel.style.display = 'block';
+}
+
+// Reveal the inline one-time dispatch-token prompt (Actions: write).
+function drNeedToken(scope, whyHtml) {
+  drPendingScope = scope;
+  const p = document.getElementById('dr-tokp');
+  const m = document.getElementById('dr-tokp-msg');
+  if (m) m.innerHTML = (whyHtml ? whyHtml + ' ' : '')
+    + 'Running a diff needs a token with <strong>Actions: write</strong> on <code>' + escapeHtml(drRepo()) + '</code>. '
+    + '<a href="' + drDispatchTokenUrl() + '" target="_blank" rel="noopener" style="color:var(--link)">Create one \u2197</a>, paste it below, then Save &amp; run.';
+  if (p) p.style.display = '';
+  const i = document.getElementById('dr-tokp-input'); if (i) { i.value = ''; i.focus(); }
+  drStatus('', null);
+}
+
+// Dispatch the Windows VIDiff workflow. scope: 'file' (this VI only) or 'rev'
+// (every VI the revision changed).
+function drRun(scope) {
+  const repo = drRepo();
+  if (!repo) { drStatus('Couldn\u2019t detect this repository from the URL.', 'err'); return; }
+  const sel = document.getElementById('commit-select');
+  const headSha = sel ? sel.value : '';
+  if (!headSha) { drStatus('No revision selected.', 'err'); return; }
+  const idx = commitList.findIndex(c => c.sha === headSha);
+  const prev = idx >= 0 && idx + 1 < commitList.length ? commitList[idx + 1] : null;
+  const baseSha = prev ? prev.sha : '';
+  const token = drLsGet(DR_TOKEN_KEY);
+  if (!token) { drNeedToken(scope); return; }
+  const inputs = { head_sha: headSha, base_sha: baseSha };
+  if (scope === 'file' && drVi) inputs.files = drVi;
+  drBusy(true);
+  drStatus('Queuing the VIDiff run\u2026', null);
+  drGh('/repos/' + repo + '/actions/workflows/' + encodeURIComponent(DR_VIDIFF_WF) + '/dispatches', token,
+       { method: 'POST', body: { ref: 'main', inputs } })
+    .then(r => {
+      drBusy(false);
+      if (r.status === 204) {
+        const wfUrl = 'https://github.com/' + repo + '/actions/workflows/' + DR_VIDIFF_WF;
+        drStatus('\u2713 Queued the ' + (scope === 'file' ? 'single-VI' : 'full-revision')
+          + ' VIDiff run. When it finishes and the dashboard redeploys, reload this page to see the report. '
+          + '<a href="' + wfUrl + '" target="_blank" rel="noopener" style="color:var(--link);font-weight:600">View run \u2197</a>', 'ok');
+        return;
+      }
+      if (r.status === 401 || r.status === 403) {
+        try { localStorage.removeItem(DR_TOKEN_KEY); } catch (e) {}
+        drNeedToken(scope, r.status === 401
+          ? 'That token was rejected (401 \u2014 it may be expired or mistyped).'
+          : 'That token is missing <strong>Actions: write</strong> on <code>' + escapeHtml(repo) + '</code>.');
+        return;
+      }
+      if (r.status === 422 && scope === 'file') {
+        drStatus('This repository\u2019s VIDiff workflow doesn\u2019t support single-VI runs yet \u2014 update the '
+          + 'LabVIEW CI tooling to enable it, or run the entire revision instead.', 'err');
+        return;
+      }
+      drStatus(r.status === 404
+        ? 'The VIDiff workflow isn\u2019t installed here, or the token can\u2019t see <code>' + escapeHtml(repo) + '</code>.'
+        : 'Dispatch failed (HTTP ' + r.status + ').', 'err');
+    })
+    .catch(e => { drBusy(false); drStatus('Network error: ' + escapeHtml(e && e.message || String(e)), 'err'); });
+}
+
+// Wire the run panel's controls (once).
+(function wireDiffRun() {
+  const fb = document.getElementById('dr-file'); if (fb) fb.addEventListener('click', () => drRun('file'));
+  const rb = document.getElementById('dr-rev');  if (rb) rb.addEventListener('click', () => drRun('rev'));
+  const save = document.getElementById('dr-tokp-save');
+  const input = document.getElementById('dr-tokp-input');
+  function drSaveToken() {
+    const v = (input.value || '').trim();
+    if (!v) { input.focus(); return; }
+    try { localStorage.setItem(DR_TOKEN_KEY, v); } catch (e) {}
+    input.value = '';
+    const p = document.getElementById('dr-tokp'); if (p) p.style.display = 'none';
+    const sc = drPendingScope; drPendingScope = null;
+    if (sc) drRun(sc);
+  }
+  if (save) save.addEventListener('click', drSaveToken);
+  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); drSaveToken(); } });
+})();
 
 document.getElementById('search').addEventListener('input', e => renderList(e.target.value));
 document.getElementById('changed-only').addEventListener('change', e => {

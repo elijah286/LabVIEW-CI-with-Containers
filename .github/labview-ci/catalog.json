@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.35",
+  "version": "3.4.36",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.36",
+        "date": "2026-06-18",
+        "title": "VI Browser shows a 'diff' badge on every changed VI and can run or regenerate the side-by-side VIDiff report on demand",
+        "summary": "In the VI Browser a changed VI now always shows a uniform 'diff' badge (its colour still encodes added/modified/deleted) instead of sometimes reading 'modified'. Opening a VI whose side-by-side VIDiff report has not been generated yet shows an in-viewer panel that explains the report has not been run and offers to run it - for just that VI or for every VI the revision changed. When a report already exists, the toolbar gains a 'Regenerate diff' button that re-runs VIDiff the same way. Runs are queued straight from the page using the same dispatch token the VI Browser 2.0 setup already stores; when the run finishes and the dashboard redeploys, reloading shows the report. The VIDiff container workflows gained an optional 'files' input so a single-VI diff only renders that VI, and the VIDiff deploy now merges each report into the revision's existing index so a single-VI run never drops other VIs' reports.",
+        "highlights": [
+          "Every changed VI shows a consistent 'diff' badge - no more 'modified' label when the side-by-side report has not been generated yet.",
+          "Opening a VI with no diff report shows a clear message plus a button to run VIDiff for just that VI or for the entire revision.",
+          "A 'Regenerate diff' button in the viewer toolbar re-runs VIDiff for a VI that already has a report.",
+          "VIDiff workflows accept an optional single-VI 'files' input, and the deploy merges reports so a single-VI run never removes other VIs' reports from the revision."
+        ]
+      },
       {
         "version": "3.4.35",
         "date": "2026-06-18",
