@@ -675,6 +675,7 @@
       const ver = state.target || state.latest || "";
       if (!ver) return;
       if (prog.phase >= PH.DISPATCH && prog.phase <= PH.REVIEW) return; // already running — no duplicates
+      if (deploying) { showDeploying(deploying); return; }             // a merged update is still publishing
       if (!getTok()) { showTokenPanel(); return; }
       hideWfTokenPanel();
       prog.ver = ver; prog.ts = Date.now(); prog.runId = 0; prog.runUrl = ""; prog.prUrl = ""; prog.prNum = 0;
@@ -1015,9 +1016,85 @@
                      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null;
         }).catch(() => null);
     }
+    // ---- "an update already merged and is publishing" lock -------------------
+    // After the update PR merges there's a window where the new version is building
+    // and deploying to Pages while the LIVE dashboard still shows the OLD version.
+    // In that window the source still looks newer than what's deployed, so the page
+    // would happily offer Update now again -> a duplicate run. Detect it from a
+    // RECENTLY-MERGED update PR whose version the live dashboard hasn't picked up yet
+    // (checked against the REAL deployed catalog, not the possibly-stale ?from=), and
+    // lock the controls until the new build lands.
+    let deploying = "", deployTimer = 0, deployStart = 0;
+    function deployedCatalogUrl() {
+      const parts = (state.repo || "/").split("/"), owner = parts[0], name = parts[1];
+      if (!owner || !name) return "";
+      const host = owner.toLowerCase() + ".github.io";
+      return (name.toLowerCase() === host ? `https://${host}/` : `https://${host}/${name}/`) + "catalog.json";
+    }
+    function fetchDeployedVer() {
+      const u = deployedCatalogUrl();
+      if (!u) return Promise.resolve("");
+      return fetch(u + "?_=" + Date.now(), { cache: "no-store" })
+        .then(r => r.ok ? r.json() : null).then(c => (c && c.version) || "").catch(() => "");
+    }
+    // Resolve the version of an install/update that merged recently but isn't live
+    // yet, or "". Covers a fresh install ("ci/install-labview-ci") AND an Update-now
+    // ("ci/(adopt|update)-tooling-v<ver>"): the update branch carries the version;
+    // the install branch does not, so fall back to the source's latest (what the
+    // install vendored). Either way we only lock while the LIVE dashboard is behind.
+    function findDeployingUpdate() {
+      return fetch(`https://api.github.com/repos/${state.repo}/pulls?state=closed&per_page=20`,
+        { cache: "no-store", headers: authHeaders() })
+        .then(r => r.ok ? r.json() : null)
+        .then(list => {
+          if (!Array.isArray(list)) return "";
+          const now = Date.now();
+          const recent = list.filter(pr => pr.merged_at
+            && (now - new Date(pr.merged_at).getTime()) < 25 * 60 * 1000
+            && (verFromBranch(pr.head && pr.head.ref) || /(?:^|\/)ci\/install-labview-ci$/.test((pr.head && pr.head.ref) || "")));
+          if (!recent.length) return "";
+          let ver = "";
+          recent.forEach(pr => { const v = verFromBranch(pr.head && pr.head.ref); if (v && cmpVer(v, ver || "0") > 0) ver = v; });
+          if (!ver) ver = state.latest || "";
+          if (!ver) return "";
+          return fetchDeployedVer().then(dep => (cmpVer(ver, dep || "0") > 0) ? ver : "");
+        }).catch(() => "");
+    }
+    function clearDeployTimer() { if (deployTimer) { clearTimeout(deployTimer); deployTimer = 0; } }
+    // Lock the update controls while a merged update publishes; poll until it lands.
+    function showDeploying(ver) {
+      if (prog.phase !== PH.IDLE || !ver) return;       // a live tracker already owns the UI
+      deploying = ver; deployStart = Date.now();
+      const btn = $("updateNowBtn"); if (btn) { btn.disabled = true; btn.innerHTML = "&#9203; Finishing update&hellip;"; }
+      const tg = $("target"); if (tg) tg.disabled = true;
+      setCmdStatus(
+        `An update to <code>v${esc(ver)}</code> was merged and is <strong>publishing now</strong> &mdash; the dashboard ` +
+        `will show it shortly. You can&rsquo;t start another update until this one finishes.`, null);
+      clearDeployTimer(); deployTimer = setTimeout(pollDeploying, 15000);
+    }
+    function pollDeploying() {
+      fetchDeployedVer().then(dep => {
+        if (deploying && dep && cmpVer(dep, deploying) >= 0) {                  // the new version is live
+          clearDeployTimer();
+          setCmdStatus(`&#10003; <code>v${esc(deploying)}</code> is now published &mdash; refreshing&hellip;`, null);
+          deploying = "";
+          setTimeout(() => location.reload(), 1500);
+          return;
+        }
+        if (deploying && Date.now() - deployStart > 10 * 60 * 1000) {           // gave it long enough -- unlock
+          clearDeployTimer();
+          const v = deploying; deploying = "";
+          const btn = $("updateNowBtn"); if (btn) btn.disabled = false;
+          const tg = $("target"); if (tg) tg.disabled = false;
+          setCmdStatus(`The update to <code>v${esc(v)}</code> is taking longer than usual to publish &mdash; reload this page to check, or open the <a href="https://github.com/${esc(state.repo)}/actions" target="_blank" rel="noopener">Actions tab</a>.`, null);
+          return;
+        }
+        deployTimer = setTimeout(pollDeploying, 15000);
+      }).catch(() => { deployTimer = setTimeout(pollDeploying, 15000); });
+    }
     function detectInFlight() {
       if (prog.phase !== PH.IDLE) return;            // a local resume already owns the view
-      Promise.all([findOpenUpdatePr(), findActiveRun()]).then(([hit, run]) => {
+      Promise.all([findOpenUpdatePr(), findActiveRun(), findDeployingUpdate()]).then(([hit, run, dep]) => {
         if (prog.phase !== PH.IDLE) return;          // a resume landed while we polled
         if (hit) {
           const pr = hit.pr;
@@ -1036,7 +1113,9 @@
               ? "An update is already building on GitHub Actions&hellip; tracking its progress."
               : "An update is already queued on GitHub Actions&hellip; waiting for a runner.");
           pollRun(0);
+          return;
         }
+        if (dep) showDeploying(dep);   // merged + publishing: lock until the new build lands
       });
     }
 

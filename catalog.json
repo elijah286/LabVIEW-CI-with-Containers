@@ -1,11 +1,25 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.33",
+  "version": "3.4.34",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.34",
+        "date": "2026-06-18",
+        "title": "Apply to a new repository: pick your target repo from a list, and re-installs wait for the new version to publish",
+        "summary": "On the Apply to a new repository page, the 'Target repo (owner/name)' field is now a suggest-as-you-type picker once an install token is saved in this browser: it offers a dropdown of the repositories that token can see (most recently pushed first, de-duplicated) while still accepting any owner/name you type, so you no longer have to remember and retype the exact slug. With no token saved the field is unchanged - a plain free-text box - so the command-line path and first-time visitors see exactly what they did before. A small 'Pick from your repositories...' link below the field reveals an inline row to paste or create a token; the Create a token link is pre-filled with the installer's permissions and carries a tip to choose 'All repositories' under Repository access so every repo shows up in the list. The token is the same one the one-click install already uses, so there is nothing extra to enter, and a 'Forget token' link clears it and the list. Separately, when you re-install or update an EXISTING dashboard, the installer now waits until the published catalog.json actually reaches the version you just installed before it shows the dashboard as live - so a re-install can no longer flash 'Done' while GitHub Pages is still serving the previous build; if the new build has not published in time it honestly reports that the dashboard is still updating rather than claiming it is done. The What's New update flow gained the matching guard: after an update pull request merges, the Update now controls lock while the new version publishes - verified against the real deployed catalog - so you cannot start a duplicate update, and the page refreshes itself the moment the new version goes live.",
+        "highlights": [
+          "The target-repo field becomes a suggest-as-you-type dropdown of your repositories when an install token is saved, while still accepting any owner/name you type.",
+          "With no token saved the field is unchanged - a plain free-text box - so nothing changes for the command-line path or first-time visitors.",
+          "A small 'Pick from your repositories...' link reveals an inline token paste/create row; the create link is pre-filled with the installer permissions and a tip to grant access to all repositories so the full list appears.",
+          "Re-installing or updating an existing dashboard now waits for the published catalog.json to reach the just-installed version before reporting the dashboard live, so a re-install cannot show a misleading 'Done' while the old build is still served.",
+          "If the new version has not published in time, the installer reports that the dashboard is still updating to the new version instead of claiming it is done.",
+          "On the What's New page, once an update pull request merges the Update now controls lock until the new version is actually published (verified against the deployed catalog), preventing duplicate update runs, and the page auto-refreshes when it goes live."
+        ]
+      },
       {
         "version": "3.4.33",
         "date": "2026-06-18",

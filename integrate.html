@@ -126,6 +126,14 @@
     .locked-area{opacity:.5;pointer-events:none;filter:saturate(.55)}
     .dashlink{display:inline-block;margin:10px 0 4px;padding:9px 16px;background:var(--accent);color:var(--accent-fg);border-radius:7px;font-weight:600;font-size:.9em;text-decoration:none}
     .dashlink:hover{filter:brightness(1.06)}
+    /* ---- target-repo picker (datalist) ---- */
+    .repopick{margin-top:7px}
+    .repopick a{cursor:pointer}
+    .repopick-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+    .repopick-row input{flex:1 1 220px;min-width:170px;padding:7px 9px;background:var(--surface2);color:var(--fg);
+         border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.8em}
+    .repopick-row .mini{font-size:.8em}
+    button.ghost.mini{padding:7px 11px;font-size:.8em}
   </style>
 </head>
 <body>
@@ -144,7 +152,14 @@
       <div class="row">
         <div class="field">
           <label class="fl" for="repo">Target repo (owner/name)</label>
-          <input type="text" id="repo" placeholder="your-org/your-lv-repo" autocomplete="off" spellcheck="false">
+          <input type="text" id="repo" placeholder="your-org/your-lv-repo" autocomplete="off" spellcheck="false" list="repoList">
+          <datalist id="repoList"></datalist>
+          <p class="hint repopick" id="repoPickHint" style="display:none"></p>
+          <div class="repopick-row" id="repoTokRow" style="display:none">
+            <input id="repoTokInput" type="password" autocomplete="off" placeholder="github_pat_&hellip;">
+            <button type="button" class="ghost mini" id="repoTokUse">List my repos</button>
+            <a id="repoTokCreate" target="_blank" rel="noopener" class="mini" title="Tip: under Repository access choose All repositories to list every repo here.">Create a token&#8599;</a>
+          </div>
         </div>
         <div class="field">
           <label class="fl" for="version">LabVIEW version</label>
@@ -486,6 +501,7 @@
       $("download").disabled = noneReal;
       const ib = $("installBtn"); if (ib) ib.disabled = noneReal;
       const tl = $("insTokLink"); if (tl) tl.href = tokenUrl();
+      const rtc = $("repoTokCreate"); if (rtc) rtc.href = tokenUrl();
       const tr = $("insTokRepo"); if (tr) tr.textContent = $("repo").value.trim() || "your-org/your-repo";
       renderTokPanel();
     }
@@ -644,6 +660,81 @@
     function refreshInsForget() { const f = $("insTokForget"); if (f) f.style.display = getInsTok() ? "" : "none"; }
     function showInsTokPanel() { const p = $("insTokPanel"); if (p) { p.style.display = ""; const i = $("insTokInput"); if (i) i.focus(); } }
     function hideInsTokPanel() { const p = $("insTokPanel"); if (p) p.style.display = "none"; }
+
+    // ---- target-repo picker (datalist) -----------------------------------
+    // If an install token is already saved, list the repos it can see and offer
+    // them as <datalist> suggestions on the target-repo field. A datalist never
+    // restricts typing, so free-form owner/name entry still works. With no token
+    // the field is unchanged; a small link lets the user create one to fill the list.
+    let repoListToken = null;   // the token the current datalist was built from (null = unloaded)
+
+    function showRepoTokRow() {
+      const row = $("repoTokRow"); if (row) row.style.display = "flex";
+      const a = $("repoTokCreate"); if (a) a.href = tokenUrl();
+      const i = $("repoTokInput"); if (i) i.focus();
+    }
+    function hideRepoTokRow() { const row = $("repoTokRow"); if (row) row.style.display = "none"; }
+
+    function renderRepoPick(state, info) {
+      const host = $("repoPickHint"); if (!host) return;
+      if (!getInsTok()) {
+        host.style.display = "";
+        host.innerHTML = `<a id="repoPickStart" href="javascript:void 0">Pick from your repositories&hellip;</a>`;
+        const a = $("repoPickStart"); if (a) a.addEventListener("click", e => { e.preventDefault(); showRepoTokRow(); });
+        return;
+      }
+      let msg = "";
+      if (state === "loading")      msg = "Loading your repositories\u2026";
+      else if (state === "error")   msg = `Couldn\u2019t list your repositories${info ? " (HTTP " + info + ")" : ""} \u2014 type the owner/name. <a id="repoPickForget" href="javascript:void 0">Use a different token</a>`;
+      else if (state === "empty")   msg = `No repositories visible to this token \u2014 type the owner/name, or <a id="repoPickForget" href="javascript:void 0">use a token with more access</a>.`;
+      else if (state === "loaded")  msg = `Showing ${info} of your repositories \u2014 or type any owner/name. <a id="repoPickForget" href="javascript:void 0">Forget token</a>`;
+      if (!msg) { host.style.display = "none"; host.innerHTML = ""; return; }
+      host.style.display = ""; host.innerHTML = msg;
+      const f = $("repoPickForget");
+      if (f) f.addEventListener("click", e => {
+        e.preventDefault();
+        clearInsTok(); refreshInsForget();
+        const dl = $("repoList"); if (dl) dl.innerHTML = "";
+        repoListToken = null; renderRepoPick();
+      });
+    }
+
+    // Lists repos the saved install token can read (Metadata is automatic on every
+    // fine-grained PAT). A token scoped to only the target repo yields just that one;
+    // an "All repositories" token lists them all. Bounded to 1000 to stay cheap.
+    async function loadRepoList(force) {
+      const dl = $("repoList"); if (!dl) return;
+      const tok = getInsTok();
+      if (!tok) { dl.innerHTML = ""; repoListToken = null; renderRepoPick(); return; }
+      if (!force && repoListToken === tok) return;   // already built for this token
+      renderRepoPick("loading");
+      try {
+        const names = [];
+        for (let page = 1; page <= 10; page++) {     // bounded: up to 1000 repos
+          const resp = await gh(`/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member&page=${page}`);
+          if (!resp.ok) { repoListToken = null; renderRepoPick("error", resp.status); return; }
+          const arr = await resp.json();
+          if (!Array.isArray(arr) || !arr.length) break;
+          for (const r of arr) if (r && r.full_name) names.push(r.full_name);
+          if (arr.length < 100) break;
+        }
+        const seen = new Set(), uniq = [];
+        for (const n of names) { const k = n.toLowerCase(); if (!seen.has(k)) { seen.add(k); uniq.push(n); } }
+        dl.innerHTML = uniq.map(n => `<option value="${esc(n)}"></option>`).join("");
+        repoListToken = tok;
+        renderRepoPick(uniq.length ? "loaded" : "empty", uniq.length);
+      } catch (_) {
+        repoListToken = null; renderRepoPick("error");
+      }
+    }
+
+    function useRepoTokFromRow() {
+      const i = $("repoTokInput"); const v = (i && i.value || "").trim();
+      if (!v) { if (i) i.focus(); return; }
+      setInsTok(v); refreshInsForget(); if (i) i.value = "";
+      hideRepoTokRow();
+      loadRepoList(true);
+    }
 
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -1112,6 +1203,30 @@
       return false;
     }
 
+    // Semver-ish compare (major.minor.patch). Returns >0 when a>b, <0 when a<b.
+    function cmpVerStr(a, b) {
+      const pa = String(a || "").split(".").map(Number), pb = String(b || "").split(".").map(Number);
+      for (let i = 0; i < 3; i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d > 0 ? 1 : -1; }
+      return 0;
+    }
+    // Is the dashboard's PUBLISHED catalog.json at least version `want`? Reads the
+    // catalog.json sitting next to the dashboard URL (GitHub Pages sends
+    // Access-Control-Allow-Origin:* so this cross-origin read works). Used to
+    // confirm a re-install/update actually republished, rather than the OLD
+    // dashboard simply still being served.
+    async function deployedAtLeast(dashUrl, want) {
+      try {
+        const dir = dashUrl.replace(/[^/]*$/, "");            // .../repo/  or strip a trailing index.html
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 8000);
+        const res = await fetch(dir + "catalog.json?_=" + Date.now(), { cache: "no-store", signal: ctrl.signal });
+        clearTimeout(to);
+        if (!res.ok) return false;
+        const cat = await res.json();
+        return !!(cat && cat.version && cmpVerStr(cat.version, want) >= 0);
+      } catch (_) { return false; }
+    }
+
     // Watch the published dashboard URL until GitHub Pages actually serves it, so the
     // success link is NEVER revealed while it would 404. GitHub Pages returns
     // `Access-Control-Allow-Origin: *` on every response (200 AND 404), so this
@@ -1125,6 +1240,8 @@
       opts = opts || {};
       const FIRST200_CAP = opts.first200Cap || 6 * 60 * 1000;   // wait this long for the URL to stop 404ing
       const REAL_CAP     = opts.realCap || 90 * 1000;           // after the first 200, wait for the real page
+      const EXPECT       = opts.expectVersion || "";            // require the deployed catalog to reach this version
+      const VERSION_CAP  = opts.versionCap || FIRST200_CAP;     // how long to wait for that NEW version to publish
       const INTERVAL     = 4000;
       const t0 = Date.now();
       let firstOkAt = 0;
@@ -1146,8 +1263,16 @@
         const now = Date.now();
         if (ok) {
           if (!firstOkAt) firstOkAt = now;
-          if (!isPlaceholder) return "live";
-          if (now - firstOkAt >= REAL_CAP) return "placeholder";
+          if (!isPlaceholder) {
+            // A real dashboard is serving. When we're replacing an EXISTING dashboard
+            // (a re-install / update), the OLD page is already non-placeholder, so it
+            // would read as "live" instantly. Don't call it done until the deployed
+            // catalog actually reflects the version we just installed.
+            if (!EXPECT || await deployedAtLeast(url, EXPECT)) return "live";
+            if (now - t0 >= VERSION_CAP) return "stale";          // new version didn't publish in time
+          } else if (now - firstOkAt >= REAL_CAP) {
+            return "placeholder";
+          }
         } else if (!firstOkAt && now - t0 >= FIRST200_CAP) {
           return "pending";
         }
@@ -1270,7 +1395,7 @@
             if (insRunId !== myGen) return;
             const secs = Math.round(elapsed / 1000);
             setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard\u2026 GitHub Pages is building it (${secs}s). The link appears here the moment it&rsquo;s live.`, "ok");
-          }, { first200Cap: 6 * 60 * 1000 })
+          }, { first200Cap: 6 * 60 * 1000, expectVersion: (catalog && catalog.version) || "" })
         ).then(state => {
           if (insRunId !== myGen) return;
           if (state === "live" || state === "placeholder") {
@@ -1282,10 +1407,13 @@
               : `&#10003; Done \u2014 your dashboard is publishing at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> and finishes rendering within a minute (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`, "ok");
             return;
           }
-          // "pending": Pages is on but the page didn't serve in time (slow build).
-          // Don't claim done or show a 404 link; the URL stays plain text.
+          // Not "live"/"placeholder": either "pending" (Pages never served in time) or
+          // "stale" (a real page serves but still the PREVIOUS version -- the new build
+          // hasn't published yet). Never claim done; say honestly what's left.
           setInsBar(null, "warn");
-          setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`, "warn");
+          setInsStatus(state === "stale"
+            ? `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is updating to <strong>v${esc((catalog && catalog.version) || "")}</strong>, but GitHub Pages is still serving the previous build. It refreshes at <code class="inl">${esc(url)}</code> within a minute or two \u2014 reload to confirm the new version.`
+            : `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`, "warn");
         }).catch(() => {
           if (insRunId !== myGen) return;
           setInsBar(null, "warn");
@@ -1689,8 +1817,10 @@
       $("installBtn").addEventListener("click", installToRepo);
       $("insTokSave").addEventListener("click", saveInsTokAndInstall);
       $("insTokCancel").addEventListener("click", hideInsTokPanel);
-      $("insTokForget").addEventListener("click", () => { clearInsTok(); refreshInsForget(); setInsStatus("Token removed from this browser.", null); });
+      $("insTokForget").addEventListener("click", () => { clearInsTok(); refreshInsForget(); const _dl = $("repoList"); if (_dl) _dl.innerHTML = ""; repoListToken = null; renderRepoPick(); setInsStatus("Token removed from this browser.", null); });
       const _iti = $("insTokInput"); if (_iti) _iti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveInsTokAndInstall(); } });
+      const _rtu = $("repoTokUse"); if (_rtu) _rtu.addEventListener("click", useRepoTokFromRow);
+      const _rti = $("repoTokInput"); if (_rti) _rti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); useRepoTokFromRow(); } });
       const _rg = $("insReinstallGo"); if (_rg) _rg.addEventListener("click", confirmReinstall);
       const _rc = $("insReinstallCancel"); if (_rc) _rc.addEventListener("click", () => { hideReinstallPanel(); installBusy(false); setInsStatus("Install cancelled \u2014 nothing was changed.", null); });
       const _ok = $("optKeep"); if (_ok) _ok.addEventListener("change", renderStalePreview);
@@ -1706,6 +1836,7 @@
         return;
       }
       renderVersions(); renderCaps(); wire(); update(); refreshInsForget();
+      renderRepoPick(); loadRepoList();
 
       // The tooling has relocated: tell the user their install comes from the new
       // official home (and this page followed the pointer to get there).
