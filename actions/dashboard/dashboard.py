@@ -1836,6 +1836,9 @@ html = f"""<!DOCTYPE html>
        "optimistic" ring) so an error shows instead of the cell silently reverting. */
     .run-badge.cidash-failed{{background:#da3633;outline:none}}
     .run-spin{{width:9px;height:9px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:cidash-spin .7s linear infinite}}
+    /* The Queued badge places the spinner directly before its label (no flex gap),
+       so give the spinner a small right margin to keep the icon off the "Q". */
+    .run-badge.cidash-queued .run-spin{{margin-right:5px}}
     @keyframes cidash-spin{{to{{transform:rotate(360deg)}}}}
     {run_dialog_css}
   </style>
