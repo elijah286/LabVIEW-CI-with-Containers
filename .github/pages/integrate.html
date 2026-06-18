@@ -124,6 +124,8 @@
        as the green "done"/live success. */
     .ins-bar.warn .ins-bar-fill{background:#bf8700;width:88%;transition:none;animation:none;left:0}
     .locked-area{opacity:.5;pointer-events:none;filter:saturate(.55)}
+    .dashlink{display:inline-block;margin:10px 0 4px;padding:9px 16px;background:var(--accent);color:var(--accent-fg);border-radius:7px;font-weight:600;font-size:.9em;text-decoration:none}
+    .dashlink:hover{filter:brightness(1.06)}
   </style>
 </head>
 <body>
@@ -230,6 +232,7 @@
            mid-flight and a duplicate install can't start. -->
       <div class="ins-bar" id="insBar" hidden aria-hidden="true"><div class="ins-bar-fill" id="insBarFill"></div></div>
 
+      <a class="dashlink" id="insDashLink" target="_blank" rel="noopener" style="display:none"></a>
       <ul class="insdone" id="insDone" style="display:none"></ul>
       <ol class="steps" id="insNext" style="display:none"></ol>
       <p class="hint" id="insNote" style="display:none"></p>
@@ -891,14 +894,22 @@
       if (!setup.hasDashboard) return;
       try {
         const pg = await gh(`/repos/${repo}/pages`);
-        if (pg.ok) { setup.pages = "exists"; }
-        else if (pg.status === 404) {
-          await ensureGhPagesBranch(repo);
+        if (pg.ok) { setup.pages = "exists"; return; }
+        if (pg.status !== 404) { setup.pagesStatus = pg.status; await ghJson(pg); return; }
+        // Pages isn't set up yet: create the gh-pages placeholder, then turn Pages
+        // ON via the API so the user never has to touch Settings. The gh-pages ref
+        // can lag for a moment right after creation, so the enable POST sometimes
+        // 422s ("branch does not exist yet") — retry a few times before giving up.
+        // A 403/404 means the token lacks the Pages permission; retrying won't help.
+        await ensureGhPagesBranch(repo);
+        for (let attempt = 0; ; attempt++) {
           const cr = await gh(`/repos/${repo}/pages`, { method: "POST", body: { source: { branch: "gh-pages", path: "/" } } });
-          if (cr.ok) setup.pages = "done";
-          else if (cr.status === 409) setup.pages = "exists";
-          else { setup.pagesStatus = cr.status; await ghJson(cr); }
-        } else { setup.pagesStatus = pg.status; await ghJson(pg); }
+          if (cr.ok || cr.status === 201) { setup.pages = "done"; return; }
+          if (cr.status === 409) { setup.pages = "exists"; return; }   // already enabled
+          setup.pagesStatus = cr.status;
+          if (cr.status === 403 || cr.status === 404 || attempt >= 4) { await ghJson(cr); return; }
+          await sleep(2500);   // transient (gh-pages not visible yet) — wait and retry
+        }
       } catch (e) { setup.pages = "manual"; if (setup.pagesStatus == null) setup.pagesStatus = e && e.status; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
     }
 
@@ -1072,6 +1083,27 @@
       const autoMerge = !!($("optAutoMerge") && $("optAutoMerge").checked);
       const pagesOn = setup.pages === "done" || setup.pages === "exists";
 
+      // Situation-aware guidance for when GitHub Pages isn't on. The configurator
+      // tries to switch Pages on for you (runPublishSetup); this explains what to do
+      // in the cases it can't: a private repo (plan limit) or a token without the
+      // Pages permission.
+      const pagesSettings = `<a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a>`;
+      const pagesHelp = () => {
+        if (setup.private)
+          return `This repository is <strong>private</strong>, so GitHub Pages can&rsquo;t publish your dashboard on a free plan. Either <strong>make the repository public</strong> (<a href="https://github.com/${esc(repo)}/settings" target="_blank" rel="noopener">Settings</a> &rsaquo; General &rsaquo; Danger Zone) or <strong>upgrade to GitHub Pro, Team, or Enterprise</strong>; the dashboard then publishes itself at <code class="inl">${esc(url)}</code>.`;
+        if (setup.pagesStatus === 422)
+          return `GitHub Pages isn&rsquo;t available for this repository &mdash; an organization policy may be blocking it. Allow Pages (or ask an org owner), then enable it at ${pagesSettings} (Source: <code class="inl">gh-pages</code>); your dashboard will publish at <code class="inl">${esc(url)}</code>.`;
+        if (setup.pagesStatus === 403 || setup.pagesStatus === 404)
+          return `The configurator couldn&rsquo;t switch on GitHub Pages because your saved token is missing the <strong>Pages</strong> permission. Click <strong>Forget token</strong> above and run <strong>Install</strong> again to create one that includes it (then Pages is turned on for you), or enable it once at ${pagesSettings} (Source: <code class="inl">gh-pages</code>).`;
+        return `GitHub Pages isn&rsquo;t on yet. Enable it at ${pagesSettings} (Source: <code class="inl">gh-pages</code> branch) and your dashboard will publish at <code class="inl">${esc(url)}</code>.`;
+      };
+      // Prominent "open your dashboard" link, revealed only once the page is live.
+      const dashLink0 = $("insDashLink"); if (dashLink0) dashLink0.style.display = "none";
+      const showDashLink = () => {
+        const dl = $("insDashLink");
+        if (dl) { dl.href = url; dl.innerHTML = "Open your dashboard &#8599;"; dl.style.display = ""; }
+      };
+
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
 
       const done = [];
@@ -1085,7 +1117,7 @@
       // that case links right away.
       if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <span id="insLiveUrl"><code class="inl">${esc(url)}</code></span><small id="insLiveNote">It publishes within a minute of the install merge &mdash; no CI run required; the link activates here the moment it&rsquo;s live.</small>`);
       else if (setup.pages === "exists") done.push(`<strong>GitHub Pages</strong> is already on &mdash; dashboard at <span id="insLiveUrl"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></span>.`);
-      else if (setup.hasDashboard) done.push(`Your dashboard will be at <span id="insLiveUrl"><code class="inl">${esc(url)}</code></span> once <strong>GitHub Pages</strong> is on<small id="insLiveNote">GitHub Pages wasn&rsquo;t enabled automatically &mdash; turn it on at <a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a> (Source: <code class="inl">gh-pages</code> branch).</small>`);
+      else if (setup.hasDashboard) done.push(`Your dashboard will be at <span id="insLiveUrl"><code class="inl">${esc(url)}</code></span> once <strong>GitHub Pages</strong> is on.`);
       const doneEl = $("insDone");
       if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = done.length ? "" : "none"; }
 
@@ -1097,13 +1129,11 @@
       const nextEl = $("insNext");
       if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
 
+      const notes = [];
+      if (setup.hasDashboard && !pagesOn) notes.push(pagesHelp());
+      else if (setup.adminMissing) notes.push(`Heads up: your token didn&rsquo;t include <strong>Administration</strong> (Read and write), so this repo couldn&rsquo;t be tagged for the client directory. Re-create the token with <strong>Administration</strong> (re-open the token panel) so the configurator can do it for you next time.`);
       const note = $("insNote");
-      if (note) {
-        if (setup.adminMissing) {
-          note.innerHTML = `Heads up: your token didn&rsquo;t include <strong>Administration</strong> (Read and write), so this repo couldn&rsquo;t be tagged for the client directory${setup.hasDashboard ? ", and the Workflow permissions / Pages settings were left for you above" : ""}. Re-create the token with <strong>Administration</strong> (re-open the token panel) so the configurator can do it for you next time.`;
-          note.style.display = "";
-        } else { note.style.display = "none"; }
-      }
+      if (note) { note.innerHTML = notes.join("<br><br>"); note.style.display = notes.length ? "" : "none"; }
 
       // Upgrade the plain-text dashboard URL in the summary to a live link, once
       // GitHub Pages is confirmed serving it.
@@ -1139,55 +1169,46 @@
           return;
         }
 
-        // A dashboard was merged, so PUBLISHING it is part of the progress: keep the
-        // bar working and only finish (green "done") once GitHub Pages actually serves
-        // the page. If it can't go live (Pages not enabled), show an honest amber
-        // "not live yet — here's what to do" state instead of a misleading green done.
+        // A dashboard was merged. If GitHub Pages didn't get switched on (a private
+        // repo / plan limit, or a token without the Pages permission), the dashboard
+        // can't be live — say so honestly with what to do, never a green "done".
         const pagesConfirmed = setup.pages === "done" || setup.pages === "exists";
-        const pagesNotLive = () => {
-          if (pagesConfirmed)
-            return `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`;
-          return `&#9888; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but your dashboard isn&rsquo;t live yet &mdash; <strong>GitHub Pages isn&rsquo;t enabled</strong> on <code class="inl">${esc(repo)}</code>. Turn it on at <a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a> (Source: <code class="inl">gh-pages</code> branch) and it will appear at <code class="inl">${esc(url)}</code>. Note: publishing Pages from a <strong>private</strong> repo needs GitHub Pro, Team, or Enterprise \u2014 or make the repo public.`;
-        };
-
-        // Pages is definitively unavailable for this repo (422) — don't make the user
-        // wait on a poll that can never succeed; show the guidance straight away.
-        if (!pagesConfirmed && setup.pagesStatus === 422) {
+        if (!pagesConfirmed) {
           setInsBar(null, "warn");
-          setInsStatus(pagesNotLive(), "warn");
+          setInsStatus(`&#9888; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but your dashboard isn&rsquo;t live yet. ${pagesHelp()}`, "warn");
           return;
         }
 
+        // Pages is on, so PUBLISHING the dashboard is part of the progress: keep the
+        // bar working and only finish (green "done") + reveal the link once GitHub
+        // Pages actually serves the page, so the link is never a 404.
         setInsBar(null, "working");
-        setInsStatus(pagesConfirmed
-          ? `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026 this takes about a minute.`
-          : `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 checking whether your dashboard can publish\u2026`, "ok");
+        setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026 this takes about a minute.`, "ok");
         publishDashboardNow(repo, setup.branch).then(() =>
           waitForPagesLive(url, (elapsed) => {
             if (insRunId !== myGen) return;
             const secs = Math.round(elapsed / 1000);
-            setInsStatus(pagesConfirmed
-              ? `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard\u2026 GitHub Pages is building it (${secs}s). The link appears here the moment it&rsquo;s live.`
-              : `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 waiting for GitHub Pages to publish (${secs}s)\u2026`, "ok");
-          }, { first200Cap: pagesConfirmed ? 6 * 60 * 1000 : 60 * 1000 })
+            setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard\u2026 GitHub Pages is building it (${secs}s). The link appears here the moment it&rsquo;s live.`, "ok");
+          }, { first200Cap: 6 * 60 * 1000 })
         ).then(state => {
           if (insRunId !== myGen) return;
           if (state === "live" || state === "placeholder") {
             setInsBar(1, "done");
             revealLiveLink();
+            showDashLink();
             setInsStatus(state === "live"
-              ? `&#10003; Done \u2014 your dashboard is live at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`
+              ? `&#10003; Done \u2014 your dashboard is live: <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`
               : `&#10003; Done \u2014 your dashboard is publishing at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> and finishes rendering within a minute (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`, "ok");
             return;
           }
-          // "pending": the page never came up. Never show a green "done" or a 404
-          // link — reflect reality with the amber warn state + what to do next.
+          // "pending": Pages is on but the page didn't serve in time (slow build).
+          // Don't claim done or show a 404 link; the URL stays plain text.
           setInsBar(null, "warn");
-          setInsStatus(pagesNotLive(), "warn");
+          setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`, "warn");
         }).catch(() => {
           if (insRunId !== myGen) return;
           setInsBar(null, "warn");
-          setInsStatus(pagesNotLive(), "warn");
+          setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`, "warn");
         });
       });
     }
@@ -1393,6 +1414,7 @@
       installBusy(true);
       showInsBar();
       ++insRunId;                   // newer install invalidates any in-flight publish-wait UI updates
+      { const dl0 = $("insDashLink"); if (dl0) dl0.style.display = "none"; }
       setInsStatus("Preparing&hellip;", null);
       try {
         const setup = {};
@@ -1459,6 +1481,7 @@
         const branch = meta && meta.default_branch;
         if (!branch) throw new Error("Your repository has no commits yet. Push an initial commit (e.g. a README) first, then install.");
         setup.branch = branch;   // remembered so we can dispatch the dashboard build right after an auto-merge
+        setup.private = !!(meta && meta.private);   // private repos can't publish Pages on a free plan
         const headRef = await ghWrite(`/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, null, "read the default branch");
         const headSha = headRef.object.sha;
         const baseCommit = await ghWrite(`/repos/${repo}/git/commits/${headSha}`, null, "read the base commit");
