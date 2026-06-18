@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.27",
+  "version": "3.4.28",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.28",
+        "date": "2026-06-18",
+        "title": "What's New opens from the source site, so updates always use the latest UI",
+        "summary": "The dashboard's What's New / Update entry now opens the always-current copy hosted on the LabVIEW CI source site instead of the copy bundled with your repository - passing your repository, its installed version, and its source pointer along in the link. A repository that is behind would otherwise open its own older update page, carrying whatever bugs that version shipped; routing through the source site means you always get the newest update experience and fixes regardless of how old the installed tooling is. The page reads your repository's deployed catalog cross-origin to fill in anything not in the link, shows your repository and installed version, and dispatches the update against your repository exactly as before. A repository's own source dashboard still opens its local page. This is the first half of decoupling the upgrade flow from whatever tooling version you happen to have installed.",
+        "highlights": [
+          "The What's New / Update menu entry now opens the source site's always-latest page (with your repo, version, and source pointer as parameters) instead of your repository's bundled copy - so out-of-date repositories still get the newest update UI and fixes.",
+          "The page resolves the target repository from the link and reads that repository's deployed catalog cross-origin, so it shows the right installed version and dispatches the update against the right repository.",
+          "The source repository's own dashboard is unchanged - it still opens its local What's New page."
+        ]
+      },
       {
         "version": "3.4.27",
         "date": "2026-06-18",
