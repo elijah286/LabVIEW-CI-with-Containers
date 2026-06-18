@@ -22,6 +22,10 @@ on:
         description: 'Head commit SHA'
         required: false
         default: ''
+      files:
+        description: 'Optional comma/newline-separated VI/CTL paths to diff (default: all changed in the range)'
+        required: false
+        default: ''
 
 env:
   LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-linux
@@ -91,9 +95,16 @@ jobs:
 
       - name: Get list of changed VI/CTL files
         id: changed
+        env:
+          INPUT_FILES: ${{ github.event.inputs.files }}
         run: |
           cd head
-          if [ -n "${{ steps.shas.outputs.base }}" ]; then
+          if [ -n "$INPUT_FILES" ]; then
+            # Targeted run (e.g. a single VI requested from the VI Browser): diff just
+            # these paths instead of the whole range. Accept comma- or newline-
+            # separated paths and keep only .vi/.ctl entries.
+            FILES=$(printf '%s' "$INPUT_FILES" | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -iE '\.(vi|ctl)$' || true)
+          elif [ -n "${{ steps.shas.outputs.base }}" ]; then
             FILES=$(git diff --name-only "${{ steps.shas.outputs.base }}" "${{ steps.shas.outputs.head }}" -- '*.vi' '*.ctl')
           else
             FILES=$(git diff-tree --no-commit-id -r --name-only "${{ steps.shas.outputs.head }}" -- '*.vi' '*.ctl')

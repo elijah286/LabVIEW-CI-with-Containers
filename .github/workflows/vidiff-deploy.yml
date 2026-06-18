@@ -68,6 +68,47 @@ jobs:
           echo "platform=$(echo $META | python3 -c "import sys,json; print(json.load(sys.stdin).get('platform','windows'))")" >> "$GITHUB_OUTPUT"
           echo "outcome=$(echo $META | python3 -c "import sys,json; print(json.load(sys.stdin).get('outcome','unknown'))")" >> "$GITHUB_OUTPUT"
 
+      # A targeted (single-VI) VIDiff run produces a changes.json listing only the
+      # VIs it diffed. The Pages deploy uses keep_files, so that file would REPLACE
+      # the revision's full index and drop other VIs' reports from the VI Browser.
+      # Merge the new entries into the already-deployed index (new entries win) so a
+      # single-VI run is additive and never regresses a fuller report.
+      - name: Merge with existing report index (keep prior diff entries)
+        if: steps.artifact.outputs.result != 'null'
+        env:
+          PLATFORM: ${{ steps.meta.outputs.platform }}
+          HEAD_SHA: ${{ steps.meta.outputs.head_sha }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+        run: |
+          NEWCH=/tmp/vidiff-report/vidiff/changes.json
+          if [ ! -f "$NEWCH" ]; then echo "no changes.json in artifact; nothing to merge"; exit 0; fi
+          if [ -n "$PR_NUMBER" ]; then SEG="pr-${PR_NUMBER}"; else SEG="push-${HEAD_SHA}"; fi
+          EXIST_URL="${PAGES_URL}/vidiff/${SEG}/${PLATFORM}/vidiff/changes.json"
+          curl -fsSL "$EXIST_URL" -o /tmp/existing-changes.json 2>/dev/null || echo '{}' > /tmp/existing-changes.json
+          python3 - "$NEWCH" /tmp/existing-changes.json <<'PY'
+          import json, sys
+          new_path, old_path = sys.argv[1], sys.argv[2]
+          def load(p):
+              try:
+                  with open(p) as fh:
+                      d = json.load(fh)
+                      return d if isinstance(d, dict) else {}
+              except Exception:
+                  return {}
+          new, old = load(new_path), load(old_path)
+          def files(d):
+              f = d.get('files')
+              return f if isinstance(f, list) else []
+          merged = {}
+          for e in files(old) + files(new):   # new entries overwrite old for the same file
+              if isinstance(e, dict) and e.get('file'):
+                  merged[e['file']] = e
+          new['files'] = list(merged.values())
+          with open(new_path, 'w') as fh:
+              json.dump(new, fh, indent=2)
+          print('merged changes.json files:', len(new['files']))
+          PY
+
       - name: Deploy VIDiff report to GitHub Pages
         if: steps.artifact.outputs.result != 'null'
         uses: peaceiris/actions-gh-pages@v4
