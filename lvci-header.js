@@ -112,6 +112,8 @@
     '.lvci-nav a.on::after{content:"";position:absolute}',
     '@media(prefers-color-scheme:light){.lvci-nav a:hover,.lvci-nav a.on{color:#1f2328;background:rgba(80,90,100,.10)}}',
     '.lvci-nav a .lvci-soon{font-size:9.5px;font-weight:600;color:#8b949e;border:1px solid #30363d;border-radius:999px;padding:0 5px;text-transform:uppercase;letter-spacing:.04em}',
+    // Count pill beside a nav item (e.g. Clients), filled in once the registry loads.
+    '.lvci-nav a .lvci-ncount{font-size:10px;font-weight:700;color:#8b949e;background:rgba(177,186,196,.16);border-radius:999px;padding:1px 6px;min-width:16px;text-align:center;line-height:1.4}',
     // Actions cluster (right)
     '.lvci-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}',
     '.lvci-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;line-height:1;cursor:pointer;',
@@ -406,7 +408,11 @@
   //    capabilities — Builds, Documentation, Unit Tests — are a one-line add. ─
   var NAV = [
     { key: 'dashboard',   label: 'Dashboard',    href: base + '/' },
-    { key: 'vi-browser',  label: 'VI Browser',   href: base + '/vi-snapshots/' }
+    { key: 'vi-browser',  label: 'VI Browser',   href: base + '/vi-snapshots/' },
+    // Clients: the registry of repos running this tooling. Root/source repo ONLY
+    // - hidden by default and revealed by loadClients() wherever clients.json
+    // (which only the root publishes) is served, so it never shows on a consumer.
+    { key: 'clients',     label: 'Clients',      href: base + '/clients.html', source: true }
     // Future (uncomment / extend as capabilities land):
     // { key: 'builds', label: 'Builds', href: base + '/builds/', soon: true },
     // { key: 'docs',   label: 'Docs',   href: base + '/docs/',   soon: true }
@@ -425,7 +431,8 @@
     'configure': 'dashboard',
     'integrate': 'dashboard',
     'whats-new': 'dashboard',
-    'faq': 'dashboard'
+    'faq': 'dashboard',
+    'clients': 'clients'
   };
 
   // ── Per-revision DOCUMENT types ───────────────────────────────────────────
@@ -801,7 +808,9 @@
       a.href = n.href;
       a.style.position = 'relative';
       if (n.key === activeKey) a.className = 'on';
-      a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '');
+      a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '')
+        + (n.source ? ' <span class="lvci-ncount" hidden></span>' : '');
+      if (n.source) { a.style.display = 'none'; clientsEls.push(a); }
       nav.appendChild(a);
     });
     hdr.appendChild(nav);
@@ -897,7 +906,9 @@
     NAV.forEach(function (n) {
       var a = document.createElement('a');
       a.href = n.href;
-      a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '');
+      a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '')
+        + (n.source ? ' <span class="lvci-ncount" hidden></span>' : '');
+      if (n.source) { a.style.display = 'none'; clientsEls.push(a); }
       menu.appendChild(a);
     });
     var acts = buildActions();
@@ -998,6 +1009,7 @@
   var verState = { v: '', behind: false, to: '' };
   var runState = { active: 0, names: [] };
   var verEls = [];
+  var clientsEls = [];
   // Page-rebuild banner: only the dashboard shows it (there "this page is being
   // regenerated" is literally true). buildWas remembers the prior poll so we can
   // auto-refresh exactly once when an in-flight rebuild finishes.
@@ -1025,6 +1037,24 @@
             if (!s || !s.version) return;
             if (cmpVer(s.version, v) > 0) { verState.behind = true; verState.to = s.version; renderBadge(); }
           }).catch(function () {});
+      }).catch(function () {});
+  }
+  // ── Clients registry (root/source repo only) ────────────────────────────
+  // The root repo publishes clients.json (every repo discovered to run this
+  // tooling, via the scheduled discovery workflow). Its presence is the gate: we
+  // reveal the Clients nav entry only where that file is served, so it never
+  // appears on a consumer site (the fetch 404s and the entry stays hidden).
+  function loadClients() {
+    if (!clientsEls.length) return;
+    fetch(base + '/clients.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+        var n = (data.clients && data.clients.length) || data.count || 0;
+        clientsEls.forEach(function (a) {
+          a.style.display = '';
+          var c = a.querySelector('.lvci-ncount');
+          if (c && n) { c.textContent = n; c.hidden = false; }
+        });
       }).catch(function () {});
   }
   function cmpVer(a, b) {
@@ -1204,7 +1234,7 @@
     renderBadge();
   };
 
-  function init() { build(); loadVersion(); startActivity(); }
+  function init() { build(); loadVersion(); loadClients(); startActivity(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
