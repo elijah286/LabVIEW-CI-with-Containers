@@ -1,6 +1,10 @@
 name: VI Snapshots and VI Browser
 
 on:
+  # Auto-runs only on real LabVIEW source changes — never on the tooling files an
+  # install/deploy adds, so deploying the pipeline never kicks off a snapshot run.
+  # Re-render after a script/tooling update from the dashboard's "Run all history"
+  # prompt or workflow_dispatch.
   push:
     branches: [main]
     paths:
@@ -9,9 +13,6 @@ on:
       - '**.lvproj'
       - '**.lvlib'
       - '**.lvclass'
-      - '.github/labview/build-snapshots.ps1'
-      - '.github/labview/render-snapshots.ps1'
-      - '.github/labview/build-gallery.py'
   workflow_dispatch:
     inputs:
       mode:

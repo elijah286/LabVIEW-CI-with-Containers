@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.5",
+  "version": "3.4.6",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.6",
+        "date": "2026-06-18",
+        "title": "Installing the pipeline no longer auto-runs CI on a new repo",
+        "summary": "Deploying LabVIEW CI to a new repository used to kick off CI and image-build jobs immediately: VI Snapshots, Unit Tests, and the LabVIEW container image build auto-ran on the tooling files the install adds (their scripts, the .github/labview-ci.yml config, the Dockerfile and the tooling vipc). Now those workflows trigger only on real LabVIEW source changes - your VIs, or your own project dependency vipc - or on demand. So installing simply stands up the dashboard showing your full revision history with no runs, and the dashboard offers a one-click Run all history prompt to backfill CI across history whenever you choose. Heavy work (snapshots, tests, image builds) starts only when you change source or ask for it.",
+        "highlights": [
+          "Installing no longer auto-runs CI: VI Snapshots, Unit Tests, and the LabVIEW image build now trigger only on real LabVIEW source changes (or on demand), not on the tooling files the install adds.",
+          "A fresh dashboard stands up with your full revision history and no runs, plus a one-click Run all history prompt so you choose when to backfill CI across history.",
+          "The LabVIEW image still rebuilds when your project depends on a new package (a *.vipc outside the tooling dir), monthly for base-image security, or on demand - just not on install."
+        ]
+      },
       {
         "version": "3.4.5",
         "date": "2026-06-18",

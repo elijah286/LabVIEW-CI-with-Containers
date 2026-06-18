@@ -9,13 +9,16 @@ name: Run Unit Tests — Windows Container
 # report). Manual runs come through workflow_dispatch (the dashboard's Run-now).
 
 on:
+  # Auto-runs only on real LabVIEW source changes — never on the tooling files an
+  # install/deploy adds (e.g. .github/labview-ci.yml), so deploying the pipeline or
+  # changing the config never kicks off a unit-test run. Use the dashboard's "Run
+  # all history" prompt or workflow_dispatch to run on demand.
   pull_request:
     paths:
       - '**.vi'
       - '**.lvclass'
       - '**.lvproj'
       - '**.lvlib'
-      - '.github/labview-ci.yml'
   push:
     branches: [main]
     paths:
@@ -23,7 +26,6 @@ on:
       - '**.lvclass'
       - '**.lvproj'
       - '**.lvlib'
-      - '.github/labview-ci.yml'
   workflow_dispatch:
     inputs:
       commit_sha:

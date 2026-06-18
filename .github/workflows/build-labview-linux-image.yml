@@ -1,11 +1,9 @@
 name: Build LabVIEW CI Image — Linux
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/docker/labview-ci-linux.Dockerfile'
-      - '.github/workflows/build-labview-linux-image.yml'
+  # The image build is a heavy CI process, so it never auto-runs on an
+  # install/deploy (which only adds the tooling Dockerfile). It rebuilds monthly
+  # for base-image security updates, or on demand from the dashboard / dispatch.
   schedule:
     # Monthly rebuild to pick up NI base image security updates
     - cron: '0 4 1 * *'

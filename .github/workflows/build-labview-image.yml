@@ -1,16 +1,19 @@
 name: Build LabVIEW CI Image
 
 on:
+  # The image build is a heavy CI process, so it never auto-runs on an
+  # install/deploy (which only adds the tooling Dockerfile + tooling vipc under
+  # .github/). It rebuilds when YOUR project's dependencies change (a *.vipc
+  # outside the tooling dir), monthly for base-image security updates, or on
+  # demand. After install, build it once from the dashboard (or workflow_dispatch).
   push:
     branches: [main]
     paths:
-      - '.github/docker/labview-ci.Dockerfile'
-      - '.github/workflows/build-labview-image.yml'
-      - '.github/labview/vipm/**'
-      # Any VI Package Configuration in the repo (root "COTC Dependencies.vipc"
-      # or a staged add-on .vipc) is baked into the Windows worker, so changing
-      # one rebuilds the worker image automatically.
+      # Your project's VI Package Configuration(s) are baked into the worker, so
+      # changing your dependencies rebuilds it. The tooling's own vipc (added by
+      # the install under .github/) is excluded so deploying never triggers a build.
       - '**.vipc'
+      - '!.github/**'
   schedule:
     # Monthly rebuild to pick up NI base image security updates
     - cron: '0 4 1 * *'
