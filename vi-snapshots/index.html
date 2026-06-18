@@ -1235,10 +1235,11 @@ loadCommits().catch(err => {
     if (!repo) { setStatus(st, "Couldn't detect this repository from the URL. Finish setup on the <a href='" + integrateHref + "'>Integrate page</a>.", "err"); return; }
     var ins = lsGet(INSTALL_KEY);
     if (!ins) {
-      needToken(INSTALL_KEY, "Saving the secret needs a one-time <strong>setup token</strong> \u2014 this is <strong>different</strong> from the render token above. Create a fine-grained token with <strong>Secrets</strong> and <strong>Variables</strong> set to <strong>Read and write</strong> on <code>" + esc(repo) + "</code>. <a href='" + setupTokenUrl() + "' target='_blank' rel='noopener' style='color:var(--link)'>Create one \u2197</a>, paste it below, and Save.", connect);
+      needToken(INSTALL_KEY, "Saving the secret needs a one-time <strong>setup token</strong> \u2014 a fine-grained token, <strong>different</strong> from the render token above. On the token page: under <strong>Repository access</strong> choose <strong>Only select repositories</strong> and pick <code>" + esc(repo) + "</code>, then set <strong>Secrets</strong> and <strong>Variables</strong> to <strong>Read and write</strong>. <a href='" + setupTokenUrl() + "' target='_blank' rel='noopener' style='color:var(--link)'>Create one \u2197</a> (those permissions are pre-checked), paste it below, and Save.", connect);
       setStatus(st, "Render token captured \u2014 paste the one-time setup token below, then Save to finish.", null); return;
     }
     var btn = $("nt-connect"); btn.disabled = true;
+    var phase = "secret";
     setStatus(st, "Reading this repository\u2019s key\u2026", null);
     gh("/repos/" + repo + "/actions/secrets/public-key", ins).then(ghJson)
       .then(function (pk) {
@@ -1249,6 +1250,7 @@ loadCommits().catch(err => {
         });
       })
       .then(function () {
+        phase = "variable";
         setStatus(st, "Checking the render image\u2026", null);
         return gh("/repos/" + repo + "/actions/variables/" + IMG_VAR, ins).then(ghJson).catch(function (e) { if (e.status === 404) return null; throw e; })
           .then(function (v) { if (v && v.value) return v.value;
@@ -1265,9 +1267,10 @@ loadCommits().catch(err => {
           // paste a corrected one in place, instead of dead-ending on the error.
           try { localStorage.removeItem(INSTALL_KEY); } catch (ig) {}
           var why = s === 401 ? "That setup token was rejected (401 \u2014 it may be expired or mistyped)."
-            : s === 403 ? "That setup token is missing <strong>Secrets</strong> / <strong>Variables: write</strong> on <code>" + esc(repo) + "</code>. A <code>read:packages</code> render token won\u2019t work here \u2014 the setup token is a separate, fine-grained token."
-            : "That setup token can\u2019t see <code>" + esc(repo) + "</code> \u2014 give it access to this repository.";
-          needToken(INSTALL_KEY, why + " <a href='" + setupTokenUrl() + "' target='_blank' rel='noopener' style='color:var(--link)'>Create a new setup token \u2197</a> with <strong>Secrets</strong> and <strong>Variables: Read and write</strong>, paste it below, and Save.", connect);
+            : s === 404 ? "That setup token can\u2019t see <code>" + esc(repo) + "</code> \u2014 on the token page, under <strong>Repository access</strong>, select this repository."
+            : phase === "variable" ? "The render token saved, but the token can\u2019t write repository <strong>Variables</strong> on <code>" + esc(repo) + "</code>. Create one with <strong>Variables</strong> (and Secrets) set to <strong>Read and write</strong>."
+            : "That setup token can\u2019t write repository <strong>Secrets</strong> on <code>" + esc(repo) + "</code>. On the token page, pick this repository under <strong>Repository access</strong> and set <strong>Secrets</strong> + <strong>Variables</strong> to <strong>Read and write</strong> (a <code>read:packages</code> render token won\u2019t work).";
+          needToken(INSTALL_KEY, why + " <a href='" + setupTokenUrl() + "' target='_blank' rel='noopener' style='color:var(--link)'>Create a new setup token \u2197</a>, paste it below, and Save.", connect);
           setStatus(st, "", null);
         } else {
           setStatus(st, "Couldn't save the token: " + esc(e && e.message || String(e)), "err");
