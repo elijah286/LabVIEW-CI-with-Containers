@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.20",
+  "version": "3.4.21",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.21",
+        "date": "2026-06-18",
+        "title": "Apply to New Repo always opens the latest installer from the source repository",
+        "summary": "The Apply to New Repo button on a repository's dashboard now opens the installer hosted on the central LabVIEW CI source site (in a new tab) instead of the copy bundled with that repository's own dashboard. Because the installer page and its setup steps improve over time, opening the central, always-current version means you get the latest install experience and fixes every time you set up a new repository - without first having to update the tooling in the repository you launched it from. The installer still records every new repository against the source repository so it appears in the client directory, and the source repository's own dashboard keeps opening its local copy, which is already the latest. Nothing about how a repository is configured or installed changes - only where the always-up-to-date installer page is loaded from.",
+        "highlights": [
+          "Apply to New Repo on an installed dashboard now opens the source site's installer in a new tab, so you always get the newest install page and UX.",
+          "No more relying on the possibly-older installer snapshot bundled with your repository's dashboard - improvements to the installer reach you immediately.",
+          "The source repository's own dashboard is unchanged: it opens its local installer, which is already the latest."
+        ]
+      },
       {
         "version": "3.4.20",
         "date": "2026-06-18",
