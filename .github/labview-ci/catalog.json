@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.10",
+  "version": "3.4.11",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.11",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0 reflects real render status instead of the token prompt",
+        "summary": "Once a repository is provisioned, the 2.0 view no longer shows the 'needs a render token' prompt (or a 1.0 fallback) for a VI that has no position-aware frames. It now reflects the actual state: the token prompt only when the repo is not connected; the in-place render when frames exist; a 'rendering...' status with a link to the run while the snapshot action is in progress; and, when a run finished without frames for a VI, a plain explanation - controls (.ctl) and VIs without a block diagram are skipped, and a render the image could not open is skipped - plus View run and Re-run buttons. It reads the latest vi-snapshots-json.yml run via the Actions API using the dispatch token, and polls while a run is in progress.",
+        "highlights": [
+          "The 2.0 view now reflects real state: token prompt / in-place render / rendering-in-progress / finished-with-no-frames or failed.",
+          "A provisioned repo no longer shows 'needs a render token' for a VI that simply has no frames - it explains why and offers View run + Re-run.",
+          "Reads the latest vi-snapshots-json.yml run status via the Actions API (dispatch token) and auto-refreshes while a run is in progress."
+        ]
+      },
       {
         "version": "3.4.10",
         "date": "2026-06-18",

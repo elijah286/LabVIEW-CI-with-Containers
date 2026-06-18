@@ -121,6 +121,7 @@
     #viewer-loading .spinner{width:18px;height:18px;border:2px solid var(--border);
                     border-top-color:var(--link);border-radius:50%;animation:spin .7s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    #nt-state .spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--link);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
     #viewer-hint{margin-left:auto;color:var(--fg-muted);font-size:.92em;display:none}
     #viewer-hint kbd{font:inherit;background:var(--bg);border:1px solid var(--border);
                      border-radius:4px;padding:0 4px}
@@ -212,6 +213,14 @@
             <button id="nt-generate" type="button" style="padding:9px 18px;border:0;border-radius:8px;background:#2da44e;color:#fff;font-weight:600;font-size:1.02em;cursor:pointer">&#9889; Generate the 2.0 snapshot</button>
             <div id="nt-gen-status" role="status" style="font-size:.85em;margin-top:8px;color:var(--fg-muted)"></div>
           </div>
+        </div>
+        <!-- STATE VIEW: shown by the viewer for a provisioned repo when a VI has no frames yet (running / finished-no-frames / failed) -->
+        <div id="nt-state" style="display:none">
+          <div id="nt-state-icon" style="font-size:2.6em;line-height:1;margin-bottom:14px"></div>
+          <h2 id="nt-state-title" style="margin:0 0 10px;font-size:1.3em;color:var(--fg)"></h2>
+          <p id="nt-state-msg" style="color:var(--fg-muted);margin:0 0 16px;line-height:1.5"></p>
+          <div id="nt-state-actions" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:center"></div>
+          <div id="nt-state-status" role="status" style="font-size:.85em;margin-top:10px;color:var(--fg-muted)"></div>
         </div>
         <!-- Shared one-time token prompt: setup token for Connect, dispatch token for Generate -->
         <div id="nt-tokp" style="display:none;margin:14px auto 0;max-width:470px;padding:11px 12px;border:1px solid var(--border,#d0d7de);border-radius:9px;background:rgba(127,127,127,.06);text-align:left">
@@ -643,6 +652,7 @@ function showInPlace(frames, htmlUrl, title) {
   document.getElementById('viewer').style.display = 'block';
   document.getElementById('vi-frame').style.display = 'none';
   const nt0 = document.getElementById('vi-needtoken'); if (nt0) nt0.style.display = 'none';
+  try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   const canvas = document.getElementById('vi-canvas');
   canvas.style.display = 'block';
   if (lvController) { try { lvController.destroy(); } catch (e) {} }
@@ -666,6 +676,9 @@ function showNeedsToken(htmlUrl, title) {
   document.getElementById('viewer').style.display = 'block';
   const nt = document.getElementById('vi-needtoken'); if (nt) nt.style.display = 'block';
   setViewerLoading(false);
+  // Pick the right 2.0 panel (token prompt / running / no-frames / failed) instead of
+  // always showing the token prompt. The wizard script owns repo + token + API logic.
+  try { if (window.__lvciVB2 && window.__lvciVB2.resolve) window.__lvciVB2.resolve(title); } catch (e) {}
 }
 
 function showInFrame(url, title) {
@@ -673,6 +686,7 @@ function showInFrame(url, title) {
   const canvas = document.getElementById('vi-canvas');
   if (canvas) canvas.style.display = 'none';
   const ntf = document.getElementById('vi-needtoken'); if (ntf) ntf.style.display = 'none';
+  try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
   const frameEl = document.getElementById('vi-frame');
   if (frameEl) frameEl.style.display = 'block';
@@ -1314,6 +1328,70 @@ loadCommits().catch(err => {
       .catch(function (e) { btn.disabled = false; setStatus(st, "Network error: " + esc(e && e.message || String(e)), "err"); });
   }
 
+  // ---- VI Browser 2.0 viewer state ----------------------------------------
+  // The viewer calls vb2Resolve() when 2.0 is selected but a VI has no frames JSON.
+  // Instead of always showing the token prompt, reflect the real state: token prompt
+  // (not provisioned here) / run in progress / run finished but no frames for this VI
+  // / run failed. We pick the panel inside #vi-needtoken (the viewer already showed it).
+  var vb2Timer = null, _vb2Title = "this VI", _vb2ViewLink = "";
+  function vb2Cancel() { if (vb2Timer) { clearTimeout(vb2Timer); vb2Timer = null; } }
+  function vb2Hide() { ["nt-lock", "nt-success", "nt-tokp", "nt-state"].forEach(function (id) { var e = $(id); if (e) e.style.display = "none"; }); }
+  function vb2ShowLock() { vb2Cancel(); vb2Hide(); var e = $("nt-lock"); if (e) e.style.display = ""; }
+  function vb2ShowRunPrompt() {
+    vb2Cancel(); vb2Hide();
+    var d = $("nt-conn-detail"); if (d) d.innerHTML = "Connected to the render image \u2014 but there is no 2.0 render yet. Run the snapshot action to generate it.";
+    var e = $("nt-success"); if (e) e.style.display = "";
+  }
+  function vb2State(icon, titleHtml, msgHtml, actionsHtml) {
+    vb2Hide();
+    var p = $("nt-state"); if (!p) return;
+    var i = $("nt-state-icon"); if (i) i.innerHTML = icon || "";
+    var t = $("nt-state-title"); if (t) t.innerHTML = titleHtml || "";
+    var m = $("nt-state-msg"); if (m) m.innerHTML = msgHtml || "";
+    var a = $("nt-state-actions"); if (a) a.innerHTML = actionsHtml || "";
+    var s = $("nt-state-status"); if (s) s.innerHTML = "";
+    p.style.display = "";
+  }
+  function vb2Resolve(title) {
+    vb2Cancel();
+    _vb2Title = title || "this VI";
+    var dt = lsGet(DISPATCH_KEY), ins = lsGet(INSTALL_KEY);
+    if (!repo || (!dt && !ins)) { vb2ShowLock(); return; }            // not provisioned here -> token prompt
+    if (!dt) { vb2ShowRunPrompt(); return; }                          // provisioned, but no Actions token to read run status
+    var spin = "<span class='spinner'></span>";
+    vb2State(spin, "Checking the 2.0 render\u2026", "Looking up the latest <code>" + esc(JSON_WF) + "</code> run\u2026", "");
+    gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(JSON_WF) + "/runs?per_page=1", dt).then(ghJson)
+      .then(function (d) {
+        var run = (d && d.workflow_runs || [])[0];
+        if (!run) { vb2ShowRunPrompt(); return; }
+        _vb2ViewLink = "<a href='" + esc(run.html_url) + "' target='_blank' rel='noopener' style='color:var(--link);font-weight:600'>View run \u2197</a>";
+        var rerun = "<button id='nt-state-rerun' type='button' style='padding:7px 15px;border:0;border-radius:7px;background:#2da44e;color:#fff;font-weight:600;cursor:pointer'>\u26a1 Re-run the 2.0 snapshot</button>";
+        if (run.status !== "completed") {
+          vb2State(spin, "Rendering the 2.0 snapshot\u2026", "The <code>" + esc(JSON_WF) + "</code> run is <strong>" + esc(run.status) + "</strong>. When it finishes, reload this page to load the new frames.", _vb2ViewLink);
+          vb2Timer = setTimeout(function () { vb2Resolve(_vb2Title); }, 12000);
+        } else if (run.conclusion === "success") {
+          vb2State("\u26a0\uFE0F", "No 2.0 render for " + esc(_vb2Title), "The last run finished, but produced no position-aware frames for this item. A VI appears in 2.0 only when the render image emits frames for it \u2014 controls (<code>.ctl</code>) and VIs without a block diagram are skipped, and a VI the renderer cannot open is skipped too. If you expected a render here, open the run to check the logs.", _vb2ViewLink + " " + rerun);
+        } else {
+          vb2State("\u274C", "The 2.0 snapshot run did not succeed", "The last <code>" + esc(JSON_WF) + "</code> run ended with <strong>" + esc(run.conclusion || "no result") + "</strong>, so no frames were produced. Open the run to see why, then re-run.", _vb2ViewLink + " " + rerun);
+        }
+      })
+      .catch(function () { vb2ShowRunPrompt(); });
+  }
+  function vb2Rerun() {
+    var sEl = $("nt-state-status"), dt = lsGet(DISPATCH_KEY);
+    if (!dt) { needToken(DISPATCH_KEY, "Running the snapshot needs a token with <strong>Actions: write</strong> on <code>" + esc(repo) + "</code>. <a href='" + dispatchTokenUrl() + "' target='_blank' rel='noopener' style='color:var(--link)'>Create one \u2197</a>, paste it below, and Save.", vb2Rerun); return; }
+    var b = $("nt-state-rerun"); if (b) b.disabled = true;
+    setStatus(sEl, "Queuing the 2.0 snapshot run\u2026", null);
+    gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(JSON_WF) + "/dispatches", dt, { method: "POST", body: { ref: "main", inputs: { mode: "head" } } })
+      .then(function (r) {
+        if (b) b.disabled = false;
+        if (r.status === 204) { vb2State("<span class='spinner'></span>", "Rendering the 2.0 snapshot\u2026", "Queued the run. When it finishes, reload this page to load the new frames.", _vb2ViewLink); vb2Timer = setTimeout(function () { vb2Resolve(_vb2Title); }, 12000); return; }
+        if (r.status === 401 || r.status === 403) { try { localStorage.removeItem(DISPATCH_KEY); } catch (ig) {} setStatus(sEl, "Dispatch token " + (r.status === 401 ? "rejected (401)" : "lacks Actions: write") + " \u2014 click Re-run to enter a new one.", "err"); return; }
+        setStatus(sEl, r.status === 404 ? "Token cannot see <code>" + esc(repo) + "</code>, or the workflow is not on the default branch." : "Dispatch failed (HTTP " + r.status + ").", "err");
+      })
+      .catch(function (e) { if (b) b.disabled = false; setStatus(sEl, "Network error: " + esc(e && e.message || String(e)), "err"); });
+  }
+
   function init() {
     var link = $("needtoken-link"); if (link) link.href = tokenCreateUrl();
     var rr = $("nt-repo-row"); if (rr) rr.innerHTML = repo ? ("Repository: <code>" + esc(repo) + "</code>") : "Repository <em>not detected</em> \u2014 use the Integrate page.";
@@ -1330,7 +1408,9 @@ loadCommits().catch(err => {
     }
     var ps = $("nt-tokp-save"); if (ps) ps.addEventListener("click", saveTok);
     var pi = $("nt-tokp-input"); if (pi) pi.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); saveTok(); } });
+    var sa = $("nt-state-actions"); if (sa) sa.addEventListener("click", function (e) { var t = e.target; if (t && t.id === "nt-state-rerun") { e.preventDefault(); vb2Rerun(); } });
   }
+  window.__lvciVB2 = { resolve: vb2Resolve, cancel: vb2Cancel };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
 </script>
