@@ -77,6 +77,14 @@
   }
   var ctx = cfg.context || 'page';
 
+  // Canonical home of this tooling. The dashboard page assets are served by the
+  // action verbatim — the installer's substitutions never rewrite them — so this
+  // fallback rides onto every consumer dashboard still pointing at the root, the
+  // same way faq.html / integrate.html anchor their links. loadVersion() refines
+  // it from the same-origin catalog (and any relocation pointer it follows).
+  var SOURCE_FALLBACK_REPO = 'elijah286/LabVIEW-CI-with-Containers';
+  var srcRepo = SOURCE_FALLBACK_REPO;
+
   // ── Design tokens + styles (match the GitHub-style dark/light tokens the
   //    rest of the site uses, so the header blends into every page). ─────────
   var CSS = [
@@ -528,9 +536,31 @@
     return (A[ctx] || []).filter(Boolean);
   }
 
+  // ── The canonical tooling site's Pages URL, derived from owner/repo the same
+  //    way the rest of the dashboard does (clients.html, integrate.html): a
+  //    user/org pages repo (<owner>.github.io) serves at the bare host; any other
+  //    repo is a project page under /<repo>/. Empty if the source is unknown. ──
+  function sourcePagesUrl() {
+    var p = String(srcRepo || '').split('/');
+    var owner = p[0] || '', name = p[1] || '';
+    if (!owner || !name) return '';
+    var host = owner.toLowerCase() + '.github.io';
+    return name.toLowerCase() === host ? ('https://' + host + '/')
+                                       : ('https://' + host + '/' + name + '/');
+  }
+
   // ── Configure / Apply: open the dashboard's modal when present, else navigate
   //    to the standalone page (kept identical content). ──────────────────────
   function openPage(kind) {
+    // Apply to New Repo always installs from the ROOT tooling repo. On a consumer
+    // dashboard, send the user to the root site's own installer (new tab) so they
+    // always get the latest Apply-to-New-Repo page + UX — never this repo's
+    // vendored, possibly older, snapshot. On the source repo the local page IS
+    // the latest, so fall through to the inline modal / navigation below.
+    if (kind === 'integrate' && !cfg.isSource) {
+      var su = sourcePagesUrl();
+      if (su) { window.open(su + 'integrate.html', '_blank', 'noopener'); return; }
+    }
     var map = {
       configure: { src: 'configure.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'Configure Workers' },
       unittests: { src: 'unit-tests.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'Unit Testing' },
@@ -1039,6 +1069,7 @@
         if (upd && cmpVer(v, upd.v) >= 0) updClear();                        // deployed caught up
         renderBadge();
         var src = (cat.source && cat.source.repo) || '';
+        if (src) srcRepo = src;   // refine the Apply-to-New-Repo target from the live catalog
         isConsumer = !!(src && repo && src.toLowerCase() !== repo.toLowerCase());
         if (!isConsumer) { revealClients(); return; }   // root repo: surface Clients even before a scan has published clients.json
         // Now that the deployed version + consumer status are known, check right
@@ -1052,7 +1083,7 @@
         fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/source.json', { cache: 'no-cache' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (p) {
-            if (p && p.repo && p.repo.toLowerCase() !== src.toLowerCase()) { src = p.repo; ref = p.ref || ref; }
+            if (p && p.repo && p.repo.toLowerCase() !== src.toLowerCase()) { src = p.repo; ref = p.ref || ref; srcRepo = src; }
             return fetch('https://raw.githubusercontent.com/' + src + '/' + ref + '/.github/labview-ci/catalog.json', { cache: 'no-cache' });
           })
           .then(function (r) { return r.ok ? r.json() : null; })
