@@ -199,6 +199,13 @@
             <div id="nt-status" role="status" style="font-size:.85em;margin-top:6px;min-height:1.1em"></div>
           </li>
         </ol>
+        <div id="nt-tokp" style="display:none;margin:2px 0 10px;padding:11px 12px;border:1px solid var(--border,#d0d7de);border-radius:9px;background:rgba(127,127,127,.06);text-align:left">
+          <div id="nt-tokp-msg" style="font-size:.85em;margin-bottom:7px"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <input id="nt-tokp-input" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_&hellip;" style="flex:1 1 200px;min-width:0;padding:6px 9px;border:1px solid var(--border,#d0d7de);border-radius:7px;background:var(--bg);color:var(--fg);font:inherit">
+            <button id="nt-tokp-save" type="button" style="padding:6px 14px;border:0;border-radius:7px;background:var(--link);color:#fff;font-weight:600;cursor:pointer">Save</button>
+          </div>
+        </div>
         <div id="nt-step3" style="display:none;margin:8px 0 0">
           <button id="nt-generate" type="button" style="padding:9px 18px;border:0;border-radius:8px;background:#2da44e;color:#fff;font-weight:600;font-size:1.02em;cursor:pointer">&#9889; Generate the 2.0 snapshot</button>
           <div id="nt-gen-status" role="status" style="font-size:.85em;margin-top:8px;color:var(--fg-muted)"></div>
@@ -1172,12 +1179,25 @@ loadCommits().catch(err => {
 
   function tokenCreateUrl() { return "https://github.com/settings/tokens/new?scopes=read:packages&description=" + encodeURIComponent("LabVIEW CI render token (GHCR pull for VI Browser 2.0)"); }
 
+  var pendingSave = null;
+  function needToken(key, msgHtml, retryFn) {
+    var p = $("nt-tokp"); if (!p) return;
+    var m = $("nt-tokp-msg"); if (m) m.innerHTML = msgHtml;
+    p.style.display = "";
+    pendingSave = { key: key, retry: retryFn };
+    var i = $("nt-tokp-input"); if (i) { i.value = ""; i.focus(); }
+  }
+
   function connect() {
     var st = $("nt-status"), token = ($("nt-token").value || "").trim();
     if (!token) { $("nt-token").focus(); return; }
     if (!repo) { setStatus(st, "Couldn't detect this repository from the URL. Finish setup on the <a href='" + integrateHref + "'>Integrate page</a>.", "err"); return; }
     var ins = lsGet(INSTALL_KEY);
-    if (!ins) { setStatus(st, "This browser has no setup token with <strong>Secrets: write</strong> for <code>" + esc(repo) + "</code>. Set it once on the <a href='" + integrateHref + "'>Integrate page</a>, then return.", "err"); return; }
+    if (!ins) {
+      var su = "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI setup") + "&description=" + encodeURIComponent("Save the VI Browser 2.0 render token for " + repo) + "&target_name=" + encodeURIComponent(repo.split("/")[0]) + "&secrets=write&variables=write";
+      needToken(INSTALL_KEY, "Saving the secret needs a one-time <strong>setup token</strong> with <strong>Secrets &amp; Variables: write</strong> on <code>" + esc(repo) + "</code>. <a href='" + su + "' target='_blank' rel='noopener' style='color:var(--link)'>Create one \u2197</a>, paste it below, and Save.", connect);
+      setStatus(st, "", null); return;
+    }
     var btn = $("nt-connect"); btn.disabled = true;
     setStatus(st, "Sealing and saving the token\u2026", null);
     ghJson(gh("/repos/" + repo + "/actions/secrets/public-key", ins))
@@ -1206,10 +1226,9 @@ loadCommits().catch(err => {
   function generate() {
     var st = $("nt-gen-status"), dt = lsGet(DISPATCH_KEY);
     if (!dt) {
-      var owner = repo.split("/")[0];
-      var u = "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI dispatch") + "&description=" + encodeURIComponent("Dispatch CI runs for " + repo) + "&target_name=" + encodeURIComponent(owner) + "&actions=write";
-      setStatus(st, "Running the snapshot needs an <strong>Actions: write</strong> token. <a href='" + u + "' target='_blank' rel='noopener'>Create one \u2197</a>, then return.", "err");
-      return;
+      var du = "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI dispatch") + "&description=" + encodeURIComponent("Dispatch CI runs for " + repo) + "&target_name=" + encodeURIComponent(repo.split("/")[0]) + "&actions=write";
+      needToken(DISPATCH_KEY, "Running the snapshot needs a token with <strong>Actions: write</strong> on <code>" + esc(repo) + "</code>. <a href='" + du + "' target='_blank' rel='noopener' style='color:var(--link)'>Create one \u2197</a>, paste it below, and Save.", generate);
+      setStatus(st, "", null); return;
     }
     var btn = $("nt-generate"); btn.disabled = true;
     setStatus(st, "Queuing the 2.0 snapshot run\u2026", null);
@@ -1228,6 +1247,16 @@ loadCommits().catch(err => {
     var c = $("nt-connect"); if (c) c.addEventListener("click", connect);
     var t = $("nt-token"); if (t) t.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); connect(); } });
     var g = $("nt-generate"); if (g) g.addEventListener("click", generate);
+    function saveTok() {
+      if (!pendingSave) return;
+      var v = ($("nt-tokp-input").value || "").trim();
+      if (!v) { $("nt-tokp-input").focus(); return; }
+      try { localStorage.setItem(pendingSave.key, v); } catch (e) {}
+      $("nt-tokp-input").value = ""; $("nt-tokp").style.display = "none";
+      var r = pendingSave.retry; pendingSave = null; if (r) r();
+    }
+    var ps = $("nt-tokp-save"); if (ps) ps.addEventListener("click", saveTok);
+    var pi = $("nt-tokp-input"); if (pi) pi.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); saveTok(); } });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
