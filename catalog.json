@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.1.0",
+  "version": "3.1.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.1.1",
+        "date": "2026-06-17",
+        "title": "The VI Browser opens with your folder tree expanded the first time",
+        "summary": "The first time you open the VI Browser, its file tree on the left now starts fully expanded, so the whole VI hierarchy is visible at a glance instead of a single collapsed folder. It is a one-time courtesy remembered in your browser: after that first visit the tree opens collapsed as before, and your own expand and collapse choices are never overridden. The Expand all and Collapse all controls behave exactly as before.",
+        "highlights": [
+          "First-ever open of the VI Browser expands the entire folder tree, so the full VI hierarchy is visible without drilling in.",
+          "Remembered per browser as a one-time courtesy: later visits open collapsed, keeping the view tidy once you know your way around.",
+          "Your manual expand and collapse choices, and the Expand all / Collapse all buttons, are unchanged."
+        ]
+      },
       {
         "version": "3.1.0",
         "date": "2026-06-17",
