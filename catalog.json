@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.1.2",
+  "version": "3.2.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.2.0",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0: set up the render token right on the lock screen",
+        "summary": "When a repository has not been provisioned for the in-place VI Browser 2.0 view, the lock screen is now an interactive setup wizard instead of two links. Step 1 opens GitHub's token page with the read:packages scope preselected; step 2 is an in-place box where you paste the render token, which is sealed in your browser (libsodium) and saved as the TOIMAGES_REGISTRY_TOKEN secret along with the render image variable, reusing the setup token already stored in this browser; and once that succeeds a 'Generate the 2.0 snapshot' button appears that dispatches the render workflow. The repository is detected from the page URL. Because a browser cannot test a private-registry pull, the dispatched run is the real confirmation that the token works.",
+        "highlights": [
+          "The 2.0 lock screen is now a guided 3-step wizard: get a token, paste it to save the secret, then generate the snapshot - without leaving the page.",
+          "The render token is sealed in your browser and stored as the TOIMAGES_REGISTRY_TOKEN secret; the raw token never reaches the page host.",
+          "A 'Generate the 2.0 snapshot' button dispatches the render workflow and surfaces a token or permission error if the run cannot be queued."
+        ]
+      },
       {
         "version": "3.1.2",
         "date": "2026-06-18",
