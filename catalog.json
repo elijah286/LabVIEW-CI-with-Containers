@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.1",
+  "version": "3.4.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.2",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0: reliable render-token connect",
+        "summary": "Connecting a render token from the VI Browser 2.0 lock screen could appear to hang at the sealing-and-saving step and never finish. The underlying cause - a response read before it had arrived, which silently aborted the connect - is fixed, and the flow now reports each step (reading the repository key, loading the encryption library, saving the token, checking the render image) and times out with a clear, retryable message instead of hanging. The in-browser encryption library also falls back to a second, integrity-pinned CDN if the first is blocked. On success the lock dialog is replaced by a Connected confirmation that names the render image and offers a one-click button to run the snapshot action that populates VI Browser 2.0 with imagery, and the two-step token prompt now confirms the render token is captured while it collects the one-time setup token.",
+        "highlights": [
+          "The render-token connect no longer hangs: each step reports progress and fails with a clear, retryable message.",
+          "The in-browser encryption library now has an integrity-pinned fallback CDN if the primary one is blocked.",
+          "On success the lock screen is replaced by a Connected panel with a one-click Generate the 2.0 snapshot button."
+        ]
+      },
       {
         "version": "3.4.1",
         "date": "2026-06-18",
