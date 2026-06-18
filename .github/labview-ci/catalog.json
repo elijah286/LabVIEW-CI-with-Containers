@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.32",
+  "version": "3.4.33",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.33",
+        "date": "2026-06-18",
+        "title": "Updating is clearer: merge the pull request, no phantom \"approve checks\" step",
+        "summary": "The What's New update flow no longer presents \"approve the pull request's checks\" as a required gate. A tooling update changes only configuration and tooling files and is opened by automation, so the pull request it creates normally has no checks at all and is ready to merge immediately - but the old wording told you to \"approve its checks if GitHub shows Action required,\" sending people to hunt for an Approve and run button that was not there and making updates feel stuck. The flow now leads with the real action - Merge it - and the live progress tracker reads the pull request's actual check state: it says plainly when there is nothing to wait for, and only surfaces Approve and run when GitHub has genuinely paused a check on an automation-opened pull request. The tracker's fourth step is renamed from Approve checks to Review, and the up-front checklist and help text were reworded to match.",
+        "highlights": [
+          "The update tracker now leads with Merge it and reads the pull request's real check state, so it tells you plainly there is nothing to approve instead of waiting on a check that does not exist.",
+          "Approve and run guidance now appears only when GitHub has actually paused a check (Action required) on an automation-opened pull request - which a config and tooling-only update normally does not have.",
+          "Renamed the tracker step from Approve checks to Review and reworded the What's New checklist and help text so the only required action is merging the pull request."
+        ]
+      },
       {
         "version": "3.4.32",
         "date": "2026-06-18",

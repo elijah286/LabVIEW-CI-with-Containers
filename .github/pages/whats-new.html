@@ -140,6 +140,7 @@
     .up-steps li.wait::before{background:var(--warn);border-color:transparent;color:#fff}
     .up-steps li.wait{color:var(--fg);font-weight:600}
     .up-prog-msg{font-size:.86em;color:var(--fg);min-height:1.2em;margin:0}
+    .up-note{display:block;margin-top:5px;font-size:.95em;color:var(--fg-muted)}
     .up-prog-links{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:.84em}
     .up-prog-foot{margin-top:11px;font-size:.78em;color:var(--fg-muted)}
     .up-prog-foot[hidden]{display:none}
@@ -202,17 +203,17 @@
 
     <section id="updateSec" style="display:none">
       <h2>Update your CI tooling</h2>
-      <p class="hint" id="updateLead">Updating is a few clicks: <strong>Update now</strong> kicks it off, then GitHub
-        needs you to <strong>approve</strong> and <strong>merge</strong>. Here is the whole sequence so nothing waits on a step you did not know about:</p>
+      <p class="hint" id="updateLead">Updating is a few clicks: <strong>Update now</strong> kicks it off, then you
+        <strong>merge</strong> the pull request it opens. Here is the whole sequence so nothing waits on a step you did not know about:</p>
       <ol class="upsteps" id="upSteps">
         <li>Click <strong>Update now</strong> below. The first time, paste a one-time token &mdash; the dialog walks you
           through it (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</li>
         <li>The <strong>Apply LabVIEW CI update</strong> workflow runs and opens a <strong>pull request</strong> that adopts the new version.</li>
-        <li class="key"><strong>Approve the pull request&rsquo;s checks.</strong>
-          <small>Because the pull request is opened automatically, GitHub holds its checks for your approval and marks
-          them <em>&ldquo;Action required.&rdquo;</em> Open the PR (or the <strong>Actions</strong> tab), and on the paused run
-          click <strong>Approve and run</strong>. Until you do, the checks never start and the update cannot complete.</small></li>
-        <li><strong>Merge the pull request</strong> once its checks pass.</li>
+        <li class="key"><strong>Merge the pull request.</strong>
+          <small>Open it and click <strong>Merge</strong> &mdash; that&rsquo;s what finishes the update. It changes only
+          configuration and tooling files, so it normally has <strong>no checks to wait for</strong> and is ready to merge
+          right away. <em>Only if</em> GitHub shows a check marked <em>&ldquo;Action required&rdquo;</em> (it can do that for a
+          pull request opened by automation) &mdash; open the <strong>Actions</strong> tab and click <strong>Approve and run</strong> first.</small></li>
         <li>On the next refresh, the dashboard badge turns green and shows the new version.</li>
       </ol>
       <!-- One-time token setup (hidden until needed), mirroring the dashboard's Run now dialog. -->
@@ -252,7 +253,7 @@
           <li>Start</li>
           <li>Build update</li>
           <li>Open&nbsp;PR</li>
-          <li>Approve&nbsp;checks</li>
+          <li>Review</li>
           <li>Merge</li>
         </ol>
         <p class="up-prog-msg" id="upMsg"></p>
@@ -821,6 +822,48 @@
         });
     }
 
+    // Once the update PR is open, it's the user's turn. The PR changes only config
+    // and tooling files (never .vi paths) and is opened by automation, so it
+    // normally has NO checks and is mergeable immediately. Lead with MERGE, not
+    // "approve checks" -- sending people to approve a check that isn't there is
+    // exactly what made updates feel stuck. Then refine the note from the PR's REAL
+    // check state: say plainly there's nothing to wait for, or -- only when GitHub
+    // actually paused a check ("Action required") -- point at Approve and run.
+    function reviewMsg(pr, ver, lead, note) {
+      return (lead || "") +
+        `Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> is open. ` +
+        `<strong>Merge it</strong> to finish updating to <code>v${esc(ver)}</code>.` +
+        (note ? " " + note : "");
+    }
+    function showReview(pr, ver, lead) {
+      prog.prUrl = pr.html_url; prog.prNum = pr.number;
+      setPhase(PH.REVIEW, reviewMsg(pr, ver, lead,
+        `<span class="up-note">Most updates change only configuration and tooling, so there are no checks to wait for &mdash; you can merge right away.</span>`));
+      const sha = pr.head && pr.head.sha;
+      if (!sha) return;
+      // Best-effort: read the head commit's checks and tailor the note to reality.
+      fetch(`https://api.github.com/repos/${state.repo}/commits/${sha}/check-runs`,
+        { cache: "no-store", headers: authHeaders() })
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          if (prog.phase !== PH.REVIEW || prog.prNum !== pr.number) return;   // moved on
+          const runs = (d && d.check_runs) || [];
+          const paused = runs.filter((r) => r.status === "waiting" || r.status === "action_required" || r.conclusion === "action_required");
+          const running = runs.filter((r) => r.status !== "completed" && r.status !== "waiting" && r.status !== "action_required");
+          let note;
+          if (paused.length)
+            note = `<span class="up-note">GitHub paused a check (<em>&ldquo;Action&nbsp;required&rdquo;</em>) because the pull request was opened by automation &mdash; open its <a href="${esc(pr.html_url)}/checks" target="_blank" rel="noopener">Checks tab</a> (or the repo&rsquo;s <strong>Actions</strong> tab), click <strong>Approve and run</strong>, then merge.</span>`;
+          else if (running.length)
+            note = `<span class="up-note">Its checks are still running &mdash; they finish on their own, then you can merge.</span>`;
+          else if (!runs.length)
+            note = `<span class="up-note">This update has <strong>no checks</strong> to wait for &mdash; it&rsquo;s ready to <strong>merge now</strong>.</span>`;
+          else
+            note = `<span class="up-note">Its checks have passed &mdash; it&rsquo;s ready to <strong>merge now</strong>.</span>`;
+          renderProgress(reviewMsg(pr, ver, lead, note));
+        })
+        .catch(() => {});
+    }
+
     // After dispatch, the workflow force-pushes branch ci/adopt-tooling-v<ver>
     // (older tooling used ci/update-tooling-v<ver>) and opens (or updates) a PR.
     // Poll the open PR list and match either branch so a real PR is never missed;
@@ -839,11 +882,7 @@
             : null;
           if (pr) {
             hideWfTokenPanel();
-            prog.prUrl = pr.html_url; prog.prNum = pr.number;
-            setPhase(PH.REVIEW,
-              `Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> is open. ` +
-              `<strong>1.</strong> open it and <strong>approve its checks</strong> if GitHub shows ` +
-              `<em>&ldquo;Action required&rdquo;</em>, then <strong>2.</strong> <strong>merge</strong> it to finish updating to <code>v${esc(ver)}</code>.`);
+            showReview(pr, ver, "");
             pollPrMerged(pr.number, 0);
             return;
           }
@@ -983,13 +1022,8 @@
         if (hit) {
           const pr = hit.pr;
           prog.ver = hit.ver; prog.ts = Date.now();
-          prog.prUrl = pr.html_url; prog.prNum = pr.number;
           if (run) { prog.runId = run.id; prog.runUrl = run.html_url; }
-          setPhase(PH.REVIEW,
-            `An update to <code>v${esc(hit.ver)}</code> is already in progress. Pull request ` +
-            `<a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> is open &mdash; ` +
-            `<strong>approve its checks</strong> if GitHub shows <em>&ldquo;Action required&rdquo;</em>, then ` +
-            `<strong>merge</strong> it to finish.`);
+          showReview(pr, hit.ver, `An update to <code>v${esc(hit.ver)}</code> is already in progress. `);
           pollPrMerged(pr.number, 0);
           return;
         }
@@ -1016,7 +1050,7 @@
       prog.ver = s.ver || state.target || state.latest || "";
       prog.ts = s.ts || Date.now(); prog.runId = s.runId || 0; prog.runUrl = s.runUrl || "";
       prog.prUrl = s.prUrl || ""; prog.prNum = s.prNum || 0;
-      if (prog.prNum) { setPhase(PH.REVIEW, `Resuming&hellip; pull request <a href="${esc(prog.prUrl)}" target="_blank" rel="noopener">#${prog.prNum}</a> is waiting for you to approve its checks and merge.`); pollPrMerged(prog.prNum, 0); }
+      if (prog.prNum) { setPhase(PH.REVIEW, `Resuming&hellip; pull request <a href="${esc(prog.prUrl)}" target="_blank" rel="noopener">#${prog.prNum}</a> is open. <strong>Merge it</strong> to finish updating to <code>v${esc(prog.ver)}</code>. <span class="up-note">Most updates have no checks to wait for &mdash; you can merge right away.</span>`); pollPrMerged(prog.prNum, 0); }
       else if (prog.runId || s.phase >= PH.QUEUED) { setPhase(PH.RUNNING, "Resuming&hellip; checking the update workflow&rsquo;s progress."); pollRun(0); }
       else { setPhase(PH.OPENING, "Resuming&hellip; waiting for the pull request."); startPrPoll(); }
     }
@@ -1047,8 +1081,8 @@
       refreshTokForget();
       $("updateHowto").innerHTML =
         `<strong>Update now</strong> starts the <strong>Apply LabVIEW CI update</strong> workflow for you and opens a ` +
-        `pull request adopting <code>v${esc(ver)}</code>. You then <strong>approve the PR&rsquo;s checks</strong> (GitHub marks ` +
-        `them &ldquo;Action required&rdquo;) and <strong>merge</strong> it to finish &mdash; see the numbered steps above. The first time, paste a ` +
+        `pull request adopting <code>v${esc(ver)}</code>. You then <strong>merge</strong> it to finish &mdash; it normally ` +
+        `has no checks to wait for (see the numbered steps above). The first time, paste a ` +
         `fine-grained token with <strong>Actions: Read and write</strong> (the dialog walks you through it; the same ` +
         `token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses). Prefer not to use a token? ` +
         `<a href="${esc(ghUrl)}" target="_blank" rel="noopener">Open the workflow on GitHub</a> and click <strong>Run workflow</strong>.`;
