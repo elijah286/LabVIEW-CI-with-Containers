@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.41",
+  "version": "3.4.42",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.42",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0: diagrams open fitted, smoother zoom, and a Fit button",
+        "summary": "Polish for the in-place 2.0 renderer. Every diagram now opens fitted in the visible area - even very large block diagrams that previously overflowed - so the size stays consistent as you move between VIs. Ctrl/Cmd + scroll zoom is now smooth and proportional instead of jumping in big steps, and a new Fit button returns the diagram to its default size and position. Each Case/Event case is also clipped to its structure's slot so it always renders at the parent-diagram size.",
+        "highlights": [
+          "Diagrams always open fitted to the view (the fit no longer bottoms out, so very large diagrams fit too).",
+          "Smoother Ctrl/Cmd+scroll zoom - proportional to the scroll amount and gentle per tick.",
+          "New 'Fit' button resets the diagram to its default fitted size and position."
+        ]
+      },
       {
         "version": "3.4.41",
         "date": "2026-06-18",
