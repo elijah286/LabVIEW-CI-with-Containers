@@ -938,17 +938,29 @@ run_dialog_css = (
     '.cidash-hist-specitem input{accent-color:var(--link);width:14px;height:14px;margin:0;flex:0 0 auto}'
     '.cidash-hist-specitem .sh{font-family:ui-monospace,Menlo,monospace;color:var(--fg-muted);flex:0 0 auto}'
     '.cidash-hist-specitem .ms{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}'
+    # Intro line + the Activities header row (label on the left, quick-preset chips
+    # on the right).
+    '.cidash-hist-intro{margin:0 0 16px;color:var(--fg-muted);font-size:.86em;line-height:1.55}'
+    '.cidash-hist-actshead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px;margin:0 0 9px}'
+    '.cidash-hist-quick{display:flex;flex-wrap:wrap;gap:6px}'
+    '.cidash-hist-chip{border:1px solid var(--border);background:var(--bg);color:var(--fg);border-radius:999px;padding:4px 11px;font-size:.76em;font-weight:600;cursor:pointer;font-family:inherit}'
+    '.cidash-hist-chip:hover{border-color:var(--link);color:var(--link)}'
+    # One row per activity: name + sub on the left, a count hint, then a 3-way
+    # Skip / Fill / Re-run segmented control. Snapshots only gets Skip / Render.
     '.cidash-hist-acts{display:flex;flex-direction:column;gap:7px}'
-    '.cidash-hist-act{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid var(--border);border-radius:7px;background:var(--bg);cursor:pointer;font-size:.88em;user-select:none}'
-    '.cidash-hist-act:hover{border-color:var(--link)}'
-    '.cidash-hist-act input{accent-color:var(--link);width:15px;height:15px;margin:0;flex:0 0 auto}'
-    '.cidash-hist-act .cidash-hist-actsub{color:var(--fg-muted);font-size:.85em;margin-left:auto;text-align:right}'
-    '.cidash-hist-act.disabled{opacity:.45;cursor:default}'
-    '.cidash-hist-act.disabled:hover{border-color:var(--border)}'
-    '.cidash-hist-toggle{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid var(--border);border-left:3px solid #1f6feb;border-radius:8px;background:var(--surface);cursor:pointer;font-size:.88em;user-select:none}'
-    '.cidash-hist-toggle input{accent-color:var(--link);width:15px;height:15px;margin:2px 0 0;flex:0 0 auto}'
-    '.cidash-hist-toggle .cidash-hist-tmain{font-weight:600}'
-    '.cidash-hist-toggle .cidash-hist-tsub{color:var(--fg-muted);font-size:.9em;margin-top:2px;font-weight:400}'
+    '.cidash-hist-actsempty{color:var(--fg-muted);font-size:.85em;padding:4px 2px}'
+    '.cidash-hist-act{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}'
+    '.cidash-hist-act.skip{opacity:.62}'
+    '.cidash-hist-actinfo{flex:1 1 180px;min-width:150px}'
+    '.cidash-hist-actname{font-size:.9em;font-weight:600}'
+    '.cidash-hist-actsub{color:var(--fg-muted);font-size:.82em;margin-top:1px;line-height:1.4}'
+    '.cidash-hist-actcount{font-size:.74em;color:var(--fg-muted);white-space:nowrap;flex:0 0 auto;text-align:right;margin-left:auto;font-variant-numeric:tabular-nums}'
+    '.cidash-seg{display:inline-flex;flex:0 0 auto;border:1px solid var(--border);border-radius:7px;overflow:hidden}'
+    '.cidash-seg button{border:0;background:transparent;color:var(--fg-muted);padding:5px 11px;font-size:.78em;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.5}'
+    '.cidash-seg button+button{border-left:1px solid var(--border)}'
+    '.cidash-seg button.on{background:var(--link);color:#fff}'
+    '.cidash-seg button:disabled{opacity:.34;cursor:default}'
+    '.cidash-seg button:not(.on):not(:disabled):hover{background:var(--surface);color:var(--fg)}'
     '.cidash-hist-summary{font-size:.84em;color:var(--fg-muted);margin:0 0 12px}'
     '.cidash-hist-summary b{color:var(--fg)}'
 )
@@ -1133,6 +1145,18 @@ run_dialog = (r"""
         var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
         var td = a ? (a.closest ? a.closest('td') : null)
                    : document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+        if(!td){
+          // Re-run of a cell that already HAS a result: overlay the spinner onto the
+          // result cell and remember its original badge so a failed/cancelled dispatch
+          // can restore it. Same bridge the report viewer's "Re-run" uses (see qSync),
+          // now reachable from the Populate-history dialog's per-activity "Re-run".
+          var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+          if(rc){
+            var oR = qLoad(); var kR = c+'|'+sha;
+            if(oR[kR] && !oR[kR].orig){ oR[kR].orig = rc.innerHTML; qSave(oR); }
+            td = rc;
+          }
+        }
         qPaint(td, c, sha);
         qArmReload();
         qRenumber();
@@ -1768,12 +1792,25 @@ run_dialog = (r"""
       s.style.color=col; s.innerHTML=html||'';
     }
     function histTokPanel(show){ var p=document.getElementById('cidash-hist-tok'); if(p) p.style.display = show ? 'block' : 'none'; }
-    function histSelectedCaps(){
-      var caps={};
-      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-actbox'), function(b){
-        if(b.checked && !b.disabled) caps[b.getAttribute('data-cap')]=1;
+    var actMode = {};                           // cap -> 'off' | 'fill' | 'rerun' (per-activity choice)
+    function histAllCells(){
+      // EVERY per-revision activity cell on the table, tagged empty (a never-run run
+      // glyph) vs done (a cell that already carries a result). bfCells() sees only the
+      // empty glyphs; gathering the result cells too is what lets this dialog RE-RUN
+      // an activity, not just fill the blanks. Active (queued/running) cells carry no
+      // data attributes and so are skipped - you can't re-queue what's already running.
+      var out=[]; var rows=document.querySelectorAll('tbody tr[data-project]');
+      Array.prototype.forEach.call(rows, function(tr, idx){
+        Array.prototype.forEach.call(tr.querySelectorAll('a.cidash-run'), function(a){
+          out.push({ cap:a.getAttribute('data-cap'), sha:a.getAttribute('data-sha'),
+                     parent:a.getAttribute('data-parent')||'', order:idx, done:false });
+        });
+        Array.prototype.forEach.call(tr.querySelectorAll('td.cidash-cap-cell'), function(td){
+          out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
+                     parent:td.getAttribute('data-parent')||'', order:idx, done:true });
+        });
       });
-      return caps;
+      return out;
     }
     function histScopeMode(){ var r=document.querySelector('input[name="cidash-hist-scope"]:checked'); return r ? r.value : 'all'; }
     function histIdx(sha){ for(var i=0;i<HIST.length;i++){ if(HIST[i].sha===sha) return i; } return -1; }
@@ -1808,50 +1845,100 @@ run_dialog = (r"""
       var sw=document.getElementById('cidash-hist-specwrap'); if(sw) sw.style.display = (mode==='specific') ? '' : 'none';
     }
     function histCells(){
-      var caps=histSelectedCaps(); var inc=histIncludedShas();
-      return bfCells().filter(function(x){ return caps[x.cap] && inc[x.sha] && !(x.cap==='vidiff' && !x.parent); });
+      // The exact cells to dispatch, from each activity's mode + the revision scope:
+      //   off    -> nothing
+      //   fill   -> only the empty (never-run) cells          (the old default)
+      //   rerun  -> empty AND already-done cells, re-dispatched (replaces the result)
+      // Snapshots is content-addressed: its one backfill run only ever renders the
+      // MISSING blobs, so it has no meaningful "re-run" \u2014 it always behaves as fill.
+      var inc=histIncludedShas(); var out=[];
+      histAllCells().forEach(function(x){
+        if(!inc[x.sha]) return;
+        var mode=actMode[x.cap]||'off'; if(mode==='off') return;
+        if(x.cap==='vidiff' && !x.parent) return;        // a root commit has no base to diff
+        if(x.cap==='snapshots'){ if(!x.done) out.push(x); return; }
+        if(mode==='fill' && x.done) return;              // fill leaves finished cells alone
+        out.push(x);
+      });
+      return out;
+    }
+    function histCounts(){
+      // Per-cap {fill, done} tally within the current revision scope \u2014 drives each
+      // row's count hint and which segment buttons are live.
+      var inc=histIncludedShas(); var by={};
+      histAllCells().forEach(function(x){
+        if(!inc[x.sha]) return;
+        if(x.cap==='vidiff' && !x.parent) return;
+        var c=by[x.cap]||(by[x.cap]={fill:0,done:0});
+        if(x.done) c.done++; else c.fill++;
+      });
+      return by;
+    }
+    function histCountText(cap, c){
+      if(cap==='snapshots'){ return c.fill>0 ? (c.fill+' to render') : 'up to date'; }
+      if(c.fill>0 && c.done>0) return c.fill+' missing \u00b7 '+c.done+' done';
+      if(c.fill>0) return c.fill+' to fill';
+      if(c.done>0) return 'all '+c.done+' done';
+      return 'none in scope';
     }
     function histRefresh(){
-      // Live summary of what will be queued from the current selection.
+      // Recompute everything that depends on the current selection: each row's count
+      // hint + segment availability + active state, then the summary and Queue button.
+      var counts=histCounts();
+      histInstalledCaps().forEach(function(cap){
+        var c=counts[cap]||{fill:0,done:0}; var mode=actMode[cap]||'off';
+        var chip=document.getElementById('cidash-hist-count-'+cap); if(chip) chip.textContent=histCountText(cap, c);
+        var seg=document.getElementById('cidash-hist-seg-'+cap);
+        if(seg){
+          var bRe=seg.querySelector('button[data-mode="rerun"]'); if(bRe) bRe.disabled=(c.done===0);
+          var bFill=seg.querySelector('button[data-mode="fill"]'); if(bFill && cap==='snapshots') bFill.disabled=(c.fill===0);
+          Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){ b.classList.toggle('on', b.getAttribute('data-mode')===mode); });
+        }
+        var row=document.getElementById('cidash-hist-actrow-'+cap); if(row) row.classList.toggle('skip', mode==='off');
+      });
       var cells=histCells();
-      var shas={}; var snaps=0; var perRev=0;
-      cells.forEach(function(x){ shas[x.sha]=1; if(x.cap==='snapshots') snaps=1; else perRev++; });
+      var shas={}; var snaps=0; var perRev=0; var anyRe=false;
+      cells.forEach(function(x){ shas[x.sha]=1; if(x.cap==='snapshots') snaps=1; else perRev++; if(x.done) anyRe=true; });
       var runs=perRev + snaps;   // snapshots collapse into one backfill run
       var nrev=Object.keys(shas).length;
       var sum=document.getElementById('cidash-hist-summary');
       if(sum){
         if(!HIST.length){ sum.innerHTML='No project revisions to populate yet \u2014 commit some VIs first.'; }
-        else if(!runs){ sum.innerHTML='Nothing to queue \u2014 the selected revisions already have results for those activities.'; }
-        else { sum.innerHTML='Will queue <b>'+runs+'</b> run'+(runs>1?'s':'')+' across <b>'+nrev+'</b> revision'+(nrev>1?'s':'')+', oldest first.'; }
+        else if(!runs){
+          var anyOn=histInstalledCaps().some(function(c){ return (actMode[c]||'off')!=='off'; });
+          var canRe=histInstalledCaps().some(function(c){ var cc=counts[c]||{}; return c!=='snapshots' && (actMode[c]||'off')==='fill' && (cc.done||0)>0; });
+          if(canRe){ sum.innerHTML='Nothing to fill \u2014 the selected revisions already have these results. Switch an activity to <b>Re-run</b> to rebuild them.'; }
+          else if(anyOn){ sum.innerHTML='Nothing to queue for the selected revisions and activities.'; }
+          else { sum.innerHTML='Pick at least one activity below \u2014 every one is set to <b>Skip</b>.'; }
+        } else {
+          sum.innerHTML='Will queue <b>'+runs+'</b> run'+(runs>1?'s':'')+' across <b>'+nrev+'</b> revision'+(nrev>1?'s':'')+', oldest first.'
+            + (anyRe?' <span style="color:var(--fg-muted)">Re-runs replace the existing result.</span>':'')
+            + (runs>=20?' <span style="color:var(--fg-muted)">They queue and run in order, paced by your concurrency limit.</span>':'');
+        }
       }
       var go=document.getElementById('cidash-hist-go'); if(go) go.disabled = !runs;
     }
-    function histApplyActivities(){
-      // Recompute every activity checkbox from the two optional presets. Invoked
-      // ONLY when a preset toggles (not on every box change) so a hand-tick is
-      // never clobbered by a summary refresh.
-      //  - "Diff-based" limits the selection to Snapshots + VIDiff. It is a pure
-      //    preset: it only (un)checks boxes, never disables them, so any worker can
-      //    still be re-ticked by hand (this is what the original "greyed out"
-      //    report was about — nothing is disabled here any more).
-      //  - "Only workers that haven't run yet" excludes the workers that already
-      //    have results somewhere in history, leaving just the brand-new ones;
-      //    those are unchecked AND disabled because excluding them is the whole
-      //    point of the option.
-      var diffOn  = !!(document.getElementById('cidash-hist-diff')   ||{}).checked;
-      var newOnly = !!(document.getElementById('cidash-hist-newonly')||{}).checked;
-      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-actbox'), function(b){
-        var cap=b.getAttribute('data-cap');
-        var row=document.getElementById('cidash-hist-actrow-'+cap);
-        if(newOnly && RAN[cap]){ b.disabled=true; b.checked=false; }
-        else { b.disabled=false; b.checked = !(diffOn && !DIFF_CAPS[cap]); }
-        if(row) row.classList.toggle('disabled', b.disabled);
+    function histSetMode(cap, mode){
+      if(cap==='snapshots' && mode==='rerun') mode='fill';   // snapshots only ever backfills gaps
+      actMode[cap]=mode; histRefresh();
+    }
+    function histPreset(kind){
+      // The quick chips \u2014 each just sets every row's mode, then the user fine-tunes.
+      // "new" and "diff" reproduce the old global "only workers that haven't run yet"
+      // and "diff-based" toggles, now as one-click starting points over per-row control.
+      histInstalledCaps().forEach(function(cap){
+        if(kind==='fill') actMode[cap]='fill';
+        else if(kind==='rerun') actMode[cap]=(cap==='snapshots'?'fill':'rerun');
+        else if(kind==='clear') actMode[cap]='off';
+        else if(kind==='diff') actMode[cap]=DIFF_CAPS[cap]?'fill':'off';
+        else if(kind==='new') actMode[cap]=RAN[cap]?'off':'fill';
       });
+      histRefresh();
     }
     function histRender(){
       var body=document.getElementById('cidash-hist-body'); if(!body) return;
       var h='';
-      h += '<p style="margin:0 0 16px;color:var(--fg-muted);font-size:.86em;line-height:1.55">Queue CI for revisions that already exist so the dashboard fills in. Runs <strong>oldest \u2192 newest</strong>; only activities that haven\u2019t run yet are queued, and VI Snapshots backfills the whole history in one incremental pass.</p>';
+      h += '<p class="cidash-hist-intro">Queue CI for revisions that already exist so the dashboard fills in. Runs <strong>oldest \u2192 newest</strong>. For each activity, choose to <b>Fill</b> only the missing results or <b>Re-run</b> every selected revision.</p>';
       var optsHtml = HIST.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
       h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label><div class="cidash-hist-scope">';
       h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> All '+HIST.length+' revision'+(HIST.length===1?'':'s')+' <span class="sub">\u2014 the full history</span></label>';
@@ -1867,20 +1954,30 @@ run_dialog = (r"""
       HIST.forEach(function(r){ h += '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"><span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span></label>'; });
       h += '</div></div>';
       h += '</div></div>';
-      h += '<div class="cidash-hist-sec"><label class="cidash-hist-toggle"><input type="checkbox" id="cidash-hist-diff">'
-        + '<span><span class="cidash-hist-tmain">Diff-based \u2014 modified files only</span>'
-        + '<span class="cidash-hist-tsub">Narrows the run to VI Snapshots and VIDiff (the visual history of what each revision changed). Leave it off to also run Mass Compile, VI Analyzer and the rest on every revision.</span></span></label>';
-      h += '<label class="cidash-hist-toggle" style="margin-top:8px"><input type="checkbox" id="cidash-hist-newonly">'
-        + '<span><span class="cidash-hist-tmain">Only workers that haven\u2019t run yet</span>'
-        + '<span class="cidash-hist-tsub">Skips any activity that already has results somewhere in history, so only brand-new workers \u2014 ones never run before \u2014 are queued.</span></span></label></div>';
       var instCaps=histInstalledCaps();
-      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Activities</label><div class="cidash-hist-acts">';
+      h += '<div class="cidash-hist-sec"><div class="cidash-hist-actshead"><label class="cidash-hist-lbl" style="margin:0">Activities</label>';
+      if(instCaps.length){
+        h += '<div class="cidash-hist-quick">'
+          + '<button type="button" class="cidash-hist-chip" data-preset="fill" title="Queue every missing result; leave finished revisions alone">Fill gaps</button>'
+          + '<button type="button" class="cidash-hist-chip" data-preset="rerun" title="Re-run every selected revision, replacing existing results">Re-run all</button>'
+          + '<button type="button" class="cidash-hist-chip" data-preset="new" title="Only activities that have never run anywhere \u2014 skip ones that already have any results">New only</button>'
+          + '<button type="button" class="cidash-hist-chip" data-preset="diff" title="Just the visual history \u2014 VI Snapshots + VIDiff">Diff only</button>'
+          + '<button type="button" class="cidash-hist-chip" data-preset="clear" title="Set every activity to Skip">Clear</button>'
+          + '</div>';
+      }
+      h += '</div><div class="cidash-hist-acts">';
       if(!instCaps.length){
-        h += '<div style="color:var(--fg-muted);font-size:.85em;padding:4px 2px">No runnable activities found for this repository.</div>';
+        h += '<div class="cidash-hist-actsempty">No runnable activities found for this repository.</div>';
       } else instCaps.forEach(function(cap){
-        var m=CAP_META[cap]||[cap,''];
-        h += '<label class="cidash-hist-act" id="cidash-hist-actrow-'+cap+'"><input type="checkbox" class="cidash-hist-actbox" id="cidash-hist-act-'+cap+'" data-cap="'+cap+'" checked>'
-          + '<span>'+esc(m[0])+'</span><span class="cidash-hist-actsub">'+esc(m[1])+'</span></label>';
+        var m=CAP_META[cap]||[cap,'']; var isSnap=(cap==='snapshots');
+        h += '<div class="cidash-hist-act" id="cidash-hist-actrow-'+cap+'">'
+          + '<div class="cidash-hist-actinfo"><div class="cidash-hist-actname">'+esc(m[0])+'</div><div class="cidash-hist-actsub">'+esc(m[1])+'</div></div>'
+          + '<span class="cidash-hist-actcount" id="cidash-hist-count-'+cap+'"></span>'
+          + '<span class="cidash-seg" id="cidash-hist-seg-'+cap+'" role="group" aria-label="'+esc(m[0])+' mode">'
+          + '<button type="button" data-cap="'+cap+'" data-mode="off">Skip</button>'
+          + '<button type="button" data-cap="'+cap+'" data-mode="fill">'+(isSnap?'Render':'Fill')+'</button>'
+          + (isSnap?'':'<button type="button" data-cap="'+cap+'" data-mode="rerun">Re-run</button>')
+          + '</span></div>';
       });
       h += '</div></div>';
       h += '<div id="cidash-hist-tok" style="display:none;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);margin:0 0 12px">';
@@ -1898,20 +1995,20 @@ run_dialog = (r"""
       h += '<button class="cidash-btn cidash-go" id="cidash-hist-go">\u25B6 Queue runs</button>';
       h += '<button class="cidash-btn cidash-ghost" id="cidash-hist-cancel">Cancel</button></div>';
       body.innerHTML=h;
-      var diff=document.getElementById('cidash-hist-diff'); if(diff) diff.addEventListener('change', function(){ histApplyActivities(); histRefresh(); });
-      var newonly=document.getElementById('cidash-hist-newonly'); if(newonly) newonly.addEventListener('change', function(){ histApplyActivities(); histRefresh(); });
+      instCaps.forEach(function(cap){ actMode[cap]='fill'; });   // open with every activity on Fill (gaps only)
+      Array.prototype.forEach.call(document.querySelectorAll('.cidash-hist-chip'), function(b){ b.addEventListener('click', function(){ histPreset(b.getAttribute('data-preset')); }); });
+      Array.prototype.forEach.call(document.querySelectorAll('.cidash-seg button'), function(b){ b.addEventListener('click', function(){ if(b.disabled) return; histSetMode(b.getAttribute('data-cap'), b.getAttribute('data-mode')); }); });
       Array.prototype.forEach.call(document.querySelectorAll('input[name="cidash-hist-scope"]'), function(r){ r.addEventListener('change', function(){ histScopeApply(); histRefresh(); }); });
       var hf=document.getElementById('cidash-hist-from'); if(hf) hf.addEventListener('change', histRefresh);
       var ht=document.getElementById('cidash-hist-to'); if(ht) ht.addEventListener('change', histRefresh);
       Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
       var spa=document.getElementById('cidash-hist-spec-all'); if(spa) spa.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=true; }); histRefresh(); });
       var spn=document.getElementById('cidash-hist-spec-none'); if(spn) spn.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=false; }); histRefresh(); });
-      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-actbox'), function(b){ b.addEventListener('change', histRefresh); });
       var go=document.getElementById('cidash-hist-go'); if(go) go.addEventListener('click', histRun);
       var cancel=document.getElementById('cidash-hist-cancel'); if(cancel) cancel.addEventListener('click', cidashHistClose);
       var save=document.getElementById('cidash-hist-tok-save'); if(save) save.addEventListener('click', function(){ var i=document.getElementById('cidash-hist-tok-input'); var v=(i&&i.value||'').trim(); if(!v){ if(i) i.focus(); return; } setTok(v); histTokPanel(false); histRun(); });
       var tin=document.getElementById('cidash-hist-tok-input'); if(tin) tin.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); var v=(tin.value||'').trim(); if(v){ setTok(v); histTokPanel(false); histRun(); } } });
-      histScopeApply(); histApplyActivities(); histRefresh();
+      histScopeApply(); histRefresh();
     }
     function histOpen(){
       var m=histModal(); if(!m) return;
@@ -1942,6 +2039,11 @@ run_dialog = (r"""
     }
     // Exposed for the shared header's "Populate history" menu item.
     window.lvciRunHistory = histOpen;
+    // Exposed because the modal's "× Close" button and backdrop use inline onclick
+    // handlers, which resolve against window — not this IIFE's scope. Without this
+    // the close button silently did nothing (the Cancel button and Esc, which call
+    // the inner function directly, were unaffected).
+    window.cidashHistClose = cidashHistClose;
     document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var m=histModal(); if(m && m.style.display==='block') cidashHistClose(); } });
     // Re-apply optimistic "Queued" badges once the table exists (this script runs
     // before the table is parsed), and after every auto-refresh thereafter; wire

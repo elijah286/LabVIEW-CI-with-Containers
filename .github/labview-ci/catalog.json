@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.6.5",
+  "version": "3.6.6",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.6.6",
+        "date": "2026-06-19",
+        "title": "Populate history: re-run finished activities, a working Close button, and per-activity Fill/Re-run controls",
+        "summary": "The Populate dashboard history dialog can now re-run activities that already have results, not just fill empty cells - so you can rebuild a revision's Mass Compile, VI Analyzer, VIDiff, Unit Tests or Antidoc report from the one place that walks your whole history. Each activity now carries its own Skip / Fill / Re-run control (VI Snapshots, which is content-addressed and only ever backfills missing renders, offers Skip / Render): Fill queues only the missing results, while Re-run re-dispatches every selected revision and replaces the existing result, painting each finished cell with a Queued spinner the moment you click. The old global 'Diff-based - modified files only' and 'Only workers that haven't run yet' toggles are gone; they return as one-click quick presets - Fill gaps, Re-run all, New only, Diff only, Clear - that set those per-activity modes, and each row shows a live 'N missing / N done' count that tracks the revision scope you pick. Finally, the dialog's '× Close' button and a click on the backdrop now actually close it: the close handler was defined inside the dashboard's controller and never exposed to the inline button, so only Cancel and Esc worked before.",
+        "highlights": [
+          "Re-run activities that already have results - the dialog queues finished cells, not just empty ones, so any revision's report can be rebuilt straight from Populate history.",
+          "Each activity has its own Skip / Fill / Re-run control (Snapshots: Skip / Render) with a live 'N missing / N done' count; the former Diff-based and 'haven't run yet' toggles became quick presets (Fill gaps, Re-run all, New only, Diff only, Clear).",
+          "Fixed the '× Close' button and backdrop click, which previously did nothing - only Cancel and Esc closed the dialog."
+        ]
+      },
       {
         "version": "3.6.5",
         "date": "2026-06-18",
