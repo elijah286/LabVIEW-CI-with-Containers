@@ -61,32 +61,28 @@ RUN if (-not (Get-Command nipkg -ErrorAction SilentlyContinue)) { throw 'nipkg w
 # execute the project's .lvtest files (run-unit-tests.ps1 drives the vendored
 # .github/labview/utf-junit/"run utf and report.vi" through LabVIEWCLI RunVI). UTF is
 # an NI add-on (not on VIPM); it installs from the same NI Package Manager feed as the
-# VI Analyzer support package above. Because the exact package name on the 2026 feed is
-# not pinned, the build DISCOVERS it: it searches the feed for the unit-test-framework
-# package (honouring a UTF_PACKAGE override) and installs it. This step is BEST-EFFORT
-# and never fails the build - if UTF cannot be installed it emits a ::warning:: that
-# lists the candidate package names (so the right one can be pinned via UTF_PACKAGE) and
-# the unit-test runner degrades gracefully (it reports "no tests found" without UTF).
+# VI Analyzer support package above. The package is PINNED by name - ni-utf-labview-support,
+# the UTF analog of ni-viawin-labview-support - exactly like the VI Analyzer install. A
+# UTF_PACKAGE build-arg overrides the name for other feeds, and if the pinned install
+# fails the build falls back to discovering a unit-test-framework / utf-labview-support
+# package on the feed. This step is BEST-EFFORT and never fails the build: if UTF cannot
+# be installed it emits a ::warning:: and the unit-test runner degrades gracefully (it
+# reports "no tests found" without UTF).
+ARG UTF_SUPPORT_PACKAGE=ni-utf-labview-support
 ARG UTF_PACKAGE=
 RUN $ErrorActionPreference = 'Continue'; `
-    $pkg = $env:UTF_PACKAGE; `
-    $avail = @(nipkg list-available 2>$null); `
-    if (-not $pkg) { `
-      $hit = $avail | Where-Object { $_ -match '(?i)unit.?test.?framework' } | Select-Object -First 1; `
-      if ($hit) { $pkg = (([string]$hit).Trim() -split '\s+')[0] } `
+    $pkg = if ($env:UTF_PACKAGE) { $env:UTF_PACKAGE } else { $env:UTF_SUPPORT_PACKAGE }; `
+    Write-Host "Installing NI Unit Test Framework package: $pkg"; `
+    nipkg install --accept-eulas -y $pkg; `
+    if ($LASTEXITCODE -ne 0) { `
+      Write-Host "::warning::UTF package '$pkg' did not install (exit $LASTEXITCODE); searching the feed for an alternative."; `
+      $alt = @(nipkg list-available 2>$null) | Where-Object { $_ -match '(?i)(utf-labview-support|unit.?test.?framework)' } | ForEach-Object { (([string]$_).Trim() -split '\s+')[0] } | Select-Object -First 1; `
+      if ($alt) { Write-Host "Retrying with discovered package: $alt"; nipkg install --accept-eulas -y $alt } `
     }; `
-    if ($pkg) { `
-      Write-Host "Installing NI Unit Test Framework package: $pkg"; `
-      nipkg install --accept-eulas -y $pkg; `
-      if ($LASTEXITCODE -ne 0) { `
-        Write-Host "::warning::UTF package '$pkg' failed to install (exit $LASTEXITCODE); the unit-test runner will report 'no tests found' until UTF is present." `
-      } elseif (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
-        Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
-      } `
-    } else { `
-      Write-Host '::warning::No NI Unit Test Framework package matched on the feed. Candidates containing unit/test:'; `
-      $avail | Where-Object { $_ -match '(?i)(unit|test)' } | ForEach-Object { Write-Host "  $_" }; `
-      Write-Host 'Pin the correct name with the UTF_PACKAGE build-arg and rebuild.' `
+    if ($LASTEXITCODE -ne 0) { `
+      Write-Host "::warning::NI Unit Test Framework could not be installed; the unit-test runner will report 'no tests found'. Pin the name with the UTF_PACKAGE build-arg and rebuild." `
+    } elseif (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
+      Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
     }
 
 # Optional VIPC support hook. If .vipc files exist, an installer script must be
