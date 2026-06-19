@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.12.2",
+  "version": "3.12.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.12.3",
+        "date": "2026-06-19",
+        "title": "Dashboard no longer shows a phantom \"updating to the same version\" while it rebuilds",
+        "summary": "Fixes a stuck-looking state where a repository already on the latest tooling showed \"Updating to vX...\" with a \"vX -> vX\" badge in the More menu and appeared to be mid-upgrade indefinitely. The header treated any routine dashboard rebuild (a normal status/push/schedule regeneration), a no-op or re-dispatched same-version update run, or a stale optimistic flag as an in-flight upgrade, even when the target version was not actually newer than what is deployed. The version menu now enters the \"Updating\" state only when the target version is strictly newer than the deployed version, so a same-version rebuild reads \"What's new\" and a genuine upgrade still reads \"Updating to vX\" and links to the running action.",
+        "highlights": [
+          "The More menu only reads \"Updating to vX\" when the target is strictly newer than the deployed version - a same-version rebuild can never pin it.",
+          "A no-op or re-dispatched update run, or a stale update flag at the current version, no longer makes the menu look perpetually mid-upgrade.",
+          "A real upgrade still shows \"Updating to vX\" and links to the in-flight action; routine rebuilds simply show the current version."
+        ]
+      },
       {
         "version": "3.12.2",
         "date": "2026-06-19",

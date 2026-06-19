@@ -1533,14 +1533,25 @@
   function renderBadge() {
     var upd = updGet();
     var localUpdating = !!(upd && (!verState.v || cmpVer(verState.v, upd.v) < 0));
-    var buildTo = buildState.active ? (headV || verState.to || verState.v || '') : '';
-    // A real upgrade is in flight when the server says so (apply-tooling-update
-    // running, or a merged update deploying) OR this browser optimistically
-    // flagged one. A page rebuild also shows progress so the menu doesn't look
-    // like the dashboard has already reached the version currently compiling.
-    var updating = upState.active || localUpdating || !!buildTo;
+    // A page rebuild only signals an UPGRADE when the version being compiled is
+    // strictly newer than what's deployed. A same-version rebuild (the routine
+    // status/push/schedule regeneration of THIS dashboard) is not an upgrade;
+    // treating it as one is what pinned the menu at "Updating to vX -> vX".
+    var buildTo = (buildState.active && headV && (!verState.v || cmpVer(headV, verState.v) > 0)) ? headV : '';
+    // The version an in-flight update would land on, from the strongest signal:
+    // a running update workflow, a merged-and-deploying build, this browser's
+    // optimistic flag, or a rebuild that IS carrying a newer version.
     var upTo = upState.active ? (upState.to || (upd && upd.v) || verState.to || '')
                               : (buildTo || (upd ? upd.v : ''));
+    // Only present the menu as "Updating" when the target is a REAL advance over
+    // the deployed version. Without this guard a stuck or re-dispatched
+    // same-version update run, a stale optimistic flag, or a routine same-version
+    // rebuild would pin the menu at "Updating to vX -> vX" forever (the version
+    // never moves, so the in-flight state never clears). When the deployed version
+    // isn't known yet we can't compare, so allow it (the tag then shows just the
+    // target, with no "from -> to" arrow).
+    var realAdvance = !!upTo && (!verState.v || cmpVer(upTo, verState.v) > 0);
+    var updating = (upState.active || localUpdating || !!buildTo) && realAdvance;
     var upUrl = upState.active ? upState.url
               : (buildState.active ? buildState.url : (repo ? ('https://github.com/' + repo + '/pulls') : ''));
     var behind = !updating && verState.behind;
