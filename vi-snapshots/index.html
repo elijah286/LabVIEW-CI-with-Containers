@@ -81,6 +81,10 @@
     .chg.modified{background:#9a6700}.chg.added{background:#1a7f37}.chg.deleted{background:#cf222e}
     .chg:hover{filter:brightness(1.15)}
     .chg-dot{flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:#9a6700;opacity:.85}
+    /* "2.0" availability glyph - lights up when a file's blob has a position-aware render */
+    .g2{flex:0 0 auto;font-size:.6em;font-weight:700;padding:1px 5px;border-radius:9px;
+        background:var(--link);color:#fff;letter-spacing:.02em;cursor:default;
+        font-variant-numeric:tabular-nums}
     /* "Changed only" toggle (shown only when the commit has VIDiff data) */
     .changed-toggle{display:none;align-items:center;gap:6px;margin-top:8px;font-size:.74em;
                     color:var(--fg-muted);cursor:pointer;user-select:none}
@@ -323,6 +327,7 @@ let currentSnapshot = null;      // { html, title } of the open plain snapshot (
 // panel so the in-place view opens on what the previous build already showed.
 let vb2Pane = 'fp';
 let vb2Frames = null;            // frames of the current in-place render (so the FP/BD toggle re-renders without refetching)
+let json2Set = null;             // blobs that have a 2.0 JSON (from json-blobs.json); drives the live "2.0" glyph
 
 const ICON = {
   chevron: '<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M6 4l4 4-4 4z"/></svg>',
@@ -605,6 +610,7 @@ function renderTree(node, depth, f, frag) {
     row.title = v.vi_rel;
     row.dataset.html = v.html;
     row.dataset.name = v.vi_rel;
+    row.dataset.blob = v.blob || '';
     row.innerHTML =
       `<span class="twisty"></span>` +
       `<span class="icon">${ICON.vi}</span>` +
@@ -644,6 +650,44 @@ function renderList(filter) {
     return;
   }
   container.appendChild(frag);
+  decorate2();
+}
+
+// ── VI Browser 2.0 availability glyph ─────────────────────────────────────
+// json-blobs.json (written by the toimages pipeline) is a flat array of every
+// blob that has a position-aware <blob>.json. We fetch it, mark each file whose
+// blob is in the set with a small "2.0" glyph, and poll so the glyphs light up
+// one-by-one as a render run publishes results - no manual reload.
+let json2Poll = null;
+function rowBlob(row) {
+  if (row.dataset.blob) return row.dataset.blob.toLowerCase();
+  const m = (row.dataset.html || '').match(/([0-9a-f]{40})\.html$/i);
+  return m ? m[1].toLowerCase() : '';
+}
+function decorate2() {
+  if (!json2Set) return;
+  document.querySelectorAll('#vi-list .tree-row.file').forEach(row => {
+    const has = json2Set.has(rowBlob(row));
+    let g = row.querySelector('.g2');
+    if (has && !g) {
+      g = document.createElement('span');
+      g.className = 'g2'; g.textContent = '2.0';
+      g.title = 'Position-aware 2.0 render available';
+      const label = row.querySelector('.label');
+      row.insertBefore(g, label ? label.nextSibling : null);
+    } else if (!has && g) { g.remove(); }
+  });
+}
+async function loadJson2Index() {
+  try {
+    const arr = await fetchJson(BASE + 'json-blobs.json');
+    if (Array.isArray(arr)) json2Set = new Set(arr.map(b => String(b).toLowerCase()));
+  } catch (e) { /* no index yet (repo unprovisioned / first run) */ }
+  decorate2();
+}
+function startJson2Poll() {
+  if (json2Poll) return;
+  json2Poll = setInterval(() => { if (document.visibilityState !== 'hidden') loadJson2Index(); }, 20000);
 }
 
 function setActiveRow(row) {
@@ -1423,6 +1467,10 @@ loadCommits().catch(err => {
   document.getElementById('vi-list').innerHTML =
     `<div style="padding:16px;color:var(--error);font-size:.8em">Error loading gallery:<br>${err.message}</div>`;
 });
+
+// Light up the "2.0" availability glyphs and keep them current as renders publish.
+loadJson2Index();
+startJson2Poll();
 </script>
 <script>
 /* VI Browser 2.0 setup wizard (render-token lock screen). Self-contained.
@@ -1594,7 +1642,7 @@ loadCommits().catch(err => {
     }
     var btn = $("nt-generate"); btn.disabled = true;
     setStatus(st, "Queuing the 2.0 snapshot run\u2026", null);
-    gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(JSON_WF) + "/dispatches", dt, { method: "POST", body: { ref: "main", inputs: { mode: "head" } } })
+    gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(JSON_WF) + "/dispatches", dt, { method: "POST", body: { ref: "main", inputs: { mode: "backfill" } } })
       .then(function (r) {
         btn.disabled = false;
         if (r.status === 204) { setStatus(st, "\u2713 Queued. When the run finishes, reload and the VI opens in 2.0. <a href='https://github.com/" + esc(repo) + "/actions/workflows/" + JSON_WF + "' target='_blank' rel='noopener'>View run \u2197</a>", "ok"); return; }
@@ -1662,7 +1710,7 @@ loadCommits().catch(err => {
     if (!dt) { needToken(DISPATCH_KEY, "Running the snapshot needs a token with <strong>Actions: write</strong> on <code>" + esc(repo) + "</code>. <a href='" + dispatchTokenUrl() + "' target='_blank' rel='noopener' style='color:var(--link)'>Create one \u2197</a>, paste it below, and Save.", vb2Rerun); return; }
     var b = $("nt-state-rerun"); if (b) b.disabled = true;
     setStatus(sEl, "Queuing the 2.0 snapshot run\u2026", null);
-    gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(JSON_WF) + "/dispatches", dt, { method: "POST", body: { ref: "main", inputs: { mode: "head" } } })
+    gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(JSON_WF) + "/dispatches", dt, { method: "POST", body: { ref: "main", inputs: { mode: "backfill" } } })
       .then(function (r) {
         if (b) b.disabled = false;
         if (r.status === 204) { vb2State("<span class='spinner'></span>", "Rendering the 2.0 snapshot\u2026", "Queued the run. When it finishes, reload this page to load the new frames.", _vb2ViewLink); vb2Timer = setTimeout(function () { vb2Resolve(_vb2Title); }, 12000); return; }
