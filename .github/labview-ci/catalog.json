@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.7.0",
+  "version": "3.7.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.7.1",
+        "date": "2026-06-19",
+        "title": "Populate history: re-run Mass Compile, and a clearer activity picker",
+        "summary": "The Populate dashboard history dialog now lets you re-run Mass Compile on revisions that already have a result. Its Re-run option was incorrectly greyed out because the Mass Compile cell was not recognised as an existing result, so the dialog only ever offered to fill the empty revisions. Each activity now shows an accurate count (for example \"5 missing, 8 done\" instead of \"5 to fill\"), and Re-run is offered whenever there is an existing result to replace. The activity controls also stay fully interactive after you press Clear: a skipped activity dims only its name, not its Skip / Fill / Re-run buttons, so any combination of activities can always be chosen. As before you can target all revisions, a range, or specific ones, and choose Fill (only the missing results) or Re-run (replace existing) per activity.",
+        "highlights": [
+          "Mass Compile can be re-run from Populate history; its Re-run option is no longer greyed out when results already exist.",
+          "Each activity shows an accurate \"N missing, M done\" count, and Fill / Re-run are enabled only when they would queue work, with a tooltip explaining why when they are not.",
+          "Pressing Clear no longer makes the activity list look disabled: the Skip / Fill / Re-run controls stay crisp so any subset of activities and revisions can be chosen."
+        ]
+      },
       {
         "version": "3.7.0",
         "date": "2026-06-18",

@@ -579,7 +579,14 @@ for c in commits_data:
             # reports that carry no header of their own still appear under it,
             # with a Regenerate button.
             _url = viewer_url(f'{pages_url}/masscompile/{sha}/index.html', 'masscompile-report', sha, short)
-            mc_badge = (f'<td style="text-align:center"><span title="{_ok}/{_tot} project VIs compiled" '
+            # Tag the result cell exactly like badge() does (cidash-cap-cell +
+            # data-cap/sha/parent/ts). This is what lets the Populate-history dialog
+            # see Mass Compile as "done" (so its Re-run is offered, not greyed out)
+            # and lets the optimistic "Queued" overlay land on the cell on a re-run.
+            _mc_ts = (pick_status('CI / Mass Compile') or {}).get('created_at', '')
+            mc_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" '
+                        f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_mc_ts}">'
+                        f'<span title="{_ok}/{_tot} project VIs compiled" '
                         f'style="background:{_col};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">'
                         f'<a href="{_url}" style="color:inherit">{_emoji} {_pct}%</a></span></td>')
         else:
@@ -950,7 +957,10 @@ run_dialog_css = (
     '.cidash-hist-acts{display:flex;flex-direction:column;gap:7px}'
     '.cidash-hist-actsempty{color:var(--fg-muted);font-size:.85em;padding:4px 2px}'
     '.cidash-hist-act{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}'
-    '.cidash-hist-act.skip{opacity:.62}'
+    # A skipped activity dims only its name + count (so it reads as "off") while its
+    # Skip / Fill / Re-run control stays full-strength and clearly clickable -
+    # dimming the whole row made "Clear" look like nothing could be selected.
+    '.cidash-hist-act.skip .cidash-hist-actinfo,.cidash-hist-act.skip .cidash-hist-actcount{opacity:.5}'
     '.cidash-hist-actinfo{flex:1 1 180px;min-width:150px}'
     '.cidash-hist-actname{font-size:.9em;font-weight:600}'
     '.cidash-hist-actsub{color:var(--fg-muted);font-size:.82em;margin-top:1px;line-height:1.4}'
@@ -1881,17 +1891,43 @@ run_dialog = (r"""
       if(c.done>0) return 'all '+c.done+' done';
       return 'none in scope';
     }
+    function histClampMode(cap, mode, c){
+      // The mode actually SHOWN for an activity in the current revision scope.
+      // actMode keeps the user's raw INTENT; this reduces it to a mode that can
+      // queue at least one run, so the highlighted segment is never also disabled
+      // (the old cause of a lit-but-greyed "Re-run"). Widening the scope later can
+      // re-enable the original intent because actMode itself is left untouched.
+      //   snapshots -> only ever fills the missing renders (content-addressed)
+      //   fill      -> needs a missing cell, else there is nothing to fill (Skip)
+      //   rerun     -> needs an existing result to replace; with none it falls back
+      //                to filling the gaps, or Skip when there are none either
+      if(mode==='off') return 'off';
+      if(cap==='snapshots') return c.fill>0 ? 'fill' : 'off';
+      if(mode==='rerun')    return c.done>0 ? 'rerun' : (c.fill>0 ? 'fill' : 'off');
+      return c.fill>0 ? 'fill' : 'off';
+    }
     function histRefresh(){
       // Recompute everything that depends on the current selection: each row's count
       // hint + segment availability + active state, then the summary and Queue button.
       var counts=histCounts();
       histInstalledCaps().forEach(function(cap){
-        var c=counts[cap]||{fill:0,done:0}; var mode=actMode[cap]||'off';
+        var c=counts[cap]||{fill:0,done:0};
+        // Clamp the stored intent to a runnable mode for the highlight + skip
+        // dimming; dispatch (histCells) naturally agrees with it.
+        var mode=histClampMode(cap, actMode[cap]||'off', c);
         var chip=document.getElementById('cidash-hist-count-'+cap); if(chip) chip.textContent=histCountText(cap, c);
         var seg=document.getElementById('cidash-hist-seg-'+cap);
         if(seg){
-          var bRe=seg.querySelector('button[data-mode="rerun"]'); if(bRe) bRe.disabled=(c.done===0);
-          var bFill=seg.querySelector('button[data-mode="fill"]'); if(bFill && cap==='snapshots') bFill.disabled=(c.fill===0);
+          // A segment is disabled only when it would queue nothing, and always
+          // carries a tooltip saying why (answering "why is Re-run greyed out?").
+          var bFill=seg.querySelector('button[data-mode="fill"]');
+          if(bFill){ bFill.disabled=(c.fill===0);
+            bFill.title=(c.fill>0 ? (cap==='snapshots'?'Render the snapshots still missing in the selected revisions':'Queue only the selected revisions missing this result')
+                                  : (cap==='snapshots'?'Nothing to render \u2014 every selected revision already has its snapshots':'Nothing to fill \u2014 every selected revision already has this result')); }
+          var bRe=seg.querySelector('button[data-mode="rerun"]');
+          if(bRe){ bRe.disabled=(c.done===0);
+            bRe.title=(c.done>0 ? 'Re-run every selected revision, replacing the existing result'
+                                : 'Nothing to re-run \u2014 no existing results in the selected revisions yet'); }
           Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){ b.classList.toggle('on', b.getAttribute('data-mode')===mode); });
         }
         var row=document.getElementById('cidash-hist-actrow-'+cap); if(row) row.classList.toggle('skip', mode==='off');
