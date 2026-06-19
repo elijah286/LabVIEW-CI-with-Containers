@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.39",
+  "version": "3.4.40",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.40",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0 renders every revision (backfill) + a live 2.0 glyph in the file tree",
+        "summary": "The in-place 2.0 view now covers every VI in your history, not just ones whose content matches the latest commit. The render workflow walks each VI-touching commit in a detached worktree (so a VI that changed - like a top-level main.vi - is rendered with the dependencies of its own revision), publishes results incrementally, and the VI Browser file tree shows a small 2.0 glyph beside each file that has a position-aware render. The glyph appears on its own as a run publishes results, with no manual reload, and the in-viewer Re-run now renders the whole history.",
+        "highlights": [
+          "2.0 renders now backfill across all VI-touching commits via per-commit worktrees, so every revision's VIs get a render (fixes VIs like main.vi that changed since HEAD never appearing in 2.0).",
+          "Results publish incrementally during a run, and a flat json-blobs.json index lets the file tree light up a 2.0 glyph per file as renders land - no reload.",
+          "The in-viewer 'Re-run the 2.0 snapshot' (and first-time Generate) now dispatch a full backfill instead of only the current commit."
+        ]
+      },
       {
         "version": "3.4.39",
         "date": "2026-06-18",
