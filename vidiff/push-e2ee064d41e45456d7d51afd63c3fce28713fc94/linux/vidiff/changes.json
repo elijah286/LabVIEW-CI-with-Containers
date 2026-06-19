@@ -1,11 +1,35 @@
 {
   "platform": "linux",
   "files": [
-    {"file": "example/Curriculum Launcher.vi", "type": "modified", "report": "example-Curriculum_Launcher.vi/index.html"},
-    {"file": "example/Curriculum/Generator Lessons/subVIs/Command with Return Value.vi", "type": "modified", "report": "example-Curriculum-Generator_Lessons-subVIs-Command_with_Return_Value.vi/index.html"},
-    {"file": "example/Curriculum/Generator Lessons/subVIs/Confirm USB Devices and IO.vi", "type": "modified", "report": "example-Curriculum-Generator_Lessons-subVIs-Confirm_USB_Devices_and_IO.vi/index.html"},
-    {"file": "example/Curriculum/Generator Lessons/subVIs/Get All Values.vi", "type": "modified", "report": "example-Curriculum-Generator_Lessons-subVIs-Get_All_Values.vi/index.html"},
-    {"file": "example/Curriculum/Generator Lessons/subVIs/USB Device Filter.vi", "type": "modified", "report": "example-Curriculum-Generator_Lessons-subVIs-USB_Device_Filter.vi/index.html"},
-    {"file": "example/Curriculum/Generator Lessons/subVIs/balance grid.vi", "type": "modified", "report": "example-Curriculum-Generator_Lessons-subVIs-balance_grid.vi/index.html"}
+    {
+      "file": "example/Curriculum Launcher.vi",
+      "type": "modified",
+      "report": "example-Curriculum_Launcher.vi/index.html"
+    },
+    {
+      "file": "example/Curriculum/Generator Lessons/subVIs/Command with Return Value.vi",
+      "type": "modified",
+      "report": "example-Curriculum-Generator_Lessons-subVIs-Command_with_Return_Value.vi/index.html"
+    },
+    {
+      "file": "example/Curriculum/Generator Lessons/subVIs/Confirm USB Devices and IO.vi",
+      "type": "modified",
+      "report": "example-Curriculum-Generator_Lessons-subVIs-Confirm_USB_Devices_and_IO.vi/index.html"
+    },
+    {
+      "file": "example/Curriculum/Generator Lessons/subVIs/Get All Values.vi",
+      "type": "modified",
+      "report": "example-Curriculum-Generator_Lessons-subVIs-Get_All_Values.vi/index.html"
+    },
+    {
+      "file": "example/Curriculum/Generator Lessons/subVIs/USB Device Filter.vi",
+      "type": "modified",
+      "report": "example-Curriculum-Generator_Lessons-subVIs-USB_Device_Filter.vi/index.html"
+    },
+    {
+      "file": "example/Curriculum/Generator Lessons/subVIs/balance grid.vi",
+      "type": "modified",
+      "report": "example-Curriculum-Generator_Lessons-subVIs-balance_grid.vi/index.html"
+    }
   ]
 }
