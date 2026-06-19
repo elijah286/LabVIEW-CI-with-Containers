@@ -605,14 +605,21 @@ function renderTree(node, depth, f, frag) {
     if (chg) {
       const badge = document.createElement('span');
       badge.className = 'chg ' + chg.type;
-      // A changed VI always shows a uniform "diff" badge (its colour still encodes
-      // added/modified/deleted). Clicking it opens the side-by-side report when one
-      // exists, or the panel to run VIDiff for it when it hasn't been generated yet.
-      badge.textContent = 'diff';
-      badge.title = chg.isDiff
-        ? `View the side-by-side diff report (${chg.type})`
-        : `${chg.type} in this revision \u2014 diff report not generated yet (click to run it)`;
-      badge.addEventListener('click', (e) => { e.stopPropagation(); openDiff(v.vi_rel, chg.type, row); });
+      // A NEW VI (no previous revision) has nothing to diff, so it shows a "New"
+      // badge that opens its snapshot. A modified VI shows a "Diff" badge that opens
+      // the side-by-side report (or the panel to run VIDiff when none exists yet).
+      // The badge colour still encodes added/modified/deleted.
+      if (chg.type === 'added') {
+        badge.textContent = 'New';
+        badge.title = 'New VI in this revision';
+        badge.addEventListener('click', (e) => { e.stopPropagation(); openVI(row); });
+      } else {
+        badge.textContent = 'Diff';
+        badge.title = chg.isDiff
+          ? `View the side-by-side diff report (${chg.type})`
+          : `${chg.type} in this revision \u2014 diff report not generated yet (click to run it)`;
+        badge.addEventListener('click', (e) => { e.stopPropagation(); openDiff(v.vi_rel, chg.type, row); });
+      }
       row.appendChild(badge);
     }
     frag.appendChild(row);
@@ -1132,7 +1139,9 @@ function setDiffLink(viRel) {
   const chg = changeMap[viRel];
   const diffLink = document.getElementById('diff-link');
   const rep = diffReportFor(viRel);
-  if (chg && rep) {
+  // Offer "View diff report" only for a MODIFIED VI (an actual change). A new VI
+  // has no previous version, so there is no diff to view.
+  if (chg && chg.type !== 'added' && rep) {
     diffLink.textContent = 'View diff report \u2192';
     diffLink.href = rep.url;
     diffLink.onclick = (e) => { e.preventDefault(); openDiff(viRel, chg.type, currentDiffRow); };
@@ -1179,6 +1188,15 @@ function openVI(row) {
 // Open a changed VI's side-by-side diff report (from the selected container), or
 // its snapshot when no diff report exists. Wires the toolbar link + platform switch.
 function openDiff(viRel, type, row) {
+  const chgInfo = changeMap[viRel];
+  // A NEW VI has no previous version to diff against. The tree badge opens its
+  // snapshot and the Diff toggle is disabled for it, so this is reachable only via
+  // a stale ?view=diff deep link \u2014 fall back to the snapshot so the Diff view
+  // never shows a bogus "diff" of a brand-new VI.
+  if (chgInfo && chgInfo.type === 'added') {
+    const r = row || findRowByName(viRel);
+    if (r) { openVI(r); return; }
+  }
   setActiveRow(row || null);
   currentDiffRow = row || null;
   currentDiffVi = viRel;
@@ -1512,13 +1530,18 @@ function syncViewerToggle() {
   const diffBtn = document.querySelector('#viewer-toggle button[data-viewer="diff"]');
   if (diffBtn) {
     const chg = openViRel ? changeMap[openViRel] : null;
-    const can = !!chg;
+    // Diff is meaningful only for a VI that was MODIFIED this revision (a real
+    // before/after). A NEW VI has no earlier version to compare, so Diff stays
+    // grayed out with a tip explaining why.
+    const isNew = !!chg && chg.type === 'added';
+    const can = !!chg && !isNew;
     diffBtn.classList.toggle('is-disabled', !can);
     diffBtn.setAttribute('aria-disabled', can ? 'false' : 'true');
     diffBtn.title = can
       ? 'Diff \u2014 the side-by-side VIDiff report for this changed VI'
-      : (openViRel ? 'This VI was not modified in this revision'
-                   : 'Select a changed VI to view its diff');
+      : (isNew ? 'This VI is new in this revision \u2014 there is no earlier version to diff'
+               : (openViRel ? 'This VI was not modified in this revision'
+                            : 'Select a changed VI to view its diff'));
   }
 }
 document.querySelectorAll('#viewer-toggle button').forEach(btn => {
