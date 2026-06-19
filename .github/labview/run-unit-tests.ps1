@@ -258,6 +258,66 @@ function Repair-JUnitResultsApi([string]$LvPath) {
     Write-Host '===== end repair ====='
 }
 
+# FIX (layer 3): the NI "JUnit Results API" (JUnit API.lvlib) builds and saves its
+# XML through NI's "Simple XML" library (Simple XML.lvlib) at "<vilib>:\NI\Simple XML\",
+# which keeps members in _polymorphics\ and _private\ subfolders. That library (VIPM
+# package ni_lib_simple_xml) is absent from this LabVIEW 2026 image, so the JUnit API
+# VIs (Create JUnit Root / Add Test Case / Save JUnit Report / ...) load broken. Mirror
+# the vendored library (.github/labview/simple-xml) into vi.lib, preserving its
+# subfolder layout so the library's ../_polymorphics/*.vi and ../_private/*.vi member
+# URLs resolve. Falls back to any copy already present on the container. Best-effort.
+function Repair-SimpleXml([string]$LvPath) {
+    Write-Host '===== NI Simple XML library repair ====='
+    $lvRoot = if ($LvPath) { Split-Path -Parent $LvPath } else { '' }
+    if (-not $lvRoot) { Write-Host '  (no LabVIEW path; skipping)'; return }
+    $target = Join-Path $lvRoot 'vi.lib\ni\Simple XML'
+    if (Test-Path -LiteralPath (Join-Path $target 'Create Tag.vi')) {
+        Write-Host "  already present: $target"
+        Write-Host '===== end repair ====='
+        return
+    }
+    # Source: prefer the library vendored in the repo; the UTF toolkit does NOT ship
+    # this library on LabVIEW 2026, so it must be supplied. Fall back to any copy
+    # already present on the container (search by the distinctive library file).
+    $src = $null
+    $vendored = Join-Path $WorkspaceRoot '.github\labview\simple-xml'
+    if (Test-Path -LiteralPath (Join-Path $vendored 'Simple XML.lvlib')) {
+        $src = $vendored
+    } else {
+        foreach ($r in @('C:\Program Files\NI\LVAddons',
+                         'C:\Program Files\National Instruments',
+                         'C:\Program Files (x86)\National Instruments')) {
+            if (-not (Test-Path -LiteralPath $r)) { continue }
+            $hit = Get-ChildItem -LiteralPath $r -Recurse -File -Filter 'Simple XML.lvlib' -ErrorAction SilentlyContinue |
+                Select-Object -First 1
+            if ($hit) { $src = Split-Path -Parent $hit.FullName; break }
+        }
+    }
+    if (-not $src) {
+        Write-Host "  'Simple XML.lvlib' NOT FOUND (no vendored copy, none on container); cannot repair."
+        Write-Host '===== end repair ====='
+        return
+    }
+    Write-Host "  source Simple XML library: $src"
+    try {
+        New-Item -ItemType Directory -Force -Path $target | Out-Null
+        $srcFull = (Resolve-Path -LiteralPath $src).Path.TrimEnd('\')
+        Get-ChildItem -LiteralPath $src -Recurse -File -ErrorAction Stop |
+            Where-Object { $_.Extension -match '(?i)^\.(vi|lvlib|ctl)$' } |
+            ForEach-Object {
+                $rel = $_.FullName.Substring($srcFull.Length).TrimStart('\')
+                $dest = Join-Path $target $rel
+                $destDir = Split-Path -Parent $dest
+                if (-not (Test-Path -LiteralPath $destDir)) { New-Item -ItemType Directory -Force -Path $destDir | Out-Null }
+                Copy-Item -LiteralPath $_.FullName -Destination $dest -Force
+            }
+        Write-Host "  mirrored library files (recursive) -> $target"
+    } catch {
+        Write-Host "  (copy failed: $($_.Exception.Message))"
+    }
+    Write-Host '===== end repair ====='
+}
+
 # -- Resolve LabVIEW / LabVIEWCLI / g-cli (mirror run-vi-analyzer.ps1) ----------
 function Resolve-LabVIEWPath([string]$PreferredPath) {
     if ($PreferredPath -and (Test-Path $PreferredPath)) { return $PreferredPath }
@@ -494,6 +554,7 @@ function Invoke-UtfTests($tool, [int]$index) {
     Show-UtfAddonsDiag $LabVIEWPath
     Repair-UtfJunitLibrary $LabVIEWPath
     Repair-JUnitResultsApi $LabVIEWPath
+    Repair-SimpleXml $LabVIEWPath
     Show-UtfOperationProbe $CliExe $LabVIEWPath
 
     $tmpl = if ($tool.command) { $tool.command } else { $UTF_DEFAULT_CMD }
