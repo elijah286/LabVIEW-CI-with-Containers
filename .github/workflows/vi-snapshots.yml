@@ -95,6 +95,25 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
             -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VI Snapshots in progress\",\"context\":\"CI / VI Snapshots\"}"
 
+      - name: Resolve VI Browser 2.0 (Windows) setting from config
+        id: vbcfg
+        shell: bash
+        run: |
+          # config.viBrowser.positionAware in .github/labview-ci.yml decides whether
+          # this Windows run also emits the position-aware VI Browser 2.0 frames JSON
+          # (the PrintToImagesJson op). Default (no config) = emit, preserving prior
+          # behaviour. The VI Browser tab on the Configure page writes this setting.
+          emit=true
+          cfg=.github/labview-ci.yml
+          if [ -f "$cfg" ]; then
+            pa=$(sed -n 's/^[[:space:]]*positionAware:[[:space:]]*//p' "$cfg" | head -1 | tr -d '[:space:]')
+            if [ -n "$pa" ]; then
+              if printf '%s' "$pa" | tr '+' '\n' | grep -qx 'windows'; then emit=true; else emit=false; fi
+            fi
+          fi
+          echo "emit_frames_json=$emit" >> "$GITHUB_OUTPUT"
+          echo "VI Browser 2.0 frames JSON on Windows: $emit"
+
       - name: Build VI snapshots (incremental, content-addressed)
         id: snapshots
         shell: powershell
@@ -108,7 +127,8 @@ jobs:
             -Image             "$Env:LABVIEW_CONTAINER_IMAGE" `
             -MaxCommits        ${{ github.event.inputs.max_commits || '0' }} `
             -MaxVIs            ${{ github.event.inputs.max_vis || '0' }} `
-            -TimeBudgetMinutes ${{ github.event.inputs.time_budget_minutes || '300' }}
+            -TimeBudgetMinutes ${{ github.event.inputs.time_budget_minutes || '300' }} `
+            -EmitFramesJson    '${{ steps.vbcfg.outputs.emit_frames_json }}'
         continue-on-error: true
 
       - name: Verify gallery output

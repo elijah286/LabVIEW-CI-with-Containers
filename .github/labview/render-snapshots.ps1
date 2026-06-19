@@ -30,13 +30,19 @@
 
 .PARAMETER LabVIEWPath
     Optional explicit path to LabVIEW.exe. Auto-discovered when blank.
+
+.PARAMETER EmitFramesJson
+    'true' (default) emits the position-aware VI Browser 2.0 frames JSON next to
+    each HTML snapshot when the PrintToImagesJson operation is present; 'false'
+    skips it (VI Browser config: positionAware excludes Windows).
 #>
 param(
     [string]$WorkspaceRoot = 'C:\workspace',
     [string]$OpsDir        = 'C:\ops',
     [string]$OutByBlobDir  = 'C:\out\by-blob',
     [string]$WorkListPath  = 'C:\out\worklist.tsv',
-    [string]$LabVIEWPath   = ''
+    [string]$LabVIEWPath   = '',
+    [string]$EmitFramesJson = 'true'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -177,7 +183,9 @@ if (-not (Test-Path $OpClass)) {
 # it from the bundled Convert.vi). Until then this is skipped and the gallery
 # behaves exactly as before.
 $ImagesOp     = Join-Path $OpsDir 'PrintToImagesJson'
-$HaveImagesOp = Test-Path $ImagesOp
+# Position-aware 2.0 frames are emitted only when the op exists AND the VI Browser
+# config enables 2.0 on Windows (-EmitFramesJson, default 'true').
+$HaveImagesOp = (Test-Path $ImagesOp) -and ($EmitFramesJson -ne 'false')
 
 # The position-aware renderer scripts the block diagram, which requires LabVIEW
 # scripting to be enabled. Do it (idempotently) ONLY when we will actually emit

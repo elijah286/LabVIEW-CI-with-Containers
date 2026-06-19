@@ -45,6 +45,10 @@ on:
         description: 'Per-activity submission triggers as id::sources pairs separated by ; (sources joined by +, e.g. snapshots::push-default+pr-branch; use "none" to disable an activity; blank = keep current)'
         required: false
         default: ''
+      vi_browser:
+        description: 'VI Browser render matrix as classic::<oses>;positionAware::<oses> (oses joined by +, e.g. positionAware::windows+linux; "none" to disable a generation; blank = keep current)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -77,6 +81,7 @@ jobs:
           IN_CONTAINER_VIPC: ${{ inputs.container_vipc }}
           IN_CONTAINER_ACTIONS: ${{ inputs.container_actions }}
           IN_ACTION_TRIGGERS: ${{ inputs.action_triggers }}
+          IN_VI_BROWSER: ${{ inputs.vi_browser }}
         run: |
           python3 - <<'PY'
           import os, re, json, datetime, pathlib
@@ -90,22 +95,25 @@ jobs:
           container_vipc_in = os.environ.get('IN_CONTAINER_VIPC', '').strip()
           container_actions_in = os.environ.get('IN_CONTAINER_ACTIONS', '').strip()
           action_triggers_in = os.environ.get('IN_ACTION_TRIGGERS', '').strip()
+          vi_browser_in = os.environ.get('IN_VI_BROWSER', '').strip()
 
           # Preserve provenance fields from any existing manifest.
           mpath = pathlib.Path('.github/labview-ci.yml')
           prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main',
-                  'container_use': '', 'vipc': [], 'actions': {}, 'triggers': {}, 'unitTests_block': []}
+                  'container_use': '', 'vipc': [], 'actions': {}, 'triggers': {}, 'viBrowser': {}, 'unitTests_block': []}
           if mpath.exists():
-              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_ut = False; cur_vipc = None
+              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_ut = False; cur_vipc = None
               for line in mpath.read_text(encoding='utf-8').splitlines():
                   if re.match(r'^\s*activities:\s*$', line):
-                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; continue
+                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
                   if re.match(r'^\s*container:\s*$', line):
-                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; continue
+                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
                   if re.match(r'^\s*triggers:\s*$', line):
-                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; continue
+                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_vibrowser = False; continue
+                  if re.match(r'^\s*viBrowser:\s*$', line):
+                      in_vibrowser = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; continue
                   if re.match(r'^unitTests:\s*$', line):
-                      in_ut = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False
+                      in_ut = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False
                       prev['unitTests_block'] = [line]; continue
                   if in_ut:
                       if re.match(r'^\s+\S', line):
@@ -119,6 +127,10 @@ jobs:
                       m = re.match(r'^\s{4}([A-Za-z0-9_.\-]+):\s*(\S+)', line)
                       if m: prev['triggers'][m.group(1)] = m.group(2); continue
                       if re.match(r'^\s{0,3}\S', line): in_triggers = False
+                  if in_vibrowser:
+                      m = re.match(r'^\s{4}(classic|positionAware):\s*(\S+)', line)
+                      if m: prev['viBrowser'][m.group(1)] = m.group(2); continue
+                      if re.match(r'^\s{0,3}\S', line): in_vibrowser = False
                   if in_container:
                       m = re.match(r'^\s{4}use:\s*"?([^"\s]+)"?', line)
                       if m: prev['container_use'] = m.group(1); in_vipc = False; in_actions = False; continue
@@ -189,6 +201,19 @@ jobs:
               return out
           triggers = _parse_triggers(action_triggers_in) if action_triggers_in else prev['triggers']
 
+          # VI Browser render matrix: explicit input wins; blank keeps the manifest's.
+          # "classic::<oses>;positionAware::<oses>" (oses joined by +, or "none").
+          def _parse_vibrowser(s):
+              out = {}
+              for entry in s.split(';'):
+                  entry = entry.strip()
+                  if not entry or '::' not in entry: continue
+                  k, v = entry.split('::', 1)
+                  k = k.strip(); v = v.strip()
+                  if k and v: out[k] = v
+              return out
+          vi_browser = _parse_vibrowser(vi_browser_in) if vi_browser_in else prev['viBrowser']
+
           lines = [
               '# .github/labview-ci.yml - LabVIEW CI configuration',
               '# Updated by the Reconfigure workflow.',
@@ -217,6 +242,11 @@ jobs:
               lines.append('    actions:')
               for _id in sorted(container_actions):
                   lines.append(f'      {_id}: {container_actions[_id]}')
+          if vi_browser:
+              lines.append('  viBrowser:')
+              for _k in ('classic', 'positionAware'):
+                  if _k in vi_browser:
+                      lines.append(f'    {_k}: {vi_browser[_k]}')
           if triggers:
               lines.append('  triggers:')
               for _id in sorted(triggers):
@@ -291,6 +321,7 @@ jobs:
           | Container | ${{ inputs.container_use }} |
           | Per-action containers | ${{ inputs.container_actions }} |
           | Activity triggers | ${{ inputs.action_triggers }} |
+          | VI Browser renders | ${{ inputs.vi_browser }} |
 
           Review and merge to apply. Container-dependency and LabVIEW-version changes
           take effect on the next image build; OS/runner settings apply where the

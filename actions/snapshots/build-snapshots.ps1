@@ -63,7 +63,11 @@ param(
     # consumer repo needs no copy of these scripts.
     [string]$OpsDir            = '',
     # Directory holding the VI Browser page assets (vi-browser.html, vi-interactive.html).
-    [string]$PagesDir          = ''
+    [string]$PagesDir          = '',
+    # VI Browser 2.0 (position-aware frames JSON) emission: 'true' (default) emits
+    # the frames JSON next to each HTML when the PrintToImagesJson op is present;
+    # 'false' renders HTML only (VI Browser config: positionAware excludes Windows).
+    [string]$EmitFramesJson    = 'true'
 )
 
 # NOTE: 'Continue' (not 'Stop') is deliberate. This orchestrator drives native
@@ -204,7 +208,8 @@ try {
                     -WorkspaceRoot "C:\wt\$sha" `
                     -OpsDir        'C:\ops' `
                     -OutByBlobDir  'C:\out\by-blob' `
-                    -WorkListPath  "C:\out\worklist-$sha.tsv"
+                    -WorkListPath  "C:\out\worklist-$sha.tsv" `
+                    -EmitFramesJson $EmitFramesJson
                 if ($LASTEXITCODE -ne 0) { Write-Warning "render exec returned $LASTEXITCODE for $sha (continuing)." }
                 foreach ($e in $worklist) { [void]$Rendered.Add($e.Blob) }
                 $totalRendered += $worklist.Count

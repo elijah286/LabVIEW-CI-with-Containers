@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.6.7",
+  "version": "3.7.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.7.0",
+        "date": "2026-06-18",
+        "title": "Choose how the VI Browser renders: Windows or Linux, 1.0 or 2.0",
+        "summary": "The Configure page gains a VI Browser tab (and the header menu gains a VI Browser entry) where you choose which renders run automatically when a new revision lands: the classic 1.0 HTML gallery, and the position-aware 2.0 view on Windows and/or Linux. 2.0 on Windows - produced by the same Windows snapshot run - is now the recommended path, while the experimental Linux toimages render, which has known diagram-capture display bugs, is kept available but turned off by default. The classic 1.0 gallery continues to run on Windows. Your selection is saved to config.viBrowser in .github/labview-ci.yml and honoured by the VI Snapshots workflows: the Windows run emits the position-aware 2.0 frames only when Windows 2.0 is enabled, and the Linux toimages render auto-runs only when Linux 2.0 is enabled (a manual run always works).",
+        "highlights": [
+          "New VI Browser tab on the Configure page (and a VI Browser entry in the header menu) to pick which render generations and operating systems run on each new revision.",
+          "VI Browser 2.0 can be rendered on Windows - now the recommended path - with the Linux toimages render kept as a configurable, experimental option (it has known diagram-capture display bugs).",
+          "The choice is stored in config.viBrowser in labview-ci.yml; the Windows snapshot run and the Linux 2.0 render honour it, and a manual run is always available."
+        ]
+      },
       {
         "version": "3.6.7",
         "date": "2026-06-19",
