@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.8.2",
+  "version": "3.8.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.8.3",
+        "date": "2026-06-19",
+        "title": "Queued runs are numbered by their real position in the Actions queue",
+        "summary": "The small position chip on a queued cell (#1, #2, ...) now shows where that run actually sits in the GitHub Actions queue, not just how many runs this browser queued. The dashboard reads the live list of runs still waiting for a runner on this repository - from any activity, push, or person - orders them oldest first, and labels each of your queued cells with its true place in line, so if eight other runs are already ahead these two read #9 and #10. The numbers refresh as the queue moves and the runs ahead start. A repository-scoped token cannot see other repositories that share the same hosted-runner pool, so contention from outside this repository is not counted.",
+        "highlights": [
+          "The #N chip on a queued cell reflects its real place among every run waiting on this repository, so runs queued ahead by pushes or other activities push your numbers back (for example #9 and #10 when eight are already ahead).",
+          "Positions are computed from the live Actions queue and refresh as runs ahead start, instead of just counting the runs queued from this browser.",
+          "The chip stays hidden when only one run is in line; a repository-scoped token cannot count runs from other repositories that share the same runner pool."
+        ]
+      },
       {
         "version": "3.8.2",
         "date": "2026-06-19",
