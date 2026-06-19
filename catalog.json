@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.6.4",
+  "version": "3.6.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.6.5",
+        "date": "2026-06-18",
+        "title": "Workflows updated to Node 24 actions, clearing the Node 20 deprecation warning",
+        "summary": "GitHub now runs JavaScript-based Actions on Node 24 by default and will remove Node 20 from its runners in the fall of 2026, so any workflow still pinned to a Node 20 action prints a deprecation warning on every run. The third-party actions used across the CI workflows and the install/update generators are now pinned to their Node 24 releases - actions/checkout v5, actions/upload-artifact v6, actions/setup-python v6, actions/github-script v8, Docker login-action and setup-buildx-action v4, and peaceiris/actions-gh-pages v4.1.0 - so the warning is cleared and the pipelines keep working once Node 20 is removed. This is an internal maintenance change with no behavior difference: the pins were chosen for a clean, backward-compatible cutover (for example checkout v5 rather than v7, whose fork pull-request checkout behavior changed). New installs get the updated pins immediately; existing repositories pick them up the next time they update their tooling. GitHub-hosted runners already meet the newer runner version these releases require.",
+        "highlights": [
+          "Third-party GitHub Actions across the CI workflows and the installer/generated workflows are bumped to their Node 24 releases, so the 'Node 20 is deprecated' warning no longer appears on each run.",
+          "Pins chosen for a behavior-preserving cutover: checkout v5, upload-artifact v6, setup-python v6, github-script v8, Docker login/buildx v4, and gh-pages v4.1.0.",
+          "Maintenance only - no functional change; new installs adopt the pins now and existing repositories get them on their next tooling update."
+        ]
+      },
       {
         "version": "3.6.4",
         "date": "2026-06-18",
