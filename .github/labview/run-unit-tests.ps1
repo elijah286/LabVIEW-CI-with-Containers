@@ -143,6 +143,50 @@ function Show-UtfOperationProbe([string]$Cli, [string]$LvPath) {
     Write-Host '===== end operation probe ====='
 }
 
+# FIX: the RunUnitTests CLI operation's CreateJUnitReport.vi statically links
+# "<vilib>:\ni\UTF Junit Report\create junit report.vi". <vilib> resolves to the
+# RUNNING LabVIEW's per-version vi.lib. On LabVIEW 2026 the UTF toolkit deploys to
+# the version-independent add-ons folder (C:\Program Files\NI\LVAddons\utf64\1),
+# NOT into LabVIEW 2026's vi.lib, so that static link never resolves -> the whole
+# operation class loads broken -> -350053. Locate the "UTF Junit Report" library
+# wherever UTF placed it and mirror it into <LabVIEW 2026>\vi.lib\ni\UTF Junit
+# Report so the operation's link resolves. Idempotent + best-effort.
+function Repair-UtfJunitLibrary([string]$LvPath) {
+    Write-Host '===== UTF Junit Report library repair ====='
+    $lvRoot = if ($LvPath) { Split-Path -Parent $LvPath } else { '' }
+    if (-not $lvRoot) { Write-Host '  (no LabVIEW path; skipping)'; return }
+    $target = Join-Path $lvRoot 'vi.lib\ni\UTF Junit Report'
+    if (Test-Path -LiteralPath (Join-Path $target 'create junit report.vi')) {
+        Write-Host "  already present: $target"
+        Write-Host '===== end repair ====='
+        return
+    }
+    $searchRoots = @('C:\Program Files\NI\LVAddons',
+                     'C:\Program Files\National Instruments',
+                     'C:\Program Files (x86)\National Instruments')
+    $src = $null
+    foreach ($r in $searchRoots) {
+        if (-not (Test-Path -LiteralPath $r)) { continue }
+        $hit = Get-ChildItem -LiteralPath $r -Recurse -File -Filter 'create junit report.vi' -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if ($hit) { $src = Split-Path -Parent $hit.FullName; break }
+    }
+    if (-not $src) {
+        Write-Host "  'create junit report.vi' NOT FOUND under any NI dir - the UTF Junit Report library is not installed in this container; cannot repair."
+        Write-Host '===== end repair ====='
+        return
+    }
+    Write-Host "  found UTF Junit Report library at: $src"
+    try {
+        New-Item -ItemType Directory -Force -Path $target | Out-Null
+        Copy-Item -LiteralPath (Join-Path $src '*') -Destination $target -Recurse -Force -ErrorAction Stop
+        Write-Host "  mirrored -> $target"
+    } catch {
+        Write-Host "  (copy failed: $($_.Exception.Message))"
+    }
+    Write-Host '===== end repair ====='
+}
+
 # -- Resolve LabVIEW / LabVIEWCLI / g-cli (mirror run-vi-analyzer.ps1) ----------
 function Resolve-LabVIEWPath([string]$PreferredPath) {
     if ($PreferredPath -and (Test-Path $PreferredPath)) { return $PreferredPath }
@@ -377,6 +421,7 @@ function Invoke-UtfTests($tool, [int]$index) {
     if (-not $CliExe) { Write-Warning "  LabVIEWCLI not found; cannot run UTF."; return }
 
     Show-UtfAddonsDiag $LabVIEWPath
+    Repair-UtfJunitLibrary $LabVIEWPath
     Show-UtfOperationProbe $CliExe $LabVIEWPath
 
     $tmpl = if ($tool.command) { $tool.command } else { $UTF_DEFAULT_CMD }
