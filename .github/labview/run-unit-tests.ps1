@@ -164,23 +164,33 @@ function Repair-UtfJunitLibrary([string]$LvPath) {
     $searchRoots = @('C:\Program Files\NI\LVAddons',
                      'C:\Program Files\National Instruments',
                      'C:\Program Files (x86)\National Instruments')
+    # Source: prefer the library vendored in the repo (.github/labview/utf-junit) -
+    # the UTF toolkit does NOT ship this library on LabVIEW 2026, so it must be
+    # supplied. Fall back to any copy already present on the container.
     $src = $null
-    foreach ($r in $searchRoots) {
-        if (-not (Test-Path -LiteralPath $r)) { continue }
-        $hit = Get-ChildItem -LiteralPath $r -Recurse -File -Filter 'create junit report.vi' -ErrorAction SilentlyContinue |
-            Select-Object -First 1
-        if ($hit) { $src = Split-Path -Parent $hit.FullName; break }
+    $vendored = Join-Path $WorkspaceRoot '.github\labview\utf-junit'
+    if (Test-Path -LiteralPath (Join-Path $vendored 'create junit report.vi')) {
+        $src = $vendored
+    } else {
+        foreach ($r in $searchRoots) {
+            if (-not (Test-Path -LiteralPath $r)) { continue }
+            $hit = Get-ChildItem -LiteralPath $r -Recurse -File -Filter 'create junit report.vi' -ErrorAction SilentlyContinue |
+                Select-Object -First 1
+            if ($hit) { $src = Split-Path -Parent $hit.FullName; break }
+        }
     }
     if (-not $src) {
-        Write-Host "  'create junit report.vi' NOT FOUND under any NI dir - the UTF Junit Report library is not installed in this container; cannot repair."
+        Write-Host "  'create junit report.vi' NOT FOUND (no vendored copy, none on container); cannot repair."
         Write-Host '===== end repair ====='
         return
     }
-    Write-Host "  found UTF Junit Report library at: $src"
+    Write-Host "  source UTF Junit Report library: $src"
     try {
         New-Item -ItemType Directory -Force -Path $target | Out-Null
-        Copy-Item -LiteralPath (Join-Path $src '*') -Destination $target -Recurse -Force -ErrorAction Stop
-        Write-Host "  mirrored -> $target"
+        Get-ChildItem -LiteralPath $src -File -ErrorAction Stop |
+            Where-Object { $_.Extension -match '(?i)^\.(vi|lvlib)$' } |
+            ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $target -Force }
+        Write-Host "  mirrored library files -> $target"
     } catch {
         Write-Host "  (copy failed: $($_.Exception.Message))"
     }
