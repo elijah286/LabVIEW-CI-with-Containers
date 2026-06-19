@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "3.8.0",
+  "version": "3.8.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.8.1",
+        "date": "2026-06-19",
+        "title": "Populate history closes after you queue, revealing the dashboard",
+        "summary": "When you press Queue runs in the Populate dashboard history dialog and the runs are queued successfully, the dialog now closes itself so you land back on the dashboard and can immediately watch the just-queued activities fill in - each shows a Queued badge until its run starts. If some runs could not be dispatched, or a token or permission is missing, the dialog stays open with the explanation so nothing is lost and you can retry.",
+        "highlights": [
+          "The Populate history dialog closes automatically after a successful queue, so you land on the dashboard and can see the queued runs.",
+          "A failed or partial queue keeps the dialog open with its message and a re-enabled Queue button, so you can read it and retry."
+        ]
+      },
       {
         "version": "3.8.0",
         "date": "2026-06-19",
