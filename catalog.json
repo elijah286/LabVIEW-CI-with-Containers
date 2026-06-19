@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "3.11.1",
+  "version": "3.11.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.11.2",
+        "date": "2026-06-19",
+        "title": "Worker now installs the NI Unit Test Framework from its dedicated NI Package Manager feed",
+        "summary": "The worker image now adds the NI Unit Test Framework Toolkit's own NI Package Manager feeds (the released and released-critical channels) before installing ni-utf-labview-support, instead of relying solely on the base LabVIEW feed. This makes the UTF toolkit install come from its canonical source so the headless RunUnitTests operation can find it.",
+        "highlights": [
+          "Adds the dedicated ni-labview-unit-test-framework-toolkit feeds (released + released-critical) to the worker before installing UTF.",
+          "Keeps the install best-effort: if UTF still cannot be installed the build does not fail and the report shows the missing-tooling banner."
+        ]
+      },
       {
         "version": "3.11.1",
         "date": "2026-06-19",
