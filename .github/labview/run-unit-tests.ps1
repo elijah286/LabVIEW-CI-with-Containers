@@ -274,6 +274,27 @@ function Resolve-UtfProjects([string[]]$locations) {
     return ($found | Sort-Object -Unique)
 }
 
+# The vendored UTF runner and its report library are saved in an older LabVIEW (the
+# DCAF library predates LabVIEW 2020). A large version jump can leave stale compiled
+# code, so LabVIEWCLI RunVI fails to OPEN the VI with error 1031 ("the VI is broken")
+# even when every dependency is present. Mass-compiling the runner folder once relinks,
+# recompiles and re-saves those VIs in THIS LabVIEW (the standard NI remedy, and the
+# same operation actions/masscompile uses); its console output also names any genuinely
+# missing dependency, turning an opaque load failure into an actionable one. -Headless
+# is required for LabVIEW 2026+ Windows containers. Best-effort: never aborts the run.
+function Invoke-UtfMassCompile([string]$dir) {
+    if (-not $CliExe -or -not $dir -or -not (Test-Path -LiteralPath $dir)) { return }
+    Write-Host "  [utf] mass-compiling runner folder for LabVIEW ${LabVIEWVersion}: $dir"
+    $prevEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    try {
+        & $CliExe -LogToConsole TRUE -OperationName MassCompile -DirectoryToCompile $dir -LabVIEWPath $LabVIEWPath -Headless 2>&1 | Out-Host
+        Write-Host ("  [utf] mass-compile exit={0}" -f $LASTEXITCODE)
+    } catch {
+        Write-Warning "  [utf] mass-compile error: $($_.Exception.Message)"
+    }
+    $ErrorActionPreference = $prevEAP
+}
+
 function Invoke-UtfTests($tool, [int]$index) {
     $id = $tool.tool
     Write-Host "--- tool: $id (NI Unit Test Framework) ---"
@@ -287,6 +308,9 @@ function Invoke-UtfTests($tool, [int]$index) {
         Write-Warning "  vendored UTF runner VI not found at '$UtfRunnerVi' - cannot run UTF."
         return
     }
+    # Relink/recompile the vendored runner into this LabVIEW so RunVI can open it.
+    Invoke-UtfMassCompile (Split-Path -LiteralPath $UtfRunnerVi)
+
     $tmpl = if ($tool.command) { $tool.command } else { $UTF_DEFAULT_CMD }
 
     $i = 0

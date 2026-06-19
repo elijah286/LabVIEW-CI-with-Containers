@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.6.6",
+  "version": "3.6.7",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.6.7",
+        "date": "2026-06-19",
+        "title": "Unit tests: relink the vendored UTF runner so LabVIEW can load it in CI",
+        "summary": "With the NI Unit Test Framework now installed in the worker, the headless runner reached the final step - opening the vendored UTF report VI through LabVIEWCLI RunVI - but LabVIEW rejected it with error 1031 (\"the VI is broken\") because that VI (from the open-source DCAF UTF JUnit library) was saved in a much older LabVIEW and its compiled code was stale for LabVIEW 2026. The runner now mass-compiles the vendored runner folder once before invoking it - exactly the operation the mass-compile activity already uses - so the VI and its report library are relinked, recompiled and re-saved in the worker LabVIEW before RunVI opens them. The step is best-effort and its log names any genuinely missing dependency, so a load failure is actionable rather than opaque. No configuration changed.",
+        "highlights": [
+          "The unit-test runner mass-compiles the vendored UTF report VIs into the worker LabVIEW before running them, fixing the error-1031 \"broken VI\" load that blocked headless UTF execution.",
+          "Relinking reuses the same LabVIEWCLI MassCompile operation the mass-compile activity uses, and runs headless for LabVIEW 2026 Windows containers.",
+          "The pre-compile is best-effort and surfaces any missing dependency by name, so problems are actionable instead of an opaque RunVI failure."
+        ]
+      },
       {
         "version": "3.6.6",
         "date": "2026-06-19",
