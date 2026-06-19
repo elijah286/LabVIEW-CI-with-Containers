@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.9.0",
+  "version": "3.10.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.10.0",
+        "date": "2026-06-19",
+        "title": "Headless unit tests run for real: the UTF JUnit report library is baked into the worker",
+        "summary": "The unit-test runner invokes LabVIEW's built-in 'LabVIEWCLI -OperationName RunUnitTests' operation, but that operation only emits its JUnit results file when the NI 'UTF JUnit Report' library is present - without it the run failed with LabVIEW CLI error -350053 ('missing or bad files in the operation folder') and produced no report. That library (ni_lib_utf_junit_report) is now baked into the CI worker image alongside the UTF toolkit, so headless Unit Test Framework runs produce a real JUnit report that the dashboard turns into a results page. A separate crash in the report builder that only surfaced on Windows (a non-ASCII character printed to a code-page console) was also fixed.",
+        "highlights": [
+          "The worker image now bakes in NI's 'UTF JUnit Report' VIPM library (ni_lib_utf_junit_report 1.0.1.43), which the built-in RunUnitTests CLI operation needs to write its JUnit results.",
+          "Headless Unit Test Framework runs no longer fail with LabVIEW CLI error -350053; they emit a JUnit report that becomes a unit-test results page.",
+          "Fixed a Windows-only crash in the unit-test report builder caused by printing a non-ASCII character to a code-page console."
+        ]
+      },
       {
         "version": "3.9.0",
         "date": "2026-06-19",

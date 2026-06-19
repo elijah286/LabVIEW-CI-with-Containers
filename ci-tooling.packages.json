@@ -41,6 +41,13 @@
         "include": true,
         "summary": "JKI VI Tester - the classic xUnit-style LabVIEW unit test framework.",
         "note": "Package name taken from the JKI VI Tester toolkit namespace (__jki_vi_tester). Version left null (latest) because it could not be pinned from a verified source; pin it here once confirmed in VIPM."
+      },
+      {
+        "name": "ni_lib_utf_junit_report",
+        "version": "1.0.1.43",
+        "include": true,
+        "summary": "UTF JUnit Report by NI - generates a JUnit-compatible report file from LabVIEW Unit Test Framework (UTF) results; required by the built-in 'LabVIEWCLI -OperationName RunUnitTests' operation.",
+        "note": "REQUIRED for headless UTF: the RunUnitTests CLI operation ships in the container but its VI tree links against this library's JUnit-report VIs. Without it the operation is broken and fails with LabVIEWCLI error -350053 ('missing or bad files ... in the operation folder'). NI-published on VIPM (Apache 2.0, LabVIEW>=13.0, Win/Mac/Linux); 1.0.1.43 is the only release. Requires the UTF toolkit (ni-utf-labview-support), which the Dockerfile installs via nipkg."
       }
     ]
   },
@@ -58,7 +65,7 @@
         "what": "NI Unit Test Framework (UTF) Toolkit",
         "package": "(discovered from the NI feed by name match; override with the UTF_PACKAGE build-arg)",
         "kind": "nipkg",
-        "via": "labview-ci.Dockerfile installs it directly (nipkg), mirroring the VI Analyzer support package. UTF is an NI product (not on VIPM), so it comes from the NI Package Manager feed, not ci-tooling.vipc. run-unit-tests.ps1 runs the tests headlessly with the built-in 'LabVIEWCLI -OperationName RunUnitTests' operation that ships with the LabVIEW command line interface in the container."
+        "via": "labview-ci.Dockerfile installs it directly (nipkg), mirroring the VI Analyzer support package. UTF is an NI product (not on VIPM), so it comes from the NI Package Manager feed, not ci-tooling.vipc. run-unit-tests.ps1 runs the tests headlessly with the built-in 'LabVIEWCLI -OperationName RunUnitTests' operation that ships with the LabVIEW command line interface in the container. NOTE: that operation also needs the 'ni_lib_utf_junit_report' VIPM package (see vipmPackages above) to emit its JUnit report - without it RunUnitTests fails with -350053."
       },
       {
         "what": "OpenG libraries (oglib_*) + G Image",
