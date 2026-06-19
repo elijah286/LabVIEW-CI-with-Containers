@@ -1,0 +1,6 @@
+<VI _name="X Plus Y.vi" description="">
+  <Control _name="X" outputs="value:154.value" type="int32" uid="154" uid_parent="root" value="1"/>
+  <Control _name="Y" outputs="value:194.value" type="int32" uid="194" uid_parent="root" value="2"/>
+  <Node _name="Add" inputs="x:154.value,y:194.value" outputs="x+y:43.x+y" uid="43" uid_parent="root"/>
+  <Indicator _name="X+Y" inputs="value:43.x+y" type="int32" uid="249" uid_parent="root" value="3"/>
+</VI>

@@ -1,0 +1,16 @@
+# Local render output / smoke-test artifacts
+out/
+runner
+/runner
+
+# macOS / editor cruft
+.DS_Store
+**/.DS_Store
+
+# LabVIEW license cache written at runtime
+.lvce*.lc
+
+# lvctl build artifacts (Dockerfile regenerates)
+_ni/labview/lvctl/bin/
+_ni/labview/lvctl/vis/toimages.zip
+_ni/labview/lvctl/coverage.out

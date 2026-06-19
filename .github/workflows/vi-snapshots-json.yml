@@ -1,16 +1,15 @@
 # VI Snapshots JSON (in-place VI Browser 2.0)
 #
-# PUBLIC SCAFFOLDING - contains NO NI/LabVIEW source. It pulls a PRIVATE, prebuilt
-# image (LabVIEW Linux + Xvfb + lv_listener + a Convert.vi runner) that you build
-# in a SEPARATE private repo, runs it to emit position-aware <blob>.json next to
-# each existing <blob>.html, and deploys to gh-pages. The in-place 2.0 view lights
-# up for any VI that gets a JSON; everything else falls back to the 1.0 flat view.
+# It pulls THIS repository's OWN toimages render image - built from the vendored
+# engine under .github/labview/toimages by the "Build VI Browser 2.0 render image"
+# workflow and published to this repo's GHCR with the built-in GITHUB_TOKEN - runs
+# it to emit position-aware <blob>.json next to each existing <blob>.html, and
+# deploys to gh-pages. The in-place 2.0 view lights up for any VI that gets a JSON;
+# everything else falls back to the 1.0 flat view.
 #
-# STRICT NO-OP until you configure (Settings -> Secrets and variables -> Actions):
-#   - variable  TOIMAGES_IMAGE           e.g. ghcr.io/<owner>/lvci-toimages:latest
-#   - secret    TOIMAGES_REGISTRY_TOKEN  token with read:packages for that image
-#   - (optional) variable TOIMAGES_REGISTRY       default ghcr.io
-#   - (optional) variable TOIMAGES_REGISTRY_USER  default the repo owner
+# NO token setup is required: the image is pulled with the built-in GITHUB_TOKEN.
+# Override the image with the optional Actions variable TOIMAGES_IMAGE. Until the
+# image has been built, this workflow skips gracefully and VI Browser stays on 1.0.
 #
 # CONTRACT the private image MUST honor when run (this is its entire interface):
 #   mounts:  /work  = repo worktree, read-only   |   /out = output dir, writable
@@ -45,37 +44,46 @@ permissions:
   contents: write
   packages: read
 
-env:
-  TOIMAGES_IMAGE: ${{ vars.TOIMAGES_IMAGE }}
-  TOIMAGES_REGISTRY: ${{ vars.TOIMAGES_REGISTRY || 'ghcr.io' }}
-  TOIMAGES_REGISTRY_USER: ${{ vars.TOIMAGES_REGISTRY_USER || github.repository_owner }}
-
 jobs:
   export-json:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Preflight - is the private toimages image configured?
-        id: preflight
-        env:
-          HAVE_TOKEN: ${{ secrets.TOIMAGES_REGISTRY_TOKEN != '' }}
+      - name: Resolve the render image (this repo's own GHCR; override with the TOIMAGES_IMAGE variable)
+        id: img
         run: |
-          if [ -z "${TOIMAGES_IMAGE}" ] || [ "${HAVE_TOKEN}" != "true" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::TOIMAGES_IMAGE / TOIMAGES_REGISTRY_TOKEN not set - skipping JSON generation (VI Browser uses the 1.0 view)."
+          override="${{ vars.TOIMAGES_IMAGE }}"
+          if [ -n "$override" ]; then
+            echo "image=$override" >> "$GITHUB_OUTPUT"
           else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-            echo "Using private image: ${TOIMAGES_IMAGE}"
+            owner=$(printf '%s' "${{ github.repository_owner }}" | tr 'A-Z' 'a-z')
+            repo=$(printf '%s' "${{ github.event.repository.name }}" | tr 'A-Z' 'a-z')
+            echo "image=ghcr.io/${owner}/${repo}-toimages:latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log in to GHCR (built-in token - no setup required)
+        run: echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+
+      - name: Pull the render image (skip gracefully until it has been built)
+        id: pull
+        run: |
+          IMG='${{ steps.img.outputs.image }}'
+          if docker pull "$IMG"; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "Using $IMG"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Render image $IMG is not available yet - run 'Build VI Browser 2.0 render image' first. The VI Browser uses the 1.0 view until then."
           fi
 
       - name: Checkout repository
-        if: steps.preflight.outputs.configured == 'true'
+        if: steps.pull.outputs.ok == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Checkout deployed gallery (gh-pages) for incremental seed + live publish
-        if: steps.preflight.outputs.configured == 'true'
+        if: steps.pull.outputs.ok == 'true'
         uses: actions/checkout@v4
         continue-on-error: true
         with:
@@ -84,24 +92,14 @@ jobs:
           sparse-checkout: vi-snapshots
           sparse-checkout-cone-mode: false
 
-      - name: Log in to the private registry
-        if: steps.preflight.outputs.configured == 'true'
-        env:
-          TOKEN: ${{ secrets.TOIMAGES_REGISTRY_TOKEN }}
-        run: echo "$TOKEN" | docker login "$TOIMAGES_REGISTRY" -u "$TOIMAGES_REGISTRY_USER" --password-stdin
-
-      - name: Pull the private toimages image
-        if: steps.preflight.outputs.configured == 'true'
-        run: docker pull "$TOIMAGES_IMAGE"
-
       - name: Render <blob>.json across commits (backfill-aware) + incremental publish
-        if: steps.preflight.outputs.configured == 'true'
+        if: steps.pull.outputs.ok == 'true'
         env:
           WS: ${{ github.workspace }}
           # workflow_dispatch passes mode (head|backfill); workflow_run has none -> head.
           MODE: ${{ github.event.inputs.mode || 'head' }}
           TARGET_SHA: ${{ github.sha }}
-          IMAGE: ${{ env.TOIMAGES_IMAGE }}
+          IMAGE: ${{ steps.img.outputs.image }}
           OUT: ${{ github.workspace }}/ci-out/vi-snapshots
           GHP: ${{ github.workspace }}/_ghp
         run: |
@@ -110,14 +108,14 @@ jobs:
 
       - name: Verify JSON output
         id: verify
-        if: steps.preflight.outputs.configured == 'true'
+        if: steps.pull.outputs.ok == 'true'
         run: |
           n=$(find ci-out/vi-snapshots/by-blob -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
           echo "Generated $n JSON file(s)."
           if [ "$n" -gt 0 ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
 
       - name: Deploy JSON to GitHub Pages (preserves existing HTML + JSON)
-        if: steps.preflight.outputs.configured == 'true' && steps.verify.outputs.ok == 'true'
+        if: steps.pull.outputs.ok == 'true' && steps.verify.outputs.ok == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

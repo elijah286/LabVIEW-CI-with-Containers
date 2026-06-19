@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.42",
+  "version": "3.5.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.5.0",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0 is now built in - no render image or token to set up",
+        "summary": "The in-place 2.0 renderer (true-to-LabVIEW front panels and block diagrams) used to require a separate private image and a registry token. It is now built into the tooling: every repo builds its OWN render image from the vendored engine and pulls it with the built-in Actions token - so 2.0 works for everyone with no secrets, no token wizard, and no manual setup. A new 'Build VI Browser 2.0 render image' workflow publishes the image to your repo's own registry, and the snapshot-to-JSON workflow pulls it automatically (and skips gracefully until the first image build finishes). The classic 1.0 flat view is unchanged.",
+        "highlights": [
+          "VI Browser 2.0 render engine is vendored into the tooling - no private image and no read:packages token.",
+          "Each repo builds and pulls its own render image with the built-in GITHUB_TOKEN (override with the optional TOIMAGES_IMAGE variable).",
+          "The old render-token setup is deprecated and no longer needed; existing TOIMAGES_IMAGE overrides still work.",
+          "The 1.0 flat VI Browser view is untouched; 2.0 lights up wherever a rendered JSON exists and falls back to 1.0 otherwise."
+        ]
+      },
       {
         "version": "3.4.42",
         "date": "2026-06-18",
@@ -1550,7 +1562,12 @@
           ".github/pages/vi-browser.html",
           ".github/pages/vi-interactive.html",
           ".github/labview/build-gallery.py",
-          ".github/labview/PrintToSingleFileHtml/"
+          ".github/labview/PrintToSingleFileHtml/",
+          ".github/workflows/vi-snapshots-json.yml",
+          ".github/workflows/build-toimages-image.yml",
+          ".github/labview/run-toimages.sh",
+          ".github/labview/build-json-worklist.sh",
+          ".github/labview/toimages/"
         ],
         "windows": [
           ".github/workflows/vi-snapshots.yml",
