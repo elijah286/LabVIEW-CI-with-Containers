@@ -337,11 +337,9 @@
 .lvr-sel__lbl{padding:0 4px;min-width:30px;text-align:center;font-variant-numeric:tabular-nums}
 .lvr-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   color:#8b949e;font:14px -apple-system,'Segoe UI',sans-serif}
-@media (prefers-color-scheme:dark){
-  .lvr-viewport{background:#0d1117;background-image:radial-gradient(#1b2330 1px,transparent 1px)}
-  .lvr-reset{background:rgba(22,27,34,.92);color:#e6edf3;border-color:#30363d}
-  .lvr-reset:hover{background:#21262d}
-}`;
+/* The diagram viewing area stays WHITE even in dark mode: LabVIEW block diagrams
+   are drawn on a white canvas, so a dark backdrop would clash with the PNGs and
+   make wires/labels hard to read. Only the page chrome around it follows the theme. */`;
     (doc.head || doc.documentElement).appendChild(s);
   }
 
