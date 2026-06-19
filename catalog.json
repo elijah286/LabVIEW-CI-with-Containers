@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.5.0",
+  "version": "3.5.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.5.1",
+        "date": "2026-06-18",
+        "title": "VI Browser 2.0: case selectors restored on diagrams with structures",
+        "summary": "A recent renderer change clipped the case selector that sits just above each Case, Event, and Stacked-Sequence structure, so some block diagrams - especially larger producer/consumer VIs with an event handler and a case structure - showed as a static image even though they had multiple cases to page through. The selector tab is now shown again on every structure (including nested ones), so you can step through each structure's cases with the on-frame arrows or the left/right keys. Stepping still keeps the diagram at its fixed parent size - only the clip that hid the selector was removed.",
+        "highlights": [
+          "The case selector (left/right through 'n/N') is visible again on every Case/Event/Stacked-Sequence structure, including nested ones.",
+          "Block diagrams that have structures are no longer shown as a static image with no way to scroll their cases.",
+          "Only the selector-hiding clip was removed; each case still renders at its structure's fixed size."
+        ]
+      },
       {
         "version": "3.5.0",
         "date": "2026-06-18",
