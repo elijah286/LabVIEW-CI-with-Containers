@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "3.11.2",
+  "version": "3.11.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.11.3",
+        "date": "2026-06-19",
+        "title": "Unit-test runner logs where the NI Unit Test Framework toolkit landed in the container",
+        "summary": "To diagnose why the headless RunUnitTests operation cannot load the NI Unit Test Framework on LabVIEW 2026, the unit-test runner now prints, before it runs, a snapshot of the container's version-independent LabVIEW add-ons folder (C:\\Program Files\\NI\\LVAddons), the LabVIEW tree's add-on locations, and the LabVIEW registry keys. This makes it visible whether the toolkit is actually deployed where this LabVIEW loads add-ons from. Diagnostic-only and runner-side (no worker image rebuild).",
+        "highlights": [
+          "Runner logs the version-independent add-ons folder and LabVIEW registry so a -350053 'operation could not load' can be traced to toolkit visibility.",
+          "Diagnostic-only: no change to how tests run and no worker image rebuild."
+        ]
+      },
       {
         "version": "3.11.2",
         "date": "2026-06-19",

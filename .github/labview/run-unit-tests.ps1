@@ -56,6 +56,48 @@ function Add-ToolingIssue([string]$tool, [string]$name, [string]$kind, [string]$
     $Script:ToolingIssues += [pscustomobject]@{ tool = $tool; name = $name; kind = $kind; detail = $detail }
 }
 
+# Diagnostic: show where the NI Unit Test Framework toolkit landed and what this
+# LabVIEW references. LabVIEW 2023+ loads toolkits from a VERSION-INDEPENDENT
+# add-ons folder (C:\Program Files\NI\LVAddons); the UTF MSI deploys via NI's
+# NIPaths resolver (logical path LVADDONSDIR64). This prints the add-ons folder
+# state + LabVIEW registry so a -350053 'operation could not load' is traceable
+# to whether the toolkit is actually visible to this LabVIEW.
+function Show-UtfAddonsDiag([string]$LvPath) {
+    Write-Host '===== UTF / version-independent add-ons diagnostic ====='
+    $roots = @('C:\Program Files\NI\LVAddons',
+               'C:\Program Files (x86)\NI\LVAddons',
+               'C:\Program Files\National Instruments\Shared\LabVIEW Addons')
+    foreach ($r in $roots) {
+        if (Test-Path -LiteralPath $r) {
+            Write-Host "ADDONS ROOT: $r"
+            Get-ChildItem -LiteralPath $r -Recurse -Depth 2 -ErrorAction SilentlyContinue |
+                Select-Object -First 80 | ForEach-Object { Write-Host "  $($_.FullName)" }
+        } else {
+            Write-Host "absent: $r"
+        }
+    }
+    $lvRoot = if ($LvPath) { Split-Path -Parent $LvPath } else { '' }
+    if ($lvRoot -and (Test-Path -LiteralPath $lvRoot)) {
+        Write-Host "LabVIEW root: $lvRoot"
+        foreach ($sub in @('vi.lib\addons','user.lib','resource\Framework\Providers','project','vi.lib\Unit Test Framework')) {
+            $p = Join-Path $lvRoot $sub
+            if (Test-Path -LiteralPath $p) {
+                $utf = @(Get-ChildItem -LiteralPath $p -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '(?i)utf|unit.?test' })
+                Write-Host ("  {0}: {1} UTF-ish entr(ies) {2}" -f $sub, $utf.Count, (($utf | ForEach-Object { $_.Name }) -join ', '))
+            }
+        }
+    }
+    foreach ($rk in @('HKLM:\SOFTWARE\National Instruments\LabVIEW','HKLM:\SOFTWARE\WOW6432Node\National Instruments\LabVIEW')) {
+        if (Test-Path -LiteralPath $rk) {
+            Write-Host "REG $rk"
+            $props = Get-ItemProperty -LiteralPath $rk -ErrorAction SilentlyContinue
+            if ($props) { $props.PSObject.Properties | Where-Object { $_.Name -notmatch '^PS' } | ForEach-Object { Write-Host "    $($_.Name) = $($_.Value)" } }
+            Get-ChildItem -LiteralPath $rk -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "    subkey: $($_.PSChildName)" }
+        }
+    }
+    Write-Host '===== end diagnostic ====='
+}
+
 # -- Resolve LabVIEW / LabVIEWCLI / g-cli (mirror run-vi-analyzer.ps1) ----------
 function Resolve-LabVIEWPath([string]$PreferredPath) {
     if ($PreferredPath -and (Test-Path $PreferredPath)) { return $PreferredPath }
@@ -288,6 +330,8 @@ function Invoke-UtfTests($tool, [int]$index) {
         return
     }
     if (-not $CliExe) { Write-Warning "  LabVIEWCLI not found; cannot run UTF."; return }
+
+    Show-UtfAddonsDiag $LabVIEWPath
 
     $tmpl = if ($tool.command) { $tool.command } else { $UTF_DEFAULT_CMD }
 
