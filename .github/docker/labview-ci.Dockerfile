@@ -86,6 +86,28 @@ RUN $ErrorActionPreference = 'Continue'; `
       Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
     }
 
+# Install VIPM (the JKI VI Package Manager) from the NI Package Manager feed so the
+# VIPC hook below can bake in VIPM-distributed add-ons - Antidoc, Caraya, VI Tester,
+# and crucially the "UTF JUnit Report" library (ni_lib_utf_junit_report) that the
+# built-in 'LabVIEWCLI -OperationName RunUnitTests' operation links against to emit
+# its JUnit results file (without it RunUnitTests fails with LabVIEW CLI error -350053).
+# VIPM was previously fetched by install-vipc.ps1 from an external JKI installer URL,
+# but that URL now 404s (and the replacement is auth-gated). NI publishes VIPM on the
+# SAME feed as the support packages above (package 'ni-vipm'), so installing it here is
+# fully reproducible and needs no external, auth-gated download; install-vipc.ps1 then
+# finds vipm.exe already present and skips its (dead) download path. BEST-EFFORT: a
+# failure emits a ::warning:: and leaves the core image (LabVIEW + VI Analyzer + UTF)
+# intact - only VIPM-distributed add-ons are then absent.
+ARG VIPM_PACKAGE=ni-vipm
+RUN $ErrorActionPreference = 'Continue'; `
+    Write-Host "Installing VIPM from the NI feed: $env:VIPM_PACKAGE"; `
+    nipkg install --accept-eulas -y $env:VIPM_PACKAGE; `
+    if ($LASTEXITCODE -ne 0) { `
+      Write-Host "::warning::VIPM package '$($env:VIPM_PACKAGE)' did not install (exit $LASTEXITCODE); VIPM-distributed add-ons (including the UTF JUnit Report library) will not be baked in." `
+    } elseif (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
+      Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
+    }
+
 # Optional VIPC support hook. If .vipc files exist, an installer script must be
 # present so dependencies are handled explicitly.
 RUN $vipcFiles = Get-ChildItem -Path 'C:\vipm' -Filter '*.vipc' -Recurse -ErrorAction SilentlyContinue; `

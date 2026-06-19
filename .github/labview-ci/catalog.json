@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.10.0",
+  "version": "3.10.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.10.1",
+        "date": "2026-06-19",
+        "title": "Headless unit tests: install VIPM from the NI feed so the JUnit report library actually bakes in",
+        "summary": "The previous release added NI's 'UTF JUnit Report' library to the worker's VIPM configuration, but the worker could not install VIPM itself: the external JKI installer URL it used now returns 404 (and the replacement download is sign-in gated), so the whole VIPM step - and every VIPM-distributed add-on - was silently skipped. The worker now installs VIPM from the same NI Package Manager feed it already uses for the other toolkits (package 'ni-vipm'), which is reproducible and needs no external, gated download. With VIPM present the configuration applies and the UTF JUnit report library is baked in, so headless Unit Test Framework runs emit a real JUnit report. This also un-breaks the other VIPM add-ons (Antidoc, Caraya, VI Tester).",
+        "highlights": [
+          "VIPM is now installed from the NI Package Manager feed (ni-vipm) instead of an external installer URL that had started returning 404.",
+          "With VIPM present, the worker bakes in NI's UTF JUnit Report library, so the built-in RunUnitTests CLI operation can emit its JUnit results.",
+          "Fixes a silent skip that also affected the other VIPM-distributed add-ons (Antidoc, Caraya, VI Tester)."
+        ]
+      },
       {
         "version": "3.10.0",
         "date": "2026-06-19",

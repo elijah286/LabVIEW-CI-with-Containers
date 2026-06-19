@@ -27,12 +27,24 @@ $LabVIEWVersion   = if ($Env:LABVIEW_VERSION)    { $Env:LABVIEW_VERSION }    els
 $VipmInstallerUrl = if ($Env:VIPM_INSTALLER_URL) { $Env:VIPM_INSTALLER_URL } else { 'https://vipm.jki.net/l/download/vipm_2024_x64.exe' }
 
 # -- 1. Install VIPM if not already present -----------------------------------
-# VIPM is an OPTIONAL CI add-on (used only to bake in VIPM-distributed packages
-# such as Antidoc). It is fetched from an external, vendor-controlled installer
-# URL that can move or 404 at any time, so a download/install failure must NOT
-# brick the core CI image (LabVIEW + VI Analyzer were installed above). Treat this
-# section as best-effort: on failure, warn and skip the add-ons (exit 0) instead
-# of failing the whole image build.
+# VIPM is normally pre-installed into the image from the NI Package Manager feed
+# (package 'ni-vipm', done in labview-ci.Dockerfile), so this script just finds
+# vipm.exe and applies the .vipc. If it is NOT already present we fall back to the
+# external VIPM community installer, which is OPTIONAL and fetched from a
+# vendor-controlled URL that can move or 404 at any time, so a download/install
+# failure must NOT brick the core CI image (LabVIEW + VI Analyzer were installed
+# above). Treat the fallback as best-effort: on failure, warn and skip the add-ons
+# (exit 0) instead of failing the whole image build.
+if (-not (Test-Path $VipmExe)) {
+    # The nipkg-installed VIPM may land at a slightly different path than the
+    # default; search the common install roots before resorting to a download.
+    $found = Get-ChildItem -Path 'C:\Program Files\JKI', 'C:\Program Files (x86)\JKI' `
+        -Filter 'vipm.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) {
+        $VipmExe = $found.FullName
+        Write-Host "Found VIPM at: $VipmExe"
+    }
+}
 if (-not (Test-Path $VipmExe)) {
     Write-Host 'VIPM not found - downloading installer...'
     $InstallerFile = Join-Path $Env:TEMP 'vipm-installer.exe'
