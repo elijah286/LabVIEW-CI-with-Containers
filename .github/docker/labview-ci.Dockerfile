@@ -58,8 +58,9 @@ RUN if (-not (Get-Command nipkg -ErrorAction SilentlyContinue)) { throw 'nipkg w
     }
 
 # Install the NI Unit Test Framework (UTF) so the headless unit-test runner can
-# execute the project's .lvtest files (run-unit-tests.ps1 drives the vendored
-# .github/labview/utf-junit/"run utf and report.vi" through LabVIEWCLI RunVI). UTF is
+# execute the project's .lvtest files (run-unit-tests.ps1 drives the built-in
+# 'LabVIEWCLI -OperationName RunUnitTests' operation that ships with the LabVIEW
+# command line interface). UTF is
 # an NI add-on (not on VIPM); it installs from the same NI Package Manager feed as the
 # VI Analyzer support package above. The package is PINNED by name - ni-utf-labview-support,
 # the UTF analog of ni-viawin-labview-support - exactly like the VI Analyzer install. A

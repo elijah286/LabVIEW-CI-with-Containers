@@ -11,8 +11,9 @@
     a glob / file-extension pattern) and invokes that tool's headless runner via
     g-cli (already baked into the CI image), writing JUnit XML.
 
-    Caraya is the reference implementation. JKI VI Tester and NI UTF are scaffolded
-    with the same contract. The exact g-cli command for each tool is a per-tool
+    Caraya is the reference implementation, driven via g-cli. NI UTF runs through the
+    built-in LabVIEWCLI RunUnitTests operation (see Invoke-UtfTests); JKI VI Tester is
+    scaffolded with the same contract. The exact command for each tool is a per-tool
     template that can be overridden from the config (`command:` key) so the precise
     invocation can be corrected on a real worker without editing this script.
 
@@ -96,11 +97,6 @@ function Resolve-LabVIEWCLI([string]$LabVIEWExePath) {
     return $null
 }
 
-# The vendored NI "UTF JUnit Report" runner VI (Apache-2.0, github.com/LabVIEW-DCAF/
-# UTF-Test): runs every .lvtest in a project through the NI Unit Test Framework and
-# writes a JUnit-compatible report. Driven headlessly via LabVIEWCLI RunVI below.
-$UtfRunnerVi = Join-Path $WorkspaceRoot '.github\labview\utf-junit\run utf and report.vi'
-
 $LabVIEWPath = Resolve-LabVIEWPath $LabVIEWPath
 Sync-PathFromRegistry
 $GCli        = Resolve-Cmd @('g-cli', 'g-cli.exe')
@@ -112,7 +108,6 @@ Write-Host "  Results   : $ResultsDir"
 Write-Host "  LabVIEW   : $LabVIEWPath  (v$LabVIEWVersion)"
 Write-Host "  LabVIEWCLI: $(if ($CliExe) { $CliExe } else { '<not found>' })"
 Write-Host "  g-cli     : $(if ($GCli) { $GCli } else { '<not found on PATH>' })"
-Write-Host "  UTF runner: $(if (Test-Path -LiteralPath $UtfRunnerVi) { $UtfRunnerVi } else { '<not vendored>' })"
 Write-Host "  Config    : $ConfigPath"
 Write-Host ""
 
@@ -207,13 +202,13 @@ $DEFAULT_CMD = @{
 
 # NI Unit Test Framework runs the .lvtest files of a PROJECT (not a flat directory of
 # test VIs), so UTF has its own runner (Invoke-UtfTests) rather than the generic
-# {dir} template. The default drives the vendored "run utf and report.vi" through
-# LabVIEWCLI RunVI, passing the project path and the JUnit output path as arguments;
-# -Headless is required for LabVIEW 2026 Windows containers (mirrors run-vi-analyzer).
-# Tokens: {cli}=LabVIEWCLI, {runner}=vendored runner VI, {lv}=LabVIEW.exe,
-# {proj}=.lvproj path, {out}=JUnit output path, {ver}=LabVIEW year. Override per tool
-# with the config `command:` key once the exact invocation is confirmed on a worker.
-$UTF_DEFAULT_CMD = '"{cli}" -OperationName RunVI -VIPath "{runner}" -LabVIEWPath "{lv}" -Arguments "{proj}" "{out}" -Headless'
+# {dir} template. The default uses the FIRST-PARTY LabVIEWCLI RunUnitTests operation
+# (built into the LabVIEW CLI in the container): it runs every unit test in the
+# project and writes a JUnit report to -JUnitReportPath. -Headless is required for
+# LabVIEW 2026 Windows containers (mirrors run-vi-analyzer / RunVIAnalyzer).
+# Tokens: {cli}=LabVIEWCLI, {lv}=LabVIEW.exe, {proj}=.lvproj path, {out}=JUnit output
+# path, {ver}=LabVIEW year. Override per tool with the config `command:` key.
+$UTF_DEFAULT_CMD = '"{cli}" -LogToConsole TRUE -OperationName RunUnitTests -ProjectPath "{proj}" -JUnitReportPath "{out}" -LabVIEWPath "{lv}" -Headless'
 
 function Invoke-Tool($tool, [int]$index) {
     $id   = $tool.tool
@@ -274,27 +269,6 @@ function Resolve-UtfProjects([string[]]$locations) {
     return ($found | Sort-Object -Unique)
 }
 
-# The vendored UTF runner and its report library are saved in an older LabVIEW (the
-# DCAF library predates LabVIEW 2020). A large version jump can leave stale compiled
-# code, so LabVIEWCLI RunVI fails to OPEN the VI with error 1031 ("the VI is broken")
-# even when every dependency is present. Mass-compiling the runner folder once relinks,
-# recompiles and re-saves those VIs in THIS LabVIEW (the standard NI remedy, and the
-# same operation actions/masscompile uses); its console output also names any genuinely
-# missing dependency, turning an opaque load failure into an actionable one. -Headless
-# is required for LabVIEW 2026+ Windows containers. Best-effort: never aborts the run.
-function Invoke-UtfMassCompile([string]$dir) {
-    if (-not $CliExe -or -not $dir -or -not (Test-Path -LiteralPath $dir)) { return }
-    Write-Host "  [utf] mass-compiling runner folder for LabVIEW ${LabVIEWVersion}: $dir"
-    $prevEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-    try {
-        & $CliExe -LogToConsole TRUE -OperationName MassCompile -DirectoryToCompile $dir -LabVIEWPath $LabVIEWPath -Headless 2>&1 | Out-Host
-        Write-Host ("  [utf] mass-compile exit={0}" -f $LASTEXITCODE)
-    } catch {
-        Write-Warning "  [utf] mass-compile error: $($_.Exception.Message)"
-    }
-    $ErrorActionPreference = $prevEAP
-}
-
 function Invoke-UtfTests($tool, [int]$index) {
     $id = $tool.tool
     Write-Host "--- tool: $id (NI Unit Test Framework) ---"
@@ -304,28 +278,16 @@ function Invoke-UtfTests($tool, [int]$index) {
         return
     }
     if (-not $CliExe) { Write-Warning "  LabVIEWCLI not found; cannot run UTF."; return }
-    if (-not (Test-Path -LiteralPath $UtfRunnerVi)) {
-        Write-Warning "  vendored UTF runner VI not found at '$UtfRunnerVi' - cannot run UTF."
-        return
-    }
-    # Relink/recompile the vendored runner into this LabVIEW so RunVI can open it.
-    Invoke-UtfMassCompile (Split-Path -LiteralPath $UtfRunnerVi)
 
     $tmpl = if ($tool.command) { $tool.command } else { $UTF_DEFAULT_CMD }
 
     $i = 0
     foreach ($proj in $projects) {
-        $out     = Join-Path $ResultsDir ("utf-{0}.xml" -f ($index * 100 + $i))
-        $projDir = Split-Path -LiteralPath $proj
+        $out = Join-Path $ResultsDir ("utf-{0}.xml" -f ($index * 100 + $i))
         Write-Host "  [utf] project: $proj"
 
-        # Record existing XML so we can harvest whatever JUnit the runner writes, and
-        # wherever it writes it (it may honour {out} or emit beside the project).
-        $before = @{}
-        Get-ChildItem -LiteralPath $projDir -Recurse -File -Filter '*.xml' -ErrorAction SilentlyContinue |
-            ForEach-Object { $before[$_.FullName] = $_.LastWriteTimeUtc }
-
-        $cmd = $tmpl.Replace('{cli}', $CliExe).Replace('{runner}', $UtfRunnerVi).Replace('{lv}', $LabVIEWPath).Replace('{proj}', $proj).Replace('{out}', $out).Replace('{ver}', $LabVIEWVersion)
+        # RunUnitTests writes the JUnit report directly to -JUnitReportPath ({out}).
+        $cmd = $tmpl.Replace('{cli}', $CliExe).Replace('{lv}', $LabVIEWPath).Replace('{proj}', $proj).Replace('{out}', $out).Replace('{ver}', $LabVIEWVersion)
         Write-Host "  [utf] $cmd"
 
         $prevEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
@@ -337,19 +299,8 @@ function Invoke-UtfTests($tool, [int]$index) {
         }
         $ErrorActionPreference = $prevEAP
 
-        # Harvest: prefer the explicit {out}; otherwise copy any JUnit-looking XML the
-        # runner produced under the project tree during this run.
-        if (-not (Test-Path -LiteralPath $out)) {
-            $new = @(Get-ChildItem -LiteralPath $projDir -Recurse -File -Filter '*.xml' -ErrorAction SilentlyContinue |
-                Where-Object { -not $before.ContainsKey($_.FullName) -or $_.LastWriteTimeUtc -gt $before[$_.FullName] } |
-                Where-Object { (Get-Content -LiteralPath $_.FullName -Raw -ErrorAction SilentlyContinue) -match '<testsuite' })
-            if ($new.Count -gt 0) {
-                Copy-Item -LiteralPath $new[0].FullName -Destination $out -Force
-                Write-Host "  [utf] harvested $($new[0].FullName) -> $out"
-            }
-        }
         if (Test-Path -LiteralPath $out) { Write-Host "  [utf] wrote $out" }
-        else { Write-Warning "  [utf] produced no JUnit (confirm the RunVI invocation/runner on a real worker; override with the tool's command: key)." }
+        else { Write-Warning "  [utf] produced no JUnit at $out (check the RunUnitTests output above; override with the tool's command: key)." }
         $i++
     }
 }

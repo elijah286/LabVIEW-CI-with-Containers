@@ -58,7 +58,7 @@
         "what": "NI Unit Test Framework (UTF) Toolkit",
         "package": "(discovered from the NI feed by name match; override with the UTF_PACKAGE build-arg)",
         "kind": "nipkg",
-        "via": "labview-ci.Dockerfile installs it directly (nipkg), mirroring the VI Analyzer support package. UTF is an NI product (not on VIPM), so it comes from the NI Package Manager feed, not ci-tooling.vipc. The headless runner is the Apache-2.0 'UTF JUnit Report' library vendored at .github/labview/utf-junit/, driven by run-unit-tests.ps1 via LabVIEWCLI RunVI."
+        "via": "labview-ci.Dockerfile installs it directly (nipkg), mirroring the VI Analyzer support package. UTF is an NI product (not on VIPM), so it comes from the NI Package Manager feed, not ci-tooling.vipc. run-unit-tests.ps1 runs the tests headlessly with the built-in 'LabVIEWCLI -OperationName RunUnitTests' operation that ships with the LabVIEW command line interface in the container."
       },
       {
         "what": "OpenG libraries (oglib_*) + G Image",

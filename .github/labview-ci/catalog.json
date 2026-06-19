@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.7.1",
+  "version": "3.8.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.8.0",
+        "date": "2026-06-19",
+        "title": "Unit tests: run the NI Unit Test Framework with the built-in LabVIEW CLI",
+        "summary": "Unit-test runs now execute the NI LabVIEW Unit Test Framework through the first-party RunUnitTests operation that ships with the LabVIEW command line interface in the CI container, instead of a vendored runner VI. For each configured UTF project the runner invokes \"LabVIEWCLI -OperationName RunUnitTests -ProjectPath <project> -JUnitReportPath <out> -LabVIEWPath <labview> -Headless\", which runs every unit test defined in the project and writes a JUnit report directly. This mirrors how the VI Analyzer activity drives RunVIAnalyzer, removes the old DCAF-based \"UTF JUnit Report\" runner (and its mass-compile workaround) that failed to load under LabVIEW 2026, and means the tests in a project's .lvproj run with no extra VIs vendored into the repository.",
+        "highlights": [
+          "NI Unit Test Framework tests now run via the built-in LabVIEWCLI RunUnitTests operation in the container; the project's .lvproj is passed straight through and a JUnit report comes back.",
+          "Removed the vendored DCAF UTF runner VIs and the mass-compile workaround that were needed for the old RunVI approach.",
+          "The per-tool command: override still lets you customise the exact invocation without editing the runner."
+        ]
+      },
       {
         "version": "3.7.1",
         "date": "2026-06-19",
