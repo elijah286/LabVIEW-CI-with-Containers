@@ -74,14 +74,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout deployed gallery (gh-pages) for incremental seeding
+      - name: Checkout deployed gallery (gh-pages) for incremental seed + live publish
         if: steps.preflight.outputs.configured == 'true'
         uses: actions/checkout@v4
         continue-on-error: true
         with:
           ref: gh-pages
-          path: _pages
-          sparse-checkout: vi-snapshots/by-blob
+          path: _ghp
+          sparse-checkout: vi-snapshots
           sparse-checkout-cone-mode: false
 
       - name: Log in to the private registry
@@ -94,26 +94,19 @@ jobs:
         if: steps.preflight.outputs.configured == 'true'
         run: docker pull "$TOIMAGES_IMAGE"
 
-      - name: Build JSON worklist (skips blobs that already have a .json)
+      - name: Render <blob>.json across commits (backfill-aware) + incremental publish
         if: steps.preflight.outputs.configured == 'true'
+        env:
+          WS: ${{ github.workspace }}
+          # workflow_dispatch passes mode (head|backfill); workflow_run has none -> head.
+          MODE: ${{ github.event.inputs.mode || 'head' }}
+          TARGET_SHA: ${{ github.sha }}
+          IMAGE: ${{ env.TOIMAGES_IMAGE }}
+          OUT: ${{ github.workspace }}/ci-out/vi-snapshots
+          GHP: ${{ github.workspace }}/_ghp
         run: |
           mkdir -p ci-out/vi-snapshots/by-blob
-          bash .github/labview/build-json-worklist.sh \
-            "$GITHUB_WORKSPACE" \
-            "${{ github.sha }}" \
-            "$GITHUB_WORKSPACE/_pages/vi-snapshots/by-blob" \
-            "$GITHUB_WORKSPACE/ci-out/vi-snapshots/worklist.tsv"
-
-      - name: Generate <blob>.json via the private image
-        if: steps.preflight.outputs.configured == 'true'
-        run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE:/work:ro" \
-            -v "$GITHUB_WORKSPACE/ci-out/vi-snapshots:/out" \
-            -e WORKSPACE=/work \
-            -e WORKLIST=/out/worklist.tsv \
-            -e OUT_BY_BLOB=/out/by-blob \
-            "$TOIMAGES_IMAGE"
+          bash .github/labview/run-toimages.sh
 
       - name: Verify JSON output
         id: verify
