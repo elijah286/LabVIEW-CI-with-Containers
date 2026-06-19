@@ -110,6 +110,39 @@ function Show-UtfAddonsDiag([string]$LvPath) {
     Write-Host '===== end diagnostic ====='
 }
 
+# Diagnostic: -350053 'missing or bad files' means the RunUnitTests operation
+# class (and the UTF API VIs it links to) loaded BROKEN in LabVIEW 2026. The
+# generic CLI error never names the offending VI. MassCompile DOES: it loads
+# every VI under a directory and reports each one that fails to load plus the
+# path of the dependency it could not resolve. Mass-compiling the operation
+# folder surfaces exactly which UTF VI (and the path it wants) is broken on 2026,
+# and -- if the break is only a stale compiled-code cache from the 2025 save --
+# the recompile itself can repair the hierarchy before RunUnitTests runs.
+function Show-UtfOperationProbe([string]$Cli, [string]$LvPath) {
+    Write-Host '===== UTF RunUnitTests operation probe ====='
+    $opDir = 'C:\Program Files (x86)\National Instruments\Shared\LabVIEW CLI\Operations\RunUnitTests'
+    if (Test-Path -LiteralPath $opDir) {
+        Write-Host "operation folder: $opDir"
+        Get-ChildItem -LiteralPath $opDir -Recurse -ErrorAction SilentlyContinue |
+            Select-Object -First 60 | ForEach-Object { Write-Host "  $($_.FullName)" }
+    } else {
+        Write-Host "absent: $opDir"
+    }
+    if ($Cli -and $LvPath -and (Test-Path -LiteralPath $opDir)) {
+        Write-Host "--- MassCompile: $opDir ---"
+        $mcArgs = @('-OperationName','MassCompile','-DirectoryToCompile',$opDir,'-LabVIEWPath',$LvPath,'-LogToConsole','TRUE')
+        $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+        try {
+            $mcOut = (& $Cli @mcArgs 2>&1 | Out-String)
+            Write-Host $mcOut
+        } catch {
+            Write-Host "  (MassCompile failed: $($_.Exception.Message))"
+        }
+        $ErrorActionPreference = $prev
+    }
+    Write-Host '===== end operation probe ====='
+}
+
 # -- Resolve LabVIEW / LabVIEWCLI / g-cli (mirror run-vi-analyzer.ps1) ----------
 function Resolve-LabVIEWPath([string]$PreferredPath) {
     if ($PreferredPath -and (Test-Path $PreferredPath)) { return $PreferredPath }
@@ -344,6 +377,7 @@ function Invoke-UtfTests($tool, [int]$index) {
     if (-not $CliExe) { Write-Warning "  LabVIEWCLI not found; cannot run UTF."; return }
 
     Show-UtfAddonsDiag $LabVIEWPath
+    Show-UtfOperationProbe $CliExe $LabVIEWPath
 
     $tmpl = if ($tool.command) { $tool.command } else { $UTF_DEFAULT_CMD }
 
