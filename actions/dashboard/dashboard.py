@@ -297,6 +297,28 @@ SNAP_ICON = ('<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor
              '0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 '
              '1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg>')
 
+# ── Status chips ──────────────────────────────────────────────────────
+# Every result cell renders a small pill "chip" (subtle tinted background, a
+# coloured state glyph, and the label) instead of a solid block with an emoji,
+# so the table reads as a clean status board. The kind drives both colour and
+# glyph: pass (green check), fail (red x), warn (amber alert), info (neutral
+# blue, no glyph - used for counts like snapshot coverage).
+_CHIP_ICON = {
+    'pass': '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.22 9.28a.75.75 0 1 1 1.06-1.06L6 11.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>',
+    'fail': '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></svg>',
+    'warn': '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.46 1.05c.66-1.23 2.43-1.23 3.08 0l6.08 11.38A1.75 1.75 0 0 1 14.08 15H1.92a1.75 1.75 0 0 1-1.54-2.57ZM8.75 5.75a.75.75 0 0 0-1.5 0v3a.75.75 0 0 0 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>',
+    'info': '',
+}
+_STATE_KIND = {'success': 'pass', 'failure': 'fail', 'error': 'fail', 'pending': 'warn'}
+
+def _chip(kind, label, url='', title=''):
+    """Render a status pill. ``kind`` in {pass,fail,warn,info}; ``label`` is the
+    text; ``url`` makes it a link; ``title`` is an optional tooltip."""
+    icon = _CHIP_ICON.get(kind, '')
+    lab  = f'<a href="{url}" style="color:inherit">{label}</a>' if url else label
+    ttl  = f' title="{title}"' if title else ''
+    return f'<span class="cidash-chip cc-{kind}"{ttl}>{icon}{lab}</span>'
+
 # ── Framed per-revision reports ─────────────────────────────────────────────────────
 # Per-revision reports (Mass Compile, VI Analyzer) open INSIDE the dashboard
 # chrome via report-viewer.html (deployed at report/index.html), which frames
@@ -526,8 +548,6 @@ for c in commits_data:
             return run_cell(cap) if cap else EMPTY_CELL
         any_output['on'] = True
         if cap: caps_ran.add(cap)
-        color  = {'success':'#2ea043','failure':'#da3633','pending':'#9a6700','error':'#da3633'}.get(s['state'],'#555')
-        emoji  = {'success':'✅','failure':'❌','pending':'⏳','error':'⚠️'}.get(s['state'],'?')
         url    = url_override or s.get('target_url','')
         # Open a per-revision report inside the dashboard chrome (framed under
         # the shared header) rather than as a bare page — but only when the
@@ -535,7 +555,6 @@ for c in commits_data:
         # Actions page, which is left as-is).
         if doc and not url_override:
             url = maybe_frame(url, doc[0], doc[1], sha, short)
-        link   = f'<a href="{url}" style="color:inherit">{emoji} {label}</a>' if url else f'{emoji} {label}'
         # When this column has a re-run workflow, tag the result cell with its
         # cap/sha (+ the result's timestamp) so a re-run dispatched from elsewhere
         # (the report's "Re-run analysis" button) can overlay a "Queued" spinner on
@@ -546,7 +565,7 @@ for c in commits_data:
             cap_attrs = (f' class="cidash-cap-cell" data-cap="{cap}" data-sha="{sha}"'
                          f' data-parent="{parent}" data-short="{short}" data-ts="{s.get("created_at","")}"')
         return (f'<td style="text-align:center"{cap_attrs}>'
-                f'<span style="background:{color};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">{link}</span></td>')
+                f'{_chip(_STATE_KIND.get(s["state"], "warn"), label, url)}</td>')
 
     # Mass Compile column: show the % of project VIs that compiled (most VIs
     # compile even when a few depend on libraries absent from the CI image),
@@ -572,8 +591,7 @@ for c in commits_data:
             _st = _mc.get('status')
             _failed = (_st == 'failed') or (_st is None and _pct <= 0)
             _passed = (_st == 'passed') or (_st is None and _pct >= 100)
-            _col = '#2ea043' if _passed else ('#da3633' if _failed else '#bb8009')
-            _emoji = '✅' if _passed else ('❌' if _failed else '⚠️')
+            _kind = 'pass' if _passed else ('fail' if _failed else 'warn')
             # The Mass Compile report opens framed inside the dashboard chrome
             # (report-viewer.html), so the header stays put and even older
             # reports that carry no header of their own still appear under it,
@@ -586,9 +604,7 @@ for c in commits_data:
             _mc_ts = (pick_status('CI / Mass Compile') or {}).get('created_at', '')
             mc_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" '
                         f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_mc_ts}">'
-                        f'<span title="{_ok}/{_tot} project VIs compiled" '
-                        f'style="background:{_col};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">'
-                        f'<a href="{_url}" style="color:inherit">{_emoji} {_pct}%</a></span></td>')
+                        f'{_chip(_kind, f"{_pct}%", _url, f"{_ok}/{_tot} project VIs compiled")}</td>')
         else:
             mc_badge = badge('compile', 'CI / Mass Compile', cap='masscompile', doc=('masscompile-report', 'masscompile'))
     # Consider both analyzer platforms (mirrors the diff badge): a revision
@@ -621,15 +637,14 @@ for c in commits_data:
             caps_ran.add('snapshots')
             _href = f'{pages_url}/vi-snapshots/index.html?sha={sha}'
             if _have >= _total:
-                _bg, _txt = '#1f6feb', str(_total)
+                _kind, _txt = 'info', str(_total)
                 _tip = f'Snapshots rendered for all {_total} VIs in this revision'
             else:
-                _bg, _txt = '#9a6700', f'{_have}/{_total}'
+                _kind, _txt = 'warn', f'{_have}/{_total}'
                 _tip = (f'{_have} of {_total} VIs have snapshots; {_total - _have} missing '
                         f'- run this revision or use Populate history to backfill')
-            snap_badge = (f'<td style="text-align:center"><span title="{_tip}" '
-                          f'style="background:{_bg};color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em">'
-                          f'<a href="{_href}" style="color:inherit">{_txt}</a></span></td>')
+            snap_badge = (f'<td style="text-align:center">'
+                          f'{_chip(_kind, _txt, _href, _tip)}</td>')
 
     # Unit Tests column: pass/fail from a LabVIEW unit-test framework (UTF / JKI
     # VI Tester / Caraya) once a runner posts the "CI / Unit Tests" status. The
@@ -2261,6 +2276,21 @@ html = f"""<!DOCTYPE html>
        so give the spinner a small right margin to keep the icon off the "Q". */
     .run-badge.cidash-queued .run-spin{{margin-right:5px}}
     @keyframes cidash-spin{{to{{transform:rotate(360deg)}}}}
+    /* Status chips: a tinted pill + state glyph for every result cell. */
+    .cidash-chip{{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:.74em;font-weight:600;line-height:1.45;border:1px solid transparent;white-space:nowrap}}
+    .cidash-chip svg{{width:12px;height:12px;flex:0 0 auto}}
+    .cidash-chip a{{color:inherit}}
+    .cidash-chip a:hover{{text-decoration:underline}}
+    .cidash-chip.cc-pass{{background:rgba(46,160,67,.16);color:#3fb950;border-color:rgba(46,160,67,.35)}}
+    .cidash-chip.cc-fail{{background:rgba(248,81,73,.16);color:#f85149;border-color:rgba(248,81,73,.4)}}
+    .cidash-chip.cc-warn{{background:rgba(210,153,34,.16);color:#d29922;border-color:rgba(210,153,34,.35)}}
+    .cidash-chip.cc-info{{background:rgba(56,139,253,.16);color:#58a6ff;border-color:rgba(56,139,253,.3)}}
+    @media(prefers-color-scheme:light){{
+      .cidash-chip.cc-pass{{background:#dafbe1;color:#1a7f37;border-color:#2da44e55}}
+      .cidash-chip.cc-fail{{background:#ffebe9;color:#cf222e;border-color:#cf222e44}}
+      .cidash-chip.cc-warn{{background:#fff8c5;color:#9a6700;border-color:#9a670055}}
+      .cidash-chip.cc-info{{background:#ddf4ff;color:#0969da;border-color:#0969da44}}
+    }}
     {run_dialog_css}
   </style>
 </head>

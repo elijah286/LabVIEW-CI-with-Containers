@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.12.3",
+  "version": "3.12.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.12.4",
+        "date": "2026-06-19",
+        "title": "Dashboard status cells now use clean status chips",
+        "summary": "The activity result cells on the dashboard (Mass Compile, VI Analyzer, VIDiff, Snapshots, Unit Tests, Antidoc) now render as tinted pill chips with a clear pass / fail / warning glyph instead of solid coloured blocks with emoji. This is the first step of a broader dashboard UX refresh; behaviour is unchanged - the same cells link to the same reports and the run, queue, and re-run overlays still work.",
+        "highlights": [
+          "Result badges replaced with professional status chips (subtle tinted background plus a state icon).",
+          "Removed emoji glyphs from the status cells for a cleaner, more legible status board.",
+          "Light and dark themes both refined; all run, queue, and re-run behaviour preserved."
+        ]
+      },
       {
         "version": "3.12.3",
         "date": "2026-06-19",
