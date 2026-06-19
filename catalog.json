@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.11.0",
+  "version": "3.11.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.11.1",
+        "date": "2026-06-19",
+        "title": "Reports now tell you when the worker container was missing the tooling an activity needs",
+        "summary": "When an activity cannot run because the selected worker container does not include the required tooling (for example, the NI Unit Test Framework toolkit is not installed, so the headless RunUnitTests operation cannot load), the report now shows a clear banner at the top: 'The selected container did not contain the dependencies needed to run this activity', naming the missing tooling and linking straight to the Configure Workers dialog to set the container up. The unit-test runner detects this case and records it; the report renders the banner in the page body so it is visible both on the standalone report and inside the dashboard's pop-out viewer. This is a shared pattern other activities can adopt so a missing-tooling container always explains itself the same way.",
+        "highlights": [
+          "Unit-test reports now show a banner when the container lacked the NI Unit Test Framework, instead of just an empty 'no tests' page.",
+          "The banner names the missing tooling and links directly to the Configure Workers dialog to set up the container.",
+          "A reusable convention (a runner-written marker plus a standard banner) so any activity's report can flag a missing-tooling container the same way."
+        ]
+      },
       {
         "version": "3.11.0",
         "date": "2026-06-19",
