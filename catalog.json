@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.10.2",
+  "version": "3.10.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.10.3",
+        "date": "2026-06-19",
+        "title": "Headless unit tests: surface the LabVIEW CLI session log when a run produces no report",
+        "summary": "When the built-in RunUnitTests CLI operation fails, LabVIEW prints only a generic error code (for example -350053, 'failed to run the operation due to missing or bad files') to the console, while the real detail - which VI is broken or which module is missing - is written to LabVIEW's own session log file. The unit-test runner now captures that session-log path from the CLI output and, whenever a project produces no JUnit report, echoes the full session log into the workflow output. This makes a failed headless Unit Test Framework run actually diagnosable instead of leaving only an opaque error code.",
+        "highlights": [
+          "A Unit Test Framework run that produces no report now prints LabVIEW's full CLI session log, not just the generic console error code.",
+          "Makes the cause of a -350053 'missing or bad files' failure visible (the specific broken VI or missing module).",
+          "Diagnostic-only change to the runner; no effect on successful runs."
+        ]
+      },
       {
         "version": "3.10.2",
         "date": "2026-06-19",
