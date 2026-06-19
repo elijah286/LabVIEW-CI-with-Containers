@@ -1081,8 +1081,13 @@ run_dialog = (r"""
     var QTTL = 20*60*1000;   // anti-phantom: drop an entry we could NEVER tie to a real run (no run id) after 20 min
     var QDONE = 5*60*1000;   // after a run finishes OK, keep the cell up to this long while the server result rebuilds
     var QFAST = 60*1000;     // re-check this often while a queued run is unconfirmed
+    var QPOSTTL = 5*60*1000; // how long a fetched queue snapshot stays trustworthy for numbering
     var qReloadArmed = false;
     var qCapturing = {};     // key -> [callbacks] while a run-id lookup is in flight
+    // The REAL place-in-line of every run still waiting for a runner on this repo,
+    // built by qSync from the live Actions API: { runId(str): position(1-based) }.
+    // null until the first fetch; qQueueTotal = how many runs are waiting in all.
+    var qQueuePos = null, qQueueTotal = 0, qQueueAt = 0;
     function qLoad(){ try{ return JSON.parse(localStorage.getItem(QKEY)||"{}")||{}; }catch(e){ return {}; } }
     function qSave(o){ try{ localStorage.setItem(QKEY, JSON.stringify(o)); }catch(e){} }
     function qPaint(td, c, sha){
@@ -1130,16 +1135,39 @@ run_dialog = (r"""
         .sort(function(a,b){ return a.ts - b.ts; });
     }
     function qRenumber(){
-      // Number the optimistic queued cells by the order they were queued (oldest
-      // = #1) so the user can see each run's place in the line. The chip is hidden
-      // when only one run is queued (a position is only meaningful among several).
-      var o = qLoad(); var live = qLiveEntries(o); var show = live.length > 1;
+      // Stamp each optimistic queued cell with its place in line. Once qSync has
+      // fetched the live queue, use the cell's REAL position there - counting every
+      // run waiting for a runner on this repo, from any activity, push, or person -
+      // so the numbers reflect reality (e.g. #9/#10 when 8 runs are already ahead),
+      // not just how many this browser queued. Before that first fetch (or for a
+      // cell whose run id hasn't been captured yet) fall back to this browser's own
+      // order (oldest = #1). The chip is hidden unless more than one run is in line.
+      var o = qLoad(); var live = qLiveEntries(o);
+      var havePos = !!qQueuePos && (Date.now() - qQueueAt) <= QPOSTTL;
+      var total = havePos ? qQueueTotal : live.length;
+      var show = total > 1;
       live.forEach(function(en, idx){
         var i = en.key.indexOf('|'); var c = en.key.slice(0,i); var sha = en.key.slice(i+1);
         var td = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
         if(!td) return;
-        var pos = td.querySelector('.cidash-qpos');
-        if(pos) pos.textContent = show ? ('#'+(idx+1)) : '';
+        var posEl = td.querySelector('.cidash-qpos'); if(!posEl) return;
+        var real = 0;
+        if(havePos){
+          // The cell starts when its earliest-in-line platform run starts, so take
+          // the best (lowest) real position among its still-waiting runs.
+          ((o[en.key]||{}).runs||[]).forEach(function(r){
+            var p = r && r.id && qQueuePos[String(r.id)];
+            if(p && (!real || p < real)) real = p;
+          });
+        }
+        var txt = '';
+        if(show){
+          if(real) txt = '#'+real;
+          else if(!havePos) txt = '#'+(idx+1);   // pre-fetch: this browser's own order
+          // else: real queue known but this cell isn't placed yet - leave it blank
+          // until qSync resolves its run id, rather than show a misleading number.
+        }
+        posEl.textContent = txt;
       });
     }
     function markQueued(c, sha, plats, parent, ts){
@@ -1334,6 +1362,23 @@ run_dialog = (r"""
         })
         .then(function(byId){
           if(!byId) return;
+          // Build the REAL repo-wide queue order from the live run list: every run
+          // still WAITING for a runner (not yet in_progress = running) is one slot,
+          // oldest first. This counts runs queued by any activity, push, or person
+          // on this repo - so the user's cells number behind whatever is ahead of
+          // them. (A repo-scoped token can't see OTHER repos sharing the runner
+          // pool, so account-wide contention beyond this repo isn't reflected.)
+          var WAIT = ['queued','requested','waiting','pending'];
+          var inLine = [];
+          Object.keys(byId).forEach(function(id){
+            var run = byId[id];
+            if(run && WAIT.indexOf(run.status) >= 0){
+              inLine.push({ id:String(run.id), at:Date.parse(run.created_at || run.run_started_at || '') || 0 });
+            }
+          });
+          inLine.sort(function(a,b){ return (a.at - b.at) || (a.id < b.id ? -1 : 1); });
+          qQueuePos = {}; inLine.forEach(function(r, i){ qQueuePos[r.id] = i + 1; });
+          qQueueTotal = inLine.length; qQueueAt = Date.now();
           var o2 = qLoad(); var changed = false; var now = Date.now();
           var FAIL = ['failure','timed_out','startup_failure','cancelled'];
           var ACTIVE = ['queued','in_progress','requested','waiting','pending','action_required'];
@@ -1352,7 +1397,11 @@ run_dialog = (r"""
             else if(anyFail && allKnown){ e.failed = { url: failUrl }; changed = true; }
             else if(allKnown && allDone){ e.done = now; changed = true; }
           });
+          // applyQueued re-numbers as it repaints; otherwise renumber directly so
+          // the freshly fetched real positions are applied even when nothing else
+          // about this browser's entries changed (e.g. only the queue ahead moved).
           if(changed){ qSave(o2); applyQueued(); }
+          else { qRenumber(); }
         }).catch(function(){});
     }
     function applyQueued(){
