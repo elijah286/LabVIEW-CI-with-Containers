@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.5.1",
+  "version": "3.5.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.5.2",
+        "date": "2026-06-18",
+        "title": "VI Browser: a 'Diff' option on the Viewer switch",
+        "summary": "The VI Browser's Viewer switch now has a third option - Diff - alongside 1.0 and 2.0, so a changed VI's side-by-side diff is part of the same control you use to choose how a VI is shown. Diff is grayed out, with a tip strip explaining the VI was not modified in this revision, for any VI that did not change, and it lights up for changed VIs. Clicking a VI's diff badge in the file tree now also selects the Diff option, and switching back to 1.0 or 2.0 returns to that VI's snapshot - so moving between a VI's snapshot and its diff is one consistent toggle.",
+        "highlights": [
+          "The Viewer switch gained a third option, Diff, next to 1.0 and 2.0 for the open VI's side-by-side diff report.",
+          "Diff is grayed out with an explanatory tip strip ('not modified in this revision') for VIs that did not change, and is enabled for changed VIs.",
+          "Clicking a VI's diff badge selects the Diff option; switching to 1.0 or 2.0 returns to that VI's snapshot, so snapshot and diff share one toggle."
+        ]
+      },
       {
         "version": "3.5.1",
         "date": "2026-06-18",

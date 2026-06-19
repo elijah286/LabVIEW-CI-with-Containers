@@ -111,8 +111,9 @@
                    overflow:hidden;font-size:.92em}
     #viewer-toggle button{border:none;background:var(--bg);color:var(--fg-muted);cursor:pointer;
                           padding:3px 11px;font:inherit;font-weight:600}
-    #viewer-toggle button:hover:not(.active){background:var(--sidebar-hover);color:var(--fg)}
+    #viewer-toggle button:hover:not(.active):not(.is-disabled){background:var(--sidebar-hover);color:var(--fg)}
     #viewer-toggle button.active{background:var(--link);color:#fff}
+    #viewer-toggle button.is-disabled{opacity:.4;cursor:default}
     #viewer-toggle .sep{width:1px;background:var(--border)}
     /* Front Panel / Block Diagram sub-switch (2.0 in-place view) */
     #pane-toggle{display:none;align-items:center;border:1px solid var(--border);border-radius:7px;
@@ -171,10 +172,12 @@
 <div id="main">
   <div id="toolbar">
     <span id="viewer-toggle-label">Viewer</span>
-    <span id="viewer-toggle" title="Switch between the classic VI Browser (1.0) and the in-place renderer (2.0)">
+    <span id="viewer-toggle" title="Switch between the classic VI Browser (1.0), the in-place renderer (2.0), and this VI's side-by-side diff">
       <button type="button" data-viewer="1" title="1.0 — classic gallery: front panel + block diagram, with each structure's cases in a stepper below the diagram">1.0</button>
       <span class="sep"></span>
       <button type="button" data-viewer="2" title="2.0 — in-place renderer: Case / Event structures navigated on the diagram itself, like the LabVIEW editor">2.0</button>
+      <span class="sep"></span>
+      <button type="button" data-viewer="diff" class="is-disabled" aria-disabled="true" title="Select a changed VI to view its diff">Diff</button>
     </span>
     <span id="pane-toggle" title="Show this VI's front panel or its block diagram">
       <button type="button" data-pane="fp" title="Front panel — the VI's user interface">Front&nbsp;Panel</button>
@@ -418,7 +421,7 @@ async function loadCommits() {
     opt.textContent = `${c.short} — ${(c.message || '').slice(0, 40)}`;
     sel.appendChild(opt);
   }
-  sel.addEventListener('change', () => { openViRel = null; openView = 'snapshot'; syncUrl(); loadManifest(sel.value); });
+  sel.addEventListener('change', () => { openViRel = null; openView = 'snapshot'; syncUrl(); syncViewerToggle(); loadManifest(sel.value); });
   const initSha = new URLSearchParams(window.location.search).get('sha');
   const startSha = (initSha && commitList.find(c => c.sha === initSha)) ? initSha : commitList[0].sha;
   sel.value = startSha;
@@ -1170,6 +1173,7 @@ function openVI(row) {
   currentSnapshot = { html: `${BASE}${row.dataset.html}`, title: row.dataset.name };
   openSnapshot(currentSnapshot.html, currentSnapshot.title);
   syncUrl();
+  syncViewerToggle();                    // reflect 1.0/2.0 active + enable/disable the Diff segment
 }
 
 // Open a changed VI's side-by-side diff report (from the selected container), or
@@ -1192,6 +1196,7 @@ function openDiff(viRel, type, row) {
     showDiffRun(viRel, type, 'norep');         // no report yet -> explain + offer to run VIDiff
   }
   syncUrl();
+  syncViewerToggle();                    // light up the "Diff" segment of the viewer toggle
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -1481,9 +1486,12 @@ document.querySelectorAll('#plat-toggle button').forEach(btn => {
   });
 });
 
-// 1.0 / 2.0 VI Browser switch: reflect the active mode, persist it (?viewer=), and
-// re-render the open VI in the chosen mode. A diff report is mode-independent, so
-// switching while a diff is shown only updates the preference for the next VI.
+// VI Browser viewer toggle: a single tri-state control for the open VI's three
+// faces — 1.0 (classic flat gallery), 2.0 (in-place renderer), and Diff (the
+// side-by-side VIDiff report). 1.0/2.0 pick the snapshot sub-mode and persist via
+// ?viewer=; Diff is offered only when the open VI changed in this revision, and is
+// grayed out with an explanatory tip strip otherwise. The active segment always
+// mirrors the live view (openView 'diff' -> Diff, else the 1.0/2.0 mode).
 function setViewerModeNote(msg) {
   const note = document.getElementById('viewer-mode-note');
   if (!note) return;
@@ -1491,14 +1499,50 @@ function setViewerModeNote(msg) {
   note.classList.toggle('show', !!msg);
 }
 function syncViewerToggle() {
+  // The active segment mirrors what's on screen: the Diff view when one is open,
+  // otherwise the 1.0/2.0 snapshot sub-mode.
+  const active = (openView === 'diff') ? 'diff' : viewerMode;
   document.querySelectorAll('#viewer-toggle button').forEach(b => {
-    b.classList.toggle('active', b.dataset.viewer === viewerMode);
+    b.classList.toggle('active', b.dataset.viewer === active);
   });
+  // "Diff" is offered only when the open VI changed in this revision; otherwise it
+  // is grayed out with a tip strip saying so. It stays hoverable (aria-disabled, not
+  // the disabled attribute) so the tip strip still shows — disabled controls suppress
+  // their own native tooltip.
+  const diffBtn = document.querySelector('#viewer-toggle button[data-viewer="diff"]');
+  if (diffBtn) {
+    const chg = openViRel ? changeMap[openViRel] : null;
+    const can = !!chg;
+    diffBtn.classList.toggle('is-disabled', !can);
+    diffBtn.setAttribute('aria-disabled', can ? 'false' : 'true');
+    diffBtn.title = can
+      ? 'Diff \u2014 the side-by-side VIDiff report for this changed VI'
+      : (openViRel ? 'This VI was not modified in this revision'
+                   : 'Select a changed VI to view its diff');
+  }
 }
 document.querySelectorAll('#viewer-toggle button').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (btn.dataset.viewer === viewerMode) return;
-    viewerMode = btn.dataset.viewer;
+    const v = btn.dataset.viewer;
+    if (v === 'diff') {
+      // Diff segment: show the open VI's side-by-side diff. Grayed out (and a no-op)
+      // unless the VI changed in this revision.
+      if (btn.classList.contains('is-disabled')) return;
+      const chg = openViRel ? changeMap[openViRel] : null;
+      if (!chg) return;
+      if (openView === 'diff' && currentDiffVi === openViRel) return;   // already showing it
+      openDiff(openViRel, chg.type, currentDiffRow || findRowByName(openViRel));
+      return;
+    }
+    // 1.0 / 2.0 — a snapshot sub-mode.
+    const leavingDiff = (openView === 'diff');
+    if (v === viewerMode && !leavingDiff) return;
+    viewerMode = v;
+    if (leavingDiff && openViRel) {
+      // Leaving the diff view: re-open this VI's snapshot in the chosen mode.
+      const row = currentDiffRow || findRowByName(openViRel);
+      if (row) { openVI(row); return; }   // openVI re-syncs the URL + toggle
+    }
     syncViewerToggle();
     syncUrl();
     // Re-render a plain snapshot in the new mode; a diff report is unaffected.
