@@ -46,6 +46,16 @@ $ProgressPreference    = 'SilentlyContinue'
 if (-not $ConfigPath) { $ConfigPath = Join-Path $WorkspaceRoot '.github\labview-ci.yml' }
 New-Item -ItemType Directory -Force -Path $ResultsDir | Out-Null
 
+# Tracks tools that were configured + attempted but could not run because the
+# selected container lacks the required tooling (e.g. the NI Unit Test Framework
+# toolkit is not installed). Serialized to <ResultsDir>\_tooling.json so
+# build-unittest-report.py can render the shared "container is missing this
+# dependency" banner on the report.
+$Script:ToolingIssues = @()
+function Add-ToolingIssue([string]$tool, [string]$name, [string]$kind, [string]$detail) {
+    $Script:ToolingIssues += [pscustomobject]@{ tool = $tool; name = $name; kind = $kind; detail = $detail }
+}
+
 # -- Resolve LabVIEW / LabVIEWCLI / g-cli (mirror run-vi-analyzer.ps1) ----------
 function Resolve-LabVIEWPath([string]$PreferredPath) {
     if ($PreferredPath -and (Test-Path $PreferredPath)) { return $PreferredPath }
@@ -320,6 +330,17 @@ function Invoke-UtfTests($tool, [int]$index) {
             } else {
                 Write-Host "  [utf] (no CLI session-log path found in output)"
             }
+            # Record that UTF could not run, so the report shows the shared
+            # "missing container tooling" banner. -350053 / "missing or bad files"
+            # / "required modules or toolkits" => the UTF toolkit is absent.
+            if (-not ($Script:ToolingIssues | Where-Object { $_.tool -eq 'utf' })) {
+                $missingTooling = ($cliOut -match '350053' -or $cliOut -match 'missing or bad files' -or $cliOut -match 'required modules or toolkits')
+                if ($missingTooling) {
+                    Add-ToolingIssue 'utf' 'NI Unit Test Framework' 'missing-tooling' 'The NI Unit Test Framework toolkit is not installed in this container, so the LabVIEW CLI RunUnitTests operation could not load (error -350053).'
+                } else {
+                    Add-ToolingIssue 'utf' 'NI Unit Test Framework' 'error' 'The RunUnitTests operation produced no JUnit output.'
+                }
+            }
         }
         $i++
     }
@@ -344,6 +365,12 @@ foreach ($t in $tools) {
 
 $xml = @(Get-ChildItem -Path $ResultsDir -Filter '*.xml' -File -ErrorAction SilentlyContinue)
 Write-Host "=== Unit Tests finished: wrote $($xml.Count) JUnit file(s) to $ResultsDir ==="
+# Persist any "container is missing this tooling" findings for the report builder.
+$toolingPath = Join-Path $ResultsDir '_tooling.json'
+if ($Script:ToolingIssues.Count -gt 0) {
+    (@{ missing = @($Script:ToolingIssues) } | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath $toolingPath -Encoding ascii
+    Write-Host "Recorded $($Script:ToolingIssues.Count) missing-tooling finding(s) -> $toolingPath"
+}
 # Always exit 0: pass/fail is derived from the JUnit content by
 # build-unittest-report.py (its summary.json drives the commit status), exactly
 # like the Mass Compile report. A runner-level error surfaces as a missing/empty

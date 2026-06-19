@@ -36,12 +36,14 @@ from __future__ import annotations
 
 import argparse
 import glob
+import html
 import json
 import os
 import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 
 # ── tool identity ────────────────────────────────────────────────────────────
@@ -300,6 +302,23 @@ def build_data(args) -> dict:
         platforms = [{"id": "windows", "url": "../results.json"}, {"id": "linux", "url": None}]
         snap_depth = "../../../"
 
+    # Optional marker written by run-unit-tests.ps1 when a configured tool could
+    # not run because the selected container lacks the required tooling. Drives
+    # the shared "missing container tooling" banner (see tooling_banner_html).
+    tooling = {}
+    res_dir = Path(args.results) if args.results else None
+    if res_dir and (res_dir / "_tooling.json").exists():
+        try:
+            tooling = json.loads((res_dir / "_tooling.json").read_text(encoding="utf-8-sig"))
+        except Exception:
+            tooling = {}
+    if not isinstance(tooling, dict):
+        tooling = {}
+    # PowerShell ConvertTo-Json may emit a single finding as an object rather than
+    # a 1-element array; normalize so the model always carries a list.
+    _miss = tooling.get("missing")
+    tooling["missing"] = [_miss] if isinstance(_miss, dict) else (_miss or [])
+
     pages_url = (args.pages_url or "").rstrip("/")
     return {
         "meta": {
@@ -324,10 +343,50 @@ def build_data(args) -> dict:
         "status_meta": STATUS_META,
         "platforms": platforms,
         "suites": suites,
+        "tooling": tooling,
     }
 
 
 # ── renderer ──────────────────────────────────────────────────────────────────
+def _esc(s) -> str:
+    return html.escape(str(s if s is not None else ""), quote=True)
+
+
+def tooling_banner_html(missing: list, configure_url: str) -> str:
+    """Render the site-wide "the selected container is missing this dependency"
+    banner from a list of {tool,name,kind,detail} entries.
+
+    A COMMON METAPHOR meant for every action's report: the runner writes
+    <results>/_tooling.json with a `missing` list when a configured tool could not
+    run for lack of container tooling, and the report renders this banner (in the
+    body, so it also shows inside the dashboard's iframe where the shared site
+    header self-suppresses) linking to the Configure Workers dialog.
+    """
+    if isinstance(missing, dict):
+        missing = [missing]
+    miss = [x for x in (missing or []) if isinstance(x, dict) and (x.get("kind") in (None, "", "missing-tooling"))]
+    if not miss:
+        return ""
+    names = ", ".join(_esc(x.get("name") or x.get("tool") or "") for x in miss if (x.get("name") or x.get("tool")))
+    detail = next((x.get("detail") for x in miss if x.get("detail")), "")
+    detail_html = f'<div class="lvci-needtool-d">{_esc(detail)}</div>' if detail else ""
+    cta = (f'<a class="lvci-needtool-cta" href="{_esc(configure_url)}" target="_top" rel="noopener">'
+           'Set up the container</a>') if configure_url else ""
+    return (
+        '<div class="lvci-needtool" role="alert">'
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'
+        '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+        '<div class="lvci-needtool-t"><strong>This activity could not run.</strong>'
+        'The selected container did not contain the dependencies needed to run this activity'
+        f'{(" (" + names + ")") if names else ""}. '
+        'Set up the container to add the required tooling, then re-run.'
+        f'{detail_html}</div>'
+        f'{cta}</div>'
+    )
+
+
 def render(data: dict) -> str:
     blob = json.dumps(data, ensure_ascii=False)
     blob = blob.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
@@ -343,9 +402,15 @@ def render(data: dict) -> str:
         "short": m.get("short", ""),
         "platform": m.get("platform", "windows"),
     }
+    dash = m.get("dash_url") or ""
+    repo = m.get("repo") or ""
+    cfg_url = (dash or "") + "configure.html" + ("?repo=" + quote(repo, safe="") if repo else "")
+    banner = tooling_banner_html((data.get("tooling") or {}).get("missing") or [], cfg_url)
+
     out = _TEMPLATE.replace("__UT_DATA_JSON__", blob)
     out = out.replace("__UT_HEADER_CFG__", json.dumps(hdr_cfg, ensure_ascii=False))
     out = out.replace("__LVCI_HEADER_SRC__", hdr_src)
+    out = out.replace("__UT_TOOLING_BANNER__", banner)
     return out
 
 
@@ -438,6 +503,15 @@ details[open]>summary .tw{transform:rotate(90deg)}
 .details{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre-wrap;word-break:break-word;max-height:280px;overflow:auto}
 .empty{color:var(--muted);text-align:center;padding:40px 0}
 .hidden{display:none!important}
+/* shared "container is missing this tooling" banner */
+.lvci-needtool{display:flex;align-items:flex-start;gap:12px;max-width:1040px;margin:16px auto 0;padding:13px 16px;background:rgba(187,128,9,.13);border:1px solid rgba(187,128,9,.45);border-left:4px solid #bb8009;border-radius:10px}
+.lvci-needtool svg{flex:0 0 auto;width:20px;height:20px;color:#bb8009;margin-top:1px}
+.lvci-needtool-t{flex:1 1 auto;font-size:.9em}
+.lvci-needtool-t strong{display:block;margin-bottom:2px}
+.lvci-needtool-d{color:var(--muted);font-size:.92em;margin-top:5px}
+.lvci-needtool-cta{flex:0 0 auto;align-self:center;font-size:.85em;font-weight:600;color:#fff;background:#bb8009;border-radius:7px;padding:8px 13px;text-decoration:none;white-space:nowrap}
+.lvci-needtool-cta:hover{background:#a17609}
+@media(max-width:560px){.lvci-needtool{flex-wrap:wrap}.lvci-needtool-cta{align-self:stretch;text-align:center}}
 /* snapshot drawer */
 #backdrop{position:fixed;inset:0;background:rgba(1,4,9,.5);opacity:0;pointer-events:none;transition:opacity .15s;z-index:40}
 #backdrop.show{opacity:1;pointer-events:auto}
@@ -452,6 +526,7 @@ details[open]>summary .tw{transform:rotate(90deg)}
 </style>
 </head>
 <body>
+__UT_TOOLING_BANNER__
 <div class="wrap">
   <h1>Unit Tests <span class="badge" id="statusbadge" style="display:none"></span>
     <span class="plat" id="plat-toggle"></span>
