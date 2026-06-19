@@ -110,9 +110,9 @@
       { id: "vi-tester", name: "VI Tester",
         conv: "VI Tester tests are <b>TestCase classes</b> (<code>.lvclass</code> inheriting from <code>TestCase</code>). The runner discovers and runs every TestCase within the locations below.",
         ph: "e.g. tests/  or  source/**/*.lvclass" },
-      { id: "utf",       name: "Unit Test Framework", soon: true,
-        conv: "NI Unit Test Framework uses <code>.lvtest</code> files, each targeting one VI. Headless execution support is coming soon.",
-        ph: "e.g. tests/" },
+      { id: "utf",       name: "Unit Test Framework",
+        conv: "NI Unit Test Framework tests are <code>.lvtest</code> files inside a project, each targeting one VI. Point the runner at the folder (or the <code>.lvproj</code>) that holds them; it runs every <code>.lvtest</code> in that project headlessly and reports pass/fail.",
+        ph: "e.g. tests/  or  source/Tests/MyTests.lvproj" },
     ];
     const DEFAULTS = () => TOOLS.reduce((o,t)=>(o[t.id]={enabled:false,locations:[]},o),{});
 

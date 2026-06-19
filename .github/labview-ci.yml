@@ -20,3 +20,22 @@ activities:
   - vi-analyzer
   - vidiff
   - snapshots
+  - unit-tests
+
+# Unit-test frameworks to run in CI. Read by run-unit-tests.ps1 (per-tool enabled +
+# locations) and written by the Unit Testing configurator page. The example project
+# ships NI Unit Test Framework (UTF) .lvtest files under "example/User-Defined Test/",
+# so UTF is enabled and pointed at that folder; the runner finds the .lvproj there and
+# executes its .lvtest cases headlessly, publishing one merged Unit Tests report.
+unitTests:
+  tools:
+    caraya:
+      enabled: false
+      locations: []
+    vi-tester:
+      enabled: false
+      locations: []
+    utf:
+      enabled: true
+      locations:
+        - "example/User-Defined Test/"

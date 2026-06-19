@@ -19,6 +19,8 @@ on:
       - '**.lvclass'
       - '**.lvproj'
       - '**.lvlib'
+      - '**.lvtest'
+      - '!.github/**'
   push:
     branches: [main]
     paths:
@@ -26,6 +28,8 @@ on:
       - '**.lvclass'
       - '**.lvproj'
       - '**.lvlib'
+      - '**.lvtest'
+      - '!.github/**'
   workflow_dispatch:
     inputs:
       commit_sha:

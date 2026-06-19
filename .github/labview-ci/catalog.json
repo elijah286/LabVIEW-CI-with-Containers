@@ -1,18 +1,20 @@
 {
   "schemaVersion": 1,
-  "version": "3.5.3",
+  "version": "3.6.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
       {
-        "version": "3.5.3",
+        "version": "3.6.0",
         "date": "2026-06-18",
-        "title": "VI Browser 2.0: the diagram canvas stays white in dark mode",
-        "summary": "The in-place 2.0 diagram viewing area now always uses a white canvas, even when the dashboard is in dark mode. LabVIEW block diagrams and front panels are drawn on white, so a dark backdrop made wires and labels harder to read and clashed with the rendered images. The page chrome around the viewer still follows the light/dark theme.",
+        "title": "Run NI Unit Test Framework tests in CI",
+        "summary": "The Unit Tests activity can now run NI Unit Test Framework (UTF) tests headlessly in the Windows worker, so a project's .lvtest tests report pass/fail straight to the dashboard's Unit Tests column. The worker image now installs the NI Unit Test Framework toolkit (next to the VI Analyzer support package), the canonical open-source NI 'UTF JUnit Report' library is bundled and driven through LabVIEWCLI to produce a JUnit report, and the example project's User-Defined Test .lvtest tests are wired up as a working reference. The Unit Testing configurator's NI Unit Test Framework tab is no longer 'coming soon' - point it at the folder or .lvproj that holds your .lvtest files and CI runs them.",
         "highlights": [
-          "The VI Browser 2.0 diagram canvas is always white - even in dark mode - matching how LabVIEW draws diagrams."
+          "Unit Tests now executes NI Unit Test Framework (.lvtest) tests headlessly and publishes their pass/fail to the dashboard.",
+          "The Windows worker image installs the NI Unit Test Framework toolkit so UTF tests can run in CI.",
+          "The Unit Testing configurator's NI Unit Test Framework tab is enabled - choose where your .lvtest tests live and CI runs them."
         ]
       },
       {
