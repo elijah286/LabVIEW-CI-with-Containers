@@ -1,0 +1,2 @@
+﻿Antidoc run started 2026-06-19T04:31:33.0865174+00:00
+ERROR: g-cli was not found in the worker image (searched the refreshed PATH, the registry PATH, and the common install locations). Antidoc runs through g-cli (wiresmith_technology_lib_g_cli), which installs as a dependency of the Antidoc CLI. Enable "Use Antidoc" in Configure so the Antidoc VIPC is baked into the worker image, and confirm the image has been rebuilt since.
