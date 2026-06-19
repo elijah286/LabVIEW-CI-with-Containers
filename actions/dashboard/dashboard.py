@@ -2061,8 +2061,12 @@ run_dialog = (r"""
       dispatchCells(cells, histStatus).then(function(res){
         if(cancel) cancel.disabled=false;
         if(res.ok && !res.err){
-          histStatus('\u2713 Queued '+res.ok+' run'+(res.ok>1?'s':'')+', oldest first \u2014 results appear on the dashboard as they finish. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
+          histStatus('\u2713 Queued '+res.ok+' run'+(res.ok>1?'s':'')+', oldest first \u2014 watch them fill in on the dashboard\u2026', 'ok');
           bfDismiss();   // the fresh-install nudge has served its purpose
+          // Close the dialog so the just-queued cells - already showing "Queued" on
+          // the table behind it - are revealed; the user asked to land on the
+          // dashboard after queuing. A brief pause lets the confirmation register.
+          setTimeout(cidashHistClose, 900);
         } else if(res.ok && res.err){
           if(go) go.disabled=false;
           histStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
