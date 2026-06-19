@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.10.3",
+  "version": "3.11.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.11.0",
+        "date": "2026-06-19",
+        "title": "VI Analyzer: choose which test configuration runs on which code, and re-run a single VI with a different configuration",
+        "summary": "A new VI Analyzer configuration dialog - reachable from a top-level 'VI Analyzer' menu and a Configure tab - lets you decide which LabVIEW .viancfg test settings run on which VIs. Pick a default configuration applied to every VI (the built-in full test suite, a committed .viancfg, or 'don't test by default'), then add per-folder and per-file rules that apply a specific .viancfg to a subset of your code or exclude it from analysis entirely (some VIs going untested is fine; first matching rule wins). With no configuration set the pipeline auto-uses the first .viancfg found in the repository, otherwise it runs the built-in suite. From a VI Analyzer report you can now also re-run just the VI you are looking at against a different configuration, without re-analyzing the whole revision. Settings are saved to config.viAnalyzer in .github/labview-ci.yml and honored by the VI Analyzer workflow (and the Reconfigure workflow) at run time.",
+        "highlights": [
+          "New VI Analyzer configuration dialog (top-level menu + Configure tab): map .viancfg test configurations to individual VIs and/or whole folders.",
+          "Set a per-repo default configuration, add per-folder/per-file rules, or exclude files from analysis entirely - the first matching rule wins.",
+          "When a .viancfg is present the pipeline defaults to it; with none, it runs the built-in full VI Analyzer test suite.",
+          "Re-run a single VI from its VI Analyzer report against a newly chosen configuration, without re-running the whole revision."
+        ]
+      },
       {
         "version": "3.10.3",
         "date": "2026-06-19",
