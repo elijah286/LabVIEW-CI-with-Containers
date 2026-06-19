@@ -100,6 +100,20 @@
         frame.hidden = true;
         err.hidden = false;
       }
+      // The report's deep link is already this page's URL (type/sha/src/… are all
+      // in the query string), so the header's Share button shares location.href as
+      // is. For printing, target the embedded report directly — it is same-origin
+      // (this Pages site) — so a printout is the report itself, not the chrome.
+      window.__lvciPrint = function () {
+        try {
+          if (frame && !frame.hidden && frame.contentWindow) {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+            return;
+          }
+        } catch (e) { /* fall through to printing the whole page */ }
+        try { window.print(); } catch (e) {}
+      };
     })();
   </script>
 </body>

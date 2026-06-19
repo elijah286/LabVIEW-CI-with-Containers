@@ -325,8 +325,16 @@ let currentSnapshot = null;      // { html, title } of the open plain snapshot (
 // VI Browser 2.0 sub-view: 'fp' = front panel (frames[0]), 'bd' = block diagram
 // (frames[1] + its nested case frames). Sticky across VIs; defaults to the front
 // panel so the in-place view opens on what the previous build already showed.
-let vb2Pane = 'fp';
+// Restored from ?pane= so a shared block-diagram link opens on the block diagram.
+let vb2Pane = (new URLSearchParams(location.search).get('pane') === 'bd') ? 'bd' : 'fp';
 let vb2Frames = null;            // frames of the current in-place render (so the FP/BD toggle re-renders without refetching)
+// Deep-link state: which VI is open and which face of it (its plain snapshot or
+// its side-by-side diff). buildShareUrl() reads these so the address bar — and the
+// header's Share button — always point at the exact view on screen.
+let openViRel = null;            // vi_rel of the open VI (null = nothing open)
+let openView = 'snapshot';       // 'snapshot' | 'diff'
+const INIT_VI = new URLSearchParams(location.search).get('vi') || '';
+const INIT_VIEW = (new URLSearchParams(location.search).get('view') === 'diff') ? 'diff' : 'snapshot';
 let json2Set = null;             // blobs that have a 2.0 JSON (from json-blobs.json); drives the live "2.0" glyph
 
 const ICON = {
@@ -437,11 +445,12 @@ async function loadCommits() {
     opt.textContent = `${c.short} — ${(c.message || '').slice(0, 40)}`;
     sel.appendChild(opt);
   }
-  sel.addEventListener('change', () => loadManifest(sel.value));
+  sel.addEventListener('change', () => { openViRel = null; openView = 'snapshot'; syncUrl(); loadManifest(sel.value); });
   const initSha = new URLSearchParams(window.location.search).get('sha');
   const startSha = (initSha && commitList.find(c => c.sha === initSha)) ? initSha : commitList[0].sha;
   sel.value = startSha;
-  loadManifest(startSha);
+  await loadManifest(startSha);
+  restoreOpenFromUrl();   // open the VI + view a shared link points at (runs once)
 }
 
 // Fetch (and cache) the manifest for any commit — used both for the active view and
@@ -1178,12 +1187,15 @@ function openVI(row) {
   currentDiffRow = row;
   currentDiffVi = null;
   activeHtml = row.dataset.html;
+  openViRel = row.dataset.name;          // deep-link state: this VI, its snapshot
+  openView = 'snapshot';
   // Snapshots are content-addressed and shared across commits, so the manifest's
   // `html` is relative to the vi-snapshots base (e.g. "by-blob/ab/<blob>.html").
   setDiffLink(row.dataset.name);
   document.getElementById('plat-toggle').style.display = 'none';
   currentSnapshot = { html: `${BASE}${row.dataset.html}`, title: row.dataset.name };
   openSnapshot(currentSnapshot.html, currentSnapshot.title);
+  syncUrl();
 }
 
 // Open a changed VI's side-by-side diff report (from the selected container), or
@@ -1193,6 +1205,8 @@ function openDiff(viRel, type, row) {
   currentDiffRow = row || null;
   currentDiffVi = viRel;
   activeHtml = row ? row.dataset.html : null;
+  openViRel = viRel;                     // deep-link state: this VI, its diff
+  openView = 'diff';
   setViewerModeNote('');
   setDiffLink(viRel);
   setPlatformToggle(viRel);
@@ -1203,6 +1217,7 @@ function openDiff(viRel, type, row) {
   } else {
     showDiffRun(viRel, type, 'norep');         // no report yet -> explain + offer to run VIDiff
   }
+  syncUrl();
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -1394,9 +1409,84 @@ function drRun(scope) {
   if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); drSaveToken(); } });
 })();
 
+// ─────────────────────────────────────────────────────────────────────
+// Deep linking — keep the address bar pointed at the open VI + view so any state
+// (a specific revision, a VI's snapshot, a VI's diff) is a shareable / printable
+// URL. The shared header's Share button copies buildShareUrl(); syncUrl() mirrors
+// the same state into the URL via replaceState as you navigate, and
+// restoreOpenFromUrl() reopens that state when a shared link is loaded.
+// ─────────────────────────────────────────────────────────────────────
+function buildShareUrl() {
+  const p = new URLSearchParams();
+  const sel = document.getElementById('commit-select');
+  const sha = sel && sel.value;
+  if (sha) p.set('sha', sha);
+  if (openViRel) {
+    p.set('vi', openViRel);
+    if (openView === 'diff') p.set('view', 'diff');
+  }
+  if (viewerMode === '2') p.set('viewer', '2');
+  if (vb2Pane === 'bd') p.set('pane', 'bd');
+  if (diffPlatform === 'linux') p.set('plat', 'linux');
+  if (changedOnly) p.set('changed', '1');
+  const qs = p.toString();
+  return location.origin + location.pathname + (qs ? ('?' + qs) : '');
+}
+function syncUrl() {
+  try { history.replaceState(null, '', buildShareUrl()); } catch (e) { /* non-fatal */ }
+}
+
+// Locate a rendered tree row by its VI path (vi_rel).
+function findRowByName(viRel) {
+  const rows = document.querySelectorAll('.tree-row.file');
+  for (const r of rows) if (r.dataset && r.dataset.name === viRel) return r;
+  return null;
+}
+
+// On first load, open the VI + view the URL points at, so a shared link lands
+// exactly where the sender was. Clears the "changed only" filter and expands the
+// tree if needed so the target row exists. Runs once.
+let didRestoreOpen = false;
+function restoreOpenFromUrl() {
+  if (didRestoreOpen) return;
+  didRestoreOpen = true;
+  if (!INIT_VI) return;
+  let row = findRowByName(INIT_VI);
+  if (!row) {
+    if (changedOnly) {
+      changedOnly = false;
+      const box = document.getElementById('changed-only'); if (box) box.checked = false;
+    }
+    if (treeRoot) allFolderPaths(treeRoot).forEach(dir => expanded.add(dir));
+    renderList(document.getElementById('search').value);
+    row = findRowByName(INIT_VI);
+  }
+  if (!row) return;   // VI not in this revision — leave the default view
+  if (INIT_VIEW === 'diff' && changeMap[INIT_VI]) openDiff(INIT_VI, changeMap[INIT_VI].type, row);
+  else openVI(row);
+  try { row.scrollIntoView({ block: 'center' }); } catch (e) {}
+}
+
+// The shared header reads these optional hooks: __lvciShareUrl for the canonical
+// link to copy / share, __lvciPrint to print just the open snapshot/diff (its
+// iframe is same-origin, so we can print only its content — not the chrome).
+window.__lvciShareUrl = function () { return buildShareUrl(); };
+window.__lvciPrint = function () {
+  try {
+    const frame = document.getElementById('vi-frame');
+    if (frame && frame.style.display !== 'none' && frame.contentWindow) {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      return;
+    }
+  } catch (e) { /* cross-origin or no frame — fall through */ }
+  try { window.print(); } catch (e) {}
+};
+
 document.getElementById('search').addEventListener('input', e => renderList(e.target.value));
 document.getElementById('changed-only').addEventListener('change', e => {
   changedOnly = e.target.checked;
+  syncUrl();
   renderList(document.getElementById('search').value);
 });
 document.getElementById('expand-all').addEventListener('click', () => {
@@ -1412,11 +1502,7 @@ document.querySelectorAll('#plat-toggle button').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.disabled || btn.dataset.plat === diffPlatform) return;
     diffPlatform = btn.dataset.plat;
-    try {
-      const u = new URL(location.href);
-      u.searchParams.set('plat', diffPlatform);
-      history.replaceState(null, '', u);
-    } catch (e) { /* non-fatal */ }
+    syncUrl();
     if (currentDiffVi) openDiff(currentDiffVi, (changeMap[currentDiffVi] || {}).type || 'modified', currentDiffRow);
   });
 });
@@ -1440,11 +1526,7 @@ document.querySelectorAll('#viewer-toggle button').forEach(btn => {
     if (btn.dataset.viewer === viewerMode) return;
     viewerMode = btn.dataset.viewer;
     syncViewerToggle();
-    try {
-      const u = new URL(location.href);
-      u.searchParams.set('viewer', viewerMode);
-      history.replaceState(null, '', u);
-    } catch (e) { /* non-fatal */ }
+    syncUrl();
     // Re-render a plain snapshot in the new mode; a diff report is unaffected.
     if (currentSnapshot && !currentDiffVi) openSnapshot(currentSnapshot.html, currentSnapshot.title);
     else setViewerModeNote('');
@@ -1460,6 +1542,7 @@ document.querySelectorAll('#pane-toggle button').forEach(btn => {
     vb2Pane = btn.dataset.pane;
     syncPaneToggle();
     renderActivePane();
+    syncUrl();
   });
 });
 

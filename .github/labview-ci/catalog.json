@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.4.40",
+  "version": "3.4.41",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.4.41",
+        "date": "2026-06-18",
+        "title": "Deep link and share any report - a Share button on snapshots, diffs, Mass Compile, VI Analyzer and more",
+        "summary": "Every report view is now a shareable, printable link. The VI Browser mirrors the open VI and whether you are viewing its snapshot or its side-by-side diff (along with the revision, container platform, 1.0/2.0 view and changed-only filter) into the address bar, and reopens that exact view when someone follows the link - so sending a colleague a specific snapshot or diff lands them on it instead of the default page. A new Share button in the shared header (and the mobile menu) copies the deep link, opens it in a new tab, prints just the report content, or hands off to the device native share sheet. The framed Mass Compile / VI Analyzer / Unit Tests / Antidoc reports were already deep-linkable and now carry the same Share and Print affordance. Printing drops the page chrome so the output is the report itself.",
+        "highlights": [
+          "VI Browser deep links: the open VI plus snapshot/diff view (and revision, platform, 1.0/2.0, changed-only) are encoded in the URL and restored on load.",
+          "Share button in the header and mobile menu: copy link, open in a new tab, native share, and print.",
+          "Print yields just the report or snapshot - the header chrome is hidden when printing.",
+          "Covers snapshots, diffs, and the framed Mass Compile / VI Analyzer / Unit Tests / Antidoc reports."
+        ]
+      },
       {
         "version": "3.4.40",
         "date": "2026-06-18",
