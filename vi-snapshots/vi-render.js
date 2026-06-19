@@ -137,7 +137,11 @@
     host.style.width = (group.rect.Width || 0) + 'px';
     host.style.height = (group.rect.Height || 0) + 'px';
 
-    // Each case gets its own absolutely-stacked layer; only one is shown.
+    // Each case gets its own absolutely-stacked layer; only one is shown. The
+    // host is NOT clipped (overflow:visible): each case image is already sized to
+    // the slot (100% x 100%), and leaving the host unclipped keeps every
+    // structure's selector tab visible — it sits just ABOVE the frame, and nested
+    // structures' tabs would otherwise be clipped by an ancestor structure.
     const caseLayers = group.cases.map((ci) => {
       const cl = el('div', 'lvr-case', host);
       paintFrame(frames, ci, cl, stageState);
@@ -312,7 +316,7 @@
 .lvr-stage{position:absolute;top:0;left:0;transform-origin:0 0}
 .lvr-layer{position:absolute;top:0;left:0}
 .lvr-img{display:block;max-width:none;-webkit-user-drag:none;user-select:none}
-.lvr-struct{position:absolute;outline:1px dashed rgba(31,111,235,.35);outline-offset:0;overflow:hidden}
+.lvr-struct{position:absolute;outline:1px dashed rgba(31,111,235,.35);outline-offset:0}
 .lvr-case{position:absolute;top:0;left:0;width:100%;height:100%}
 .lvr-case .lvr-img{width:100%;height:100%}
 .lvr-reset{position:absolute;top:10px;right:10px;z-index:6;border:1px solid #d0d7de;
