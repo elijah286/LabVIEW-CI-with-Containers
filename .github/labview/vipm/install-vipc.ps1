@@ -75,16 +75,59 @@ if ($vipcFiles.Count -eq 0) {
     exit 0
 }
 
+# Native VIPM commands below emit to stderr on normal progress; do not let that
+# abort the script - we drive control flow off $LASTEXITCODE instead.
+$ErrorActionPreference = 'Continue'
+
+# Diagnostics: record which VIPM CLI we have. VIPM 2024+ ships a rewritten CLI
+# where the legacy 'apply_vipc' verb was replaced by 'vipm install <file.vipc>';
+# older VIPM builds use 'apply_vipc'. We try the new syntax first and fall back
+# to the legacy one, so this works across VIPM generations.
+& $VipmExe version 2>&1 | Out-Host
+
+# Optional VIPM Pro activation. The modern VIPM CLI requires VIPM Pro activation
+# for headless/CI use (see https://docs.vipm.io/latest/cli/github-actions/).
+# Supply credentials via the VIPM_SERIAL_NUMBER / VIPM_FULL_NAME / VIPM_EMAIL
+# build secrets to enable it. Best-effort: a failure here does not stop the build.
+if ($Env:VIPM_SERIAL_NUMBER) {
+    Write-Host 'Activating VIPM Pro from VIPM_SERIAL_NUMBER ...'
+    & $VipmExe activate `
+        --serial-number $Env:VIPM_SERIAL_NUMBER `
+        --name          $Env:VIPM_FULL_NAME `
+        --email         $Env:VIPM_EMAIL 2>&1 | Out-Host
+} else {
+    Write-Host 'VIPM_SERIAL_NUMBER not set; skipping VIPM Pro activation (the modern VIPM CLI may require it for headless installs).'
+}
+
+# Refresh repository metadata (new CLI verb; harmless/ignored if unsupported).
+& $VipmExe package-list-refresh 2>&1 | Out-Host
+
+$applyFailed = $false
 foreach ($vipc in $vipcFiles) {
     Write-Host "Applying VIPC: $($vipc.Name)"
-    & $VipmExe apply_vipc `
-        -vipc_file          $vipc.FullName `
-        -labview_version    $LabVIEWVersion `
-        -accept_agreements  true
+    # New VIPM CLI (2024+): 'vipm install <file.vipc> --labview-version <year>'.
+    & $VipmExe install $vipc.FullName --labview-version $LabVIEWVersion 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "VIPM failed to apply '$($vipc.Name)' - exit code $LASTEXITCODE"
-        exit 1
+        Write-Host "  modern 'install' verb failed (exit $LASTEXITCODE); trying legacy 'apply_vipc' ..."
+        & $VipmExe apply_vipc `
+            -vipc_file          $vipc.FullName `
+            -labview_version    $LabVIEWVersion `
+            -accept_agreements  true 2>&1 | Out-Host
     }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "VIPM could not apply '$($vipc.Name)' (exit $LASTEXITCODE)."
+        $applyFailed = $true
+    }
+}
+
+if ($applyFailed) {
+    Write-Warning ('One or more VIPC files could not be applied. VIPM-distributed add-ons ' +
+        '(Antidoc, Caraya, VI Tester, and the UTF JUnit Report library that the RunUnitTests ' +
+        'CLI operation links against) may be absent. The modern VIPM CLI requires VIPM Pro ' +
+        'activation for headless use - set the VIPM_SERIAL_NUMBER / VIPM_FULL_NAME / VIPM_EMAIL ' +
+        'build secrets to enable it. Core image (LabVIEW + VI Analyzer + UTF) is unaffected.')
+    # Best-effort: never fail the whole image build over optional VIPM add-ons.
+    exit 0
 }
 
 Write-Host 'All VIPC files applied successfully.'

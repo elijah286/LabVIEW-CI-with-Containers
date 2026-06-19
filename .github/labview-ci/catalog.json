@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.10.1",
+  "version": "3.10.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.10.2",
+        "date": "2026-06-19",
+        "title": "Headless unit tests: stop the worker build from failing on the new VIPM command-line interface",
+        "summary": "The previous release installed VIPM from the NI Package Manager feed, but that build of VIPM ships a rewritten command-line interface in which the old 'apply_vipc' command no longer exists, so applying the package configuration failed and aborted the whole worker image build. The worker now drives VIPM through its current commands (it tries 'vipm install <configuration> --labview-version <year>' and falls back to the legacy command for older VIPM), refreshes the package list first, and treats a failed apply as a non-fatal warning so the core image (LabVIEW, VI Analyzer, Unit Test Framework toolkit) always builds. It can also activate VIPM Pro when VIPM_SERIAL_NUMBER / VIPM_FULL_NAME / VIPM_EMAIL build secrets are provided, which the modern VIPM interface requires for unattended installs.",
+        "highlights": [
+          "The worker now uses VIPM's current 'install' command (with a fallback to the legacy 'apply_vipc') instead of a command that the new VIPM build no longer recognizes.",
+          "A VIPM apply failure is now a non-fatal warning, so the core worker image (LabVIEW, VI Analyzer, Unit Test Framework toolkit) always builds.",
+          "Supplying VIPM_SERIAL_NUMBER / VIPM_FULL_NAME / VIPM_EMAIL build secrets activates VIPM Pro, which the modern VIPM command-line interface needs for headless package installs."
+        ]
+      },
       {
         "version": "3.10.1",
         "date": "2026-06-19",
