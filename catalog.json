@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.6.3",
+  "version": "3.6.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.6.4",
+        "date": "2026-06-18",
+        "title": "Update now applies straight to your repository - no pull request to merge",
+        "summary": "Clicking Update now used to build the update, push a branch, and open a pull request for you to merge - but on repositories that keep GitHub's secure default (Actions can't create pull requests) the run finished green with no PR, leaving the update stuck on a manual step. The Apply LabVIEW CI update workflow now commits the new version straight to your default branch using the built-in token, so the dashboard rebuilds and the badge turns green with no pull request to open, approve, or merge. A protected default branch still falls back to a pull request with auto-merge enabled. The What's New page tracks Apply -> Publish -> Done and only asks for a one-time token when a release changes workflow files the built-in token can't push.",
+        "highlights": [
+          "Update now commits the new version straight to your default branch - no pull request to open, approve, or merge.",
+          "Uses only the built-in token's Contents permission, so it no longer depends on the repo allowing GitHub Actions to create pull requests (the secure default that used to leave a finished update with no PR).",
+          "A protected default branch falls back to a pull request with auto-merge; the tracker shows Apply -> Publish -> Done and only prompts for a one-time token when a workflow-file-only change genuinely needs it."
+        ]
+      },
       {
         "version": "3.6.3",
         "date": "2026-06-19",
