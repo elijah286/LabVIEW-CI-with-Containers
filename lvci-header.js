@@ -1289,6 +1289,7 @@
   // auto-refresh exactly once when an in-flight rebuild finishes.
   var REBUILD_ON = (ctx === 'dashboard');
   var buildWas = false;
+  var buildState = { active: false, url: '' };
 
   // Re-point the About menu entries at the (possibly relocated) source site once
   // loadVersion has refined srcRepo — see aboutUrl(). Keeps href + new-tab target
@@ -1382,13 +1383,20 @@
   function renderRebuild(run) {
     var card = document.getElementById('lvci-rebuild');
     if (!card) return;
-    if (!run) { card.classList.remove('show'); return; }
+    if (!run) {
+      card.classList.remove('show');
+      if (buildState.active) { buildState = { active: false, url: '' }; renderBadge(); }
+      return;
+    }
+    var url = run.html_url || ('https://github.com/' + repo + '/actions');
     var a = card.querySelector('a');
     if (a) {
-      a.href = run.html_url || ('https://github.com/' + repo + '/actions');
+      a.href = url;
       a.textContent = (run.name || 'the build workflow') + ' \u2197';
     }
+    buildState = { active: true, url: url };
     card.classList.add('show');
+    renderBadge();
   }
   var RELOAD_KEY = 'lvci_rebuild_reload';
   function anyModalOpen() {
@@ -1414,10 +1422,11 @@
   // ── Tooling-upgrade detection (consumer repos) ─────────────────────────
   // Refresh this repo's committed (HEAD) catalog version (throttled). A value
   // ahead of the deployed build means an update PR was merged and is deploying
-  // right now. Private/thin repos without a vendored catalog simply 404 here and
-  // fall back to the apply-tooling-update run check + the optimistic local flag.
+  // right now. On the source repo it also names the version currently being
+  // compiled by dashboard-pages.yml. Private/thin repos without a vendored
+  // catalog simply 404 here and fall back to the run check + optimistic flags.
   function refreshHeadCatalog() {
-    if (!isConsumer || !repo) return Promise.resolve();
+    if (!repo) return Promise.resolve();
     if (Date.now() - headVAt < 30000) return Promise.resolve();        // at most ~every 30s
     headVAt = Date.now();
     return fetch('https://raw.githubusercontent.com/' + repo + '/HEAD/.github/labview-ci/catalog.json', { cache: 'no-cache' })
@@ -1496,7 +1505,7 @@
         // committed catalog, then decide whether a real update is mid-flight (so
         // the menu links to it instead of offering to start another).
         lastAct = act;
-        refreshHeadCatalog().then(resolveUpgrade);
+        refreshHeadCatalog().then(function () { resolveUpgrade(); if (buildState.active) renderBadge(); });
       }).catch(function () { /* network blip: keep prior badge state */ });
   }
   function startActivity() {
@@ -1524,13 +1533,16 @@
   function renderBadge() {
     var upd = updGet();
     var localUpdating = !!(upd && (!verState.v || cmpVer(verState.v, upd.v) < 0));
+    var buildTo = buildState.active ? (headV || verState.to || verState.v || '') : '';
     // A real upgrade is in flight when the server says so (apply-tooling-update
     // running, or a merged update deploying) OR this browser optimistically
-    // flagged one. Either way: show progress + link to it, never offer re-start.
-    var updating = upState.active || localUpdating;
+    // flagged one. A page rebuild also shows progress so the menu doesn't look
+    // like the dashboard has already reached the version currently compiling.
+    var updating = upState.active || localUpdating || !!buildTo;
     var upTo = upState.active ? (upState.to || (upd && upd.v) || verState.to || '')
-                              : (upd ? upd.v : '');
-    var upUrl = upState.active ? upState.url : (repo ? ('https://github.com/' + repo + '/pulls') : '');
+                              : (buildTo || (upd ? upd.v : ''));
+    var upUrl = upState.active ? upState.url
+              : (buildState.active ? buildState.url : (repo ? ('https://github.com/' + repo + '/pulls') : ''));
     var behind = !updating && verState.behind;
     var hasUpdate = updating || behind;
 
