@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.6.1",
+  "version": "3.6.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.6.2",
+        "date": "2026-06-19",
+        "title": "Unit tests: the worker image now actually installs the NI Unit Test Framework",
+        "summary": "The previous release added headless NI Unit Test Framework (UTF) test execution but the worker image discovered the UTF package by searching the NI feed for the words \"unit test framework\" - and the real package is named ni-utf-labview-support, which that search never matched, so UTF was silently absent and the runner reported no tests. The image now pins ni-utf-labview-support by name - exactly the way the VI Analyzer support package is pinned - so UTF is installed every build, with feed discovery kept only as a fallback and a UTF_PACKAGE build-arg to override the name for other feeds. No configuration or report format changed; existing repositories just get a worker that can run their .lvtest files.",
+        "highlights": [
+          "The worker image installs the NI Unit Test Framework by its pinned package name (ni-utf-labview-support) instead of relying on a feed name-search that never matched it.",
+          "UTF install mirrors the VI Analyzer support-package install; feed discovery remains a fallback and a UTF_PACKAGE build-arg overrides the name for other LabVIEW feeds.",
+          "The step is still best-effort: if UTF cannot be installed the build emits a warning and the unit-test runner degrades gracefully rather than failing."
+        ]
+      },
       {
         "version": "3.6.1",
         "date": "2026-06-18",
