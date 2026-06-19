@@ -1,0 +1,10 @@
+{
+  "platform": "windows",
+  "files": [
+    {
+      "file": "example/User-Defined Test/User-Defined Test Advanced.vi",
+      "type": "added",
+      "report": "example-User-Defined_Test-User-Defined_Test_Advanced.vi/index.html"
+    }
+  ]
+}
