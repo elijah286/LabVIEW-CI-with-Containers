@@ -55,6 +55,12 @@
         "via": "labview-ci.Dockerfile installs it directly (nipkg); not a VIPM package."
       },
       {
+        "what": "NI Unit Test Framework (UTF) Toolkit",
+        "package": "(discovered from the NI feed by name match; override with the UTF_PACKAGE build-arg)",
+        "kind": "nipkg",
+        "via": "labview-ci.Dockerfile installs it directly (nipkg), mirroring the VI Analyzer support package. UTF is an NI product (not on VIPM), so it comes from the NI Package Manager feed, not ci-tooling.vipc. The headless runner is the Apache-2.0 'UTF JUnit Report' library vendored at .github/labview/utf-junit/, driven by run-unit-tests.ps1 via LabVIEWCLI RunVI."
+      },
+      {
         "what": "OpenG libraries (oglib_*) + G Image",
         "package": "oglib_file, oglib_array, oglib_error, oglib_lvdata, oglib_string, oglib_appcontrol, dataflow_g_lib_g_image",
         "kind": "vipc",
@@ -65,13 +71,6 @@
 
   "todo": {
     "comment": "Items the user requested that need a non-VIPM install path. Tracked here rather than silently dropped.",
-    "items": [
-      {
-        "what": "NI Unit Test Framework (UTF) Toolkit",
-        "kind": "nipkg",
-        "status": "needs-package-name",
-        "note": "UTF is an NI product (not on VIPM). Baking it in needs the correct NI Package Manager package name for the 2026 feed and a best-effort nipkg install block in labview-ci.Dockerfile (mirroring the VI Analyzer support package). Deferred here to avoid editing the Dockerfile while the CI-image refactor is in flight; add the nipkg + name once verified."
-      }
-    ]
+    "items": []
   }
 }
