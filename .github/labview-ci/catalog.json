@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.22.0",
+  "version": "3.23.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.23.0",
+        "date": "2026-06-20",
+        "title": "Settings and Help menus now appear on the configuration pages too",
+        "summary": "The configuration pages -- Configure Workers, VI Analyzer, Unit Testing, Apply to New Repo, What's New, and About -- now carry the same top-bar Settings and Help menus as the dashboard, instead of dropping back to a bare header with only a Dashboard / VI Browser link. You can now jump straight between the configuration pages from any of them, and the menu for the section you are on highlights, so it is always clear where you are in the tool. This is a navigation-consistency change only: the contents and behavior of each page are unchanged.",
+        "highlights": [
+          "Configure Workers, VI Analyzer, and Unit Testing are reachable from the Settings menu on every page, not just the dashboard.",
+          "The Settings (or Help) menu highlights as the active section while you are on one of its pages, so you always know where you are.",
+          "Navigation only -- no change to what any configuration page does."
+        ]
+      },
       {
         "version": "3.22.0",
         "date": "2026-06-20",

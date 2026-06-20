@@ -136,15 +136,19 @@
     '.lvci-navgrp{position:relative;display:inline-flex;align-items:center}',
     '.lvci-navgrp-btn{display:inline-flex;align-items:center;gap:5px;color:#8b949e;background:transparent;border:0;font:inherit;font-size:13.5px;font-weight:500;padding:6px 10px;border-radius:7px;white-space:nowrap;cursor:pointer}',
     '.lvci-navgrp-btn:hover,.lvci-navgrp-btn.open{color:#e6edf3;background:rgba(177,186,196,.12)}',
+    // Active "you are here" state for the grouped trigger (e.g. Settings while on a config page).
+    '.lvci-navgrp-btn.on{color:#e6edf3;background:rgba(177,186,196,.16)}',
     '.lvci-navgrp-chev{display:inline-flex}',
     '.lvci-navgrp-chev svg{width:10px;height:10px;transition:transform .15s}',
     '.lvci-navgrp-btn.open .lvci-navgrp-chev svg{transform:rotate(180deg)}',
     '.lvci-navgrp-menu{left:0;right:auto}',
-    '@media(prefers-color-scheme:light){.lvci-navgrp-btn{color:#57606a}.lvci-navgrp-btn:hover,.lvci-navgrp-btn.open{color:#1f2328;background:rgba(80,90,100,.10)}}',
+    '@media(prefers-color-scheme:light){.lvci-navgrp-btn{color:#57606a}.lvci-navgrp-btn:hover,.lvci-navgrp-btn.open{color:#1f2328;background:rgba(80,90,100,.10)}.lvci-navgrp-btn.on{color:#1f2328;background:rgba(80,90,100,.14)}}',
     ':root[data-lvci-theme=light] .lvci-navgrp-btn{color:#57606a}',
     ':root[data-lvci-theme=light] .lvci-navgrp-btn:hover,:root[data-lvci-theme=light] .lvci-navgrp-btn.open{color:#1f2328;background:rgba(80,90,100,.10)}',
+    ':root[data-lvci-theme=light] .lvci-navgrp-btn.on{color:#1f2328;background:rgba(80,90,100,.14)}',
     ':root[data-lvci-theme=dark] .lvci-navgrp-btn{color:#8b949e}',
     ':root[data-lvci-theme=dark] .lvci-navgrp-btn:hover,:root[data-lvci-theme=dark] .lvci-navgrp-btn.open{color:#e6edf3;background:rgba(177,186,196,.12)}',
+    ':root[data-lvci-theme=dark] .lvci-navgrp-btn.on{color:#e6edf3;background:rgba(177,186,196,.16)}',
     // Actions cluster (right)
     '.lvci-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}',
     '.lvci-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;line-height:1;cursor:pointer;',
@@ -539,13 +543,14 @@
     'masscompile-report': 'dashboard',
     'unit-tests-report': 'dashboard',
     'antidoc-report': 'dashboard',
-    'unit-tests-config': 'dashboard',
+    'unit-tests-config': 'settings',
     'worker-manifest': 'dashboard',
     'report-viewer': 'dashboard',
-    'configure': 'dashboard',
-    'integrate': 'dashboard',
-    'whats-new': 'dashboard',
-    'faq': 'dashboard',
+    'configure': 'settings',
+    'vianalyzer': 'settings',
+    'integrate': '',
+    'whats-new': '',
+    'faq': 'help',
     'clients': 'clients'
   };
 
@@ -623,6 +628,16 @@
     return (A[ctx] || []).filter(Boolean);
   }
   function buildSecondaryActions() {
+    // The per-repo configuration + Help entries, shared by every primary-chrome
+    // context so the Settings / Help nav is consistent across pages (incl. the
+    // config pages themselves, where the current section also highlights).
+    var cfgMenu = [
+      { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
+      { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
+      { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
+      { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
+      { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
+    ];
     var A = {
       'dashboard': [
         { label: 'Populate history', svg: ICON.history, kind: 'runhistory' },
@@ -640,10 +655,12 @@
         { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'report-viewer': [],
-      'configure': [],
-      'integrate': [],
-      'whats-new': [],
-      'faq': []
+      'configure': cfgMenu,
+      'vianalyzer': cfgMenu,
+      'unit-tests-config': cfgMenu,
+      'integrate': cfgMenu,
+      'whats-new': cfgMenu,
+      'faq': cfgMenu
     };
     return (A[ctx] || []).filter(Boolean);
   }
@@ -836,12 +853,13 @@
   // Grouped top-nav dropdown (Settings / Help): a nav-styled trigger + a standard
   // dropdown menu of the given secondary actions. Desktop only — the nav is hidden
   // on mobile, where these same items stay in the hamburger menu.
-  function makeNavDropdown(label, items) {
+  function makeNavDropdown(label, items, active) {
     var dd = document.createElement('div');
     dd.className = 'lvci-navgrp';
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'lvci-navgrp-btn';
+    if (active) { btn.classList.add('on'); btn.setAttribute('aria-current', 'page'); }
     btn.setAttribute('aria-haspopup', 'true');
     btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = esc(label) + '<span class="lvci-navgrp-chev" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 6l4 4 4-4z"/></svg></span>';
@@ -1214,8 +1232,8 @@
     var settingsItems = secActions.filter(function (a) { return SETTINGS_KINDS[a.kind]; });
     var helpItems = secActions.filter(function (a) { return a.about || a.source; });
     var moreItems = secActions.filter(function (a) { return !SETTINGS_KINDS[a.kind] && !a.about && !a.source; });
-    if (settingsItems.length) nav.appendChild(makeNavDropdown('Settings', settingsItems));
-    if (helpItems.length) nav.appendChild(makeNavDropdown('Help', helpItems));
+    if (settingsItems.length) nav.appendChild(makeNavDropdown('Settings', settingsItems, activeKey === 'settings'));
+    if (helpItems.length) nav.appendChild(makeNavDropdown('Help', helpItems, activeKey === 'help'));
     {
       var dropdown = document.createElement('div');
       dropdown.className = 'lvci-dropdown';
