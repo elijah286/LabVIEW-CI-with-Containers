@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.23.1",
+  "version": "3.24.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.24.0",
+        "date": "2026-06-20",
+        "title": "Switch between a revision's reports without leaving the page",
+        "summary": "When you open a CI report for a revision -- Mass Compile, VI Analyzer, Unit Tests, or Antidoc -- the context bar now has an Activity picker beside the revision picker. It jumps straight to another report for the SAME revision (for example from Mass Compile to VI Analyzer) without going back to the dashboard to hunt for the right cell. Report types that were not produced for the revision are shown greyed out, so the picker never lands on a missing report. This is the first step toward a single unified explorer, where the revision, the activity, and (later) the specific VI are all chosen from one consistent place.",
+        "highlights": [
+          "A new Activity picker in the report context bar switches between a revision's reports (Mass Compile / VI Analyzer / Unit Tests / Antidoc) in place.",
+          "Report types that do not exist for the current revision are shown disabled, so the picker never lands on a missing report.",
+          "It matches the revision picker and sits beside it, extending the same consistent context bar to switching activities."
+        ]
+      },
       {
         "version": "3.23.1",
         "date": "2026-06-20",

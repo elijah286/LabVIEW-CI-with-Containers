@@ -590,6 +590,10 @@
   };
   var DOC = DOCTYPES[ctx] || null;   // non-null only on a per-revision report
 
+  // Order the per-revision activities appear in the context-bar Activity picker
+  // (the report half of the unified Activity switcher; per-VI lenses join later).
+  var LENS_ORDER = ['masscompile-report', 'vi-analyzer-report', 'unit-tests-report', 'antidoc-report'];
+
   // ── Context actions (surfaced on the right; collapse into the mobile menu).
   //    Each action: {label, kind|href, primary|accent, newTab}. `kind` triggers
   //    behavior owned by this header (configure/integrate modal-or-navigate,
@@ -948,6 +952,61 @@
     sel._lvciSync = syncSteps; syncSteps();
     wrap.appendChild(lbl); wrap.appendChild(prev); wrap.appendChild(sel); wrap.appendChild(next);
     return { wrap: wrap, sel: sel };
+  }
+
+  // Activity picker (per-revision reports) — the report half of the unified
+  // Activity switcher: while viewing one of a revision's reports, jump to another
+  // report for the SAME revision in place (Mass Compile -> VI Analyzer, …) instead
+  // of returning to the dashboard. Mirrors the revision picker (a labelled <select>
+  // in the context bar) and reuses its summary.json availability probe, so a report
+  // that was not produced for this revision is shown disabled rather than 404ing.
+  function lensDest(key) {
+    var d = DOCTYPES[key]; if (!d || !cfg.sha) return base + '/';
+    var bare = base + '/' + d.prefix + '/' + cfg.sha + '/index.html';
+    if (cfg.embedded && cfg.framedSrc) {
+      var title = d.label + ' \u00b7 ' + cfg.sha.slice(0, 7);
+      return base + '/report/index.html?type=' + encodeURIComponent(key)
+           + '&sha=' + encodeURIComponent(cfg.sha)
+           + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
+           + '&src=' + encodeURIComponent(bare)
+           + '&title=' + encodeURIComponent(title);
+    }
+    return bare;
+  }
+  function makeLensPicker() {
+    var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-lens-ctx';
+    var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Activity';
+    var sel = document.createElement('select');
+    sel.setAttribute('aria-label', 'Switch to another report for this revision');
+    LENS_ORDER.forEach(function (key) {
+      var d = DOCTYPES[key]; if (!d) return;
+      var o = document.createElement('option'); o.value = key; o.textContent = d.label;
+      if (key === ctx) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.value = ctx;
+    sel.addEventListener('change', function () {
+      var key = sel.value;
+      if (key && key !== ctx) window.location.href = lensDest(key);
+    });
+    wrap.appendChild(lbl); wrap.appendChild(sel);
+    // Grey out report types with no report for THIS revision (HEAD-probe
+    // <prefix>/<sha>/summary.json, the same signal the revision picker uses).
+    if (cfg.sha) {
+      LENS_ORDER.forEach(function (key) {
+        if (key === ctx) return;
+        var d = DOCTYPES[key]; if (!d) return;
+        fetch(base + '/' + d.prefix + '/' + cfg.sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
+          .then(function (r) { if (!r.ok) disableOpt(key, d); })
+          .catch(function () { disableOpt(key, d); });
+      });
+    }
+    function disableOpt(key, d) {
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === key) { sel.options[i].disabled = true; sel.options[i].textContent = d.label + ' \u2014 none yet'; }
+      }
+    }
+    return { wrap: wrap };
   }
   function optionLabel(c) {
     var msg = (c.message || '').split('\n')[0];
@@ -1392,7 +1451,7 @@
     // Persistent context bar — the revision selector for per-revision reports,
     // in one consistent place under the header (only built when there's a revision).
     var ctxbar = null;
-    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard') { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); }
+    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard') { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (DOC) ctxbar.appendChild(makeLensPicker().wrap); }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
