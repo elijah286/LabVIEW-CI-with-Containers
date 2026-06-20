@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.17.0",
+  "version": "3.18.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.18.0",
+        "date": "2026-06-19",
+        "title": "Reports get a persistent revision bar with previous / next steppers",
+        "summary": "On a per-revision report (Mass Compile, VI Analyzer, Unit Tests, Antidoc) the revision selector now lives in a dedicated context bar directly under the header instead of being crammed into the header actions. The bar adds previous / next steppers so you can walk to the newer or older revision of the same report with one click, and it sits in the same place for every report type. This is the first step toward one consistent revision bar across the whole tool. Display-only; the selector still opens the same report for the chosen revision.",
+        "highlights": [
+          "The report revision selector moves into a persistent context bar under the header, in one consistent place.",
+          "New previous / next steppers walk to the newer or older revision of the same report in one click (disabled at the ends).",
+          "The header is less cramped, and the revision bar is the foundation for a consistent revision context across all pages."
+        ]
+      },
       {
         "version": "3.17.0",
         "date": "2026-06-19",
