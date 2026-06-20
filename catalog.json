@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.25.0",
+  "version": "3.26.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.26.0",
+        "date": "2026-06-20",
+        "title": "Open any of a revision's reports from inside the VI Browser",
+        "summary": "The Activity picker now also appears in the VI Browser, beside the revision selector. While browsing a revision's VIs you can switch straight to its Mass Compile, VI Analyzer, Unit Tests, or Antidoc report -- and from a report you can come back to the VI Browser -- so one consistent switcher moves you between all of a revision's activities from either side. Because the VI Browser changes revision in place, the picker always targets the revision you are currently viewing, and quietly tells you when a report has not been produced for it instead of opening an empty page.",
+        "highlights": [
+          "The Activity picker now appears in the VI Browser too, so you can open any of a revision's reports while browsing its VIs.",
+          "One switcher works in both directions -- report to VI Browser and VI Browser to report -- always for the revision you are viewing.",
+          "If a report was not produced for the current revision, the picker says so rather than opening an empty page."
+        ]
+      },
       {
         "version": "3.25.0",
         "date": "2026-06-20",
