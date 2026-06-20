@@ -449,6 +449,7 @@ async function loadCommits() {
   const initSha = new URLSearchParams(window.location.search).get('sha');
   const startSha = (initSha && commitList.find(c => c.sha === initSha)) ? initSha : commitList[0].sha;
   sel.value = startSha;
+  if (sel._lvciSync) sel._lvciSync();   // refresh the context-bar steppers once the options are populated
   await loadManifest(startSha);
   restoreOpenFromUrl();   // open the VI + view a shared link points at (runs once)
 }
@@ -1702,8 +1703,28 @@ function lvciPlaceRevInContextBar() {
   if (!bar || !sel || bar.contains(sel)) return;
   var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-rev-ctx';
   var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Revision';
-  wrap.appendChild(lbl); wrap.appendChild(sel);
+  // Previous / next steppers walk to the newer / older revision, matching the
+  // report context bar. The commit list is newest-first, so the left chevron
+  // (lower index) is the newer revision and the right chevron is the older one.
+  var prev = document.createElement('button'); prev.type = 'button'; prev.className = 'lvci-rev-step';
+  prev.title = 'Newer revision'; prev.setAttribute('aria-label', 'Newer revision'); prev.innerHTML = '\u2039';
+  var next = document.createElement('button'); next.type = 'button'; next.className = 'lvci-rev-step';
+  next.title = 'Older revision'; next.setAttribute('aria-label', 'Older revision'); next.innerHTML = '\u203a';
+  function syncSteps() {
+    prev.disabled = sel.selectedIndex <= 0;
+    next.disabled = sel.selectedIndex >= sel.options.length - 1;
+  }
+  function step(d) {
+    var i = sel.selectedIndex + d;
+    if (i >= 0 && i < sel.options.length) { sel.selectedIndex = i; sel.dispatchEvent(new Event('change')); }
+  }
+  prev.addEventListener('click', function () { step(-1); });
+  next.addEventListener('click', function () { step(1); });
+  sel.addEventListener('change', syncSteps);
+  sel._lvciSync = syncSteps;
+  wrap.appendChild(lbl); wrap.appendChild(prev); wrap.appendChild(sel); wrap.appendChild(next);
   bar.appendChild(wrap);
+  syncSteps();
 }
 if (window.lvciHeaderReady) lvciPlaceRevInContextBar();
 else document.addEventListener('lvci:ready', lvciPlaceRevInContextBar);
