@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.12.4",
+  "version": "3.13.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.13.0",
+        "date": "2026-06-19",
+        "title": "Search and filter the dashboard revision history",
+        "summary": "The CI Dashboard gains a search box and a status filter above the revision table. Type to match a revision by commit message, author, or SHA, and use the All / Failed / Running / Passed filter to show only the revisions in that state (derived from each row's result chips). The two controls compose with the existing \"Include CI-only revisions\" toggle and the Columns menu, a \"Clear filters\" link resets them, and when nothing matches the board explains why instead of going blank. Display-only - the underlying data, links, and run / queue / re-run behaviour are unchanged.",
+        "highlights": [
+          "New search box filters the revision table by commit message, author, or SHA as you type.",
+          "New status filter (All / Failed / Running / Passed) narrows the board to the revisions in that state, read from each row's status chips.",
+          "Search, the status filter, and the existing CI-only toggle stack together; a Clear filters link resets them and an empty result is explained rather than blank."
+        ]
+      },
       {
         "version": "3.12.4",
         "date": "2026-06-19",
