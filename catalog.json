@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.24.2",
+  "version": "3.24.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.24.3",
+        "date": "2026-06-20",
+        "title": "Worker seeds VIPM Settings.ini so installs work in a fresh image (fixes UTF / -350053)",
+        "summary": "The real reason the worker's VIPM installs kept aborting with 'IO error: Failed to load' was a missing file: the VIPM CLI reads C:\\ProgramData\\JKI\\VIPM\\Settings.ini for its target LabVIEW configuration and errors out (os error 2) when that file does not exist. In a freshly built image VIPM is installed from a package but never launched interactively, so Settings.ini is never created. install-vipc.ps1 now seeds a minimal Settings.ini - pointing the CLI at the image's LabVIEW (version, path, VI Server port 3363) in Community Edition - before installing, but only when the file is absent so a real VIPM install is never clobbered. With this in place the tooling install (Antidoc, Caraya, VI Tester, and the UTF JUnit Report library) completes, the JUnit library is baked into the image, and headless RunUnitTests stops failing with LabVIEW CLI error -350053. This was validated locally against the same VIPM 2026.1.0 CLI.",
+        "highlights": [
+          "Fixes the persistent 'IO error: Failed to load ...Settings.ini (os error 2)': the worker now seeds a minimal VIPM Settings.ini targeting the image's LabVIEW before installing packages.",
+          "The UTF JUnit Report library is finally installed, so headless RunUnitTests emits its JUnit report and stops failing with -350053 - real unit-test results are reported.",
+          "Safe and license-free: the file is only created when absent (never clobbers a real VIPM), and VIPM runs in Community Edition with no Pro activation."
+        ]
+      },
       {
         "version": "3.24.2",
         "date": "2026-06-20",
