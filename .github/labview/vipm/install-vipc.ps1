@@ -17,9 +17,9 @@
       VIPM_INSTALLER_URL  VIPM community installer (https://vipm.jki.net) for a
                           VIPM build that supports LABVIEW_VERSION.
 
-    Headless install model: the modern vipm CLI installs packages in Community
-    Edition (no VIPM Pro license needed) -- the script sets VIPM_COMMUNITY_EDITION,
-    VIPM_NONINTERACTIVE, VIPM_ASSUME_YES and NO_COLOR for unattended runs. It also
+    Headless install model: the vipm CLI installs packages in Community Edition
+    (no VIPM Pro license needed) -- the script sets VIPM_COMMUNITY_EDITION and
+    NO_COLOR for unattended runs (the CLI is non-interactive by default). It also
     launches LabVIEW headless before installing, because vipm requires a running
     LabVIEW or it fails with "IO error: Failed to load". VIPM Pro activation is
     still honored if VIPM_SERIAL_NUMBER / VIPM_FULL_NAME / VIPM_EMAIL are supplied.
@@ -55,7 +55,7 @@ $Env:NO_COLOR               = '1'
 # (exit 0) instead of failing the whole image build.
 # Prefer the MODERN vipm CLI (C:\Program Files\JKI\VIPM) over the legacy
 # LabVIEW-based CLI (C:\Program Files\JKI\VI Package Manager\...). The modern CLI
-# has first-class headless/container support (refresh, -y, Community Edition mode)
+# has first-class headless/container support (--refresh, Community Edition mode)
 # and installs packages without a VIPM Pro license.
 $vipmCandidates = @(
     'C:\Program Files\JKI\VIPM\vipm.exe',
@@ -171,9 +171,8 @@ if ($lvExe) {
     Write-Warning 'LabVIEW.exe not found; attempting VIPM install without pre-launching LabVIEW.'
 }
 
-# Refresh repository metadata so installs see current package versions
-# (correct modern verb is 'refresh'; best-effort -- ignored if unsupported).
-& $VipmExe refresh 2>&1 | Out-Host
+# NOTE: this vipm CLI (2026.1.0) has NO standalone 'refresh' command; the package
+# list is refreshed via the global '--refresh' option passed to 'install' below.
 
 # Read the package list out of a .vipc's config.xml and return install specs.
 # The config.xml lists each package as '<Package><Name>pkg_name-1.2.3.4</Name>...';
@@ -198,7 +197,10 @@ function Get-VipcPackageSpecs([string]$VipcPath) {
 }
 
 $applyFailed = $false
-$InstallFlags = @('-y', '--labview-version', $LabVIEWVersion, '--labview-bitness', $LabVIEWBitness)
+# Global vipm options (verified via 'vipm install --help' on 2026.1.0): --refresh
+# updates the package list first; --labview-version/--labview-bitness target the
+# LabVIEW in the image. This CLI is non-interactive by default (there is NO '-y').
+$InstallFlags = @('--refresh', '--labview-version', $LabVIEWVersion, '--labview-bitness', $LabVIEWBitness)
 foreach ($vipc in $vipcFiles) {
     Write-Host "Resolving packages from VIPC: $($vipc.Name)"
     $specs = @(Get-VipcPackageSpecs $vipc.FullName)

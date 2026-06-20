@@ -1,20 +1,31 @@
 {
   "schemaVersion": 1,
-  "version": "3.24.1",
+  "version": "3.24.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
       {
+        "version": "3.24.2",
+        "date": "2026-06-20",
+        "title": "Worker VIPM install uses the correct CLI flags (fixes UTF / -350053)",
+        "summary": "The previous worker fix got LabVIEW running headless for VIPM, but the install still failed because the install command used flags this VIPM CLI does not accept: it called a standalone 'refresh' command (the CLI has none) and passed '-y' (not a valid option), so every package install aborted with exit 2 and the UTF JUnit Report library was still missing - headless RunUnitTests kept failing with LabVIEW CLI error -350053. install-vipc.ps1 now uses the CLI's actual interface (verified against vipm 2026.1.0): the package list is refreshed via the global '--refresh' option on 'install' rather than a separate command, '-y' is dropped because the CLI is non-interactive by default, and it still targets the image's LabVIEW with --labview-version 2026 --labview-bitness 64. The headless-LabVIEW launch and Community Edition (no VIPM Pro license) behaviour from the previous release are unchanged.",
+        "highlights": [
+          "Installs now succeed: the worker uses 'vipm install --refresh --labview-version 2026 --labview-bitness 64 <packages>', dropping the invalid 'refresh' command and '-y' flag that made every install exit 2.",
+          "The UTF JUnit Report library is finally baked into the image, so headless RunUnitTests no longer fails with -350053 and real unit-test results are reported.",
+          "Still license-free: LabVIEW is launched headless and VIPM runs in Community Edition - no VIPM Pro activation required."
+        ]
+      },
+      {
         "version": "3.24.1",
         "date": "2026-06-20",
         "title": "Worker installs VIPM tooling headlessly with no license (fixes UTF / -350053)",
-        "summary": "Installing the worker's VIPM tooling (Antidoc, Caraya, VI Tester, and the UTF JUnit Report library) by package name still failed inside a freshly built image: the VIPM CLI aborted every command with 'IO error: Failed to load', so the UTF JUnit Report library was never baked in and headless RunUnitTests kept failing with LabVIEW CLI error -350053. Two things were missing for container use. First, the modern VIPM CLI needs LabVIEW already RUNNING before it can install packages, but the Docker build step had no LabVIEW running - install-vipc.ps1 now launches LabVIEW headless and waits for its VI Server before installing. Second, the CLI now runs in Community Edition (VIPM_COMMUNITY_EDITION) with non-interactive mode, so installs need no VIPM Pro license or activation. The script also uses the correct 'vipm refresh' verb and passes -y / --labview-version / --labview-bitness, and prefers the modern vipm CLI when both are present.",
+        "summary": "Installing the worker's VIPM tooling (Antidoc, Caraya, VI Tester, and the UTF JUnit Report library) by package name still failed inside a freshly built image: the VIPM CLI aborted every command with 'IO error: Failed to load', so the UTF JUnit Report library was never baked in and headless RunUnitTests kept failing with LabVIEW CLI error -350053. The root cause was that the modern VIPM CLI needs LabVIEW already RUNNING before it can install packages, but the Docker build step had no LabVIEW running - install-vipc.ps1 now launches LabVIEW headless and waits for its VI Server before installing. The CLI also runs in Community Edition (VIPM_COMMUNITY_EDITION), so installs need no VIPM Pro license or activation. (Follow-up 3.24.2 corrects the install command's flags.)",
         "highlights": [
-          "Fixes headless NI Unit Test Framework runs: the worker now launches LabVIEW headless before installing VIPM packages, so the UTF JUnit Report library is baked in and RunUnitTests no longer fails with -350053.",
-          "No VIPM Pro license required: installs run in VIPM Community Edition with non-interactive mode (VIPM_COMMUNITY_EDITION / VIPM_NONINTERACTIVE).",
-          "Uses the documented container flow - correct 'vipm refresh' verb, '-y' confirmation, and --labview-version / --labview-bitness - and prefers the modern vipm CLI."
+          "Launches LabVIEW headless before installing VIPM packages, fixing the 'IO error: Failed to load' that aborted every install in a freshly built image.",
+          "No VIPM Pro license required: installs run in VIPM Community Edition (VIPM_COMMUNITY_EDITION).",
+          "Targets the image's LabVIEW with --labview-version / --labview-bitness; install flags themselves are corrected in 3.24.2."
         ]
       },
       {
