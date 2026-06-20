@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.20.0",
+  "version": "3.21.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.21.0",
+        "date": "2026-06-20",
+        "title": "CI runs now show which revision they check and who requested them",
+        "summary": "Every container CI run -- VI Analyzer, Mass Compile, VIDiff, Unit Tests, and Antidoc, on Windows and Linux -- now gets a descriptive title in the Actions list instead of an anonymous entry that looks identical to every other run. The title shows the revision the run is checking, who requested it, and how it was triggered, so a run you started from the dashboard Run / Re-run button is easy to find and tell apart. When you launch a check from the dashboard the title carries the exact commit you picked (not just the branch tip the workflow technically ran against), making it simple to confirm a run is doing what you expected. This is a presentation-only change: it adds no new workflow inputs, so it is safe for already-installed repositories and changes nothing about how runs are dispatched.",
+        "highlights": [
+          "Each CI run is titled with the revision it checks, the requester, and the trigger (dashboard or manual dispatch vs push / pull request).",
+          "Dashboard-launched runs show the exact commit you selected, not just the branch tip the workflow ran against.",
+          "Presentation-only -- no new workflow inputs, so existing installs keep dispatching exactly as before."
+        ]
+      },
       {
         "version": "3.20.0",
         "date": "2026-06-20",
