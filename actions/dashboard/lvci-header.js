@@ -246,6 +246,20 @@
     '.lvci-rebuild a{color:#58a6ff;text-decoration:none;font-weight:600;white-space:nowrap}',
     '.lvci-rebuild a:hover{text-decoration:underline}',
     '@media(prefers-color-scheme:light){.lvci-rebuild{background:rgba(9,105,218,.09);border-bottom-color:#d0d7de;color:#1f2328}.lvci-rebuild .lvci-rb-sub{color:#57606a}.lvci-rebuild a{color:#0969da}}',
+    // Global attention bar: a dismissible red banner naming the workflow(s) whose
+    // newest run failed, with a one-click link straight to the failing run.
+    '.lvci-alertbar{display:none;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(248,81,73,.4);background:rgba(248,81,73,.13);color:#e6edf3;font-size:12.5px;line-height:1.5}',
+    '.lvci-alertbar.show{display:flex}',
+    '.lvci-alertbar .lvci-alert-ico{flex:0 0 auto;display:inline-flex;color:#f85149}',
+    '.lvci-alertbar .lvci-alert-ico svg{width:16px;height:16px}',
+    '.lvci-alertbar .lvci-alert-msg{flex:1 1 auto;min-width:0}',
+    '.lvci-alertbar .lvci-alert-msg code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(248,81,73,.16);padding:1px 5px;border-radius:4px}',
+    '.lvci-alertbar .lvci-alert-cta{flex:0 0 auto;color:#f85149;font-weight:600;text-decoration:none;white-space:nowrap}',
+    '.lvci-alertbar .lvci-alert-cta:hover{text-decoration:underline}',
+    '.lvci-alertbar .lvci-alert-x{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:0;background:transparent;color:#8b949e;cursor:pointer;border-radius:6px;padding:0}',
+    '.lvci-alertbar .lvci-alert-x svg{width:15px;height:15px}',
+    '.lvci-alertbar .lvci-alert-x:hover{background:rgba(248,81,73,.18);color:#e6edf3}',
+    '@media(prefers-color-scheme:light){.lvci-alertbar{background:#ffebe9;border-bottom-color:#ffc1bc;color:#1f2328}.lvci-alertbar .lvci-alert-x:hover{color:#1f2328}}',
     // ── Mobile menu ───────────────────────────────────────────────────────
     '.lvci-menu{display:none}',
     '@media(max-width:820px){',
@@ -268,7 +282,7 @@
     '@media(max-width:820px){body{overflow-x:hidden}}',
     // Printing (Share -> Print, or the browser's own Print): drop the chrome so a
     // printout is just the report / snapshot content, not the surrounding header.
-    '@media print{.lvci-hdr,.lvci-status,.lvci-tok,.lvci-rebuild,.lvci-menu,.lvci-dropdown-menu{display:none !important}}',
+    '@media print{.lvci-hdr,.lvci-status,.lvci-tok,.lvci-rebuild,.lvci-alertbar,.lvci-menu,.lvci-dropdown-menu{display:none !important}}',
     // ── Manual appearance override (Appearance control in the menu) ───────────
     // "System" keeps the prefers-color-scheme rules above. Forcing light/dark
     // sets data-lvci-theme on <html>; these rules re-assert the matching tokens
@@ -317,7 +331,10 @@
     ':root[data-lvci-theme=light] .lvci-rebuild{background:rgba(9,105,218,.09);border-bottom-color:#d0d7de;color:#1f2328}',
     ':root[data-lvci-theme=light] .lvci-rebuild .lvci-rb-sub{color:#57606a}',
     ':root[data-lvci-theme=light] .lvci-rebuild a{color:#0969da}',
+    ':root[data-lvci-theme=light] .lvci-alertbar{background:#ffebe9;border-bottom-color:#ffc1bc;color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-alertbar .lvci-alert-x:hover{color:#1f2328}',
     // Forced DARK — counteract an OS light preference
+    ':root[data-lvci-theme=dark] .lvci-alertbar{background:rgba(248,81,73,.13);border-bottom-color:rgba(248,81,73,.4);color:#e6edf3}',
     ':root[data-lvci-theme=dark] .lvci-hdr{background:rgba(22,27,34,.86);border-bottom-color:#30363d;color:#e6edf3}',
     ':root[data-lvci-theme=dark] .lvci-brand .lvci-kicker,:root[data-lvci-theme=dark] .lvci-brand .lvci-sub{color:#8b949e}',
     ':root[data-lvci-theme=dark] .lvci-brand .lvci-sub{border-color:#30363d}',
@@ -1221,6 +1238,24 @@
         '<span class="lvci-rb-sub">. This page refreshes automatically when it\u2019s done.</span></span>';
     }
 
+    // Global attention bar (failure banner) — hidden until the activity poll
+    // finds a workflow whose newest run failed; names it + links to the run.
+    var alertBar = document.createElement('div');
+    alertBar.id = 'lvci-alertbar';
+    alertBar.className = 'lvci-alertbar';
+    alertBar.setAttribute('role', 'alert');
+    alertBar.setAttribute('aria-live', 'polite');
+    alertBar.innerHTML =
+      '<span class="lvci-alert-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13.5"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>' +
+      '<span class="lvci-alert-msg"></span>' +
+      '<a class="lvci-alert-cta" target="_blank" rel="noopener">View error \u2197</a>' +
+      '<button type="button" class="lvci-alert-x" aria-label="Dismiss this alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>';
+    alertBar.querySelector('.lvci-alert-x').addEventListener('click', function () {
+      var id = alertBar.getAttribute('data-top');
+      if (id) alertDismiss(id);
+      renderAlert();
+    });
+
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
     // (e.g. the VI Browser: `body{display:flex;height:100vh}` for a sidebar +
@@ -1254,6 +1289,7 @@
     document.body.insertBefore(status, tokp);
     document.body.insertBefore(menu, status);
     document.body.insertBefore(hdr, menu);
+    document.body.insertBefore(alertBar, menu);               // global attention bar, directly under the header
     if (rebuild) document.body.insertBefore(rebuild, menu);   // directly under the bar
 
     renderBadge();   // initial paint (idle, or the persisted "Updating" flag)
@@ -1270,6 +1306,7 @@
   //                  update is available or in progress
   var verState = { v: '', behind: false, to: '' };
   var runState = { active: 0, names: [] };
+  var failState = { list: [] };
   var verEls = [];
   var clientsEls = [];
   var aboutEls = [];
@@ -1477,6 +1514,34 @@
     return h;
   }
   var ACTIVE = { in_progress: 1, queued: 1, waiting: 1, pending: 1, requested: 1 };
+  // Global attention bar: the most-recent still-failing workflows, with a
+  // per-failure dismiss remembered in localStorage (a NEW failure re-appears).
+  var ALERT_DKEY = 'lvci_alert_dismissed';
+  function alertDismissedIds() {
+    try { var a = JSON.parse(localStorage.getItem(ALERT_DKEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  }
+  function alertDismiss(id) {
+    try { var a = alertDismissedIds(); if (a.indexOf(String(id)) < 0) a.push(String(id)); while (a.length > 50) a.shift(); localStorage.setItem(ALERT_DKEY, JSON.stringify(a)); } catch (e) {}
+  }
+  function renderAlert() {
+    var bar = document.getElementById('lvci-alertbar');
+    if (!bar) return;
+    var dismissed = alertDismissedIds();
+    var show = (failState.list || []).filter(function (w) { return dismissed.indexOf(String(w.id)) < 0; });
+    if (!show.length) { bar.classList.remove('show'); bar.removeAttribute('data-top'); return; }
+    var top = show[0], n = show.length;
+    var name = top.name || top.display_title || 'A workflow';
+    var sha = (top.head_sha || '').slice(0, 7);
+    var msg = bar.querySelector('.lvci-alert-msg');
+    if (msg) {
+      msg.innerHTML = '<strong>' + esc(n === 1 ? '1 activity needs your attention' : (n + ' activities need your attention'))
+        + '</strong> \u2014 ' + esc(name) + ' failed' + (sha ? (' on <code>' + esc(sha) + '</code>') : '') + '.';
+    }
+    var cta = bar.querySelector('.lvci-alert-cta');
+    if (cta) cta.href = top.html_url || (repo ? ('https://github.com/' + repo + '/actions') : '#');
+    bar.setAttribute('data-top', String(top.id));
+    bar.classList.add('show');
+  }
   function loadActivity() {
     if (!repo) return;
     fetch('https://api.github.com/repos/' + repo + '/actions/runs?per_page=20', { cache: 'no-cache', headers: ghHeaders() })
@@ -1495,6 +1560,18 @@
           if (runState.names.indexOf(n) < 0) runState.names.push(n);
         });
         renderBadge();
+        // Global attention bar: surface workflows whose NEWEST run failed (the
+        // runs list is newest-first, so the first run seen per workflow is its
+        // latest; a workflow that has since gone green is therefore not flagged).
+        var seenWf = {}, fails = [];
+        (d.workflow_runs || []).forEach(function (w) {
+          var key = w.path || w.name || ('wf' + w.workflow_id);
+          if (seenWf[key]) return;
+          seenWf[key] = 1;
+          if (w.status === 'completed' && w.conclusion === 'failure') fails.push(w);
+        });
+        failState.list = fails;
+        renderAlert();
         if (REBUILD_ON) {
           var rb = pickRebuild(act);
           renderRebuild(rb);

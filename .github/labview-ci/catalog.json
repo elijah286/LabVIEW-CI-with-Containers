@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.14.1",
+  "version": "3.15.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.15.0",
+        "date": "2026-06-19",
+        "title": "A failed activity now surfaces in a banner across every page",
+        "summary": "The shared header now shows a dismissible attention banner whenever a CI activity is currently failing: it names the workflow and the commit it failed on, and links straight to the failing run so you can jump to the error from anywhere - the dashboard, the VI Browser, or any report. The banner reflects each workflow's newest run, so a workflow that has since gone green clears itself, and dismissing a failure remembers it until a new one occurs. Nothing else about the header changes.",
+        "highlights": [
+          "A red attention banner under the header names any currently-failing activity (workflow + commit) and links straight to the run.",
+          "It appears site-wide from the shared header, so an error is one click away from the dashboard, the VI Browser, or any report.",
+          "It tracks each workflow\u2019s latest run (a fixed workflow clears itself) and a dismissed failure stays dismissed until a new one happens."
+        ]
+      },
       {
         "version": "3.14.1",
         "date": "2026-06-19",
