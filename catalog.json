@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.18.0",
+  "version": "3.19.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.19.0",
+        "date": "2026-06-20",
+        "title": "The VI Browser puts its revision picker in the shared context bar, too",
+        "summary": "The VI Browser's revision selector now lives in the same context bar under the header as the per-revision reports, instead of being tucked into the VI Browser's own sidebar. You pick a revision in the one consistent place whether you are reading a report or browsing VIs, so the control no longer jumps to a different spot when you switch between page types. This continues the move toward one consistent revision bar across the whole tool. The selector keeps all of its revisions and behaves exactly as before; only its location changed.",
+        "highlights": [
+          "The VI Browser revision picker moves out of the sidebar and into the shared context bar under the header.",
+          "Reports and the VI Browser now show the revision control in the same place, so it no longer moves when you switch views.",
+          "Display-only: the selector keeps every revision and all of its behavior; this is a location change for consistency."
+        ]
+      },
       {
         "version": "3.18.0",
         "date": "2026-06-19",
@@ -47,7 +58,7 @@
         "highlights": [
           "A red attention banner under the header names any currently-failing activity (workflow + commit) and links straight to the run.",
           "It appears site-wide from the shared header, so an error is one click away from the dashboard, the VI Browser, or any report.",
-          "It tracks each workflow\u2019s latest run (a fixed workflow clears itself) and a dismissed failure stays dismissed until a new one happens."
+          "It tracks each workflow’s latest run (a fixed workflow clears itself) and a dismissed failure stays dismissed until a new one happens."
         ]
       },
       {
@@ -1161,10 +1172,10 @@
         "version": "2.5.0",
         "date": "2026-06-17",
         "title": "Choose which VIPC files to bake into the worker container",
-        "summary": "The Configure dialog's Worker container section now lists every VIPC file found in your repository and lets you choose which ones to bake into the worker image. Discovered files are de-selected by default, so nothing new is added to the container until you tick it \u2014 you pick exactly the dependency files the project needs. Files already configured in your pipeline stay selected and keep their Monitor setting, so existing containers are unaffected. Once a file is included you can still turn on Monitor to rebuild and re-push the container automatically whenever that file changes.",
+        "summary": "The Configure dialog's Worker container section now lists every VIPC file found in your repository and lets you choose which ones to bake into the worker image. Discovered files are de-selected by default, so nothing new is added to the container until you tick it — you pick exactly the dependency files the project needs. Files already configured in your pipeline stay selected and keep their Monitor setting, so existing containers are unaffected. Once a file is included you can still turn on Monitor to rebuild and re-push the container automatically whenever that file changes.",
         "highlights": [
           "The Worker container section pre-populates with every .vipc file discovered in the repository, so you no longer have to type each path by hand.",
-          "Each discovered file has an include checkbox and is de-selected by default \u2014 only the files you tick are baked into the worker image.",
+          "Each discovered file has an include checkbox and is de-selected by default — only the files you tick are baked into the worker image.",
           "Files already baked in your existing configuration load pre-selected and keep their Monitor setting, so current pipelines are unchanged.",
           "Turn on Monitor for an included file to rebuild and re-push the container automatically whenever that file changes."
         ]
@@ -1198,10 +1209,10 @@
         "version": "2.3.1",
         "date": "2026-06-17",
         "title": "Live progress and locked controls while CI tooling installs or updates",
-        "summary": "The dashboard's Update now and the Apply to New Repo configurator now show clear, live progress so you can always tell work is happening \u2014 and they lock their controls while that work runs so you can't accidentally start the same job twice. Update now follows the real server-side update as it happens: a five-step tracker (Start, Build update, Open PR, Approve checks, Merge) advances as the update workflow is queued, runs, and opens its pull request, then highlights that it's your turn to approve and merge, and turns green once the PR is merged. While those automatic steps run, the version picker and buttons are disabled; they re-enable the moment the pull request is open. If you reload mid-update, the page restores the live tracker and keeps following along. Apply to New Repo gains a progress bar that fills through each real phase of the install (reading the repo, fetching files, committing, opening the pull request) and disables the whole form while installing, so your choices can't change underneath you; to set up another repository, just change the repo and install again.",
+        "summary": "The dashboard's Update now and the Apply to New Repo configurator now show clear, live progress so you can always tell work is happening — and they lock their controls while that work runs so you can't accidentally start the same job twice. Update now follows the real server-side update as it happens: a five-step tracker (Start, Build update, Open PR, Approve checks, Merge) advances as the update workflow is queued, runs, and opens its pull request, then highlights that it's your turn to approve and merge, and turns green once the PR is merged. While those automatic steps run, the version picker and buttons are disabled; they re-enable the moment the pull request is open. If you reload mid-update, the page restores the live tracker and keeps following along. Apply to New Repo gains a progress bar that fills through each real phase of the install (reading the repo, fetching files, committing, opening the pull request) and disables the whole form while installing, so your choices can't change underneath you; to set up another repository, just change the repo and install again.",
         "highlights": [
           "Update now shows a live five-step tracker that follows the real update workflow run and the pull request it opens, then clearly flags when it's your turn to approve and merge.",
-          "All update controls lock while the automatic steps run \u2014 no more accidentally dispatching the same update twice \u2014 and unlock as soon as the pull request is open.",
+          "All update controls lock while the automatic steps run — no more accidentally dispatching the same update twice — and unlock as soon as the pull request is open.",
           "Reloading during an update restores the live progress and keeps tracking it, instead of looking idle.",
           "Apply to New Repo now has a progress bar through each install phase and disables the form while installing; to apply to another repository, change the repo and install again."
         ]
@@ -1221,10 +1232,10 @@
         "version": "2.2.0",
         "date": "2026-06-17",
         "title": "Organize Configure into tabs and pick a container per action",
-        "summary": "The Configure dialog is reorganized into clear tabs \u2014 Pipeline, Container & Dependencies, Action Routing, and Review & Apply \u2014 so each concern is easy to find instead of one long page. The new Action Routing tab lets you choose which container each Windows action runs in: Mass Compile, VI Analyzer, VIDiff, and VI Snapshots can each use the project default, the latest build, a pinned build, the bare NI base image, or a custom tag, saved to config.container.actions and read by the matching workflow at run time. The Container tab gathers the default worker container, the VIPC dependency files baked into it (with per-file Monitor to rebuild and re-push to GHCR automatically when a file changes), and a new Build / update the container now action that dispatches the image build on demand. Existing pipelines are unaffected \u2014 with nothing set, every action keeps using the same image it did before.",
+        "summary": "The Configure dialog is reorganized into clear tabs — Pipeline, Container & Dependencies, Action Routing, and Review & Apply — so each concern is easy to find instead of one long page. The new Action Routing tab lets you choose which container each Windows action runs in: Mass Compile, VI Analyzer, VIDiff, and VI Snapshots can each use the project default, the latest build, a pinned build, the bare NI base image, or a custom tag, saved to config.container.actions and read by the matching workflow at run time. The Container tab gathers the default worker container, the VIPC dependency files baked into it (with per-file Monitor to rebuild and re-push to GHCR automatically when a file changes), and a new Build / update the container now action that dispatches the image build on demand. Existing pipelines are unaffected — with nothing set, every action keeps using the same image it did before.",
         "highlights": [
           "Configure is now tabbed (Pipeline, Container & Dependencies, Action Routing, Review & Apply) so settings are far easier to navigate.",
-          "Action Routing: choose the container per action (Latest, a pinned build, the bare NI base image, or a custom tag) \u2014 e.g. pin VIDiff to a frozen build while Mass Compile tracks Latest. Stored in config.container.actions; Mass Compile, VI Analyzer, and VIDiff read it on Windows.",
+          "Action Routing: choose the container per action (Latest, a pinned build, the bare NI base image, or a custom tag) — e.g. pin VIDiff to a frozen build while Mass Compile tracks Latest. Stored in config.container.actions; Mass Compile, VI Analyzer, and VIDiff read it on Windows.",
           "Specify one or more VIPC files to bake into the worker image, and turn on Monitor so a change to that file automatically rebuilds and re-pushes the container to your GHCR.",
           "New Build / update the container now action creates a new image version or updates the existing one in GHCR on demand, without waiting for a file change.",
           "Backward compatible: with no per-action overrides, every action uses config.container.use exactly as before."
@@ -1234,7 +1245,7 @@
         "version": "2.1.5",
         "date": "2026-06-17",
         "title": "Fix (again) the blank dashboard on master / non-main repos",
-        "summary": "A stale-file commit had silently reverted the dashboard generator's default-branch detection, so releases v2.1.1\u2013v2.1.4 shipped a generator that always asked GitHub for commits on a 'main' branch. Any repository whose default branch is 'master' (or anything other than 'main') therefore built a completely empty dashboard \u2014 it fetched zero commits even though the history was right there. This restores the fix: the generator now queries the repository's real default branch (cached) and fetches commits from it, and the bare repo API call no longer sends a trailing slash that GitHub answers with 404. Verified against a 'master'-default repo: 22 commits, 20 project revisions.",
+        "summary": "A stale-file commit had silently reverted the dashboard generator's default-branch detection, so releases v2.1.1–v2.1.4 shipped a generator that always asked GitHub for commits on a 'main' branch. Any repository whose default branch is 'master' (or anything other than 'main') therefore built a completely empty dashboard — it fetched zero commits even though the history was right there. This restores the fix: the generator now queries the repository's real default branch (cached) and fetches commits from it, and the bare repo API call no longer sends a trailing slash that GitHub answers with 404. Verified against a 'master'-default repo: 22 commits, 20 project revisions.",
         "highlights": [
           "The dashboard again detects the repo's real default branch instead of assuming 'main', so 'master' (and other) default branches show their commits.",
           "Fixes the regression behind a dashboard that stayed blank with 'No project revisions' despite a full commit history.",
@@ -1245,7 +1256,7 @@
         "version": "2.1.4",
         "date": "2026-06-17",
         "title": "Update now fixes the dashboard without a token",
-        "summary": "Clicking Update now used to push every refreshed file \u2014 including GitHub workflow YAMLs \u2014 onto one branch. Repositories without a workflow-scope token (no TOOLING_UPDATE_TOKEN secret) had that push rejected wholesale, so nothing landed: the version never bumped and a dashboard pinned to an older, buggy tooling ref stayed blank. Now the update is resilient. When the only thing blocking the push is workflow scope, it defers just the .github/workflows/** files and pushes the rest \u2014 the labview-ci.yml ref bump, vendored scripts, and pages \u2014 with the built-in token. Because the dashboard and reusable workflows load the tooling at that ref at runtime, the version (and the dashboard fix) adopts on its own; the deferred workflow YAMLs are listed in the PR and applied later once an optional token is added.",
+        "summary": "Clicking Update now used to push every refreshed file — including GitHub workflow YAMLs — onto one branch. Repositories without a workflow-scope token (no TOOLING_UPDATE_TOKEN secret) had that push rejected wholesale, so nothing landed: the version never bumped and a dashboard pinned to an older, buggy tooling ref stayed blank. Now the update is resilient. When the only thing blocking the push is workflow scope, it defers just the .github/workflows/** files and pushes the rest — the labview-ci.yml ref bump, vendored scripts, and pages — with the built-in token. Because the dashboard and reusable workflows load the tooling at that ref at runtime, the version (and the dashboard fix) adopts on its own; the deferred workflow YAMLs are listed in the PR and applied later once an optional token is added.",
         "highlights": [
           "Update now adopts the new version token-lessly: the config ref bump + scripts + pages always push with the built-in token, so the dashboard updates even on repos with no TOOLING_UPDATE_TOKEN.",
           "Only changes to .github/workflows/** still need a one-time TOOLING_UPDATE_TOKEN (repo + workflow scope); they are deferred and clearly reported instead of failing the whole update.",
@@ -1267,7 +1278,7 @@
         "version": "2.1.2",
         "date": "2026-06-17",
         "title": "Fix cascading dashboard builds on fresh installs",
-        "summary": "Removed the broad 'on: status' trigger from the dashboard workflow that was causing cascading rebuilds during fresh CI installs. When multiple CI workflows started simultaneously (Mass Compile, VI Analyzer, etc.), each status update would trigger a dashboard rebuild, creating a backlog of running builds. The dashboard continues to update correctly via workflow_run, push, schedule, and manual triggers\u2014this change just eliminates the noise.",
+        "summary": "Removed the broad 'on: status' trigger from the dashboard workflow that was causing cascading rebuilds during fresh CI installs. When multiple CI workflows started simultaneously (Mass Compile, VI Analyzer, etc.), each status update would trigger a dashboard rebuild, creating a backlog of running builds. The dashboard continues to update correctly via workflow_run, push, schedule, and manual triggers—this change just eliminates the noise.",
         "highlights": [
           "Fresh installs no longer spawn cascading dashboard builds from status events.",
           "Dashboard still updates after CI workflows complete and on config changes.",
@@ -1289,10 +1300,10 @@
         "version": "2.0.0",
         "date": "2026-06-16",
         "title": "Manage your worker container and its VIPC dependencies from Configure",
-        "summary": "The Configure dialog can now manage the container your CI runs in. A new Worker container section lets you choose which prebuilt image future actions use \u2014 the latest build, so your project's dependencies always stay current, or a specific pinned build for reproducibility \u2014 and lists the VIPC dependency files baked into that image. Each VIPC file can be set to Monitor, so the container is rebuilt and pushed to GHCR automatically whenever that file changes; files you don't monitor are baked once and left pinned. The worker image build always publishes a :latest tag, bakes exactly the VIPC files you list (from anywhere in the repo), and skips a rebuild when the only change is a VIPC you chose not to monitor. VI Analyzer, Mass Compile, and VIDiff on Windows all run inside the container you select. Existing pipelines keep working unchanged \u2014 with nothing configured, every activity uses the same image it did before.",
+        "summary": "The Configure dialog can now manage the container your CI runs in. A new Worker container section lets you choose which prebuilt image future actions use — the latest build, so your project's dependencies always stay current, or a specific pinned build for reproducibility — and lists the VIPC dependency files baked into that image. Each VIPC file can be set to Monitor, so the container is rebuilt and pushed to GHCR automatically whenever that file changes; files you don't monitor are baked once and left pinned. The worker image build always publishes a :latest tag, bakes exactly the VIPC files you list (from anywhere in the repo), and skips a rebuild when the only change is a VIPC you chose not to monitor. VI Analyzer, Mass Compile, and VIDiff on Windows all run inside the container you select. Existing pipelines keep working unchanged — with nothing configured, every activity uses the same image it did before.",
         "highlights": [
-          "New \u201cWorker container\u201d section in Configure: pick which prebuilt GHCR image future actions use \u2014 Latest (auto-updates as your dependencies change) or a pinned build for reproducibility, with the current build offered as a one-click pin.",
-          "List the VIPC dependency files baked into the worker image and turn on Monitor per file, so the container is rebuilt and pushed to GHCR automatically whenever that file changes \u2014 keeping the container in sync with the dependencies the project needs.",
+          "New “Worker container” section in Configure: pick which prebuilt GHCR image future actions use — Latest (auto-updates as your dependencies change) or a pinned build for reproducibility, with the current build offered as a one-click pin.",
+          "List the VIPC dependency files baked into the worker image and turn on Monitor per file, so the container is rebuilt and pushed to GHCR automatically whenever that file changes — keeping the container in sync with the dependencies the project needs.",
           "The worker image build always publishes a :latest tag, bakes exactly the VIPC files you configure, and skips a rebuild when the only change is a VIPC you chose not to monitor.",
           "VI Analyzer, Mass Compile, and VIDiff on Windows now run inside the container you select; with nothing configured they keep using their previous image, so existing pipelines are unaffected."
         ]
@@ -1301,10 +1312,10 @@
         "version": "1.14.1",
         "date": "2026-06-16",
         "title": "Reports open inside the dashboard header instead of replacing it",
-        "summary": "Opening a Mass Compile or VI Analyzer report from the dashboard now keeps the shared navigation header in place: the report loads framed inside the dashboard chrome \u2014 same brand, navigation, version badge, a revision picker, and a Regenerate / Re-run button \u2014 rather than navigating away to a bare full-page report. This also means reports that predate the header (or carry no header of their own) still appear inside the chrome, so older Mass Compile and VI Analyzer reports gain the navigation and a one-click re-run without being regenerated. Switching revisions from the header re-frames the same viewer, and a report's own copy of the header is hidden while it is framed so there is always exactly one header.",
+        "summary": "Opening a Mass Compile or VI Analyzer report from the dashboard now keeps the shared navigation header in place: the report loads framed inside the dashboard chrome — same brand, navigation, version badge, a revision picker, and a Regenerate / Re-run button — rather than navigating away to a bare full-page report. This also means reports that predate the header (or carry no header of their own) still appear inside the chrome, so older Mass Compile and VI Analyzer reports gain the navigation and a one-click re-run without being regenerated. Switching revisions from the header re-frames the same viewer, and a report's own copy of the header is hidden while it is framed so there is always exactly one header.",
         "highlights": [
           "The dashboard's Mass Compile and VI Analyzer links now open the report framed under the shared header (via report-viewer.html) instead of as a bare page, so the header no longer disappears when you open a report.",
-          "Reports that carry no header of their own \u2014 including ones published before the header existed \u2014 now appear inside the chrome too, with the navigation, version badge, and a Regenerate / Re-run button, without needing to be regenerated.",
+          "Reports that carry no header of their own — including ones published before the header existed — now appear inside the chrome too, with the navigation, version badge, and a Regenerate / Re-run button, without needing to be regenerated.",
           "The header's revision picker re-frames the viewer onto the chosen revision (keeping the chrome), and the Raw log / Native report link follows the framed report.",
           "A failed run whose status links to its Actions page (not a report) still opens that run, and the diff / snapshots links continue to open the VI Browser as before."
         ]
@@ -1313,21 +1324,21 @@
         "version": "1.14.0",
         "date": "2026-06-16",
         "title": "The version badge shows when CI is running",
-        "summary": "The navigation header's version badge now doubles as a live activity indicator: whenever workflow runs are queued or in progress, it replaces the version number with a spinning 'N running' badge that links to the Actions tab, then returns to the version once everything finishes. This makes the dashboard visibly reflect work in progress \u2014 for example a deploy you're waiting on right after 'Apply to New Repo' or an update \u2014 instead of looking stale while it catches up. It reads the repository's in-flight runs from the browser, so public repositories need no setup and private repositories reuse the dashboard's existing token; it only checks while the tab is open and falls back to the plain version number if activity can't be read. An in-progress tooling update still takes precedence and shows 'Updating to v\u2026'.",
+        "summary": "The navigation header's version badge now doubles as a live activity indicator: whenever workflow runs are queued or in progress, it replaces the version number with a spinning 'N running' badge that links to the Actions tab, then returns to the version once everything finishes. This makes the dashboard visibly reflect work in progress — for example a deploy you're waiting on right after 'Apply to New Repo' or an update — instead of looking stale while it catches up. It reads the repository's in-flight runs from the browser, so public repositories need no setup and private repositories reuse the dashboard's existing token; it only checks while the tab is open and falls back to the plain version number if activity can't be read. An in-progress tooling update still takes precedence and shows 'Updating to v…'.",
         "highlights": [
           "While any workflow run is queued or in progress, the version badge becomes a live 'N running' indicator with a spinner and links to the Actions tab; it reverts to the version number when the runs finish.",
           "Appears on the dashboard and every page that carries the shared header, and refreshes as runs start and finish (only while the tab is visible).",
           "Public repositories work with no setup; private repositories reuse the dashboard's existing dispatch token, and the badge quietly falls back to the version number when activity can't be read.",
-          "An in-progress tooling update ('Updating to v\u2026') and the 'update available' cue still take priority over the running indicator."
+          "An in-progress tooling update ('Updating to v…') and the 'update available' cue still take priority over the running indicator."
         ]
       },
       {
         "version": "1.13.0",
         "date": "2026-06-16",
         "title": "Apply to New Repo detects an existing install and lets you keep settings or clear out old files",
-        "summary": "Re-running 'Apply to New Repo' on a repository that already has LabVIEW CI now notices the previous install and pauses to ask how to reconcile it, before anything is committed. You can keep the previous capabilities, LabVIEW version, and platforms (instead of the configurator's current selections), and you can have old tooling files that newer versions no longer use \u2014 for example workflows that were renamed or dropped \u2014 removed in the same pull request. Both are opt-in and listed up front, your own workflows and baked dependency files are never touched, and everything still lands in a reviewable pull request.",
+        "summary": "Re-running 'Apply to New Repo' on a repository that already has LabVIEW CI now notices the previous install and pauses to ask how to reconcile it, before anything is committed. You can keep the previous capabilities, LabVIEW version, and platforms (instead of the configurator's current selections), and you can have old tooling files that newer versions no longer use — for example workflows that were renamed or dropped — removed in the same pull request. Both are opt-in and listed up front, your own workflows and baked dependency files are never touched, and everything still lands in a reviewable pull request.",
         "highlights": [
-          "Detects a prior install by reading the repo's .github/labview-ci.yml and prompts before committing \u2014 fresh repos are unaffected and install as before.",
+          "Detects a prior install by reading the repo's .github/labview-ci.yml and prompts before committing — fresh repos are unaffected and install as before.",
           "'Keep the existing settings' reuses the previously installed capabilities, LabVIEW version, and platforms instead of the configurator's current picks.",
           "'Remove old tooling files no longer used' lists and deletes orphaned tooling files (e.g. renamed/removed workflows) in the install pull request; it recognizes tooling files by content, so your own workflows and baked VIPM dependency files are never removed.",
           "The result summary and pull request spell out exactly what was kept and which files were removed."
@@ -1337,17 +1348,17 @@
         "version": "1.12.3",
         "date": "2026-06-16",
         "title": "Every Mass Compile report opens inside the dashboard",
-        "summary": "Mass Compile reports now always render inside the shared navigation header \u2014 even the minimal fallback report. Previously, if the friendly report builder was skipped or hit a snag, the run still published a plain log-dump page with no header, navigation, or version badge, so a few Mass Compile links opened a bare page outside the dashboard chrome. The safety-net report (both Windows and Linux) now carries the same header as the full report, with the revision picker and the Regenerate / Raw log / This commit actions. Every previously published Mass Compile report has also been refreshed in place so it shows the header too.",
+        "summary": "Mass Compile reports now always render inside the shared navigation header — even the minimal fallback report. Previously, if the friendly report builder was skipped or hit a snag, the run still published a plain log-dump page with no header, navigation, or version badge, so a few Mass Compile links opened a bare page outside the dashboard chrome. The safety-net report (both Windows and Linux) now carries the same header as the full report, with the revision picker and the Regenerate / Raw log / This commit actions. Every previously published Mass Compile report has also been refreshed in place so it shows the header too.",
         "highlights": [
-          "The fallback Mass Compile report (emitted when the friendly builder is skipped) now includes the shared site header, so every Mass Compile report renders inside the dashboard chrome \u2014 brand, navigation, version badge, and the revision picker.",
-          "All previously published Mass Compile reports were refreshed to show the header as well; the figures are unchanged \u2014 only the chrome was added."
+          "The fallback Mass Compile report (emitted when the friendly builder is skipped) now includes the shared site header, so every Mass Compile report renders inside the dashboard chrome — brand, navigation, version badge, and the revision picker.",
+          "All previously published Mass Compile reports were refreshed to show the header as well; the figures are unchanged — only the chrome was added."
         ]
       },
       {
         "version": "1.12.2",
         "date": "2026-06-16",
         "title": "The header shows which repository you're viewing",
-        "summary": "The navigation header's top-left mark now shows the repository name \u2014 with a small LabVIEW CI label above it \u2014 instead of just the product name, so the repository whose results you're viewing is always visible, on the dashboard and on every report and page that carries the header. The name truncates with an ellipsis when space is tight (the full owner/name shows on hover), so the header stays tidy and fits all the way down to a narrow phone.",
+        "summary": "The navigation header's top-left mark now shows the repository name — with a small LabVIEW CI label above it — instead of just the product name, so the repository whose results you're viewing is always visible, on the dashboard and on every report and page that carries the header. The name truncates with an ellipsis when space is tight (the full owner/name shows on hover), so the header stays tidy and fits all the way down to a narrow phone.",
         "highlights": [
           "The header's top-left brand now reads the repository name with a small LabVIEW CI kicker above it, so you can always tell which repository's dashboard or report you're looking at.",
           "Responsive by design: the repository name truncates with an ellipsis (full owner/name on hover) and never collides with the mobile menu button, so the header fits cleanly on phones."
@@ -1357,29 +1368,29 @@
         "version": "1.12.1",
         "date": "2026-06-16",
         "title": "The 'create a token' links arrive with the settings pre-filled",
-        "summary": "When you set up the one-time token for Run now or Update now, the 'Create a fine-grained token' link now opens GitHub's form with the token name, the resource owner, and the Actions: Read and write permission already filled in \u2014 so you only have to pick the repository under Repository access (the one step GitHub gives no way to pre-fill from a link) and click Generate. The report header's Re-run / Regenerate token link already worked this way; now the dashboard and What's New match it.",
+        "summary": "When you set up the one-time token for Run now or Update now, the 'Create a fine-grained token' link now opens GitHub's form with the token name, the resource owner, and the Actions: Read and write permission already filled in — so you only have to pick the repository under Repository access (the one step GitHub gives no way to pre-fill from a link) and click Generate. The report header's Re-run / Regenerate token link already worked this way; now the dashboard and What's New match it.",
         "highlights": [
           "The Run now token setup (dashboard) and the Update now token setup (What's New) now pre-fill the token name, resource owner, and Actions: Read and write permission via GitHub's supported URL parameters.",
-          "Each link is clear that selecting the specific repository is the only manual step \u2014 GitHub provides no URL parameter to pre-select a repository."
+          "Each link is clear that selecting the specific repository is the only manual step — GitHub provides no URL parameter to pre-select a repository."
         ]
       },
       {
         "version": "1.12.0",
         "date": "2026-06-16",
         "title": "Your pipeline is pinned to a version, and every report shares one header",
-        "summary": "Two things. First, an install or upgrade now pins your whole pipeline \u2014 the dashboard, the workflows, the report pages, everything \u2014 to the exact version you adopted. It stays on that version until you click Update now; it no longer tracks the source repo's latest changes automatically. (Previously the dashboard was rebuilt from the source's main branch on every run, so dashboard/header changes appeared before you upgraded.) The update check still tells you when a newer version is available. Second, the shared navigation header is now on every document the pipeline publishes \u2014 Mass Compile reports and the worker/container manifest pages join the dashboard, VI Analyzer reports, and the VI Browser. On a VI Analyzer or Mass Compile report the header also carries a revision picker (switch which revision's report you're viewing, just like the VI Browser's commit dropdown) and a one-click \u201cregenerate this report for this revision\u201d button.",
+        "summary": "Two things. First, an install or upgrade now pins your whole pipeline — the dashboard, the workflows, the report pages, everything — to the exact version you adopted. It stays on that version until you click Update now; it no longer tracks the source repo's latest changes automatically. (Previously the dashboard was rebuilt from the source's main branch on every run, so dashboard/header changes appeared before you upgraded.) The update check still tells you when a newer version is available. Second, the shared navigation header is now on every document the pipeline publishes — Mass Compile reports and the worker/container manifest pages join the dashboard, VI Analyzer reports, and the VI Browser. On a VI Analyzer or Mass Compile report the header also carries a revision picker (switch which revision's report you're viewing, just like the VI Browser's commit dropdown) and a one-click “regenerate this report for this revision” button.",
         "highlights": [
-          "Installs and upgrades pin the consumer's source.ref to the exact version tag (v<version>), so the dashboard and all tooling only change when you run Update now \u2014 not whenever the source repo's main advances. The update-available check is unaffected (it reads the source's release channel).",
+          "Installs and upgrades pin the consumer's source.ref to the exact version tag (v<version>), so the dashboard and all tooling only change when you run Update now — not whenever the source repo's main advances. The update-available check is unaffected (it reads the source's release channel).",
           "The shared header now appears on Mass Compile reports and the worker/container manifest pages too, so navigation and branding are consistent across every published document.",
-          "VI Analyzer and Mass Compile reports gain a header revision picker \u2014 pick another revision to jump to that revision's report of the same type (the list only offers revisions that actually have that report).",
-          "Those reports also get a \u201cRe-run analysis\u201d / \u201cRegenerate report\u201d button in the header that dispatches a fresh run for the revision shown, reusing the dashboard's token and queued-run indicator."
+          "VI Analyzer and Mass Compile reports gain a header revision picker — pick another revision to jump to that revision's report of the same type (the list only offers revisions that actually have that report).",
+          "Those reports also get a “Re-run analysis” / “Regenerate report” button in the header that dispatches a fresh run for the revision shown, reusing the dashboard's token and queued-run indicator."
         ]
       },
       {
         "version": "1.11.2",
         "date": "2026-06-16",
         "title": "Header fits the VI Browser, and a commit hash opens its VIs everywhere",
-        "summary": "Fixes the new navigation header on full-height pages: on the VI Browser the header was being laid out beside the sidebar instead of across the top, because that page uses its <body> as a side-by-side layout. The header now detects a page that lays its content out directly on <body> and tucks that content beneath itself, so it spans the top on every page. Separately, the commit hash in the dashboard's Commit column now opens that commit's VIs in the VI Browser \u2014 the same place the commit message already linked to \u2014 instead of the commit on GitHub, so both columns take you to the snapshots for that revision.",
+        "summary": "Fixes the new navigation header on full-height pages: on the VI Browser the header was being laid out beside the sidebar instead of across the top, because that page uses its <body> as a side-by-side layout. The header now detects a page that lays its content out directly on <body> and tucks that content beneath itself, so it spans the top on every page. Separately, the commit hash in the dashboard's Commit column now opens that commit's VIs in the VI Browser — the same place the commit message already linked to — instead of the commit on GitHub, so both columns take you to the snapshots for that revision.",
         "highlights": [
           "The shared header now spans the full width at the top of the VI Browser (and any page that uses <body> as a flex/grid layout) instead of sitting beside the content.",
           "On the dashboard, the Commit-column hash links to that commit's VIs in the VI Browser, matching the commit message link (it previously went to the commit on GitHub)."
@@ -1389,7 +1400,7 @@
         "version": "1.11.1",
         "date": "2026-06-16",
         "title": "Jump from a VI Analyzer report straight to that commit's VI snapshots",
-        "summary": "On a VI Analyzer report, the commit hash at the top now links to that exact revision's VI snapshots in the VI Browser, so you can go from a finding to seeing the VIs as they were at that commit in one click. The GitHub commit itself is still one click away \u2014 a 'commit on GitHub' link sits alongside the metadata (and the header's 'This commit' action still opens it on a standalone report).",
+        "summary": "On a VI Analyzer report, the commit hash at the top now links to that exact revision's VI snapshots in the VI Browser, so you can go from a finding to seeing the VIs as they were at that commit in one click. The GitHub commit itself is still one click away — a 'commit on GitHub' link sits alongside the metadata (and the header's 'This commit' action still opens it on a standalone report).",
         "highlights": [
           "The commit hash on a VI Analyzer report links to that commit's VI snapshots in the VI Browser (it previously pointed at GitHub, which the report header's 'This commit' action already covers).",
           "A 'commit on GitHub' link is kept in the report's metadata line so the commit is still reachable even when the report is viewed embedded (where the shared header hides itself)."
@@ -1399,22 +1410,22 @@
         "version": "1.11.0",
         "date": "2026-06-16",
         "title": "A consistent navigation header across the whole CI site",
-        "summary": "Every page the pipeline publishes \u2014 the dashboard, VI Analyzer reports, the VI Browser, and the Configure / Apply to New Repo pages \u2014 now shares one navigation header instead of each page carrying its own ad-hoc buttons in a corner. The header gives you the LabVIEW CI brand, links to the main areas, and context-aware actions for the page you're on: the dashboard surfaces Configure Workers and Apply to New Repo, while a VI Analyzer report surfaces Re-run analysis, Native report, and This commit. It is fully responsive (the links and actions collapse into a single menu on phones and narrow windows) and is deployed once as a shared asset, so it stays identical everywhere and survives as individual reports are added or regenerated. The version badge and these What's New notes now live in the header too.",
+        "summary": "Every page the pipeline publishes — the dashboard, VI Analyzer reports, the VI Browser, and the Configure / Apply to New Repo pages — now shares one navigation header instead of each page carrying its own ad-hoc buttons in a corner. The header gives you the LabVIEW CI brand, links to the main areas, and context-aware actions for the page you're on: the dashboard surfaces Configure Workers and Apply to New Repo, while a VI Analyzer report surfaces Re-run analysis, Native report, and This commit. It is fully responsive (the links and actions collapse into a single menu on phones and narrow windows) and is deployed once as a shared asset, so it stays identical everywhere and survives as individual reports are added or regenerated. The version badge and these What's New notes now live in the header too.",
         "highlights": [
-          "One shared header on every page \u2014 dashboard, VI Analyzer reports, VI Browser, Configure, Apply to New Repo, and What's New \u2014 so you can move between areas from anywhere with a consistent brand and navigation.",
+          "One shared header on every page — dashboard, VI Analyzer reports, VI Browser, Configure, Apply to New Repo, and What's New — so you can move between areas from anywhere with a consistent brand and navigation.",
           "Context-aware actions live in the header: the dashboard offers Configure Workers and Apply to New Repo; a VI Analyzer report offers Re-run analysis (for that exact revision), Native report, and This commit.",
-          "Fully responsive \u2014 the navigation and actions collapse into a single menu button on phones and narrow windows, so the whole site is usable on mobile.",
+          "Fully responsive — the navigation and actions collapse into a single menu button on phones and narrow windows, so the whole site is usable on mobile.",
           "The header is a single asset deployed once at the site root, so it stays identical across pages, survives as reports come and go, and hides itself automatically when a report is embedded inside another page."
         ]
       },
       {
         "version": "1.10.2",
         "date": "2026-06-16",
-        "title": "One-click install is reliable for a full-capability repo (no more \u201cLoad failed\u201d)",
-        "summary": "Installing the pipeline into a repo from Apply to New Repo could fail partway through with \u201cLoad failed\u201d. Since 1.10.1 pre-selects every capability, the install uploaded ~60 files as a separate blob request each, in a tight burst that trips GitHub's secondary rate limit (whose CORS-less response surfaces in the browser as a bare \u201cLoad failed\u201d). The install now commits all text files in a single tree request (so only a handful of binary VIs are uploaded individually) and retries transient network / rate-limit hiccups with backoff, with a clear message and command-line fallback if anything still fails. Re-running the install is now a dependable way to put a repo's CI tooling back into a known-good state.",
+        "title": "One-click install is reliable for a full-capability repo (no more “Load failed”)",
+        "summary": "Installing the pipeline into a repo from Apply to New Repo could fail partway through with “Load failed”. Since 1.10.1 pre-selects every capability, the install uploaded ~60 files as a separate blob request each, in a tight burst that trips GitHub's secondary rate limit (whose CORS-less response surfaces in the browser as a bare “Load failed”). The install now commits all text files in a single tree request (so only a handful of binary VIs are uploaded individually) and retries transient network / rate-limit hiccups with backoff, with a clear message and command-line fallback if anything still fails. Re-running the install is now a dependable way to put a repo's CI tooling back into a known-good state.",
         "highlights": [
-          "Text files are committed in one git/trees request instead of one blob upload each \u2014 ~60 back-to-back API writes drop to ~13 \u2014 so a full-capability install no longer trips GitHub's secondary rate limit.",
-          "Every GitHub call retries network rejections and secondary-rate-limit / 5xx responses with backoff (honouring Retry-After); a persistent failure shows a clear \u201cwait a minute and retry, or use the command line\u201d message instead of \u201cLoad failed\u201d.",
+          "Text files are committed in one git/trees request instead of one blob upload each — ~60 back-to-back API writes drop to ~13 — so a full-capability install no longer trips GitHub's secondary rate limit.",
+          "Every GitHub call retries network rejections and secondary-rate-limit / 5xx responses with backoff (honouring Retry-After); a persistent failure shows a clear “wait a minute and retry, or use the command line” message instead of “Load failed”.",
           "Re-installing into a repo that already has the tooling reliably converges it to the current known-good state (the existing install branch / pull request is reused)."
         ]
       },
@@ -1424,18 +1435,18 @@
         "title": "Apply to New Repo selects every capability by default",
         "summary": "The Apply to New Repo configurator now pre-selects all available capabilities (mass compile, VI Analyzer, VIDiff, VI snapshots/VI Browser, the shared container image, and the dashboard) instead of only the recommended ones, so a new install gets the full pipeline by default. Uncheck anything you don't want before installing; capabilities still marked Coming soon stay disabled.",
         "highlights": [
-          "All non-planned capabilities are checked by default in the configurator \u2014 the VI snapshots/VI Browser and shared container image capabilities are no longer off by default.",
-          "The capabilities hint now reads \u201cAll available capabilities are selected by default \u2014 uncheck any you don't want.\u201d"
+          "All non-planned capabilities are checked by default in the configurator — the VI snapshots/VI Browser and shared container image capabilities are no longer off by default.",
+          "The capabilities hint now reads “All available capabilities are selected by default — uncheck any you don't want.”"
         ]
       },
       {
         "version": "1.10.0",
         "date": "2026-06-16",
-        "title": "Re-run a VI Analyzer report for its revision \u2014 right from the report",
-        "summary": "A VI Analyzer report now has a \u201cRe-run analysis for this revision\u201d button that dispatches a fresh analyzer run for exactly that commit, without hunting for the workflow on GitHub. It reuses the same one-time fine-grained token the dashboard's Run now uses (stored only in your browser), and the moment the run is queued the matching cell on the dashboard shows a working/\u201cQueued\u201d spinner \u2014 even if that cell already had a pass/fail result \u2014 then settles back to the new result when the run finishes. The report and dashboard share that signal because both are served from the same Pages site.",
+        "title": "Re-run a VI Analyzer report for its revision — right from the report",
+        "summary": "A VI Analyzer report now has a “Re-run analysis for this revision” button that dispatches a fresh analyzer run for exactly that commit, without hunting for the workflow on GitHub. It reuses the same one-time fine-grained token the dashboard's Run now uses (stored only in your browser), and the moment the run is queued the matching cell on the dashboard shows a working/“Queued” spinner — even if that cell already had a pass/fail result — then settles back to the new result when the run finishes. The report and dashboard share that signal because both are served from the same Pages site.",
         "highlights": [
-          "New \u201c\u21bb Re-run analysis for this revision\u201d button in the VI Analyzer report dispatches run-vi-analyzer for that exact commit (same platform that produced the report), with an inline token prompt and clear 401/403/404 guidance.",
-          "The dashboard cell for that revision immediately shows a \u201cQueued\u201d spinner via the same optimistic overlay as Run now \u2014 now able to overlay a cell that already holds a result \u2014 and self-clears once a newer result lands or the run reports in.",
+          "New “↻ Re-run analysis for this revision” button in the VI Analyzer report dispatches run-vi-analyzer for that exact commit (same platform that produced the report), with an inline token prompt and clear 401/403/404 guidance.",
+          "The dashboard cell for that revision immediately shows a “Queued” spinner via the same optimistic overlay as Run now — now able to overlay a cell that already holds a result — and self-clears once a newer result lands or the run reports in.",
           "Re-uses the dashboard's lvci_dispatch_token and queued-runs bridge (report and dashboard are same-origin on Pages), so no new token or setup is needed if you've already used Run now."
         ]
       },
@@ -1443,9 +1454,9 @@
         "version": "1.9.4",
         "date": "2026-06-16",
         "title": "Update now never leaves you with a conflicting pull request",
-        "summary": "Clicking Update now used to open a new per-version pull request each time, so unmerged ones piled up; once your default branch moved on, those stale branches collided on catalog.json and labview-ci.yml and showed a merge conflict \u2014 even though the update overwrites those files wholesale and there was nothing real to resolve. The update workflow now keeps exactly one open update pull request: when it opens or refreshes the newest one, it automatically closes every older update PR and deletes its branch. The pull request body also explains the self-heal: if an update PR ever shows a conflict, click Update now again and the branch is rebuilt from the latest default branch, which clears it.",
+        "summary": "Clicking Update now used to open a new per-version pull request each time, so unmerged ones piled up; once your default branch moved on, those stale branches collided on catalog.json and labview-ci.yml and showed a merge conflict — even though the update overwrites those files wholesale and there was nothing real to resolve. The update workflow now keeps exactly one open update pull request: when it opens or refreshes the newest one, it automatically closes every older update PR and deletes its branch. The pull request body also explains the self-heal: if an update PR ever shows a conflict, click Update now again and the branch is rebuilt from the latest default branch, which clears it.",
         "highlights": [
-          "The Apply update workflow auto-closes superseded update PRs (older ci/adopt-tooling-* branches) and deletes them, so only the newest update PR \u2014 always based on the current default branch \u2014 remains.",
+          "The Apply update workflow auto-closes superseded update PRs (older ci/adopt-tooling-* branches) and deletes them, so only the newest update PR — always based on the current default branch — remains.",
           "A merge conflict on an update PR is no longer something to hand-resolve: re-running Update now rebuilds the branch from the latest default branch and clears it.",
           "The update PR body now spells this out, so a stale or conflicting update PR is self-explanatory instead of a dead end."
         ]
@@ -1453,12 +1464,12 @@
       {
         "version": "1.9.3",
         "date": "2026-06-16",
-        "title": "The dashboard now publishes itself when you merge the install \u2014 no waiting, no manual trigger",
-        "summary": "After installing, the CI dashboard workflow had no trigger that fired on the install merge \u2014 only on commit statuses, after other CI workflows, or on its hourly schedule \u2014 so a brand-new install showed the old page (or nothing) until something else happened to run it. The generated dashboard workflow now also builds on a push to your default branch that touches its config, so merging the install pull request publishes the dashboard right away. The one-time install token is also now session-scoped and discarded as soon as the pull request opens.",
+        "title": "The dashboard now publishes itself when you merge the install — no waiting, no manual trigger",
+        "summary": "After installing, the CI dashboard workflow had no trigger that fired on the install merge — only on commit statuses, after other CI workflows, or on its hourly schedule — so a brand-new install showed the old page (or nothing) until something else happened to run it. The generated dashboard workflow now also builds on a push to your default branch that touches its config, so merging the install pull request publishes the dashboard right away. The one-time install token is also now session-scoped and discarded as soon as the pull request opens.",
         "highlights": [
           "The generated dashboard-pages.yml gains a push trigger on your default branch (scoped to .github/labview-ci.yml + the workflow itself), so merging the install PR builds and publishes the dashboard immediately instead of waiting for the hourly schedule.",
           "The push trigger targets the repository's actual default branch (e.g. main or master), resolved at install time; applies to the one-click install, the downloadable bundle, and install.py.",
-          "The one-click install token is now kept in sessionStorage and automatically discarded the moment the install pull request opens \u2014 it never persists beyond the browser tab."
+          "The one-click install token is now kept in sessionStorage and automatically discarded the moment the install pull request opens — it never persists beyond the browser tab."
         ]
       },
       {
@@ -1476,21 +1487,21 @@
         "version": "1.9.1",
         "date": "2026-06-16",
         "title": "Installed dashboards now actually build, and the README link is added even when an old dashboard URL is present",
-        "summary": "Two install fixes. (1) The dashboard workflow a fresh install writes is now a thin caller that checks the tooling out at runtime and runs ./_lvci/actions/dashboard, instead of the source's own dashboard-pages.yml that referenced a local ./actions/dashboard path no consumer has \u2014 which made the dashboard build fail with 'Can't find action.yml under actions/dashboard'. (2) The 'add a dashboard link to the README' step now decides idempotency only by its own marker comment, so a repository that already mentions the Pages URL (for example a previous/precursor dashboard's badges) still gets the link added.",
+        "summary": "Two install fixes. (1) The dashboard workflow a fresh install writes is now a thin caller that checks the tooling out at runtime and runs ./_lvci/actions/dashboard, instead of the source's own dashboard-pages.yml that referenced a local ./actions/dashboard path no consumer has — which made the dashboard build fail with 'Can't find action.yml under actions/dashboard'. (2) The 'add a dashboard link to the README' step now decides idempotency only by its own marker comment, so a repository that already mentions the Pages URL (for example a previous/precursor dashboard's badges) still gets the link added.",
         "highlights": [
-          "Fresh installs write a thin dashboard-pages.yml (checkout tooling into _lvci at the opted-in ref, then ./_lvci/actions/dashboard) so the generator is always the source's own and never needs vendoring or rebranding \u2014 fixes the failing dashboard build.",
+          "Fresh installs write a thin dashboard-pages.yml (checkout tooling into _lvci at the opted-in ref, then ./_lvci/actions/dashboard) so the generator is always the source's own and never needs vendoring or rebranding — fixes the failing dashboard build.",
           "Applies to both the one-click browser install and the command-line install.py (default vendored mode); the configurator's downloadable bundle gets the same thin workflow.",
-          "The README dashboard link is now added whenever its marker comment is absent, even if the README already links the Pages URL from an earlier dashboard \u2014 so replacing a precursor dashboard still links the new one."
+          "The README dashboard link is now added whenever its marker comment is absent, even if the README already links the Pages URL from an earlier dashboard — so replacing a precursor dashboard still links the new one."
         ]
       },
       {
         "version": "1.9.0",
         "date": "2026-06-16",
         "title": "One-click install can link the dashboard from your README and turn on Pages for you",
-        "summary": "The 'Apply to New Repo' install now goes the last mile. Alongside opening the install pull request it can add a CI dashboard badge + link to your README (in the same PR), and \u2014 if you grant a slightly broader token \u2014 set your repository's Workflow permissions to read/write and enable GitHub Pages on the gh-pages branch, so the dashboard publishes itself with no manual settings. Both are opt-in checkboxes (on by default); if you decline the broader token the install still works and the page lists the two settings for you to flip, with direct links. The pre-filled token link and the panel adapt to show exactly the permissions needed.",
+        "summary": "The 'Apply to New Repo' install now goes the last mile. Alongside opening the install pull request it can add a CI dashboard badge + link to your README (in the same PR), and — if you grant a slightly broader token — set your repository's Workflow permissions to read/write and enable GitHub Pages on the gh-pages branch, so the dashboard publishes itself with no manual settings. Both are opt-in checkboxes (on by default); if you decline the broader token the install still works and the page lists the two settings for you to flip, with direct links. The pre-filled token link and the panel adapt to show exactly the permissions needed.",
         "highlights": [
-          "Adds a dashboard badge + link to the repository's README as part of the install pull request \u2014 idempotent, so re-installs don't duplicate it, and it creates a README if there isn't one.",
-          "Optionally sets Workflow permissions to read/write and enables GitHub Pages (gh-pages) via the API, pre-seeding a 'publishing\u2026' placeholder so the site is live immediately and the dashboard overwrites it on the first run.",
+          "Adds a dashboard badge + link to the repository's README as part of the install pull request — idempotent, so re-installs don't duplicate it, and it creates a README if there isn't one.",
+          "Optionally sets Workflow permissions to read/write and enables GitHub Pages (gh-pages) via the API, pre-seeding a 'publishing…' placeholder so the site is live immediately and the dashboard overwrites it on the first run.",
           "The pre-filled fine-grained-token link and the setup panel adjust to request Administration + Pages only when you opt in to auto-publish; declining falls back to clearly listed manual steps.",
           "The post-install summary shows what was done for you (README, permissions, Pages) versus what's left, with a note if the token lacked the extra permissions."
         ]
@@ -1498,45 +1509,45 @@
       {
         "version": "1.8.0",
         "date": "2026-06-16",
-        "title": "Apply to New Repo can install itself \u2014 no download, just a token and a pull request",
+        "title": "Apply to New Repo can install itself — no download, just a token and a pull request",
         "summary": "The 'Apply to New Repo' page now installs the pipeline directly into your repository instead of handing you a zip to unzip and commit by hand. Pick your capabilities, paste a one-time fine-grained token (the page links you straight to GitHub's token screen with the exact permissions pre-filled), and it commits the tailored, rebranded files to a new branch and opens a pull request for you to review and merge. The command-line install and downloadable bundle are still there under 'Other ways to install'.",
         "highlights": [
-          "New 'Install into your repo' button commits the resolved files to a 'ci/install-labview-ci' branch via the GitHub Git Data API and opens a pull request \u2014 nothing to download, unzip, or commit by hand.",
+          "New 'Install into your repo' button commits the resolved files to a 'ci/install-labview-ci' branch via the GitHub Git Data API and opens a pull request — nothing to download, unzip, or commit by hand.",
           "Guided one-time token setup: a pre-filled fine-grained-token link requests exactly Contents, Pull requests, and Workflows (write); the token is stored only in your browser and sent only to api.github.com.",
-          "After the pull request opens, the page lists the remaining steps with direct links \u2014 merge the PR, set Workflow permissions to read/write, and enable Pages once the gh-pages branch exists.",
+          "After the pull request opens, the page lists the remaining steps with direct links — merge the PR, set Workflow permissions to read/write, and enable Pages once the gh-pages branch exists.",
           "Actionable messages for the common token mistakes (401 rejected, 403 missing permission, 404 repo not visible, and the Workflows permission required to add files under .github/workflows/)."
         ]
       },
       {
         "version": "1.7.14",
         "date": "2026-06-16",
-        "title": "The 'Updating\u2026' badge now appears the moment you click Update now",
-        "summary": "The version badge's in-flight 'Updating\u2026' indicator was easy to miss: it was only detected by polling GitHub when the dashboard loaded, but the update workflow finishes in a few seconds while the dashboard auto-refreshes only every 15 minutes \u2014 so a refresh almost never landed while the workflow was running. Now, clicking 'Update now' in What's New paints the badge as 'Updating\u2026' immediately and records it in the browser, so it persists across the dashboard's auto-refreshes until the new version is actually deployed (or 30 minutes pass). Clicking it opens the update's pull request, where you approve and merge to finish.",
+        "title": "The 'Updating…' badge now appears the moment you click Update now",
+        "summary": "The version badge's in-flight 'Updating…' indicator was easy to miss: it was only detected by polling GitHub when the dashboard loaded, but the update workflow finishes in a few seconds while the dashboard auto-refreshes only every 15 minutes — so a refresh almost never landed while the workflow was running. Now, clicking 'Update now' in What's New paints the badge as 'Updating…' immediately and records it in the browser, so it persists across the dashboard's auto-refreshes until the new version is actually deployed (or 30 minutes pass). Clicking it opens the update's pull request, where you approve and merge to finish.",
         "highlights": [
-          "'Update now' optimistically flags the update (localStorage 'lvci_updating') and immediately switches the badge to 'Updating\u2026' \u2014 no longer dependent on catching the brief workflow run by chance.",
-          "The badge stays 'Updating\u2026' across the 15-minute auto-refresh and clears itself once this dashboard rebuilds at the new version, or after a 30-minute safety timeout.",
-          "Clicking the 'Updating\u2026' badge opens the repo's pull requests so you can approve the checks and merge the update PR that finishes the upgrade."
+          "'Update now' optimistically flags the update (localStorage 'lvci_updating') and immediately switches the badge to 'Updating…' — no longer dependent on catching the brief workflow run by chance.",
+          "The badge stays 'Updating…' across the 15-minute auto-refresh and clears itself once this dashboard rebuilds at the new version, or after a 30-minute safety timeout.",
+          "Clicking the 'Updating…' badge opens the repo's pull requests so you can approve the checks and merge the update PR that finishes the upgrade."
         ]
       },
       {
         "version": "1.7.13",
         "date": "2026-06-16",
         "title": "What's New spells out the approve-and-merge steps after Update now",
-        "summary": "The What's New / update dialog now lays out every action an update requires, so it can't silently stall waiting on a step you didn't know about. A numbered 'what happens next' checklist is shown up front, and the pull request's workflow-approval gate is called out as its own highlighted step: because the update PR is opened by automation, GitHub holds its checks for your approval and marks them 'Action required', and nothing merges until you open the PR (or the Actions tab) and click 'Approve and run'. The status messages after Update now were updated to match \u2014 they now tell you to approve the checks and then merge, instead of only 'merge it to finish'.",
+        "summary": "The What's New / update dialog now lays out every action an update requires, so it can't silently stall waiting on a step you didn't know about. A numbered 'what happens next' checklist is shown up front, and the pull request's workflow-approval gate is called out as its own highlighted step: because the update PR is opened by automation, GitHub holds its checks for your approval and marks them 'Action required', and nothing merges until you open the PR (or the Actions tab) and click 'Approve and run'. The status messages after Update now were updated to match — they now tell you to approve the checks and then merge, instead of only 'merge it to finish'.",
         "highlights": [
           "Added a numbered 'what happens next' checklist to the update dialog, with the workflow-approval gate as its own highlighted step.",
-          "Calls out that GitHub marks the update PR's checks 'Action required' and that you must click 'Approve and run' before they start \u2014 the step that was previously undocumented.",
+          "Calls out that GitHub marks the update PR's checks 'Action required' and that you must click 'Approve and run' before they start — the step that was previously undocumented.",
           "Post-dispatch status messages now point you to approve the checks first, then merge, so an opened update PR no longer sits unmerged because its checks were paused for approval."
         ]
       },
       {
         "version": "1.7.12",
         "date": "2026-06-16",
-        "title": "Configure Workers no longer shows update notices \u2014 it's purely for configuration",
+        "title": "Configure Workers no longer shows update notices — it's purely for configuration",
         "summary": "The Configure Workers dialog no longer evaluates or displays tooling-update or new-capability notices. That responsibility belongs to the version badge and the What's New dialog; the Configure dialog is solely for maintaining how the CI actions and worker containers behave. The 'Update available' / 'New capabilities' banner has been removed entirely, along with the version comparison it ran on open, so the dialog stays focused on configuration regardless of which repo it is opened from.",
         "highlights": [
           "Removed the update/new-capability banner and the version-compare logic (showUpdateStatus, cmpVer, installedVersion parsing) from the Configure dialog.",
-          "Update awareness stays where it belongs \u2014 the version badge and What's New dialog \u2014 so there is no duplicated or conflicting update messaging.",
+          "Update awareness stays where it belongs — the version badge and What's New dialog — so there is no duplicated or conflicting update messaging.",
           "Supersedes the 1.7.11 source-repo banner suppression: with the banner gone, the dialog is clean on every repo (source and clients alike)."
         ]
       },
@@ -1548,7 +1559,7 @@
         "highlights": [
           "The Configure dialog detects when it is configuring the catalog's source repo and hides the update banner entirely (the source can't update from itself).",
           "Fixes the 'is on v1.7.10, this repo is on v1.0.0' message seen on the source dashboard, caused by the source repo's placeholder installedVersion.",
-          "Client repositories are unaffected \u2014 they still get 'Update available' and 'New capabilities' notices when their installed version trails the source."
+          "Client repositories are unaffected — they still get 'Update available' and 'New capabilities' notices when their installed version trails the source."
         ]
       },
       {
@@ -1557,7 +1568,7 @@
         "title": "Configure Workers is scoped to the repo you launch it from",
         "summary": "The Configure Workers dialog no longer asks you to type a repository at the top. It is always opened from a specific repository's dashboard, so it now detects that repository automatically and applies every setting to it. The old 'Repository' section (owner/name, branch, and 'Load current settings') is gone; the dialog shows which repo it is configuring read-only and loads that repo's current settings on open.",
         "highlights": [
-          "Removed the manual 'Repository' input section \u2014 the repo is detected from the dashboard you opened the dialog from (the ?repo= the dashboard now passes, falling back to the GitHub Pages URL, then the source repo).",
+          "Removed the manual 'Repository' input section — the repo is detected from the dashboard you opened the dialog from (the ?repo= the dashboard now passes, falling back to the GitHub Pages URL, then the source repo).",
           "The dialog header now shows 'Configuring <owner/repo>' read-only so you can confirm the scope at a glance.",
           "The Reconfigure command and 'Load current settings' now always target the detected repository, removing the chance of editing the wrong repo's config."
         ]
@@ -1566,10 +1577,10 @@
         "version": "1.7.9",
         "date": "2026-06-16",
         "title": "The version badge shows when an upgrade is in flight",
-        "summary": "While a tooling upgrade is being applied, the version badge turns into a live 'Updating\u2026' indicator (a spinner) that links straight to the action in progress, instead of silently showing the old version until the rebuild lands. It covers both windows: the moment you click Update now (links to the running 'Apply LabVIEW CI update' workflow), and the gap after you merge the update PR while the dashboard is rebuilding and deploying (links to that build). It clears itself automatically once the new version is live.",
+        "summary": "While a tooling upgrade is being applied, the version badge turns into a live 'Updating…' indicator (a spinner) that links straight to the action in progress, instead of silently showing the old version until the rebuild lands. It covers both windows: the moment you click Update now (links to the running 'Apply LabVIEW CI update' workflow), and the gap after you merge the update PR while the dashboard is rebuilding and deploying (links to that build). It clears itself automatically once the new version is live.",
         "highlights": [
-          "When the update workflow is running, the badge reads 'Updating\u2026' and clicking it opens the running workflow run.",
-          "After the update PR is merged, the badge reads 'Updating to vX\u2026' until the rebuilt dashboard deploys, linking to the in-flight build \u2014 no more wondering why the version still looks old.",
+          "When the update workflow is running, the badge reads 'Updating…' and clicking it opens the running workflow run.",
+          "After the update PR is merged, the badge reads 'Updating to vX…' until the rebuilt dashboard deploys, linking to the in-flight build — no more wondering why the version still looks old.",
           "Uses a read-only check against the repo's own Actions + committed config; reuses the Run-now token if present for a higher rate limit, otherwise an unauthenticated public read. No new permissions required."
         ]
       },
@@ -1577,10 +1588,10 @@
         "version": "1.7.8",
         "date": "2026-06-15",
         "title": "VIDiff again shows what changed in every revision",
-        "summary": "Clicking a revision's VIDiff 'diff' badge opens the VI Browser filtered to the VIs that changed in that revision, each linking to its side-by-side comparison report. That view had stopped finding any changes \u2014 every revision looked unchanged \u2014 because it only knew about the single most recent snapshot commit and so never had a previous revision to compare against. It now reads the full project revision list (files.json), so it can pick the correct previous revision and highlight exactly the VIs that changed, with their diff reports, for every revision. Revisions whose snapshots have not been rendered still list their changed VIs by falling back to the same per-revision VI fingerprints, and any VI a container's VIDiff run flagged is always shown.",
+        "summary": "Clicking a revision's VIDiff 'diff' badge opens the VI Browser filtered to the VIs that changed in that revision, each linking to its side-by-side comparison report. That view had stopped finding any changes — every revision looked unchanged — because it only knew about the single most recent snapshot commit and so never had a previous revision to compare against. It now reads the full project revision list (files.json), so it can pick the correct previous revision and highlight exactly the VIs that changed, with their diff reports, for every revision. Revisions whose snapshots have not been rendered still list their changed VIs by falling back to the same per-revision VI fingerprints, and any VI a container's VIDiff run flagged is always shown.",
         "highlights": [
           "The VIDiff / 'Changed VIs only' view now reads the full project revision history (files.json), so it finds the correct previous revision and no longer reports 'no changes' for revisions that did change a VI.",
-          "Each changed VI links to its Windows/Linux side-by-side comparison report, with the Linux \u2194 Windows toggle, exactly as before.",
+          "Each changed VI links to its Windows/Linux side-by-side comparison report, with the Linux ↔ Windows toggle, exactly as before.",
           "Revisions without rendered snapshots still resolve their changed VIs from the per-revision VI fingerprints, so the tree and change badges work for every revision in the dropdown.",
           "Any VI flagged by a container's VIDiff run is surfaced even when the fingerprint comparison alone would miss it (for example the very first revision)."
         ]
@@ -1601,10 +1612,10 @@
         "version": "1.7.6",
         "date": "2026-06-15",
         "title": "Update now starts the update from the dialog",
-        "summary": "The What's New dialog's 'Update now' button now starts the update for you instead of sending you to the Actions page to find and click 'Run workflow'. Like the dashboard's 'Run now', it dispatches the update workflow straight from the browser; the first time, the dialog walks you through creating a one-time fine-grained token (Actions: Read and write) stored only in this browser \u2014 the same token 'Run now' uses, so if you already set that up there is nothing to do. After it dispatches, the dialog watches for the pull request the workflow opens and shows a direct 'review & merge' link, so you always know the next step (the update still finishes when you merge that PR). A token-free 'Open the workflow on GitHub' link remains for anyone who prefers the manual route.",
+        "summary": "The What's New dialog's 'Update now' button now starts the update for you instead of sending you to the Actions page to find and click 'Run workflow'. Like the dashboard's 'Run now', it dispatches the update workflow straight from the browser; the first time, the dialog walks you through creating a one-time fine-grained token (Actions: Read and write) stored only in this browser — the same token 'Run now' uses, so if you already set that up there is nothing to do. After it dispatches, the dialog watches for the pull request the workflow opens and shows a direct 'review & merge' link, so you always know the next step (the update still finishes when you merge that PR). A token-free 'Open the workflow on GitHub' link remains for anyone who prefers the manual route.",
         "highlights": [
-          "'Update now' dispatches the Apply LabVIEW CI update workflow from the dialog (browser \u2192 api.github.com), so the update starts with one click instead of navigating to the Actions tab and clicking Run workflow.",
-          "First use walks you through creating a fine-grained token with Actions: Read and write, stored only in this browser and shared with the dashboard's 'Run now' \u2014 set it up once for both.",
+          "'Update now' dispatches the Apply LabVIEW CI update workflow from the dialog (browser → api.github.com), so the update starts with one click instead of navigating to the Actions tab and clicking Run workflow.",
+          "First use walks you through creating a fine-grained token with Actions: Read and write, stored only in this browser and shared with the dashboard's 'Run now' — set it up once for both.",
           "After dispatching, the dialog polls for the pull request the workflow opens and surfaces a direct 'review & merge it' link, making the required merge step obvious (previously you landed on a runs list with no clear next step).",
           "Clear 401/403/404 guidance with an 'Update token' shortcut, plus a token-free 'Open the workflow on GitHub' fallback and the existing CLI command."
         ]
@@ -1613,9 +1624,9 @@
         "version": "1.7.5",
         "date": "2026-06-15",
         "title": "Run now shows the cell as Queued right away",
-        "summary": "After 'Run now' dispatches a workflow, the dashboard now marks that cell as Queued immediately, so you can see your click took effect without waiting for the next refresh. Previously the run was enqueued on GitHub but the cell kept showing the empty run glyph until the run reported a commit status and the page rebuilt \u2014 often minutes later \u2014 so it looked like nothing had happened. The optimistic Queued badge is remembered in your browser so it survives the dashboard's auto-refresh, and it clears itself automatically as soon as the real run status appears (or after 20 minutes if the run never reports one), so it can never get stuck as a permanent fake spinner.",
+        "summary": "After 'Run now' dispatches a workflow, the dashboard now marks that cell as Queued immediately, so you can see your click took effect without waiting for the next refresh. Previously the run was enqueued on GitHub but the cell kept showing the empty run glyph until the run reported a commit status and the page rebuilt — often minutes later — so it looked like nothing had happened. The optimistic Queued badge is remembered in your browser so it survives the dashboard's auto-refresh, and it clears itself automatically as soon as the real run status appears (or after 20 minutes if the run never reports one), so it can never get stuck as a permanent fake spinner.",
         "highlights": [
-          "A successful 'Run now' dispatch now paints the dashboard cell as Queued (a spinner badge) immediately \u2014 including for each platform when you launch both Windows and Linux \u2014 so enqueuing a run gives instant on-dashboard feedback.",
+          "A successful 'Run now' dispatch now paints the dashboard cell as Queued (a spinner badge) immediately — including for each platform when you launch both Windows and Linux — so enqueuing a run gives instant on-dashboard feedback.",
           "The Queued state is stored per-browser (localStorage) so it persists across the page's auto-refresh, and the page polls faster (about once a minute) while a run is still unconfirmed so the real status surfaces promptly.",
           "The optimistic badge self-clears once the server-rendered status takes over, and expires after 20 minutes if no status is ever posted, so it never lingers as a false 'running' indicator.",
           "A dashed outline distinguishes the just-queued (browser-side) badge from a server-confirmed running badge."
@@ -1625,7 +1636,7 @@
         "version": "1.7.4",
         "date": "2026-06-15",
         "title": "Clearer token setup for Run now (fixes the 403)",
-        "summary": "When 'Run now' fails, the dialog now says exactly why and how to fix it. The most common cause is a fine-grained token that was given repository access but no permissions \u2014 a 403. The error now reads '403: the token is missing the Actions: Read and write permission' and points at Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write, with an 'Update token' shortcut. The one-time setup panel is now a numbered checklist that calls out the permission step (selecting the repo alone is not enough).",
+        "summary": "When 'Run now' fails, the dialog now says exactly why and how to fix it. The most common cause is a fine-grained token that was given repository access but no permissions — a 403. The error now reads '403: the token is missing the Actions: Read and write permission' and points at Permissions → Repository permissions → Actions → Read and write, with an 'Update token' shortcut. The one-time setup panel is now a numbered checklist that calls out the permission step (selecting the repo alone is not enough).",
         "highlights": [
           "A 403 now explains it means the token lacks the Actions: Read and write permission, with the exact menu path to add it; a 404 explains the token cannot see the repository.",
           "The token-setup panel is a 4-step checklist (create token, grant repository access, add Actions: Read and write, paste) so the required permission is not missed.",
@@ -1647,9 +1658,9 @@
         "version": "1.7.2",
         "date": "2026-06-15",
         "title": "Run now actually starts the run (one-click dispatch)",
-        "summary": "The empty-cell run dialog now enqueues the workflow for real: clicking 'Run now' dispatches it straight to GitHub Actions from the browser, instead of only printing a command to copy. Because a static dashboard has no server, the one-time setup asks for a GitHub token with Actions write access \u2014 it is stored only in your browser (localStorage) and sent only to api.github.com, never to the repo or the page. A 'Run on GitHub' link and the gh CLI command remain as no-token fallbacks.",
+        "summary": "The empty-cell run dialog now enqueues the workflow for real: clicking 'Run now' dispatches it straight to GitHub Actions from the browser, instead of only printing a command to copy. Because a static dashboard has no server, the one-time setup asks for a GitHub token with Actions write access — it is stored only in your browser (localStorage) and sent only to api.github.com, never to the repo or the page. A 'Run on GitHub' link and the gh CLI command remain as no-token fallbacks.",
         "highlights": [
-          "'Run now' POSTs to the GitHub workflow-dispatch API for each selected platform and reports '\u2713 Queued \u2014 View runs', so a run starts with one click and no terminal.",
+          "'Run now' POSTs to the GitHub workflow-dispatch API for each selected platform and reports '✓ Queued — View runs', so a run starts with one click and no terminal.",
           "First use prompts once for a fine-grained token (Actions: Read and write) stored only in this browser; after that the button is truly one-click, with a 'Forget token' option.",
           "Kept a 'Run on GitHub' link (opens the workflow's Run page, no token) and the copyable gh command for people who prefer them."
         ]
@@ -1658,22 +1669,22 @@
         "version": "1.7.1",
         "date": "2026-06-15",
         "title": "Dashboard delivered through the shared action (run buttons reach every repo)",
-        "summary": "The dashboard is now built by the shared composite action at the version a repository has opted into (.github/labview-ci.yml: source.ref), instead of a per-repo vendored copy of the generator. That collapses three drifting copies into one source of truth, so the v1.7.0 empty-cell run buttons \u2014 and every future dashboard improvement \u2014 reach a repository the moment it opts into this version, with no workflow-file edits. The VI Browser's file tree (files.json) is now part of the shared action too.",
+        "summary": "The dashboard is now built by the shared composite action at the version a repository has opted into (.github/labview-ci.yml: source.ref), instead of a per-repo vendored copy of the generator. That collapses three drifting copies into one source of truth, so the v1.7.0 empty-cell run buttons — and every future dashboard improvement — reach a repository the moment it opts into this version, with no workflow-file edits. The VI Browser's file tree (files.json) is now part of the shared action too.",
         "highlights": [
           "The dashboard build logic moved into the shared dashboard action; the source repo and the thin dashboard caller both run it via the opted-in source.ref, so the run buttons render everywhere instead of only where a vendored generator happened to carry them.",
           "Ported the VI Browser file tree (vi-snapshots/files.json) into the shared action so the snapshot-independent file hierarchy works for every consumer, not just vendored ones.",
-          "The thin dashboard caller now checks out the tooling at source.ref and runs the local action (./_lvci/actions/dashboard), matching the capability jobs \u2014 so 'Update now' moves the dashboard version along with everything else."
+          "The thin dashboard caller now checks out the tooling at source.ref and runs the local action (./_lvci/actions/dashboard), matching the capability jobs — so 'Update now' moves the dashboard version along with everything else."
         ]
       },
       {
         "version": "1.7.0",
         "date": "2026-06-15",
         "title": "Run a capability straight from an empty dashboard cell",
-        "summary": "Empty cells in the dashboard now carry a small run glyph. Clicking it opens a dialog that enqueues that capability for that exact commit \u2014 with a Windows/Linux picker for capabilities that have both \u2014 by surfacing a copyable `gh workflow run` command (pre-filled with the commit SHA) and a link to the workflow's Run page. It uses your own GitHub auth, so no tokens ever touch the browser. The dashboard's 'Include CI-only revisions' toggle is also honored strictly again.",
+        "summary": "Empty cells in the dashboard now carry a small run glyph. Clicking it opens a dialog that enqueues that capability for that exact commit — with a Windows/Linux picker for capabilities that have both — by surfacing a copyable `gh workflow run` command (pre-filled with the commit SHA) and a link to the workflow's Run page. It uses your own GitHub auth, so no tokens ever touch the browser. The dashboard's 'Include CI-only revisions' toggle is also honored strictly again.",
         "highlights": [
           "Each empty, re-runnable cell (Mass Compile, VI Analyzer, VIDiff, VI Snapshots) shows an unobtrusive play glyph that brightens on hover.",
           "Capabilities with separate Windows and Linux workers show a platform picker so you can launch one or both; single-target capabilities skip straight to the command.",
-          "The dialog generates a ready-to-run `gh workflow run <workflow> -f commit_sha=<sha>` command (VIDiff uses head + base SHAs) plus a direct link to the workflow's Run page \u2014 token-free, using your own GitHub login.",
+          "The dialog generates a ready-to-run `gh workflow run <workflow> -f commit_sha=<sha>` command (VIDiff uses head + base SHAs) plus a direct link to the workflow's Run page — token-free, using your own GitHub login.",
           "Fixed the 'Include CI-only revisions' toggle so CI/tooling commits stay hidden while it is unchecked, even during a long tooling sprint."
         ]
       },
@@ -1681,10 +1692,10 @@
         "version": "1.6.0",
         "date": "2026-06-15",
         "title": "Opt-in, token-free version updates (the \"Update now\" button)",
-        "summary": "The version a repository runs is now pinned in its own config (.github/labview-ci.yml: source.ref), not baked into a workflow file. The shared reusable workflow reads that ref at runtime and checks out the capabilities at it, so a repository never changes versions automatically \u2014 it opts in by clicking 'Update now', which edits only the config file. Because a config file is not a workflow file, the built-in GITHUB_TOKEN can apply the change, so the whole flow needs no personal access token.",
+        "summary": "The version a repository runs is now pinned in its own config (.github/labview-ci.yml: source.ref), not baked into a workflow file. The shared reusable workflow reads that ref at runtime and checks out the capabilities at it, so a repository never changes versions automatically — it opts in by clicking 'Update now', which edits only the config file. Because a config file is not a workflow file, the built-in GITHUB_TOKEN can apply the change, so the whole flow needs no personal access token.",
         "highlights": [
           "The reusable workflow's config job now exposes the consumer's pinned capability version (source.ref); each capability job checks out the tooling at that exact ref and runs it, so versions are controlled by config, not by the workflow-file pin.",
-          "Rewrote the 'Update now' button to bump source.ref + installedVersion in .github/labview-ci.yml and open a reviewable PR \u2014 a single config-file change with no vendored files and no token (replaces the previous full re-pull that required a workflow-scoped PAT).",
+          "Rewrote the 'Update now' button to bump source.ref + installedVersion in .github/labview-ci.yml and open a reviewable PR — a single config-file change with no vendored files and no token (replaces the previous full re-pull that required a workflow-scoped PAT).",
           "New capabilities arrive dormant: they appear gated on the config's activities list and only run once a repository opts in (via the button's 'enable new capabilities' option or the Configure page).",
           "Thin installs now pin source.ref to the exact published version, so a freshly installed repository stays on its version until someone clicks 'Update now'."
         ]
@@ -1693,11 +1704,11 @@
         "version": "1.5.0",
         "date": "2026-06-15",
         "title": "Dashboard as a shared capability + thin (token-free) install",
-        "summary": "The status dashboard now runs from a shared composite action, and a new thin install mode wires a repository to the tooling with only a few small caller files \u2014 every capability, including the dashboard and the version badge, comes from the shared tag (for example @v1) with no vendored workflows and no token.",
+        "summary": "The status dashboard now runs from a shared composite action, and a new thin install mode wires a repository to the tooling with only a few small caller files — every capability, including the dashboard and the version badge, comes from the shared tag (for example @v1) with no vendored workflows and no token.",
         "highlights": [
-          "Added a CI Dashboard composite action that builds the dashboard and stages all tooling pages (VI Browser, report viewer, What's New, Configure, Apply) from the shared tag \u2014 consumers need no copy.",
+          "Added a CI Dashboard composite action that builds the dashboard and stages all tooling pages (VI Browser, report viewer, What's New, Configure, Apply) from the shared tag — consumers need no copy.",
           "The dashboard reads the installed version from the consumer's own config when no catalog is vendored, so the version badge and 'update available' notification work for thin consumers too.",
-          "Added 'install --thin': writes the LabVIEW CI caller, the dashboard caller, Dependabot, and the config \u2014 four small files that reference the shared reusable workflow + actions at the major tag.",
+          "Added 'install --thin': writes the LabVIEW CI caller, the dashboard caller, Dependabot, and the config — four small files that reference the shared reusable workflow + actions at the major tag.",
           "A thin consumer gets the whole pipeline and all future improvements through the moving major-version alias, with no personal access token and nothing to re-install."
         ]
       },
@@ -1705,9 +1716,9 @@
         "version": "1.4.0",
         "date": "2026-06-15",
         "title": "Mass Compile, VIDiff & Snapshots as shared (token-free) capabilities",
-        "summary": "Mass Compile, VIDiff, and VI Snapshots now run from the shared reusable workflow alongside VI Analyzer, so a repository gets them by referencing the tooling at the major tag (for example @v1) \u2014 no vendored workflow files and no token. Each publishes its report and posts its dashboard status just like the vendored workflows.",
+        "summary": "Mass Compile, VIDiff, and VI Snapshots now run from the shared reusable workflow alongside VI Analyzer, so a repository gets them by referencing the tooling at the major tag (for example @v1) — no vendored workflow files and no token. Each publishes its report and posts its dashboard status just like the vendored workflows.",
         "highlights": [
-          "Mass Compile (reusable) now deploys its friendly report to the caller's Pages and posts the 'CI / Mass Compile' status with the compile percentage \u2014 full parity, so the dashboard cell populates for thin consumers.",
+          "Mass Compile (reusable) now deploys its friendly report to the caller's Pages and posts the 'CI / Mass Compile' status with the compile percentage — full parity, so the dashboard cell populates for thin consumers.",
           "Added a VIDiff composite action and reusable job: renders changed-VI visual diffs between base and head, deploys them to the caller's Pages, and posts 'CI / VIDiff'.",
           "Added a VI Snapshots composite action and reusable job: renders the content-addressed VI Browser gallery incrementally and posts 'CI / VI Snapshots'.",
           "All four capabilities are delivered through the moving major-version alias, so thin-caller consumers receive them and future improvements automatically with no personal access token."
@@ -1717,10 +1728,10 @@
         "version": "1.3.0",
         "date": "2026-06-15",
         "title": "VI Analyzer as a shared (token-free) capability",
-        "summary": "VI Analyzer now runs from the shared reusable workflow, so a repository can get it by referencing the tooling at the major tag (for example @v1) \u2014 no vendored workflow files and no token. The analyzer publishes its report and posts the 'CI / VI Analyzer' status to the caller's dashboard just like before.",
+        "summary": "VI Analyzer now runs from the shared reusable workflow, so a repository can get it by referencing the tooling at the major tag (for example @v1) — no vendored workflow files and no token. The analyzer publishes its report and posts the 'CI / VI Analyzer' status to the caller's dashboard just like before.",
         "highlights": [
           "Added a VI Analyzer composite action and a reusable-workflow job, so consumers run it via the shared @v1 reference instead of copying the workflow into their repo.",
-          "The reusable VI Analyzer job resolves the custom image, runs the analyzer, deploys the friendly report to the caller's GitHub Pages, and posts the commit status the dashboard reads \u2014 full parity with the vendored workflow.",
+          "The reusable VI Analyzer job resolves the custom image, runs the analyzer, deploys the friendly report to the caller's GitHub Pages, and posts the commit status the dashboard reads — full parity with the vendored workflow.",
           "Thin-caller consumers receive this and future VI Analyzer improvements automatically through the moving major-version alias, with no personal access token.",
           "The caller grants the report-publish and status scopes; the example caller workflow shows the required permissions block."
         ]
@@ -1729,10 +1740,10 @@
         "version": "1.2.3",
         "date": "2026-06-15",
         "title": "Token-free automatic updates",
-        "summary": "Publishing a release now moves the major-version alias, so any repository that uses the tooling at the major tag (for example @v1) receives non-breaking updates automatically \u2014 no token and no manual step.",
+        "summary": "Publishing a release now moves the major-version alias, so any repository that uses the tooling at the major tag (for example @v1) receives non-breaking updates automatically — no token and no manual step.",
         "highlights": [
           "Added release automation: each new version is tagged and published, and the v<major> and v<major>.<minor> aliases are moved to it, so consumers pinned at the major alias get improvements automatically.",
-          "This is the recommended way for many repositories to adopt the tooling and stay current: reference the reusable workflows/actions at the major tag and optionally enable Dependabot \u2014 GitHub opens a reviewable pull request for new versions with no personal access token required.",
+          "This is the recommended way for many repositories to adopt the tooling and stay current: reference the reusable workflows/actions at the major tag and optionally enable Dependabot — GitHub opens a reviewable pull request for new versions with no personal access token required.",
           "The full file re-pull (the installer's update mode) remains available for repositories that vendor a complete copy of the tooling."
         ]
       },
@@ -1740,9 +1751,9 @@
         "version": "1.2.2",
         "date": "2026-06-15",
         "title": "Update now pulls the full tooling",
-        "summary": "The 'Update now' button now performs a complete update \u2014 it re-pulls every tooling file at the latest version (bringing new capabilities, not just a version number) and opens a pull request to review.",
+        "summary": "The 'Update now' button now performs a complete update — it re-pulls every tooling file at the latest version (bringing new capabilities, not just a version number) and opens a pull request to review.",
         "highlights": [
-          "'Update now' runs the catalog-driven installer in update mode, so a client adopts all the latest workflows, scripts, and pages \u2014 including brand-new capabilities \u2014 in one reviewable pull request.",
+          "'Update now' runs the catalog-driven installer in update mode, so a client adopts all the latest workflows, scripts, and pages — including brand-new capabilities — in one reviewable pull request.",
           "The client's own configuration (selected activities, LabVIEW version, runner concurrency) and baked dependencies are preserved across the update.",
           "Fixed the installer's branding rules so files copied into a client repo are correctly rebranded to that repo instead of keeping the source repo's name.",
           "Because a full update changes workflow files, add a token with repo + workflow scope as the TOOLING_UPDATE_TOKEN secret so the update can open its pull request automatically."
@@ -1754,7 +1765,7 @@
         "title": "One-click tooling updates",
         "summary": "Updating the CI tooling no longer needs a terminal: the What's New dialog now has an Update now button that opens the upgrade pull request for you.",
         "highlights": [
-          "Added an 'Update now' button to the What's New dialog that runs the new 'Apply LabVIEW CI update' workflow \u2014 it opens a pull request adopting the latest version, with no commands to copy or tokens to manage.",
+          "Added an 'Update now' button to the What's New dialog that runs the new 'Apply LabVIEW CI update' workflow — it opens a pull request adopting the latest version, with no commands to copy or tokens to manage.",
           "The command-line update is preserved under a 'Prefer the command line?' section for power users.",
           "The upgrade workflow is resilient: if a repository has not enabled Actions to open pull requests, it still pushes the branch and links a one-click page to open the pull request manually."
         ]
@@ -1873,7 +1884,7 @@
     {
       "id": "dashboard",
       "name": "CI Dashboard + VI Browser host",
-      "summary": "GitHub Pages dashboard that aggregates every commit's CI status, plus the report viewer and the \u201cIntegrate this CI pipeline\u201d configurator. Recommended for every install \u2014 most other capabilities surface their results here.",
+      "summary": "GitHub Pages dashboard that aggregates every commit's CI status, plus the report viewer and the “Integrate this CI pipeline” configurator. Recommended for every install — most other capabilities surface their results here.",
       "status": "stable",
       "recommended": true,
       "supportsOs": [
@@ -1899,7 +1910,7 @@
         "windows": [],
         "linux": []
       },
-      "notes": "Runs on ubuntu-latest; no LabVIEW required. Reacts to the `status` event so it stays current for any present or future capability that posts a commit status \u2014 no per-workflow wiring."
+      "notes": "Runs on ubuntu-latest; no LabVIEW required. Reacts to the `status` event so it stays current for any present or future capability that posts a commit status — no per-workflow wiring."
     },
     {
       "id": "masscompile",
@@ -1929,7 +1940,7 @@
           ".github/labview/masscompile.sh"
         ]
       },
-      "notes": "Runs on the NI base image \u2014 no custom image required."
+      "notes": "Runs on the NI base image — no custom image required."
     },
     {
       "id": "vi-analyzer",
@@ -1961,7 +1972,7 @@
           ".github/labview/via-configs/"
         ]
       },
-      "notes": "The full default test set (~90 tests) requires the custom image (enable \u201cShared LabVIEW image\u201d). On the bare NI base image the analyzer reports \u201c0 tests run\u201d."
+      "notes": "The full default test set (~90 tests) requires the custom image (enable “Shared LabVIEW image”). On the bare NI base image the analyzer reports “0 tests run”."
     },
     {
       "id": "vidiff",
