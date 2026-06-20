@@ -155,6 +155,20 @@
     '.lvci-run-chip:hover{background:rgba(31,111,235,.12);text-decoration:none}',
     '.lvci-run-chip .lvci-run-spin{width:9px;height:9px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:lvci-spin .7s linear infinite}',
     '@media(prefers-color-scheme:light){.lvci-run-chip{color:#0969da;border-color:#0969da}.lvci-run-chip:hover{background:rgba(9,105,218,.08)}}',
+    // Activity pill — compact run / queue / fail counts; each segment shows only
+    // when its count > 0, and the whole pill links to the repo's Actions list.
+    '.lvci-actpill{display:none;align-items:stretch;text-decoration:none;border:1px solid #30363d;border-radius:999px;overflow:hidden;white-space:nowrap;line-height:1}',
+    '.lvci-actpill.show{display:inline-flex}',
+    '.lvci-actpill:hover{background:rgba(177,186,196,.08)}',
+    '.lvci-ap-seg{display:none;align-items:center;gap:6px;padding:4px 11px;font-size:12px;font-weight:600}',
+    '.lvci-ap-seg.on{display:inline-flex}',
+    '.lvci-ap-seg.on~.lvci-ap-seg.on{border-left:1px solid #30363d}',
+    '.lvci-ap-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:currentColor}',
+    '.lvci-ap-spin{width:9px;height:9px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:lvci-spin .7s linear infinite;flex:0 0 auto}',
+    '.lvci-ap-run{color:#1f6feb}',
+    '.lvci-ap-queue{color:#8b949e}',
+    '.lvci-ap-fail{color:#f85149}',
+    '@media(prefers-color-scheme:light){.lvci-actpill{border-color:#d0d7de}.lvci-ap-seg.on~.lvci-ap-seg.on{border-left-color:#d0d7de}.lvci-ap-run{color:#0969da}.lvci-ap-queue{color:#57606a}.lvci-ap-fail{color:#cf222e}}',
     // Update-available cue: a single amber dot on the menu trigger (the More
     // button on desktop, the hamburger on mobile). The version + update action
     // live inside that menu, so this dot is the at-a-glance "you can update" hint.
@@ -299,6 +313,11 @@
     ':root[data-lvci-theme=light] .lvci-btn:hover{background:rgba(80,90,100,.08)}',
     ':root[data-lvci-theme=light] .lvci-run-chip{color:#0969da;border-color:#0969da}',
     ':root[data-lvci-theme=light] .lvci-run-chip:hover{background:rgba(9,105,218,.08)}',
+    ':root[data-lvci-theme=light] .lvci-actpill{border-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-ap-seg.on~.lvci-ap-seg.on{border-left-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-ap-run{color:#0969da}',
+    ':root[data-lvci-theme=light] .lvci-ap-queue{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-ap-fail{color:#cf222e}',
     ':root[data-lvci-theme=light] .lvci-ddver .lvci-ddver-tag{color:#57606a}',
     ':root[data-lvci-theme=light] .lvci-ddver.behind .lvci-ddver-tag,:root[data-lvci-theme=light] .lvci-ddver.behind .lvci-ic{color:#bf8700}',
     ':root[data-lvci-theme=light] .lvci-burger{border-color:#d0d7de}',
@@ -343,6 +362,11 @@
     ':root[data-lvci-theme=dark] .lvci-btn:hover{background:rgba(177,186,196,.12)}',
     ':root[data-lvci-theme=dark] .lvci-run-chip{color:#1f6feb;border-color:#1f6feb}',
     ':root[data-lvci-theme=dark] .lvci-run-chip:hover{background:rgba(31,111,235,.12)}',
+    ':root[data-lvci-theme=dark] .lvci-actpill{border-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-ap-seg.on~.lvci-ap-seg.on{border-left-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-ap-run{color:#1f6feb}',
+    ':root[data-lvci-theme=dark] .lvci-ap-queue{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-ap-fail{color:#f85149}',
     ':root[data-lvci-theme=dark] .lvci-ddver .lvci-ddver-tag{color:#8b949e}',
     ':root[data-lvci-theme=dark] .lvci-ddver.behind .lvci-ddver-tag,:root[data-lvci-theme=dark] .lvci-ddver.behind .lvci-ic{color:#d29922}',
     ':root[data-lvci-theme=dark] .lvci-burger{border-color:#30363d}',
@@ -1080,13 +1104,16 @@
     // Actions
     var actions = document.createElement('div');
     actions.className = 'lvci-actions';
-    // Live CI activity chip (transient) leads the cluster so the stable
+    // Live CI activity pill (transient) leads the cluster so the stable
     // [primary action][More] pairing keeps its position when nothing is running.
     var runChip = document.createElement('a');
-    runChip.className = 'lvci-run-chip';
-    runChip.id = 'lvci-runchip';
+    runChip.className = 'lvci-actpill';
+    runChip.id = 'lvci-actpill';
     if (repo) { runChip.href = 'https://github.com/' + repo + '/actions'; runChip.target = '_blank'; runChip.rel = 'noopener'; }
-    runChip.innerHTML = '<span class="lvci-run-spin" aria-hidden="true"></span><span id="lvci-runchip-txt">running</span>';
+    runChip.innerHTML =
+      '<span class="lvci-ap-seg lvci-ap-run"><span class="lvci-ap-spin" aria-hidden="true"></span><span class="lvci-ap-n">0</span></span>' +
+      '<span class="lvci-ap-seg lvci-ap-queue"><span class="lvci-ap-dot" aria-hidden="true"></span><span class="lvci-ap-n">0</span></span>' +
+      '<span class="lvci-ap-seg lvci-ap-fail"><span class="lvci-ap-dot" aria-hidden="true"></span><span class="lvci-ap-n">0</span></span>';
     actions.appendChild(runChip);
     buildActions().forEach(function (a) { actions.appendChild(actionEl(a, false)); });
     // Share — copy a deep link to (or print) exactly what's shown. Present on the
@@ -1305,7 +1332,7 @@
   //   - menu dot   : one amber dot on the More button / hamburger whenever an
   //                  update is available or in progress
   var verState = { v: '', behind: false, to: '' };
-  var runState = { active: 0, names: [] };
+  var runState = { active: 0, running: 0, queued: 0, names: [], list: [] };
   var failState = { list: [] };
   var verEls = [];
   var clientsEls = [];
@@ -1554,15 +1581,18 @@
         if (!d) return;                                                     // 304: keep current badge
         var act = (d.workflow_runs || []).filter(function (w) { return ACTIVE[w.status]; });
         runState.active = act.length;
+        runState.running = act.filter(function (w) { return w.status === 'in_progress'; }).length;
+        runState.queued = act.length - runState.running;
+        runState.list = act.slice(0, 8);
         runState.names = [];
         act.slice(0, 6).forEach(function (w) {
           var n = w.name || w.display_title || 'workflow run';
           if (runState.names.indexOf(n) < 0) runState.names.push(n);
         });
-        renderBadge();
-        // Global attention bar: surface workflows whose NEWEST run failed (the
-        // runs list is newest-first, so the first run seen per workflow is its
-        // latest; a workflow that has since gone green is therefore not flagged).
+        // Failed activities (newest run per workflow that ended in failure) feed
+        // BOTH the pill's fail segment and the global attention bar. The runs list
+        // is newest-first, so the first run seen per workflow is its latest; a
+        // workflow that has since gone green is therefore not flagged.
         var seenWf = {}, fails = [];
         (d.workflow_runs || []).forEach(function (w) {
           var key = w.path || w.name || ('wf' + w.workflow_id);
@@ -1571,6 +1601,7 @@
           if (w.status === 'completed' && w.conclusion === 'failure') fails.push(w);
         });
         failState.list = fails;
+        renderBadge();
         renderAlert();
         if (REBUILD_ON) {
           var rb = pickRebuild(act);
@@ -1634,18 +1665,25 @@
     var behind = !updating && verState.behind;
     var hasUpdate = updating || behind;
 
-    // 1) Live CI activity chip — present only while runs are in flight.
-    var chip = document.getElementById('lvci-runchip');
-    var chipTxt = document.getElementById('lvci-runchip-txt');
-    if (chip && chipTxt) {
-      if (runState.active > 0) {
-        chipTxt.textContent = (runState.active === 1 ? '1 running' : runState.active + ' running');
-        chip.title = 'CI in progress: ' + (runState.names.join(', ') || 'workflow run')
-          + '\nThe dashboard updates when it finishes.';
-        chip.classList.add('show');
-      } else {
-        chip.classList.remove('show');
-      }
+    // 1) Live CI activity pill — run / queue / fail counts (each segment shown
+    //    only when > 0; the pill hides entirely when there is no activity).
+    var pill = document.getElementById('lvci-actpill');
+    if (pill) {
+      var nFail = (failState.list || []).length;
+      var segs = [['lvci-ap-run', runState.running || 0], ['lvci-ap-queue', runState.queued || 0], ['lvci-ap-fail', nFail]];
+      var anyOn = false;
+      segs.forEach(function (s) {
+        var seg = pill.querySelector('.' + s[0]); if (!seg) return;
+        var on = s[1] > 0; if (on) anyOn = true;
+        seg.classList.toggle('on', on);
+        var ne = seg.querySelector('.lvci-ap-n'); if (ne) ne.textContent = s[1];
+      });
+      pill.classList.toggle('show', anyOn);
+      var parts = [];
+      if (runState.running) parts.push(runState.running + ' running');
+      if (runState.queued) parts.push(runState.queued + ' queued');
+      if (nFail) parts.push(nFail + ' failed');
+      pill.title = parts.length ? ('CI activity: ' + parts.join(', ') + '\nOpen the repository\u2019s Actions list.') : '';
     }
 
     // 2) Update-available dot on the menu trigger(s).
