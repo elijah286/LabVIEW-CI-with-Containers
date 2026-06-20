@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Documentation — LabVIEW CI</title>
+  <script>window.LVCI={context:'documentation'};</script>
+  <script src="lvci-header.js" defer></script>
+  <style>
+    :root{
+      --bg:#0d1117;--surface:#161b22;--surface2:#1c2230;--border:#30363d;
+      --fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;
+      --warn:#d29922;--danger:#f85149;--code:#79c0ff;
+    }
+    @media(prefers-color-scheme:light){
+      :root{
+        --bg:#ffffff;--surface:#f6f8fa;--surface2:#eef1f5;--border:#d0d7de;
+        --fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--accent:#1f883d;
+        --warn:#9a6700;--danger:#cf222e;--code:#0550ae;
+      }
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:var(--bg);color:var(--fg);line-height:1.65}
+    a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+    .layout{max-width:1200px;margin:0 auto;padding:28px 20px 80px;display:grid;
+            grid-template-columns:248px minmax(0,1fr);gap:36px}
+    /* ── Sticky table of contents ─────────────────────────────────────────── */
+    .toc{position:sticky;top:74px;align-self:start;max-height:calc(100vh - 96px);overflow-y:auto;
+         font-size:.86em;padding-right:6px}
+    .toc h2{font-size:.72em;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-muted);
+            margin:0 0 10px;font-weight:700}
+    .toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+    .toc li{margin:0}
+    .toc a{display:block;padding:5px 10px;border-left:2px solid transparent;color:var(--fg-muted);border-radius:0 4px 4px 0}
+    .toc a:hover{color:var(--fg);background:rgba(177,186,196,.08);text-decoration:none}
+    .toc a.active{color:var(--link);border-left-color:var(--link);background:rgba(88,166,255,.08);font-weight:600}
+    .toc .sub{padding-left:22px;font-size:.95em}
+    /* ── Main content ─────────────────────────────────────────────────────── */
+    .content{min-width:0}
+    .content>p.lede{font-size:1.05em;color:var(--fg-muted);margin:0 0 26px}
+    h1{font-size:1.9em;margin:0 0 6px;line-height:1.2}
+    .content h2{font-size:1.35em;margin:46px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--border);scroll-margin-top:74px}
+    .content h3{font-size:1.08em;margin:28px 0 8px;scroll-margin-top:74px}
+    .content h4{font-size:.96em;margin:20px 0 6px;color:var(--fg);scroll-margin-top:74px}
+    .content p{margin:10px 0}
+    .content ul,.content ol{margin:10px 0;padding-left:22px}
+    .content li{margin-bottom:7px}
+    .content strong{font-weight:600;color:var(--fg)}
+    code{background:var(--surface);padding:2px 6px;border-radius:5px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:.86em;color:var(--code)}
+    pre{background:var(--surface);border:1px solid var(--border);padding:14px 16px;border-radius:8px;overflow-x:auto;
+        margin:14px 0;font-size:.82em;line-height:1.55}
+    pre code{background:none;padding:0;border-radius:0;color:var(--fg)}
+    .repo-home{margin:0 0 26px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);
+      border-radius:8px;font-size:.92em;color:var(--fg-muted)}
+    .repo-home a{font-weight:600;color:var(--link)}
+    /* Callouts */
+    .note,.warn,.tip{margin:16px 0;padding:12px 16px;border:1px solid var(--border);border-left-width:4px;
+         border-radius:6px;background:var(--surface);font-size:.92em}
+    .note{border-left-color:var(--link)}
+    .warn{border-left-color:var(--warn)}
+    .tip{border-left-color:var(--accent)}
+    .note .lbl,.warn .lbl,.tip .lbl{display:block;font-weight:700;font-size:.8em;text-transform:uppercase;
+         letter-spacing:.05em;margin-bottom:4px}
+    .note .lbl{color:var(--link)}.warn .lbl{color:var(--warn)}.tip .lbl{color:var(--accent)}
+    /* Tables */
+    table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.88em}
+    th,td{text-align:left;padding:8px 12px;border:1px solid var(--border);vertical-align:top}
+    th{background:var(--surface);font-weight:600}
+    td code{font-size:.92em}
+    /* ASCII / flow diagram block */
+    .diagram{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px;
+             margin:16px 0;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78em;
+             line-height:1.45;white-space:pre;color:var(--fg)}
+    .pill{display:inline-block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+          padding:1px 8px;border-radius:999px;border:1px solid var(--border);color:var(--fg-muted);vertical-align:middle}
+    .pill.win{color:#58a6ff;border-color:#1f6feb}
+    .pill.lin{color:#d29922;border-color:#9a6700}
+    .anchor{color:var(--fg-muted);font-weight:400;text-decoration:none;opacity:0;margin-left:8px;font-size:.8em}
+    h2:hover .anchor,h3:hover .anchor{opacity:1}
+    .updated{font-size:.82em;color:var(--fg-muted);margin:4px 0 0}
+    @media(max-width:880px){
+      .layout{grid-template-columns:1fr;gap:0}
+      .toc{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ── Table of contents ─────────────────────────────────────────────── -->
+    <nav class="toc" aria-label="Contents">
+      <h2>On this page</h2>
+      <ol>
+        <li><a href="#overview">1. Overview &amp; philosophy</a></li>
+        <li><a href="#architecture">2. Architecture at a glance</a></li>
+        <li><a href="#catalog">3. The catalog</a></li>
+        <li><a href="#install">4. Installation &amp; distribution</a></li>
+        <li><a href="#orchestration">5. Workflow orchestration</a></li>
+        <li><a href="#images">6. Worker container images</a></li>
+        <li><a href="#lifecycle">7. Container lifecycle</a></li>
+        <li><a href="#vipm">8. VIPM dependency baking</a></li>
+        <li><a href="#capabilities">9. Capabilities in depth</a>
+          <ol>
+            <li class="sub"><a href="#cap-masscompile">Mass Compile</a></li>
+            <li class="sub"><a href="#cap-vianalyzer">VI Analyzer</a></li>
+            <li class="sub"><a href="#cap-vidiff">VIDiff</a></li>
+            <li class="sub"><a href="#cap-unittests">Unit Tests</a></li>
+            <li class="sub"><a href="#cap-antidoc">Antidoc</a></li>
+            <li class="sub"><a href="#cap-snapshots">VI Snapshots / Browser</a></li>
+          </ol>
+        </li>
+        <li><a href="#pages">10. The Pages site &amp; dashboard</a></li>
+        <li><a href="#contracts">11. Report data contracts</a></li>
+        <li><a href="#versioning">12. Versioning &amp; updates</a></li>
+        <li><a href="#discovery">13. Client discovery</a></li>
+        <li><a href="#extending">14. Extending the system</a></li>
+        <li><a href="#security">15. Security model</a></li>
+        <li><a href="#constraints">16. Constraints &amp; gotchas</a></li>
+      </ol>
+    </nav>
+
+    <!-- ── Main content ──────────────────────────────────────────────────── -->
+    <main class="content">
+      <div class="repo-home">
+        This documentation describes the
+        <a class="lvci-repo-link" data-show-name href="https://github.com/elijah286/LabVIEW-CI-with-Containers" target="_blank" rel="noopener">LabVIEW-CI-with-Containers</a>
+        tooling, maintained by
+        <a class="lvci-owner-link" href="https://github.com/elijah286" target="_blank" rel="noopener">elijah286</a>.
+        Looking for short answers instead? See the <a href="faq.html">FAQ</a>.
+      </div>
+
+      <h1>How LabVIEW CI works</h1>
+      <p class="lede">A deep, implementation-level reference for engineers who want to evaluate the quality of
+        this stack, extend it with new capabilities, adapt it to their own infrastructure, or simply understand
+        exactly what runs when a commit lands. This page assumes you are an experienced LabVIEW developer and are
+        comfortable with Git, Docker, and GitHub Actions.</p>
+      <p class="updated">Living document — kept in lock-step with the tooling. When a capability is added or a
+        behaviour changes, this page changes with it.</p>
+
+      <!-- 1 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="overview">1. Overview &amp; philosophy <a class="anchor" href="#overview">#</a></h2>
+      <p>LabVIEW CI is a <strong>portable, repository-agnostic CI/CD pipeline for LabVIEW projects</strong>. It runs
+        LabVIEW headless inside Docker containers on GitHub Actions runners, performs a set of code-quality
+        activities on every commit, and publishes the results as a static GitHub Pages site with a unified
+        dashboard. Nothing runs on the tooling author's infrastructure or on NI's — every container executes inside
+        <em>your</em> GitHub Actions environment, under your account's minutes and limits.</p>
+
+      <p>Four design principles shape almost every decision in the codebase:</p>
+      <ul>
+        <li><strong>Catalog-driven.</strong> A single <code>catalog.json</code> is the source of truth for which
+          capabilities exist, which files they need, what they depend on, and how they are branded. The
+          configurator UI and the installer both read it, so adding a capability is a <em>one-entry change</em>
+          rather than edits scattered across UI, installer, and dashboard code.</li>
+        <li><strong>Reproducible isolation.</strong> Every action, on every revision, on every platform, gets a
+          fresh container (<code>docker run --rm</code>). Containers are never reused across actions or revisions.
+          The only intentional exception is the snapshot renderer, which keeps one container warm within a single
+          job and deduplicates work by content hash.</li>
+        <li><strong>Logic travels with workflows; heavy artefacts are built once.</strong> The multi-gigabyte worker
+          images are built once and pulled on demand; the scripts that drive them are small and ship inside the
+          workflows/actions, so consumers need no local copy.</li>
+        <li><strong>Derive, don't rewrite.</strong> Functional wiring (image name, LabVIEW version, Pages URL)
+          resolves at runtime from GitHub context and Actions variables with safe fallbacks. The installer only
+          rewrites cosmetic branding strings, never functional configuration — which keeps installs robust and
+          upgrades trivial.</li>
+      </ul>
+
+      <h3>The activities</h3>
+      <table>
+        <thead><tr><th>Capability</th><th>What it does</th><th>Platforms</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Mass Compile</strong></td><td>Compiles every VI/CTL and flags broken VIs and missing dependencies.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
+          <tr><td><strong>VI Analyzer</strong></td><td>Runs NI's static-analysis test suite for correctness, performance, style and documentation.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
+          <tr><td><strong>VIDiff</strong></td><td>Generates visual, side-by-side front-panel + block-diagram diffs of changed VIs between commits.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
+          <tr><td><strong>Unit Tests</strong></td><td>Runs Caraya / VI Tester / NI Unit Test Framework headlessly and merges JUnit output into one report.</td><td><span class="pill win">Win</span></td></tr>
+          <tr><td><strong>Antidoc</strong></td><td>Generates project documentation from the VI hierarchy using Wovalab's Antidoc CLI.</td><td><span class="pill win">Win</span></td></tr>
+          <tr><td><strong>VI Snapshots / Browser</strong></td><td>Renders every VI to a content-addressed HTML snapshot (and position-aware JSON for the in-place 2.0 browser).</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
+          <tr><td><strong>Dashboard</strong></td><td>Aggregates everything above into a single status page on GitHub Pages.</td><td>runner host</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 2 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="architecture">2. Architecture at a glance <a class="anchor" href="#architecture">#</a></h2>
+      <p>A push (or pull request) triggers the reusable workflow, which gates a set of per-capability container jobs
+        on your configuration. Each job pulls a worker image, runs LabVIEW headless inside a throwaway container,
+        writes a report, deploys it to the <code>gh-pages</code> branch, and posts a commit status. A separate
+        dashboard workflow reacts to those statuses and rebuilds the Pages dashboard.</p>
+
+      <div class="diagram">  commit / PR
+       │
+       ▼
+  labview-ci.reusable.yml ───────────────────────────────────────────────┐
+       │  (config job reads .github/labview-ci.yml, exposes outputs)      │
+       │                                                                  │
+       ├─ has-masscompile & os-windows ─► masscompile (windows-2022)      │
+       ├─ has-vi-analyzer  & os-linux   ─► vi-analyzer (ubuntu-latest)    │   each job:
+       ├─ has-vidiff       …            ─► vidiff                          │   1. pull image (GHCR / NI)
+       ├─ has-snapshots    …            ─► vi-snapshots                    │   2. docker run --rm
+       └─ …                                                               │   3. LabVIEW headless
+                                                                          │   4. build report (host)
+  GHCR  ghcr.io/<owner>/<repo>-labview   ◄── built by build-labview-image │   5. deploy to gh-pages
+        ghcr.io/<owner>/<repo>-toimages  ◄── built by build-toimages-image│   6. POST commit status
+  NI    nationalinstruments/labview      ◄── base layer (public)          │
+                                                                          ▼
+  status event ─► dashboard-pages.yml ─► actions/dashboard ─► gh-pages root (index.html, …)
+                                                                          │
+                                                                          ▼
+                                               GitHub Pages  ◄── your dashboard + reports</div>
+
+      <p>Three deploy destinations live side by side on the <code>gh-pages</code> branch (all written with
+        <code>keep_files: true</code> so they never clobber each other):</p>
+      <ul>
+        <li><strong>The dashboard + tooling pages</strong> at the Pages root (<code>index.html</code>,
+          <code>vi-snapshots/</code>, <code>configure.html</code>, <code>whats-new.html</code>, this page, etc.).</li>
+        <li><strong>Per-revision reports</strong> under content paths keyed by commit SHA
+          (<code>masscompile/&lt;sha&gt;/</code>, <code>vi-analyzer/&lt;sha&gt;/</code>,
+          <code>vidiff/&lt;segment&gt;/</code>).</li>
+        <li><strong>Content-addressed snapshots</strong> under <code>vi-snapshots/by-blob/&lt;ab&gt;/&lt;blob&gt;.html</code>.</li>
+      </ul>
+
+      <!-- 3 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="catalog">3. The catalog — single source of truth <a class="anchor" href="#catalog">#</a></h2>
+      <p>Everything starts at <code>.github/labview-ci/catalog.json</code>. It is a versioned manifest that both the
+        browser configurator and the Python installer consume. Its key sections:</p>
+      <pre><code>{
+  "schemaVersion": 1,
+  "version": "3.24.5",            // must equal history.releases[0].version
+  "history": { "releases": [ { "version": "...", "title": "...", "highlights": [...] } ] },
+  "base":   { "files": [ ... ] }, // always installed (dashboard chrome, manifest, …)
+  "capabilities": [
+    {
+      "id": "vi-analyzer",
+      "name": "VI Analyzer",
+      "status": "stable",          // planned | advanced | stable  → drives UI visibility
+      "recommended": true,
+      "supportsOs": ["windows", "linux"],
+      "requires": ["dashboard"],   // hard dependencies
+      "recommends": ["dashboard"],
+      "statusContext": "CI / VI Analyzer",   // GitHub commit-status context
+      "files": { "any": [...], "windows": [...], "linux": [...] }
+    }
+  ],
+  "substitutions": { "ordered": [ { "find": "...", "replaceWith": "{ownerRepo}" } ] },
+  "userConfig": { "files": [ ".github/labview-ci.yml", ".github/labview/vipm/ci-tooling.packages.json" ] }
+}</code></pre>
+      <p>The <code>status</code> field controls how a capability surfaces: <code>planned</code> is shown but
+        disabled, <code>advanced</code> is opt-in, <code>stable</code> is offered by default. The
+        <code>statusContext</code> string is the GitHub commit-status context the capability's workflow posts and
+        the dashboard reads — that one string is how a result flows from a workflow to a dashboard cell.</p>
+      <div class="tip"><span class="lbl">Why this matters for extension</span>
+        Because the configurator and installer iterate the catalog generically, you never touch UI code to add a
+        capability. See <a href="#extending">§14</a> for the full recipe.</div>
+
+      <!-- 4 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="install">4. Installation &amp; distribution <a class="anchor" href="#install">#</a></h2>
+      <p>Installation is a three-tier bootstrap:</p>
+      <table>
+        <thead><tr><th>Layer</th><th>File(s)</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td>Entry point</td><td><code>install.sh</code> / <code>install.ps1</code></td><td>Fetch the tooling from GitHub, locate Python, forward to <code>install.py</code>.</td></tr>
+          <tr><td>Brain</td><td><code>install.py</code> (stdlib only)</td><td>Resolve the file set from the catalog, apply text substitutions, write the manifest.</td></tr>
+          <tr><td>Result</td><td>the target repo</td><td><code>.github/workflows/*.yml</code>, <code>.github/labview/*</code>, and the <code>.github/labview-ci.yml</code> manifest.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>What gets written</h3>
+      <ul>
+        <li><strong>Text files</strong> (<code>.yml .ps1 .sh .py .html .md .json .xml .viancfg</code>) have the
+          catalog's <code>substitutions</code> applied — purely cosmetic rebranding (e.g. the source slug and the
+          Pages host) so links point at the consumer.</li>
+        <li><strong>Binary files</strong> (<code>.vi</code> and friends) are copied byte-for-byte.</li>
+        <li><strong>The installer's own files</strong> under <code>.github/labview-ci/</code> are <em>protected</em>
+          from substitution so they keep pointing at the source repo for later re-runs and upgrades.</li>
+      </ul>
+
+      <h3>The per-repo manifest — <code>.github/labview-ci.yml</code></h3>
+      <pre><code>schemaVersion: 1
+installedVersion: 3.24.5
+source:
+  repo: elijah286/LabVIEW-CI-with-Containers
+  ref:  v3.24.5            # pinned to an IMMUTABLE tag, never "main"
+config:
+  labviewVersion: "2026"
+  os: [windows, linux]
+  container:
+    use: latest           # tag every action uses by default
+    vipc:
+      - { path: Dependencies.vipc, monitor: true }
+    actions:              # per-action image overrides
+      masscompile: base   # bare NI image
+      vidiff: "2026"      # pinned tag
+activities: [dashboard, masscompile, vi-analyzer, vidiff]</code></pre>
+      <p>This manifest is read at runtime by every workflow (capability gating, image selection, LabVIEW version)
+        and by the configurator. Because <code>source.ref</code> is pinned to an immutable version tag, a
+        consumer's pipeline <strong>never changes unless they explicitly update</strong> (see <a href="#versioning">§12</a>).</p>
+
+      <h3>Thin vs. fat installs</h3>
+      <p>A <strong>thin</strong> install references the reusable workflow at a moving major tag
+        (<code>uses: …/labview-ci.reusable.yml@v3</code>) and inherits improvements automatically. A
+        <strong>fat</strong> install copies all workflow files locally and updates them deliberately via
+        <code>install.py --update</code>. Both are valid; thin is the lowest-maintenance path.</p>
+
+      <!-- 5 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="orchestration">5. Workflow orchestration <a class="anchor" href="#orchestration">#</a></h2>
+      <p>The heart is <code>.github/workflows/labview-ci.reusable.yml</code>. It implements
+        <strong>config-driven job gating</strong>: a single <code>config</code> job reads the consumer's
+        <code>.github/labview-ci.yml</code> once (via the <code>actions/load-config</code> composite action) and
+        exposes the settings as job outputs. Every activity job then gates on both a capability flag and a platform
+        flag.</p>
+      <pre><code>config:
+  runs-on: ubuntu-latest
+  outputs:
+    has-masscompile: ${{ steps.cfg.outputs.has-masscompile }}
+    os-windows:      ${{ steps.cfg.outputs.os-windows }}
+    tooling-ref:     ${{ steps.ref.outputs.ref }}
+    # …
+
+mass-compile:
+  needs: config
+  if: ${{ needs.config.outputs.has-masscompile == 'true'
+          && needs.config.outputs.os-windows == 'true' }}
+  runs-on: ${{ inputs.windows-runner }}   # default windows-2022</code></pre>
+      <p>Disable a capability in Configure and its flag flips to <code>false</code>, skipping the job. Unselect a
+        platform and the platform flag does the same. The <code>tooling-ref</code> output lets the consumer's
+        manifest pin which version of the tooling scripts are checked out at run time (<code>ref:</code> in the
+        config), decoupling capability versioning from GitHub's moving major-tag alias.</p>
+
+      <h3>Runners</h3>
+      <p>Windows container jobs run on <code>windows-2022</code>; Linux jobs on <code>ubuntu-latest</code>. Both
+        default to GitHub-hosted runners but can be pointed at self-hosted labels via workflow inputs / Actions
+        variables. The worker container runs <em>on</em> the runner, so choosing a runner is how you choose where CI
+        executes — a self-hosted runner additionally gives you a persistent Docker layer cache so the multi-gigabyte
+        image is not re-pulled every job.</p>
+
+      <h3>Concurrency &amp; serialised deploys</h3>
+      <p>Report-producing workflows share the concurrency group <code>report-pages-deploy</code> with
+        <code>cancel-in-progress: false</code>. Because several jobs push to the same <code>gh-pages</code> branch,
+        serialising them prevents one job's <code>git push</code> from racing another's. The dashboard build uses a
+        separate group (<code>dashboard-pages</code>, <code>cancel-in-progress: true</code>) so a burst of status
+        events collapses into a single latest-wins rebuild.</p>
+
+      <!-- 6 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="images">6. Worker container images <a class="anchor" href="#images">#</a></h2>
+      <p>The worker image is where LabVIEW and your baked-in dependencies live. It is built by
+        <code>build-labview-image.yml</code> (Windows) / <code>build-labview-linux-image.yml</code> (Linux) from
+        <code>.github/docker/labview-ci.Dockerfile</code>, layered on NI's public
+        <code>nationalinstruments/labview</code> base image, and pushed to <strong>your</strong> GitHub Container
+        Registry (GHCR) as a package attached to your repo:</p>
+      <pre><code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview      # the LabVIEW worker
+ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware renderer (Linux)</code></pre>
+      <p>The image inherits your repository's visibility and is authenticated with the job's built-in
+        <code>GITHUB_TOKEN</code>. GHCR rejects uppercase names, so the owner/repo are lowercased at build time.</p>
+
+      <h3>Content-addressed tagging</h3>
+      <p>Every build computes a <strong>worker version</strong> — a SHA-256 over the Dockerfile, the VIPC install
+        script, and every baked <code>.vipc</code> — and publishes four tags so consumers can choose their
+        stability/freshness trade-off:</p>
+      <table>
+        <thead><tr><th>Tag</th><th>Example</th><th>Stability</th></tr></thead>
+        <tbody>
+          <tr><td><code>:latest</code></td><td><code>:latest</code></td><td>Always the newest build.</td></tr>
+          <tr><td><code>:&lt;year&gt;</code></td><td><code>:2026</code></td><td>Moves as that LabVIEW year rebuilds.</td></tr>
+          <tr><td><code>:&lt;year&gt;-&lt;date&gt;</code></td><td><code>:2026-20250620</code></td><td>Dated snapshot, stable until the next rebuild.</td></tr>
+          <tr><td><code>:&lt;hash&gt;</code></td><td><code>:win-a1b2c3d4e5f6</code></td><td><strong>Fully immutable</strong> — same inputs always reproduce the same tag.</td></tr>
+        </tbody>
+      </table>
+      <p>Each build also publishes a human/machine-readable <strong>worker manifest</strong> to
+        <code>/workers/&lt;platform&gt;/&lt;version&gt;/manifest.html</code> listing the exact <code>nipkg</code> and
+        VIPM packages baked in, so a worker image is fully auditable.</p>
+
+      <h3>When images rebuild</h3>
+      <p>The build is triggered by a push that changes a monitored <code>.vipc</code> file, by the monthly cron
+        (to pick up base-image updates), or by manual dispatch. A gate job deliberately <em>skips</em> rebuilds when
+        the only changed <code>.vipc</code> files are marked <code>monitor: false</code> — that is the "bake once,
+        pin forever" path.</p>
+
+      <h3>Per-action image routing</h3>
+      <p>Image selection is a three-level lookup against <code>.github/labview-ci.yml</code>:</p>
+      <ol>
+        <li><strong>Per-action override</strong> — <code>config.container.actions.&lt;id&gt;</code> (e.g. pin VIDiff
+          to a frozen build while Mass Compile tracks <code>latest</code>).</li>
+        <li><strong>Project-wide default</strong> — <code>config.container.use</code>.</li>
+        <li><strong>Built-in default</strong> — the bare NI base image.</li>
+      </ol>
+      <p>Special values: <code>base</code>/<code>none</code> force the NI base image (no baked dependencies),
+        <code>latest</code> selects the custom image's <code>:latest</code> tag, and anything else is treated as a
+        literal tag.</p>
+
+      <!-- 7 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="lifecycle">7. Container lifecycle &amp; headless LabVIEW <a class="anchor" href="#lifecycle">#</a></h2>
+      <p>A container job follows the same shape on every platform. The Windows Mass Compile job is representative:</p>
+      <pre><code>docker pull "$IMAGE"
+docker run --rm `
+  -e "GITHUB_REPOSITORY=$repo" -e "GITHUB_SHA=$sha" `
+  -v "${{ github.workspace }}:C:\workspace" `   # your repo, bind-mounted in
+  -v "${{ github.action_path }}:C:\ci-action" ` # the script ships with the action
+  "$IMAGE" `
+  powershell -NonInteractive -ExecutionPolicy Bypass `
+    -File "C:\ci-action\masscompile.ps1" `
+    -WorkspaceRoot "C:\workspace" `
+    -ReportDir     "C:\workspace\ci-out\masscompile" `
+    -LabVIEWPath   "C:\Program Files\National Instruments\LabVIEW 2026\LabVIEW.exe"</code></pre>
+      <p>Key properties:</p>
+      <ul>
+        <li><strong><code>--rm</code></strong> — the container is destroyed the instant the action finishes. Nothing
+          persists inside it; the <em>image</em> is reused, the <em>container instance</em> never is.</li>
+        <li><strong>Two bind mounts</strong> — your workspace (so reports written to
+          <code>ci-out/…</code> appear back on the runner) and the action directory (so consumer repos need no local
+          copy of the driving script). VIDiff mounts the base checkout at a second path
+          (<code>C:\workspace-base</code>) as well.</li>
+        <li><strong>Headless invocation</strong> — Windows uses <code>LabVIEWCLI.exe</code>; Linux uses the
+          <code>labviewcli</code>/<code>g-cli</code> entry points on PATH. LabVIEW 2026+ on Windows requires the
+          <code>-Headless</code> flag to avoid VI Server error <code>-350000</code> in a container.</li>
+      </ul>
+      <div class="note"><span class="lbl">Container lifecycle in one sentence</span>
+        A fresh container is created for each action × revision × platform, started when the action begins and
+        destroyed when it ends; it is shared across all files in one action's run but never across actions or
+        revisions. The snapshot renderer is the sole exception — see <a href="#cap-snapshots">§9.6</a>.</div>
+
+      <h3>Report generation runs on the host, not in the container</h3>
+      <p>The container emits raw output (a log, a native HTML report, JUnit XML, …). After it exits, a small Python
+        builder on the runner host turns that into the navigable report — grouping problems by VI, adding the shared
+        navigation chrome, and writing the machine-readable <code>summary.json</code>/<code>problems.json</code>
+        that the dashboard reads. The report is then uploaded as an artifact <em>and</em> deployed to
+        <code>gh-pages</code> under its per-SHA path, and a commit status is posted with the report URL.</p>
+
+      <!-- 8 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="vipm">8. VIPM dependency baking <a class="anchor" href="#vipm">#</a></h2>
+      <p>Third-party LabVIEW packages (Antidoc, Caraya, VI Tester, the UTF JUnit reporter) are <strong>baked into
+        the Windows worker image</strong> at build time so they are available headless during CI. Getting the modern
+        VIPM CLI to install packages non-interactively inside a <code>docker build</code> required solving several
+        non-obvious problems, documented in <code>.github/labview/vipm/README.md</code> and implemented by
+        <code>install-vipc.ps1</code>:</p>
+      <ol>
+        <li><strong>Use VIPM 2026 Q3</strong> from the JKI CDN — the older NI-feed CLI times out on
+          <code>library_list</code> with no diagnostic.</li>
+        <li><strong>Community Edition mode</strong> (<code>VIPM_COMMUNITY_EDITION=1</code>) so no Pro licence/activation
+          is needed.</li>
+        <li><strong>Non-interactive env</strong> (<code>VIPM_NONINTERACTIVE=1</code>, <code>VIPM_ASSUME_YES=1</code>,
+          <code>NO_COLOR=1</code>) so the CLI never blocks on a prompt.</li>
+        <li><strong>Seed <code>Settings.ini</code></strong> before installing — a fresh image lacks
+          <code>C:\ProgramData\JKI\VIPM\Settings.ini</code>, without which the CLI aborts with an IO error.</li>
+        <li><strong>Run LabVIEW headless first</strong> — the modern CLI installs <em>into a running LabVIEW</em> over
+          VI Server, so the script launches <code>LabVIEW.exe --headless</code> and waits for port <code>3363</code>.</li>
+        <li><strong>Extend timeouts</strong> (<code>VIPM_TIMEOUT=900</code>) — cold first-run headless LabVIEW
+          exceeds the CLI's short defaults during a build, where <code>CI</code>/<code>GITHUB_ACTIONS</code> env hints
+          are absent.</li>
+        <li><strong>Use the modern command shape</strong> — <code>vipm install &lt;name&gt;@&lt;version&gt; --refresh</code>;
+          there is no <code>-y</code> flag, and <code>--refresh</code> is a global option.</li>
+      </ol>
+      <div class="warn"><span class="lbl">Why the UTF JUnit reporter is mandatory for unit tests</span>
+        The built-in <code>LabVIEWCLI -OperationName RunUnitTests</code> links against
+        <code>ni_lib_utf_junit_report</code>. Without it baked in, headless UTF runs fail with error
+        <code>-350053</code> ("missing or bad files in the operation folder").</div>
+
+      <h3>The tooling VIPC is generated deterministically</h3>
+      <p><code>build-tooling-vipc.py</code> merges <code>ci-tooling.defaults.json</code> (tooling-supplied base
+        packages) with <code>ci-tooling.packages.json</code> (user overrides — user wins on name collision,
+        defaults are additive) into a byte-deterministic <code>ci-tooling.vipc</code>. Determinism matters because
+        the VIPC files feed the worker-version hash; a stable input yields a stable image tag.</p>
+
+      <!-- 9 ───────────────────────────────────────────────────────────────── -->
+      <h2 id="capabilities">9. Capabilities in depth <a class="anchor" href="#capabilities">#</a></h2>
+
+      <h3 id="cap-masscompile">9.1 Mass Compile <a class="anchor" href="#cap-masscompile">#</a></h3>
+      <p>Driver: <code>masscompile.ps1</code> / <code>masscompile.sh</code>; report:
+        <code>build-masscompile-report.py</code>. It invokes
+        <code>LabVIEWCLI -OperationName MassCompile -DirectoryToCompile &lt;workspace&gt;</code> (with
+        <code>-Headless</code> on Windows 2026+), which recursively compiles every VI/CTL in a single LabVIEW
+        session.</p>
+      <p>The raw <code>masscompile.log</code> is parsed for two failure signals — <code>### Bad VI</code> entries
+        (VIs LabVIEW cannot load) and <code>Search failed to find …</code> (unresolved subVI dependencies). The
+        report builder enumerates the repo's own VIs (excluding <code>.github/</code>, <code>ci-out/</code>,
+        <code>build/</code>) as the denominator and emits <code>problems.json</code> (per-VI, grouped by top-level
+        folder) plus <code>summary.json</code> (<code>{total, ok, bad, percent, status, missing_deps}</code>).</p>
+      <div class="note"><span class="lbl">Exit-code semantics</span>
+        <code>0</code> = all compiled; <code>3</code> = partial (some bad VIs, not a container failure); any other
+        non-zero = a real container/configuration error. The Python reader also handles UTF-16 BOMs that Windows
+        <code>Tee-Object</code> can emit.</div>
+
+      <h3 id="cap-vianalyzer">9.2 VI Analyzer <a class="anchor" href="#cap-vianalyzer">#</a></h3>
+      <p>Driver: <code>run-vi-analyzer.ps1</code> / <code>.sh</code>; report:
+        <code>build-analyzer-report.py</code>. It runs
+        <code>LabVIEWCLI -OperationName RunVIAnalyzer</code> against a <code>.viancfg</code> configuration. The
+        default template (<code>via-config-default.viancfg</code>) has a <code>__WORKSPACE_PATH__</code> placeholder
+        substituted with the mounted workspace; an empty <code>TestConfigData</code> means "run the full built-in
+        suite".</p>
+      <p>Configuration is layered. The manifest's <code>config.viAnalyzer</code> can name a <code>default</code>
+        config and a list of per-path <code>rules</code> (e.g. strict rules for <code>src/critical/**</code>,
+        relaxed for <code>tests/**</code>). <span class="pill lin">Linux</span> honours only the <code>default</code>
+        config — per-subset rules are Windows-only. The report builder maps each failed test to a category
+        (correctness / performance / style / documentation) for the dashboard's coloured breakdown and preserves the
+        LabVIEW-native HTML as <code>raw.html</code>.</p>
+
+      <h3 id="cap-vidiff">9.3 VIDiff <a class="anchor" href="#cap-vidiff">#</a></h3>
+      <p>Driver: <code>vidiff.ps1</code> / <code>.sh</code>; history walker: <code>vidiff-backfill.ps1</code> /
+        <code>.sh</code>. For each changed VI it runs
+        <code>LabVIEWCLI -OperationName CreateComparisonReport</code> (modified VIs, side-by-side) or the custom
+        <code>PrintToSingleFileHtml</code> operation (added/deleted VIs, single snapshot). A magic-byte check at
+        offset 8 confirms a file is a real LabVIEW resource before attempting a render.</p>
+      <p>The job mounts two checkouts — head at <code>C:\workspace</code>, base at
+        <code>C:\workspace-base</code> — and passes the changed-file list as an environment variable. Reports land
+        at <code>vidiff/&lt;pr-N|push-sha&gt;/&lt;platform&gt;/vidiff/</code> with a <code>changes.json</code>
+        manifest (<code>{modified, added, deleted}</code>). The <strong>backfill</strong> variant walks
+        <code>git log --reverse -- '*.vi' '*.ctl'</code>, creates detached worktrees per commit, renders through a
+        warm container, and is resumable via a skip-list so large histories can be processed across runs.</p>
+      <div class="note"><span class="lbl">PrintToSingleFileHtml</span>
+        The custom operation under <code>.github/labview/PrintToSingleFileHtml/</code> is a binary
+        <code>.lvclass</code> sourced from NI's <code>labview-for-containers</code> examples; it renders a single VI
+        (front panel + block diagram) to a standalone HTML file and powers both added/deleted diffs and snapshots.</div>
+
+      <h3 id="cap-unittests">9.4 Unit Tests <a class="anchor" href="#cap-unittests">#</a></h3>
+      <p>Driver: <code>run-unit-tests.ps1</code>; report: <code>build-unittest-report.py</code>. It reads
+        <code>config.unitTests.tools[]</code> from the manifest, runs each enabled framework headlessly (Caraya and
+        VI Tester via <code>g-cli</code>; NI UTF via <code>LabVIEWCLI -OperationName RunUnitTests</code>), and
+        collects per-tool JUnit XML. The framework is inferred from the XML filename, and the "VI under test" is
+        derived by stripping test affixes (e.g. <code>Foo Tests.vi → Foo.vi</code>) so results link back to source.
+        The merged <code>results.json</code> carries per-tool suites, per-case status, and an overall summary.</p>
+
+      <h3 id="cap-antidoc">9.5 Antidoc <a class="anchor" href="#cap-antidoc">#</a></h3>
+      <p>Driver: <code>run-antidoc.ps1</code>; report: <code>build-antidoc-report.py</code>. It drives Wovalab's
+        Antidoc CLI through <code>g-cli</code> against the project's <code>.lvproj</code> (auto-detected if not
+        specified), producing AsciiDoc with embedded diagram images. Two implementation details are worth knowing:
+        it <strong>re-reads the Windows registry PATH</strong> and merges it into the process environment so a VIPM
+        package installed after the Dockerfile's <code>ENV</code> layer (e.g. <code>g-cli</code>) is visible without
+        an image rebuild; and it <strong>always emits a safety-net report</strong> even on failure, so the dashboard
+        never links to a 404.</p>
+
+      <h3 id="cap-snapshots">9.6 VI Snapshots &amp; VI Browser <a class="anchor" href="#cap-snapshots">#</a></h3>
+      <p>This is the one place that deliberately reuses a warm container. Snapshots are <strong>content-addressed by
+        git blob SHA</strong>, so each unique VI is rendered exactly once — ever — and reused across every commit
+        that contains it.</p>
+      <h4>Phase 1 — HTML snapshots <span class="pill win">Windows</span></h4>
+      <p>Orchestrated by <code>build-snapshots.ps1</code>, which starts a single long-lived container
+        (<code>docker run -d … while true sleep</code>) and renders many commits through it via
+        <code>docker exec</code> calling <code>render-snapshots.ps1</code> — no per-VI or per-commit container
+        churn. A TSV worklist (<code>&lt;blob&gt;\t&lt;rel-path&gt;</code>) drives rendering;
+        <code>render-snapshots.ps1</code> skips any blob already present in the deployed
+        <code>by-blob</code> store (seeded from <code>gh-pages</code>) and writes a placeholder HTML for any VI that
+        fails to render, so the gallery is never broken by a single bad VI. <code>build-gallery.py</code> emits the
+        per-commit <code>manifest.json</code> (VI → by-blob HTML) and the rolling <code>commits.json</code>.</p>
+      <h4>Phase 2 — position-aware JSON (VI Browser 2.0) <span class="pill lin">Linux</span></h4>
+      <p>The <code>vi-snapshots-json.yml</code> workflow pulls the <code>-toimages</code> image and renders
+        position-aware frame JSON for the in-place browser. Inside that image, a Go batch runner
+        (<code>main.go</code>) reads the same TSV worklist and shells out to <code>lvctl toimages</code> — a native
+        Go VI-Server TCP client that launches LabVIEW under Xvfb, captures the front panel and block diagram as
+        positioned frames, and emits a JSON array. Output is written to
+        <code>by-blob/&lt;ab&gt;/&lt;blob&gt;.json</code>, deployed alongside the 1.0 HTML so any VI without JSON
+        gracefully falls back to the classic view.</p>
+
+      <!-- 10 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="pages">10. The Pages site &amp; dashboard <a class="anchor" href="#pages">#</a></h2>
+      <p>The dashboard is built by the <code>actions/dashboard</code> composite action (Python,
+        <code>dashboard.py</code>) and deployed by <code>dashboard-pages.yml</code>. The action bundles all the
+        tooling pages — the dashboard, VI Browser, report viewer, Configure, Apply, What's New, this Documentation
+        page — so a consumer needs no local copy of any of them.</p>
+      <p><code>dashboard-pages.yml</code> rebuilds on three kinds of trigger: a push that changes the page assets,
+        the GitHub <code>status</code> event (every capability posts statuses, so the dashboard reacts to all of
+        them with no per-workflow enumeration and no polling — and since it only <em>reads</em> statuses, it can
+        never self-trigger), and <code>workflow_run</code> completions for workflows that publish page artifacts
+        without a status.</p>
+      <p><code>dashboard.py</code> reads each commit's statuses (keyed by the catalog's
+        <code>statusContext</code>), classifies whether a commit touched real LabVIEW source vs. CI tooling,
+        aggregates per-activity data from the deployed JSON (e.g. <code>masscompile/&lt;sha&gt;/summary.json</code>,
+        the snapshot <code>by-blob</code> index), and renders one dashboard row per recent commit. It also stages the
+        bundled tooling pages and writes the VI Browser's <code>files.json</code> index.</p>
+      <p>The shared site-wide header is <code>lvci-header.js</code>: every page declares a tiny
+        <code>window.LVCI</code> config and loads the script, which injects a consistent navigation chrome
+        (Dashboard / VI Browser nav, Settings &amp; Help menus, version badge, live activity pill, theme toggle).
+        Reports stay immutable; the header updates the moment the shared script is redeployed.</p>
+
+      <!-- 11 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="contracts">11. Report data contracts <a class="anchor" href="#contracts">#</a></h2>
+      <p>Each capability writes a small, stable JSON document that the dashboard and the shared header consume. The
+        most useful ones to know when extending or debugging:</p>
+      <table>
+        <thead><tr><th>File</th><th>Produced by</th><th>Read by</th></tr></thead>
+        <tbody>
+          <tr><td><code>masscompile/&lt;sha&gt;/summary.json</code></td><td>Mass Compile report builder</td><td>Dashboard cell (pass %, counts)</td></tr>
+          <tr><td><code>vi-analyzer/&lt;sha&gt;/summary.json</code></td><td>VI Analyzer report builder</td><td>Dashboard cell</td></tr>
+          <tr><td><code>vidiff/&lt;segment&gt;/&lt;platform&gt;/vidiff/changes.json</code></td><td>VIDiff</td><td>Dashboard + VIDiff report</td></tr>
+          <tr><td><code>unit-tests/&lt;sha&gt;/results.json</code></td><td>Unit-test report builder</td><td>Dashboard + report</td></tr>
+          <tr><td><code>vi-snapshots/&lt;sha&gt;/manifest.json</code></td><td>Snapshot gallery builder</td><td>VI Browser</td></tr>
+          <tr><td><code>catalog.json</code> (root)</td><td>Installer / integrate-deploy</td><td>Version badge, What's New</td></tr>
+        </tbody>
+      </table>
+      <p>A per-revision report is considered "available" when its <code>summary.json</code> exists at
+        <code>&lt;prefix&gt;/&lt;sha&gt;/</code>. The header's "Regenerate for this revision" action dispatches the
+        capability's workflow with <code>inputs.commit_sha</code>; the dashboard's optimistic queued bridge keys on
+        <code>&lt;cap&gt;|&lt;sha&gt;</code>. These conventions are codified in the <code>DOCTYPES</code> table in
+        <code>lvci-header.js</code> — adding a new report type is a single entry there plus emitting the matching
+        <code>window.LVCI</code> config from its generator.</p>
+
+      <!-- 12 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="versioning">12. Versioning &amp; updates <a class="anchor" href="#versioning">#</a></h2>
+      <p><code>release.yml</code> fires when <code>catalog.json</code> changes on <code>main</code>. It cuts an
+        immutable tag (<code>v3.24.5</code>) and moves the major/minor aliases (<code>v3</code>, <code>v3.24</code>)
+        so consumers pinned at <code>@v3</code> receive improvements automatically, while consumers pinned at an
+        exact version never change unless they act. Release notes are generated from
+        <code>history.releases[0]</code>.</p>
+      <p>Clients update in one of two ways:</p>
+      <ul>
+        <li><strong>One-click "Update now"</strong> (<code>apply-tooling-update.yml</code>, launched from the What's
+          New dialog) reads the manifest, follows the relocation pointer if present, fetches the latest tooling, runs
+          <code>install.py --update</code> (preserving user config, refreshing tooling files), and commits to the
+          default branch with the built-in token — falling back to a PR with auto-merge if the branch is protected.</li>
+        <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
+          opt-in.</li>
+      </ul>
+      <p><code>reconfigure.yml</code> backs the <strong>Configure Workers</strong> dialog: it rewrites
+        <code>.github/labview-ci.yml</code> from a <code>workflow_dispatch</code> form and opens a reviewable pull
+        request rather than committing directly.</p>
+      <h3>Relocation pointer</h3>
+      <p><code>.github/labview-ci/source.json</code> lets the project migrate (for example to an official NI repo)
+        without breaking installs: if it names a different repo than the current one, the bootstrappers and the
+        update workflow follow it automatically, and a redirected update re-pins the consumer's manifest to the new
+        home.</p>
+
+      <!-- 13 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="discovery">13. Client discovery <a class="anchor" href="#discovery">#</a></h2>
+      <p>The Clients page is populated by <code>discover-clients.yml</code> / <code>discover-clients.py</code>, which
+        run <strong>only in the source repository</strong> on a daily schedule (or on demand). Discovery is
+        deliberately <strong>pull-based</strong> — your repo is never modified and never phones home. It queries
+        GitHub's public search index for three signals an install necessarily leaves behind:</p>
+      <ol>
+        <li>the <code>labview-ci</code> repository topic (the primary, structured signal);</li>
+        <li>this repo's slug as <code>source.repo</code> in a client's <code>catalog.json</code>;</li>
+        <li>a <code>uses:</code> reference back to this repo in a client's workflows.</li>
+      </ol>
+      <p>Every candidate is verified (public, non-fork, catalog actually points back here) before listing, and only
+        public metadata GitHub already exposes is shown. Private repositories are never indexed or listed. See the
+        <a href="faq.html#discovery">FAQ discovery entry</a> for the privacy details.</p>
+
+      <!-- 14 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="extending">14. Extending the system <a class="anchor" href="#extending">#</a></h2>
+      <p>Adding a capability is intentionally cheap. Using "Unit Tests" as the worked example:</p>
+      <ol>
+        <li><strong>Write the workflow(s)</strong> — e.g.
+          <code>unit-tests-windows-container.yml</code> (and a Linux variant if applicable), following the
+          pull-image → <code>docker run --rm</code> → host report → deploy → post-status shape.</li>
+        <li><strong>Write the driver + report builder</strong> — e.g.
+          <code>.github/labview/run-unit-tests.ps1</code> and <code>build-unittest-report.py</code>, emitting a
+          <code>summary.json</code>/<code>results.json</code> under <code>&lt;prefix&gt;/&lt;sha&gt;/</code>.</li>
+        <li><strong>Add one catalog entry</strong> — id, name, <code>status</code>, <code>supportsOs</code>,
+          <code>requires</code>, <code>statusContext</code>, and the <code>files</code> map. The configurator,
+          installer, and dashboard pick it up generically.</li>
+        <li><strong>Register the report type</strong> — add a single entry to <code>DOCTYPES</code> in
+          <code>lvci-header.js</code> and emit the matching <code>window.LVCI</code> from the report generator so the
+          header's revision picker, regenerate action, and status text work.</li>
+      </ol>
+      <p>No edits to UI rendering, installer logic, or the dashboard generator are required — the catalog and the
+        <code>DOCTYPES</code>/<code>statusContext</code> conventions carry the wiring.</p>
+      <div class="warn"><span class="lbl">Keep this page in lock-step</span>
+        Whenever you add a capability, change container behaviour, or "learn" how to make something work (for
+        example a new VIPM/headless trick), update this documentation in the same change. The
+        <a href="faq.html">FAQ</a> covers the "what"; this page is the canonical "how", and it is expected to stay
+        accurate. This rule is enforced for contributors and AI assistants alike — see the repository's
+        contributor and Copilot instructions.</div>
+
+      <!-- 15 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="security">15. Security model <a class="anchor" href="#security">#</a></h2>
+      <ul>
+        <li><strong>Least-privilege tokens.</strong> Each job declares the minimal permissions it needs
+          (<code>contents: write</code> for report deploys, <code>statuses: write</code> to post results,
+          <code>packages: read</code> only where a custom GHCR image is pulled). The built-in
+          <code>GITHUB_TOKEN</code> covers the common path; a separate <code>TOOLING_UPDATE_TOKEN</code> is only
+          requested when an update needs to touch workflow files.</li>
+        <li><strong>Your images, your registry.</strong> Worker images are packages on your own GHCR, inheriting your
+          repo's visibility. The NI base layer comes from NI's public registry. Nothing is stored on third-party
+          infrastructure.</li>
+        <li><strong>No phone-home.</strong> Discovery is pull-based from the source repo only; consumers transmit no
+          telemetry.</li>
+        <li><strong>Reproducible, auditable builds.</strong> Content-addressed image tags and the published worker
+          manifest mean you can verify exactly which packages a given run used.</li>
+      </ul>
+
+      <!-- 16 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="constraints">16. Constraints &amp; gotchas <a class="anchor" href="#constraints">#</a></h2>
+      <ul>
+        <li><strong>Concurrency is per account, not per repo.</strong> GitHub's job-concurrency limit is shared
+          across all your repositories, which is why the per-repo runner cap defaults conservatively.</li>
+        <li><strong>Linux VI Analyzer is reduced.</strong> Only the <code>default</code> config is honoured;
+          per-path rule subsets are Windows-only.</li>
+        <li><strong>Unit Tests &amp; Antidoc are Windows-only</strong> today (they depend on baked VIPM tooling).</li>
+        <li><strong>First container pull is slow.</strong> The worker image is multi-gigabyte; GitHub-hosted runners
+          re-pull every job. A self-hosted runner with a warm Docker layer cache is the cure.</li>
+        <li><strong>LabVIEW 2026+ needs <code>-Headless</code></strong> for Windows container operations, or VI
+          Server raises <code>-350000</code>.</li>
+        <li><strong>Search-index lag.</strong> A brand-new install can take up to a day (plus GitHub's own indexing
+          delay) to appear on the Clients page.</li>
+      </ul>
+
+      <p style="margin-top:40px"><a href="faq.html">← Back to the FAQ</a> &nbsp;·&nbsp;
+        <a class="lvci-repo-link" data-show-slug href="https://github.com/elijah286/LabVIEW-CI-with-Containers" target="_blank" rel="noopener">View the source on GitHub →</a></p>
+    </main>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    // Resolve every repo link the same way faq.html does: read the repo this
+    // dashboard was installed from (same-origin catalog.json), then follow the
+    // relocation pointer (.github/labview-ci/source.json) to the canonical home.
+    var FALLBACK = { repo: "elijah286/LabVIEW-CI-with-Containers", ref: "main" };
+    function paint(repo) {
+      var parts = String(repo).split("/"), owner = parts[0] || "", name = parts[1] || "";
+      var url = "https://github.com/" + repo, slug = "github.com/" + repo;
+      var ownerUrl = "https://github.com/" + owner;
+      var nodes = document.querySelectorAll("a.lvci-repo-link");
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].setAttribute("href", url);
+        if (nodes[i].hasAttribute("data-show-slug")) nodes[i].textContent = slug;
+        else if (nodes[i].hasAttribute("data-show-name")) nodes[i].textContent = name;
+      }
+      var owners = document.querySelectorAll("a.lvci-owner-link");
+      for (var k = 0; k < owners.length; k++) {
+        owners[k].setAttribute("href", ownerUrl);
+        owners[k].textContent = owner;
+      }
+    }
+    function getJson(u) {
+      return fetch(u, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    }
+    getJson("./catalog.json").then(function (cat) {
+      var s = (cat && cat.source) || {};
+      var repo = s.repo || FALLBACK.repo, ref = s.ref || FALLBACK.ref;
+      paint(repo);
+      return getJson("https://raw.githubusercontent.com/" + repo + "/" + ref + "/.github/labview-ci/source.json").then(function (p) {
+        if (p && p.repo && p.repo.toLowerCase() !== repo.toLowerCase()) paint(p.repo);
+      });
+    });
+  })();
+  </script>
+
+  <script>
+  (function () {
+    // Scroll-spy: highlight the active section in the table of contents as the
+    // reader moves through the page. Pure progressive enhancement — the TOC works
+    // as plain anchor links without it.
+    var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+    var map = {};
+    links.forEach(function (a) {
+      var id = (a.getAttribute('href') || '').replace(/^#/, '');
+      if (id) map[id] = a;
+    });
+    var targets = Object.keys(map).map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    if (!('IntersectionObserver' in window) || !targets.length) return;
+    var current = null;
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          if (current) current.classList.remove('active');
+          var a = map[e.target.id];
+          if (a) { a.classList.add('active'); current = a; }
+        }
+      });
+    }, { rootMargin: '-70px 0px -70% 0px', threshold: 0 });
+    targets.forEach(function (t) { obs.observe(t); });
+  })();
+  </script>
+</body>
+</html>

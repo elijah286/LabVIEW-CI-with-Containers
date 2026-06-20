@@ -2601,6 +2601,11 @@ for _name, _dst in [
     ('vi-analyzer.html', 'ci-out/dashboard/vi-analyzer.html'),
     ('integrate.html', 'ci-out/dashboard/integrate.html'),
     ('unit-tests.html', 'ci-out/dashboard/unit-tests.html'),
+    # Long-form developer documentation (sibling of faq.html) — the canonical
+    # "how it works" reference, linked from the FAQ and the Help menu.
+    ('documentation.html', 'ci-out/dashboard/documentation.html'),
+    # FAQ / About page — the Help menu's About entry links here.
+    ('faq.html', 'ci-out/dashboard/faq.html'),
     # Clients registry page (the header only surfaces it on the root repo, where
     # the discovery workflow publishes clients.json beside it).
     ('clients.html', 'ci-out/dashboard/clients.html'),

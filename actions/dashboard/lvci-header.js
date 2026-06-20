@@ -454,6 +454,7 @@
     update: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
     about: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="16" x2="12" y2="11.5"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
     clients: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-6A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10.5" cy="8" r="3.5"/><path d="M21 20v-1.5a3.5 3.5 0 0 0-2.6-3.4"/><path d="M15.5 4.6a3.5 3.5 0 0 1 0 6.8"/></svg>',
+    docs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H18a1 1 0 0 1 1 1v15.5"/><path d="M6 17h13v3.5a.5.5 0 0 1-.5.5H6.5A1.5 1.5 0 0 1 5 19.5v-14"/><path d="M8 7.5h7M8 11h7"/></svg>',
     news: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M11.5 3l1.8 5.2 5.2 1.8-5.2 1.8L11.5 17l-1.8-5.2L4.5 10l5.2-1.8z"/><path d="M18 14l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
     history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>',
     tests: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6L5.4 17.5A1.5 1.5 0 0 0 6.7 20h10.6a1.5 1.5 0 0 0 1.3-2.5L14 9V3"/><line x1="7.5" y1="14" x2="16.5" y2="14"/></svg>',
@@ -551,6 +552,7 @@
     'integrate': '',
     'whats-new': '',
     'faq': 'help',
+    'documentation': 'help',
     'clients': 'clients'
   };
 
@@ -592,11 +594,7 @@
 
   // Order the per-revision activities appear in the context-bar Activity picker
   // (the report half of the unified Activity switcher; per-VI lenses join later).
-  // Order the per-revision activities appear in the context-bar Activity picker.
-  // 'snapshots' = the VI Browser (this revision's VIs); the rest are the per-revision
-  // reports. From any report you can jump to the VI Browser (or another report) for the
-  // SAME revision. (The picker also appearing INSIDE the VI Browser is a later slice.)
-  var LENS_ORDER = ['snapshots', 'masscompile-report', 'vi-analyzer-report', 'unit-tests-report', 'antidoc-report'];
+  var LENS_ORDER = ['masscompile-report', 'vi-analyzer-report', 'unit-tests-report', 'antidoc-report'];
 
   // ── Context actions (surfaced on the right; collapse into the mobile menu).
   //    Each action: {label, kind|href, primary|accent, newTab}. `kind` triggers
@@ -644,6 +642,7 @@
       { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
       { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
       { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
+      { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
       { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
     ];
     var A = {
@@ -654,12 +653,14 @@
         { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
         { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
         { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
+        { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
         { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'worker-manifest': [],
       'vi-browser': [
         { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
         { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
+        { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
         { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'report-viewer': [],
@@ -668,7 +669,8 @@
       'unit-tests-config': cfgMenu,
       'integrate': cfgMenu,
       'whats-new': cfgMenu,
-      'faq': cfgMenu
+      'faq': cfgMenu,
+      'documentation': cfgMenu
     };
     return (A[ctx] || []).filter(Boolean);
   }
@@ -710,6 +712,19 @@
     return su ? su + 'faq.html' : base + '/faq.html';
   }
   function aboutExternal() {
+    var su = trimSlash(sourcePagesUrl()).toLowerCase();
+    return !!su && su !== base.toLowerCase();
+  }
+
+  // ── Documentation link: like the About/FAQ page, the long-form Documentation
+  //    page (documentation.html) lives ONLY on the canonical source site, so the
+  //    menu entry points at the root tooling's copy (derived from srcRepo) rather
+  //    than this site's own base, and opens in a new tab from a consumer site.
+  function docUrl() {
+    var su = sourcePagesUrl();
+    return su ? su + 'documentation.html' : base + '/documentation.html';
+  }
+  function docExternal() {
     var su = trimSlash(sourcePagesUrl()).toLowerCase();
     return !!su && su !== base.toLowerCase();
   }
@@ -964,65 +979,43 @@
   // of returning to the dashboard. Mirrors the revision picker (a labelled <select>
   // in the context bar) and reuses its summary.json availability probe, so a report
   // that was not produced for this revision is shown disabled rather than 404ing.
-  function lensDest(key, sha) {
-    sha = sha || cfg.sha || '';
-    if (key === 'snapshots') return base + '/vi-snapshots/' + (sha ? '?sha=' + encodeURIComponent(sha) : '');
-    var d = DOCTYPES[key]; if (!d || !sha) return base + '/';
-    // Always open a report through the framed viewer (shared chrome + this picker),
-    // whether we came from another report or from the VI Browser.
-    var bare = base + '/' + d.prefix + '/' + sha + '/index.html';
-    var title = d.label + ' \u00b7 ' + sha.slice(0, 7);
-    return base + '/report/index.html?type=' + encodeURIComponent(key)
-         + '&sha=' + encodeURIComponent(sha)
-         + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
-         + '&src=' + encodeURIComponent(bare)
-         + '&title=' + encodeURIComponent(title);
+  function lensDest(key) {
+    var d = DOCTYPES[key]; if (!d || !cfg.sha) return base + '/';
+    var bare = base + '/' + d.prefix + '/' + cfg.sha + '/index.html';
+    if (cfg.embedded && cfg.framedSrc) {
+      var title = d.label + ' \u00b7 ' + cfg.sha.slice(0, 7);
+      return base + '/report/index.html?type=' + encodeURIComponent(key)
+           + '&sha=' + encodeURIComponent(cfg.sha)
+           + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
+           + '&src=' + encodeURIComponent(bare)
+           + '&title=' + encodeURIComponent(title);
+    }
+    return bare;
   }
-  function makeLensPicker(opts) {
-    opts = opts || {};
-    var current = opts.current || ctx;
-    var getSha = opts.getSha || function () { return cfg.sha; };
-    var deferProbe = !!opts.deferProbe;   // VI Browser: sha is dynamic -> check at click time, not upfront
+  function makeLensPicker() {
     var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-lens-ctx';
     var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Activity';
     var sel = document.createElement('select');
-    sel.setAttribute('aria-label', 'Switch to another view of this revision');
+    sel.setAttribute('aria-label', 'Switch to another report for this revision');
     LENS_ORDER.forEach(function (key) {
-      var label;
-      if (key === 'snapshots') { label = 'Snapshots'; }
-      else { var d = DOCTYPES[key]; if (!d) return; label = d.label; }
-      var o = document.createElement('option'); o.value = key; o.textContent = label;
-      if (key === current) o.selected = true;
+      var d = DOCTYPES[key]; if (!d) return;
+      var o = document.createElement('option'); o.value = key; o.textContent = d.label;
+      if (key === ctx) o.selected = true;
       sel.appendChild(o);
     });
-    sel.value = current;
-    var note = document.createElement('span'); note.style.cssText = 'font-size:11px;color:#8b949e;white-space:nowrap';
+    sel.value = ctx;
     sel.addEventListener('change', function () {
       var key = sel.value;
-      if (!key || key === current) return;
-      var sha = getSha();
-      if (key === 'snapshots' || !deferProbe) { window.location.href = lensDest(key, sha); return; }
-      // VI Browser: the report may not exist for the live revision -> confirm first.
-      var d = DOCTYPES[key];
-      if (!d || !sha) { window.location.href = lensDest(key, sha); return; }
-      note.textContent = '';
-      fetch(base + '/' + d.prefix + '/' + sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
-        .then(function (r) { if (r.ok) window.location.href = lensDest(key, sha); else noReport(d); })
-        .catch(function () { noReport(d); });
-      function noReport(dd) {
-        sel.value = current;
-        note.textContent = 'No ' + dd.label + ' for this revision';
-        setTimeout(function () { note.textContent = ''; }, 4000);
-      }
+      if (key && key !== ctx) window.location.href = lensDest(key);
     });
-    wrap.appendChild(lbl); wrap.appendChild(sel); wrap.appendChild(note);
-    // Upfront greying only when the revision is FIXED (report pages). The VI Browser
-    // switches revision in place, so it checks availability at click time instead.
-    if (!deferProbe && getSha()) {
+    wrap.appendChild(lbl); wrap.appendChild(sel);
+    // Grey out report types with no report for THIS revision (HEAD-probe
+    // <prefix>/<sha>/summary.json, the same signal the revision picker uses).
+    if (cfg.sha) {
       LENS_ORDER.forEach(function (key) {
-        if (key === current || key === 'snapshots') return;
+        if (key === ctx) return;
         var d = DOCTYPES[key]; if (!d) return;
-        fetch(base + '/' + d.prefix + '/' + getSha() + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
+        fetch(base + '/' + d.prefix + '/' + cfg.sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
           .then(function (r) { if (!r.ok) disableOpt(key, d); })
           .catch(function () { disableOpt(key, d); });
       });
@@ -1315,8 +1308,8 @@
     // the rest (Populate history, VI Browser renders, ...) stays in the More menu.
     var SETTINGS_KINDS = { configure: 1, vianalyzer: 1, unittests: 1 };
     var settingsItems = secActions.filter(function (a) { return SETTINGS_KINDS[a.kind]; });
-    var helpItems = secActions.filter(function (a) { return a.about || a.source; });
-    var moreItems = secActions.filter(function (a) { return !SETTINGS_KINDS[a.kind] && !a.about && !a.source; });
+    var helpItems = secActions.filter(function (a) { return a.about || a.source || a.doc; });
+    var moreItems = secActions.filter(function (a) { return !SETTINGS_KINDS[a.kind] && !a.about && !a.source && !a.doc; });
     if (settingsItems.length) nav.appendChild(makeNavDropdown('Settings', settingsItems, activeKey === 'settings'));
     if (helpItems.length) nav.appendChild(makeNavDropdown('Help', helpItems, activeKey === 'help'));
     {
@@ -1520,20 +1513,6 @@
     // Signal pages that the header (and its #lvci-ctxbar context bar) is mounted,
     // so a page can move its own revision selector / controls into the shared bar.
     try { window.lvciHeaderReady = true; document.dispatchEvent(new CustomEvent('lvci:ready')); } catch (e) {}
-
-    // VI Browser: it owns #commit-select and moves it into the context bar on the
-    // lvci:ready we just fired (dispatchEvent is synchronous, so it is in place now).
-    // Add the Activity picker beside it -> jump from the VI Browser to any of this
-    // revision's reports. The VI Browser changes revision in place, so the picker
-    // reads the live sha (commit selector / URL) and checks availability at click time.
-    if (ctx === 'vi-browser' && ctxbar) {
-      var viSha = function () {
-        var cs = document.getElementById('commit-select');
-        if (cs && cs.value) return cs.value;
-        try { return new URLSearchParams(location.search).get('sha') || ''; } catch (e) { return ''; }
-      };
-      try { ctxbar.appendChild(makeLensPicker({ current: 'snapshots', getSha: viSha, deferProbe: true }).wrap); } catch (e) {}
-    }
   }
 
   // ── Badge state ───────────────────────────────────────────────────────────

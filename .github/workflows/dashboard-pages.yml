@@ -13,6 +13,7 @@ on:
       - '.github/pages/vi-browser.html'
       - '.github/pages/vi-interactive.html'
       - '.github/pages/faq.html'
+      - '.github/pages/documentation.html'
       - '.github/pages/clients.html'
       - '.github/pages/lvci-header.js'
       - '.github/workflows/dashboard-pages.yml'

@@ -9,7 +9,7 @@
 # Bundled alongside this file (kept in sync with .github/labview/dashboard +
 # .github/pages):
 #   dashboard.py, vi-browser.html, vi-interactive.html, report-viewer.html,
-#   whats-new.html, configure.html, integrate.html
+#   whats-new.html, configure.html, integrate.html, faq.html, documentation.html
 name: 'LabVIEW CI Dashboard'
 description: 'Generate the LabVIEW CI status dashboard + tooling pages for a repository.'
 author: 'labview-ci'

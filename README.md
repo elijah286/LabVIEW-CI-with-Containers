@@ -31,3 +31,14 @@ jobs:
 Or install interactively from the dashboard's **Apply to New Repo** button, or via the installer in [`.github/labview-ci/`](.github/labview-ci/README.md).
 
 See [`.github/labview-ci/standalone/README.md`](.github/labview-ci/README.md) for the versioning + release model.
+
+## Documentation
+
+- **[Full Documentation](https://elijah286.github.io/LabVIEW-CI-with-Containers/documentation.html)** —
+  an implementation-level reference for expert LabVIEW developers who want to
+  understand how the entire stack works: how the worker container images are
+  built, how the runners launch headless LabVIEW, how VIPM dependencies are
+  baked in, the catalog model, the report data contracts, the security
+  boundaries, and how to extend or adapt the system.
+- **[FAQ](https://elijah286.github.io/LabVIEW-CI-with-Containers/faq.html)** —
+  common practical questions about setup, configuration, and operation.
