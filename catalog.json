@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.26.1",
+  "version": "3.26.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.26.2",
+        "date": "2026-06-20",
+        "title": "Bake portable Git into the worker so VIPM 26.3 can verify the public repo (UTF / -350053)",
+        "summary": "The 3.26.1 public-repo workaround still failed in the container with a second flavour of exit 6: 'error: Cannot determine repository visibility: failed to execute git: program not found'. VIPM 26.3 Community Edition does not just read .git/config - it shells out to a real git binary to confirm the repository is public, and the Windows base image ships no git. (The earlier 'no git binary needed' finding held only because the local test machine had git on PATH.) The Dockerfile now bakes in portable MinGit (the official git-for-windows redistributable, GIT_INSTALLER_URL) at C:\\git and prepends it to PATH, and install-vipc.ps1 ensures git is discoverable before invoking vipm. With a git binary present, VIPM reads the fabricated .git origin, confirms this public repo over the network, and the .vipc tooling (Antidoc, Caraya, VI Tester, and the UTF JUnit Report library) finally bakes in - so headless RunUnitTests stops failing with LabVIEW CLI error -350053.",
+        "highlights": [
+          "Fixes the second exit-6 failure ('Cannot determine repository visibility: ... git: program not found') by baking portable MinGit into the worker image so VIPM can verify the public repo.",
+          "VIPM 26.3 Community Edition shells out to a real git binary to check repository visibility - it is not enough to fabricate .git/config; a git executable must be on PATH.",
+          "Adds a GIT_INSTALLER_URL build-arg (default: the official MinGit 64-bit zip) and documents the git-binary requirement in .github/labview/vipm/README.md."
+        ]
+      },
       {
         "version": "3.26.1",
         "date": "2026-06-21",
