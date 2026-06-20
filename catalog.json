@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.24.4",
+  "version": "3.24.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.24.5",
+        "date": "2026-06-20",
+        "title": "Worker upgrades to VIPM 2026 Q3 so headless dependency installs complete (fixes UTF / -350053)",
+        "summary": "With LabVIEW running headless and a seeded Settings.ini, the worker's VIPM installs got further but still aborted during the image build: each 'vipm install' hung and then failed with 'Operation VIPM command library_list timed out after 330s'. The VIPM that ships on the NI package feed (2026.1.0) cannot complete a headless package install in a Windows container - it times out querying LabVIEW and does not surface the underlying error. The worker now installs the official VIPM 2026 Q3 release (26.3.3954) directly from JKI's CDN (silent /exenoui /qn), which surfaces install errors and improves headless/container support. install-vipc.ps1 also sets VIPM_TIMEOUT so the short build-time default timeouts (VIPM only applies its longer CI timeouts when it detects GITHUB_ACTIONS, which is absent during 'docker build') no longer abort a cold, first-run headless LabVIEW. A new README under .github/labview/vipm documents the full set of requirements for baking a project's .vipc dependencies into the worker reliably.",
+        "highlights": [
+          "Upgrades the worker's VIPM to the 2026 Q3 release (26.3.3954) from JKI's CDN, replacing the older NI-feed 'ni-vipm' (2026.1.0) whose CLI timed out on 'library_list' during headless container installs.",
+          "Sets VIPM_TIMEOUT so the short default operation timeouts used during 'docker build' (no CI env detected) no longer abort the install before a cold headless LabVIEW responds.",
+          "Adds .github/labview/vipm/README.md documenting how to bake a project's .vipc dependencies into the Windows worker, plus every VIPM-in-container requirement we found (Community Edition, Settings.ini, headless LabVIEW, timeouts, CLI flags)."
+        ]
+      },
       {
         "version": "3.24.4",
         "date": "2026-06-20",
