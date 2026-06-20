@@ -255,8 +255,13 @@ jobs:
 
           # Build — context is repo root so Dockerfile can COPY vipm/ and .vipc
           $tagFlags = ($tags | ForEach-Object { "-t", $_ })
+          # VIPM 26.3 Community Edition installs only from inside a PUBLIC Git repo,
+          # so pass this build's public repo URL for install-vipc.ps1 to use as the
+          # origin of its install working dir.
+          $repoUrl = '${{ github.server_url }}/${{ github.repository }}.git'
           docker build -f .github/docker/labview-ci.Dockerfile `
-            --build-arg CI_WORKER_VERSION=$wv @tagFlags .
+            --build-arg CI_WORKER_VERSION=$wv `
+            --build-arg VIPM_PUBLIC_REPO_URL=$repoUrl @tagFlags .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           foreach ($tag in $tags) {

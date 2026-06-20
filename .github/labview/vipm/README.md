@@ -70,13 +70,44 @@ It is a standard InstallShield setup — `/exenoui /qn` runs it fully silent
 (per <https://docs.vipm.io/latest/installation/>). Override the URL with the
 `VIPM_INSTALLER_URL` build-arg / env var to pin a different version.
 
-### 2. No VIPM Pro license is required — use Community Edition
+### 2. No VIPM Pro license is required — but Community Edition needs a public Git repo
 
 Confirmed by Jim Kring (VIPM creator): *"the CLI works in the free edition, and
 most pro features work in community edition."* The script sets
-`VIPM_COMMUNITY_EDITION=1`, so headless installs need **no** activation. (Pro
+`VIPM_COMMUNITY_EDITION=1`, so headless installs need **no** Pro activation. (Pro
 activation is still attempted automatically if the `VIPM_SERIAL_NUMBER` /
 `VIPM_FULL_NAME` / `VIPM_EMAIL` secrets are provided.)
+
+**The catch (VIPM 26.3):** Community Edition only installs packages when the
+**current working directory is inside a _public_ Git repository**. Run it anywhere
+else and every install aborts instantly with exit `6`:
+
+```
+error: Not inside a Git repository: no git repository found
+VIPM Community Edition requires a public Git repository. Upgrade to VIPM
+Professional for use outside of public repositories: https://vipm.io/pro
+```
+
+During `docker build` the installs run from `C:\vipm` (just the copied scripts),
+which is **not** a Git repo — so they were all blocked. We discovered (verified
+locally against VIPM 26.3) that VIPM only reads **`.git/config`'s `origin` URL**
+and checks that the repo is public; it needs **no git binary, no clone, and no
+commits**. So `install-vipc.ps1` fabricates a minimal `.git` (a `HEAD` plus a
+`config` whose `origin` points at this public worker repo), `cd`s into it, runs
+the installs, and deletes it afterward. The repo URL comes from the
+`VIPM_PUBLIC_REPO_URL` build-arg / env var (the build workflow passes the actual
+building repo via `${{ github.server_url }}/${{ github.repository }}.git`, so a
+fork uses its own public repo); it defaults to this repo.
+
+Minimal `.git` that satisfies the check:
+
+```
+.git/HEAD      ->  ref: refs/heads/main
+.git/config    ->  [remote "origin"]
+                       url = https://github.com/<owner>/<public-repo>.git
+.git/objects/  (empty)
+.git/refs/heads/  (empty)
+```
 
 ### 3. Run the CLI non-interactively
 
@@ -151,6 +182,7 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 | `VIPM_NONINTERACTIVE` | `1` | Never block on prompts. |
 | `VIPM_ASSUME_YES` | `1` | Auto-confirm. |
 | `VIPM_TIMEOUT` | `900` | Override the per-operation timeout (seconds). |
+| `VIPM_PUBLIC_REPO_URL` | this repo's clone URL | Public Git repo `origin` used to satisfy Community Edition's public-repo requirement. |
 | `NO_COLOR` | `1` | Strip ANSI color from logs. |
 | `LABVIEW_VERSION` | `2026` | Target LabVIEW year for `--labview-version`. |
 | `LABVIEW_BITNESS` | `64` | Target LabVIEW bitness for `--labview-bitness`. |
@@ -163,6 +195,7 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 | Symptom in the build/CI log | Likely cause / fix |
 | --- | --- |
 | `LabVIEW CLI error -350053` during RunUnitTests | UTF JUnit Report library not baked in — VIPM install was skipped or failed. Check this hook's log. |
+| `VIPM Community Edition requires a public Git repository` (exit 6) | The install ran outside a public Git repo. The script runs installs from a fabricated `.git` whose `origin` is `VIPM_PUBLIC_REPO_URL`; make sure that points at a real **public** repo. |
 | `IO error: Failed to load …Settings.ini … (os error 2)` | VIPM `Settings.ini` missing — the script's seed step didn't run (no LabVIEW found?). |
 | `Operation 'VIPM command 'library_list'' timed out after 330s` | Short build-time timeout and/or an old CLI. Use VIPM 26.3+ and raise `VIPM_TIMEOUT`. |
 | `error: unexpected argument '--refresh' found` (exit 2) | 26.3 removed `--refresh` from `install`. Run the standalone `vipm refresh` first; don't pass `--refresh` to `install`. |

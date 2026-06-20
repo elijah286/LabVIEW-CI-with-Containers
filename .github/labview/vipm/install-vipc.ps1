@@ -34,6 +34,13 @@ $VipcDir          = 'C:\vipm'
 $LabVIEWVersion   = if ($Env:LABVIEW_VERSION)    { $Env:LABVIEW_VERSION }    else { '2026' }  # match the LabVIEW version in the NI base image
 $LabVIEWBitness   = if ($Env:LABVIEW_BITNESS)    { $Env:LABVIEW_BITNESS }    else { '64' }    # NI base image ships 64-bit LabVIEW
 $VipmInstallerUrl = if ($Env:VIPM_INSTALLER_URL) { $Env:VIPM_INSTALLER_URL } else { 'https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe' }
+# VIPM 26.3 Community Edition only installs packages when the working directory is
+# inside a PUBLIC Git repository (otherwise it exits 6 with "VIPM Community Edition
+# requires a public Git repository"). The worker image is built from this public
+# repo, so we run the installs from a tiny working dir whose origin remote points
+# at it. Override with VIPM_PUBLIC_REPO_URL (the build workflow passes the actual
+# building repo's clone URL so forks use their own public repo).
+$PublicRepoUrl    = if ($Env:VIPM_PUBLIC_REPO_URL) { $Env:VIPM_PUBLIC_REPO_URL } else { 'https://github.com/elijah286/LabVIEW-CI-with-Containers.git' }
 
 # Run VIPM non-interactively in Community Edition so headless installs need no
 # VIPM Pro activation (verified against the official vipm-io GitHub Action, which
@@ -275,34 +282,68 @@ function Invoke-VipmInstall {
 
 # Refresh all package sources once (best-effort - a refresh failure is only a warning
 # because version-pinned installs can still resolve from the local cache).
-Write-Host 'Refreshing VIPM package sources (vipm refresh) ...'
-& $VipmExe refresh 2>&1 | Out-Host
+#
+# VIPM 26.3 Community Edition refuses to install ("exit 6: VIPM Community Edition
+# requires a public Git repository") unless the current working directory is inside
+# a PUBLIC Git repository. It only reads .git/config's origin URL (and verifies the
+# repo is public) - it does NOT need a git binary, a clone, or any commits. So we
+# fabricate a minimal .git pointing origin at the public worker repo and run the
+# installs from there. Verified locally against VIPM 26.3: this clears the exit-6
+# gate and the install proceeds.
+function New-PublicRepoWorkdir {
+    param([string] $RepoUrl)
+    $work = Join-Path $env:TEMP ('vipm-install-' + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path (Join-Path $work '.git\objects')    -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $work '.git\refs\heads') -Force | Out-Null
+    Set-Content -Path (Join-Path $work '.git\HEAD') -Value 'ref: refs/heads/main' -NoNewline -Encoding ascii
+    $cfg = "[core]`n`trepositoryformatversion = 0`n`tbare = false`n" +
+           "[remote `"origin`"]`n`turl = $RepoUrl`n`tfetch = +refs/heads/*:refs/remotes/origin/*`n"
+    Set-Content -Path (Join-Path $work '.git\config') -Value $cfg -Encoding ascii
+    return $work
+}
 
-foreach ($vipc in $vipcFiles) {
-    Write-Host "Resolving packages from VIPC: $($vipc.Name)"
-    $specs = @(Get-VipcPackageSpecs $vipc.FullName)
-    if ($specs.Count -eq 0) {
-        # Could not parse package names - last resort: try installing the file directly
-        # (works only if a real, VIPM-editor-made .vipc was dropped in).
-        Write-Host "  no packages parsed from config.xml; trying 'vipm install <file.vipc>' directly ..."
-        $rc = Invoke-VipmInstall $vipc.FullName
-        if ($rc -ne 0) {
-            Write-Warning "VIPM could not install from '$($vipc.Name)' (exit $rc)."
-            $applyFailed = $true
-        }
-        continue
-    }
-    Write-Host ("  Installing by name: " + ($specs -join ', '))
-    $rc = Invoke-VipmInstall @specs
-    if ($rc -ne 0) {
-        Write-Host "  batch install failed (exit $rc); retrying each package individually ..."
-        foreach ($spec in $specs) {
-            $rc = Invoke-VipmInstall $spec
+$prevLocation   = Get-Location
+$installWorkdir = $null
+try {
+    $installWorkdir = New-PublicRepoWorkdir $PublicRepoUrl
+    Write-Host "Running VIPM installs from a public-repo context (origin=$PublicRepoUrl) to satisfy Community Edition."
+    Set-Location $installWorkdir
+
+    Write-Host 'Refreshing VIPM package sources (vipm refresh) ...'
+    & $VipmExe refresh 2>&1 | Out-Host
+
+    foreach ($vipc in $vipcFiles) {
+        Write-Host "Resolving packages from VIPC: $($vipc.Name)"
+        $specs = @(Get-VipcPackageSpecs $vipc.FullName)
+        if ($specs.Count -eq 0) {
+            # Could not parse package names - last resort: try installing the file directly
+            # (works only if a real, VIPM-editor-made .vipc was dropped in).
+            Write-Host "  no packages parsed from config.xml; trying 'vipm install <file.vipc>' directly ..."
+            $rc = Invoke-VipmInstall $vipc.FullName
             if ($rc -ne 0) {
-                Write-Warning "  package '$spec' failed (exit $rc)."
+                Write-Warning "VIPM could not install from '$($vipc.Name)' (exit $rc)."
                 $applyFailed = $true
             }
+            continue
         }
+        Write-Host ("  Installing by name: " + ($specs -join ', '))
+        $rc = Invoke-VipmInstall @specs
+        if ($rc -ne 0) {
+            Write-Host "  batch install failed (exit $rc); retrying each package individually ..."
+            foreach ($spec in $specs) {
+                $rc = Invoke-VipmInstall $spec
+                if ($rc -ne 0) {
+                    Write-Warning "  package '$spec' failed (exit $rc)."
+                    $applyFailed = $true
+                }
+            }
+        }
+    }
+}
+finally {
+    Set-Location $prevLocation
+    if ($installWorkdir -and (Test-Path $installWorkdir)) {
+        Remove-Item -Recurse -Force $installWorkdir -ErrorAction SilentlyContinue
     }
 }
 

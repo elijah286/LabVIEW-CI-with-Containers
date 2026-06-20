@@ -131,6 +131,11 @@ RUN $ErrorActionPreference = 'Continue'; `
 
 # Optional VIPC support hook. If .vipc files exist, an installer script must be
 # present so dependencies are handled explicitly.
+# VIPM 26.3 Community Edition only installs when the working dir is inside a PUBLIC
+# Git repository, so install-vipc.ps1 runs the installs from a minimal .git context
+# whose origin points at this build arg (default: this public worker repo). The
+# build workflow passes the actual building repo's URL so forks use their own.
+ARG VIPM_PUBLIC_REPO_URL=https://github.com/elijah286/LabVIEW-CI-with-Containers.git
 RUN $vipcFiles = Get-ChildItem -Path 'C:\vipm' -Filter '*.vipc' -Recurse -ErrorAction SilentlyContinue; `
     if ($vipcFiles -and $vipcFiles.Count -gt 0) { `
       if (Test-Path 'C:\vipm\install-vipc.ps1') { `
