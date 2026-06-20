@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.13.1",
+  "version": "3.13.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.13.2",
+        "date": "2026-06-19",
+        "title": "Returning to the dashboard shows a run you just started elsewhere, right away",
+        "summary": "When you kick off a run from another page - like Re-run analysis from a VI Analyzer (or other) report, or a run started in another browser tab - and switch back to the dashboard, it now reflects that queued or running run immediately. The dashboard previously only re-checked on its auto-refresh timer (up to 15 minutes when idle), so a run you had just started could look like nothing was happening until the page happened to reload. The dashboard now re-applies its optimistic queued overlays and re-syncs against GitHub the moment its tab is shown again or regains focus, so a freshly started run surfaces as soon as you return to it.",
+        "highlights": [
+          "Switching back to the dashboard after starting a run elsewhere (e.g. Re-run analysis from a report) now shows it as Queued/Running right away, instead of waiting up to 15 minutes for the next auto-refresh.",
+          "The dashboard re-applies its queued overlays and re-checks GitHub on tab focus and visibility change, not only on a full page load (throttled so it never hammers the API).",
+          "No change to how runs are queued or reconciled - this only makes an already-started run surface sooner when you come back to the dashboard tab."
+        ]
+      },
       {
         "version": "3.13.1",
         "date": "2026-06-19",

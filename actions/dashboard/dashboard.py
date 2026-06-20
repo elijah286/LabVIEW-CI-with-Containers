@@ -2167,6 +2167,15 @@ run_dialog = (r"""
     // the backfill card the same way.
     if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', function(){ applyQueued(); qSync(); bfInit(); }); }
     else { applyQueued(); qSync(); bfInit(); }
+    // Returning to the dashboard after kicking off a run elsewhere (e.g. "Re-run
+    // analysis" from a report, or a run started in another tab) should reflect it
+    // right away. The page otherwise only updates on its auto-refresh timer (up to
+    // 15 min when idle), so re-apply the optimistic "Queued" overlays and re-sync
+    // against GitHub whenever the tab is shown again or regains focus (throttled).
+    var _qReChk = 0;
+    function qRecheck(){ var n = Date.now(); if(n - _qReChk < 4000) return; _qReChk = n; try{ applyQueued(); qSync(); }catch(e){} }
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) qRecheck(); });
+    window.addEventListener('focus', qRecheck);
   })();
   </scr""" + """ipt>""").replace('__RUN_TARGETS__', run_targets_json).replace('__HIST__', hist_json).replace('__CAPS_RAN__', caps_ran_json).replace('__REPO__', repo).replace('__BRANCH__', get_default_branch())
 
