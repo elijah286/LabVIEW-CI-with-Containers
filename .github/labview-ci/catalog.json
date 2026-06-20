@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.26.0",
+  "version": "3.26.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.26.1",
+        "date": "2026-06-21",
+        "title": "Worker bakes .vipc dependencies under VIPM 26.3 Community Edition (fixes 'requires a public Git repository', UTF / -350053)",
+        "summary": "With the VIPM 26.3 CLI flags fixed, the worker's headless 'vipm install' got past argument parsing but then failed instantly (exit 6) with 'VIPM Community Edition requires a public Git repository' - so the .vipc tooling (Antidoc, Caraya, VI Tester, and the UTF JUnit Report library) was still not baked in and headless RunUnitTests kept failing with LabVIEW CLI error -350053. VIPM 26.3 Community Edition only installs when the current working directory is inside a PUBLIC Git repository; the image build runs from C:\\vipm, which is not a Git repo. We verified against the real 26.3 CLI that VIPM only reads .git/config's origin URL (and checks the repo is public) - it needs no git binary, no clone, and no commits. install-vipc.ps1 now fabricates a minimal .git whose origin points at this public repo (passed as the VIPM_PUBLIC_REPO_URL build-arg, defaulting to this repo; the build workflow supplies the actual building repo so forks use their own), runs the installs from there, and removes it afterward. The .github/labview/vipm/README.md documents the requirement and the minimal .git layout.",
+        "highlights": [
+          "Fixes the exit-6 'VIPM Community Edition requires a public Git repository' failure so the worker's .vipc dependencies (including the UTF JUnit Report library) are baked in and headless RunUnitTests stops failing with -350053.",
+          "install-vipc.ps1 runs 'vipm install' from a fabricated minimal .git (HEAD + origin pointing at the public repo) - no git binary, clone, or commits needed - verified against the real VIPM 26.3 CLI.",
+          "Adds a VIPM_PUBLIC_REPO_URL build-arg (the build workflow passes the building repo's URL) and documents the Community Edition public-repo requirement in .github/labview/vipm/README.md."
+        ]
+      },
       {
         "version": "3.26.0",
         "date": "2026-06-20",
