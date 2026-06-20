@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.26.2",
+  "version": "3.27.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.27.0",
+        "date": "2026-06-20",
+        "title": "Documentation is now a top-level nav link, and overlapping top-bar menus are fixed",
+        "summary": "The developer Documentation page is now promoted to a first-class entry in the top navigation bar (between VI Browser and Settings) instead of being tucked inside the Help dropdown, so it is easy to find. On a consumer dashboard it opens the source site's documentation.html in a new tab, matching the existing About-link convention (same-tab on the source site). Also fixed a minor UX bug where two top-bar menus (Settings, Help, Share, and More) could be open and visually overlap at the same time - opening any one of them now closes the others, so only a single menu is ever open.",
+        "highlights": [
+          "Documentation moved from the Help dropdown to a top-level nav link.",
+          "Documentation opens in a new tab on consumer dashboards (same-tab on the source site).",
+          "Only one top-bar menu (Settings / Help / Share / More) can be open at a time - no more overlap."
+        ]
+      },
       {
         "version": "3.26.2",
         "date": "2026-06-20",
