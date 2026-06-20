@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.24.5",
+  "version": "3.24.6",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.24.6",
+        "date": "2026-06-21",
+        "title": "Worker dependency installs match the VIPM 26.3 CLI (fixes 'unexpected argument --refresh', UTF / -350053)",
+        "summary": "After the worker was upgraded to VIPM 2026 Q3 (26.3.3954), headless 'vipm install' failed instantly (exit 2) with \"error: unexpected argument '--refresh' found\" - so no .vipc dependencies were baked in and headless UTF still failed with LabVIEW CLI error -350053. The 26.3 CLI changed shape from the older 2026.1.0 build: it removed the '--refresh' option from 'install' and replaced it with a separate 'vipm refresh' command, and '--labview-version' / '--labview-bitness' are now global options that go before the subcommand. install-vipc.ps1 now runs 'vipm refresh' once and installs with 'vipm --labview-version <YYYY> --labview-bitness <32|64> install <packages>', with a fallback to the bare form (which targets the active LabVIEW from the seeded Settings.ini) if a CLI build rejects the flag position. Verified against the real 26.3 CLI: the command parses and returns success. The .github/labview/vipm/README.md was updated to document the 26.3 command shape and its differences from 2026.1.0.",
+        "highlights": [
+          "Fixes the exit-2 'unexpected argument --refresh' failure that blocked every headless 'vipm install' on the VIPM 26.3 worker, so a project's .vipc dependencies (including the UTF JUnit Report library) are baked in again.",
+          "install-vipc.ps1 now matches the 26.3 CLI: a standalone 'vipm refresh' plus 'vipm --labview-version --labview-bitness install <packages>', with a bare-form fallback that relies on the seeded Settings.ini active target.",
+          "Updates .github/labview/vipm/README.md to document the 26.3 command shape (standalone refresh, global LabVIEW flags, '--refresh' removed) and how it differs from the older 2026.1.0 CLI."
+        ]
+      },
       {
         "version": "3.24.5",
         "date": "2026-06-20",
