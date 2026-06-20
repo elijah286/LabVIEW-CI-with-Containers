@@ -1374,7 +1374,7 @@
     // Persistent context bar — the revision selector for per-revision reports,
     // in one consistent place under the header (only built when there's a revision).
     var ctxbar = null;
-    if (revBar || ctx === 'vi-browser') { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); }
+    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard') { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container

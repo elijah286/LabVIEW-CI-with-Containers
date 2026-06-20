@@ -2284,6 +2284,9 @@ html = f"""<!DOCTYPE html>
     .nav a{{margin-right:16px;color:var(--link)}}
     .controls{{margin:0 0 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:var(--fg-muted);font-size:.85em}}
     .controls input{{margin:0;accent-color:var(--link)}}
+    /* When the shared header is present, the controls live in its sticky context
+       bar (moved there on lvci:ready), so drop the standalone margin + fill the bar. */
+    .lvci-ctxbar .controls{{margin:0;flex:1 1 auto}}
     .cidash-check{{display:inline-flex;align-items:center;gap:6px}}
     /* Search box + status filter (compose with the CI-only toggle below). */
     .cidash-search{{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px}}
@@ -2429,6 +2432,25 @@ html = f"""<!DOCTYPE html>
     No revisions match the current filters. <a href="#" id="cidash-clearf" style="color:var(--link)">Clear filters</a>.
   </div>
   </main>
+  <script>
+    // Relocate the controls (search / status filter / Include CI-only / Columns)
+    // into the shared header's sticky context bar, so they sit in the SAME place
+    // as the revision bar on the report / VI Browser pages and stay visible while
+    // you scroll the table. A DOM move keeps every control's existing listeners;
+    // if the header isn't present the controls simply stay inline (graceful).
+    (function () {{
+      function placeControls() {{
+        var bar = document.getElementById('lvci-ctxbar');
+        var controls = document.querySelector('.controls');
+        if (bar && controls && controls.parentNode !== bar) {{
+          bar.appendChild(controls);
+          controls.classList.add('cidash-in-ctxbar');
+        }}
+      }}
+      if (window.lvciHeaderReady) placeControls();
+      else document.addEventListener('lvci:ready', placeControls, {{ once: true }});
+    }})();
+  </script>
   <script>
     (() => {{
       const checkbox = document.getElementById('show-nonproject');

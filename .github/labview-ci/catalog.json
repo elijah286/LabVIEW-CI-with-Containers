@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "version": "3.21.1",
+  "version": "3.22.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
       {
-        "version": "3.21.1",
-        "date": "2026-06-19",
-        "title": "Two new FAQ entries: where worker containers live, and what an Actions runner is",
-        "summary": "The FAQ now answers two common infrastructure questions. 'Where are the worker containers stored and where do they run?' explains that your worker image is stored in the GitHub Container Registry (GHCR) as a package under your own repository (ghcr.io/<owner>/<repo>-labview), built with the built-in GITHUB_TOKEN, and that it runs on the GitHub Actions runner that executes each job - a fresh container is pulled, started with your repo mounted, and destroyed when the job ends, all inside your own GitHub Actions environment. 'What is an Actions runner?' explains that a runner is the machine that executes a workflow job, and the difference between GitHub-hosted runners (disposable windows-2022 / ubuntu-latest VMs) and self-hosted runners you provide.",
+        "version": "3.22.0",
+        "date": "2026-06-20",
+        "title": "Dashboard search and filters move into the sticky toolbar",
+        "summary": "The dashboard's search box, the status filter (All / Failed / Running / Passed), the Include CI-only revisions toggle, and the Columns customizer have moved out of the page body and into the shared toolbar that sits directly under the header -- the same context bar the report and VI Browser pages already use for their revision selector. Because that bar is sticky, the controls now stay in view while you scroll a long list of revisions, so you can refine the search or switch the status filter without scrolling back to the top of the page. It also makes the whole tool feel consistent: every page now keeps its primary controls in the same place. This is a layout change only -- the search, filters, and column menu behave exactly as they did before.",
         "highlights": [
-          "New FAQ entry 'Where are the worker containers stored and where do they run?' - images live in GHCR as packages under your repo; containers run and are torn down on the GitHub Actions runner, never on NI's or the author's servers.",
-          "New FAQ entry 'What is an Actions runner?' - explains GitHub-hosted vs self-hosted runners, where the worker container actually executes, and how the max concurrent runners cap relates to GitHub's per-account concurrency limit.",
-          "Documentation only - no change to any workflow, container, or dashboard behaviour."
+          "Search, the status filter, the CI-only toggle, and Columns now live in the sticky toolbar under the header instead of in the page body.",
+          "The controls stay visible while you scroll the revision table, so you can filter without jumping back to the top.",
+          "Consistent placement: the dashboard now shares the same context bar the report and VI Browser pages use."
         ]
       },
       {
