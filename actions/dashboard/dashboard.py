@@ -2250,6 +2250,16 @@ html = f"""<!DOCTYPE html>
     .controls{{margin:0 0 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:var(--fg-muted);font-size:.85em}}
     .controls input{{margin:0;accent-color:var(--link)}}
     .cidash-check{{display:inline-flex;align-items:center;gap:6px}}
+    /* Search box + status filter (compose with the CI-only toggle below). */
+    .cidash-search{{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px}}
+    .cidash-search svg{{width:14px;height:14px;color:var(--fg-muted);flex:0 0 auto}}
+    .cidash-search input{{border:0;background:none;color:var(--fg);font:inherit;outline:none;width:210px;max-width:42vw}}
+    .cidash-search input::placeholder{{color:var(--fg-muted)}}
+    .cidash-segfilter{{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}}
+    .cidash-segfilter button{{background:var(--surface);border:0;border-right:1px solid var(--border);color:var(--fg-muted);padding:5px 12px;cursor:pointer;font:inherit;line-height:1.2}}
+    .cidash-segfilter button:last-child{{border-right:0}}
+    .cidash-segfilter button:hover{{color:var(--fg);background:var(--hover)}}
+    .cidash-segfilter button.on{{background:var(--link);color:#fff}}
     /* Column-visibility menu (standard "Columns" dropdown of checkboxes). */
     .cidash-colmenu{{position:relative;display:inline-block}}
     .cidash-colbtn{{background:var(--surface);border:1px solid var(--border);color:var(--fg);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:1em;line-height:1.2;display:inline-flex;align-items:center;gap:6px}}
@@ -2330,6 +2340,16 @@ html = f"""<!DOCTYPE html>
   </div>
   {backfill_card}
   <div class="controls">
+    <div class="cidash-search">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M10.68 11.74a6 6 0 1 1 1.06-1.06l3.04 3.04a.75.75 0 1 1-1.06 1.06ZM12 7a5 5 0 1 0-10 0 5 5 0 0 0 10 0Z"/></svg>
+      <input id="cidash-search" type="search" autocomplete="off" placeholder="Filter revisions, authors, SHAs...">
+    </div>
+    <div class="cidash-segfilter" id="cidash-statusfilter" role="group" aria-label="Filter by status">
+      <button type="button" class="on" data-status="all">All</button>
+      <button type="button" data-status="fail">Failed</button>
+      <button type="button" data-status="running">Running</button>
+      <button type="button" data-status="pass">Passed</button>
+    </div>
     <label class="cidash-check" for="show-nonproject">
       <input type="checkbox" id="show-nonproject">
       Include CI-only revisions
@@ -2358,28 +2378,60 @@ html = f"""<!DOCTYPE html>
   <div id="empty-state" style="display:none;padding:18px;text-align:center;color:var(--fg-muted);font-size:.9em">
     No project revisions in the recent window. <a href="#" onclick="document.getElementById('show-nonproject').click();return false" style="color:var(--link)">Include CI-only revisions</a> to see CI&nbsp;/&nbsp;tooling commits.
   </div>
+  <div id="cidash-noresults" style="display:none;padding:18px;text-align:center;color:var(--fg-muted);font-size:.9em">
+    No revisions match the current filters. <a href="#" id="cidash-clearf" style="color:var(--link)">Clear filters</a>.
+  </div>
   </main>
   <script>
     (() => {{
       const checkbox = document.getElementById('show-nonproject');
       const rows = document.querySelectorAll('tbody tr[data-project]');
       const emptyState = document.getElementById('empty-state');
-      // Honor the toggle strictly: while "Include CI-only revisions" is
-      // unchecked, only project revisions show. If that hides every row,
-      // reveal an inline prompt (rather than silently showing CI-only rows
-      // or leaving a blank table) inviting the user to enable the toggle.
+      const noresults = document.getElementById('cidash-noresults');
+      const search = document.getElementById('cidash-search');
+      const segBtns = Array.from(document.querySelectorAll('#cidash-statusfilter button'));
+      let statusFilter = 'all', term = '';
+      // Roll a row up to one status from its rendered cells: a failed chip or a
+      // confirmed-failed run badge -> fail; any live run/queued spinner badge ->
+      // running; any result chip -> pass; otherwise no results yet.
+      const rowStatus = (row) => {{
+        if (row.querySelector('.cc-fail, .run-badge.cidash-failed')) return 'fail';
+        if (row.querySelector('.run-badge')) return 'running';
+        if (row.querySelector('.cidash-chip')) return 'pass';
+        return 'none';
+      }};
+      // A row shows when it passes the CI-only toggle AND the search text AND the
+      // status filter (composed, so the three controls stack).
       const applyFilter = () => {{
-        const showNonProject = checkbox.checked;
         let visible = 0;
         rows.forEach((row) => {{
           const isProject = row.getAttribute('data-project') === 'true';
-          const show = isProject || showNonProject;
+          let show = isProject || checkbox.checked;
+          if (show && term) show = row.textContent.toLowerCase().includes(term);
+          if (show && statusFilter !== 'all') show = rowStatus(row) === statusFilter;
           row.style.display = show ? '' : 'none';
           if (show) visible++;
         }});
-        if (emptyState) emptyState.style.display = visible ? 'none' : '';
+        const filtering = !!term || statusFilter !== 'all';
+        if (emptyState) emptyState.style.display = (!visible && !filtering) ? '' : 'none';
+        if (noresults)  noresults.style.display  = (!visible &&  filtering) ? '' : 'none';
       }};
       checkbox.addEventListener('change', applyFilter);
+      if (search) search.addEventListener('input', () => {{ term = search.value.trim().toLowerCase(); applyFilter(); }});
+      segBtns.forEach((b) => b.addEventListener('click', () => {{
+        segBtns.forEach((x) => x.classList.remove('on'));
+        b.classList.add('on');
+        statusFilter = b.getAttribute('data-status');
+        applyFilter();
+      }}));
+      const clr = document.getElementById('cidash-clearf');
+      if (clr) clr.addEventListener('click', (e) => {{
+        e.preventDefault();
+        if (search) search.value = '';
+        term = ''; statusFilter = 'all';
+        segBtns.forEach((x) => x.classList.toggle('on', x.getAttribute('data-status') === 'all'));
+        applyFilter();
+      }});
       applyFilter();
     }})();
 
