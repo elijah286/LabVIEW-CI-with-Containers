@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.28.0",
+  "version": "3.29.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.29.0",
+        "date": "2026-06-20",
+        "title": "VI Browser: open a revision's reports right in the pane (unified Activity switcher)",
+        "summary": "Picking Mass Compile, VI Analyzer, Unit Tests or Antidoc from the Activity switcher while you are in the VI Browser now frames that report directly in the browser pane, instead of navigating away to a separate report page. The shared Revision and Activity pickers stay put at the top, so you can flip between a revision's VIs and its reports without losing your place; the project tree is hidden for these per-revision reports (they are not per-VI). The view is shareable -- the address bar carries a lens parameter, and opening such a link restores the framed report. This is the first step of the unified Explorer that merges the VI Browser and the report viewer into one surface.",
+        "highlights": [
+          "Reports (Mass Compile, VI Analyzer, Unit Tests, Antidoc) now open in place inside the VI Browser pane.",
+          "The Revision + Activity pickers stay in the shared context bar; switch between VIs and reports without a page change.",
+          "Report views are deep-linkable (a lens parameter in the URL) and restore on load; picking a report a revision lacks shows a brief note instead of switching."
+        ]
+      },
       {
         "version": "3.28.0",
         "date": "2026-06-20",
