@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.13.3",
+  "version": "3.13.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.13.4",
+        "date": "2026-06-19",
+        "title": "The FAQ now explains how the Clients page finds and tracks repositories",
+        "summary": "In the spirit of full transparency, a new FAQ entry documents exactly how the Clients page is built. Discovery is pull-based: the source repository finds its own clients by querying GitHub's public search index for the labview-ci topic and for references back to this repository - your repository is never modified, never has to phone home, and no shared secret or telemetry is involved. Only public repositories are ever discovered or listed; private repositories are never included. The Clients page now links straight to this explanation.",
+        "highlights": [
+          "New FAQ entry 'How do you discover and track which repositories use this tooling?' details the three public signals (the labview-ci topic, a catalog source.repo reference, and a workflow uses: reference) and how each candidate is verified.",
+          "Documents the privacy guarantees: discovery only covers public repositories, private repositories are never listed, and only information GitHub already exposes publicly is shown.",
+          "The Clients page links directly to the new FAQ answer, which opens automatically when followed."
+        ]
+      },
       {
         "version": "3.13.3",
         "date": "2026-06-19",

@@ -27,7 +27,7 @@
     .repo-home{margin:0 0 22px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);
       border-radius:8px;font-size:.95em;color:var(--fg-muted)}
     .repo-home a{font-weight:600;color:var(--link)}
-    .faq-item{margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .faq-item{margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden;scroll-margin-top:66px}
     .faq-q{background:var(--surface);padding:14px 16px;font-weight:600;font-size:.95em;cursor:pointer;display:flex;
           justify-content:space-between;align-items:center;user-select:none}
     .faq-q:hover{background:rgba(88,166,255,.06)}
@@ -232,6 +232,25 @@
       </div>
     </div>
 
+    <div class="faq-item" id="discovery">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>How do you discover and track which repositories use this tooling?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>The <strong>Clients</strong> page lists the public repositories found to be running this LabVIEW CI stack. We want to be fully transparent about how that list is built, because it is gathered automatically.</p>
+        <p>Discovery is deliberately <strong>pull-based</strong>: the source repository finds its own clients by querying GitHub's public search index. <strong>Your repository is never modified, never has to "phone home," and there is no shared secret, tracking pixel, or telemetry call involved.</strong> A scheduled workflow in the source repository (<code>discover-clients.yml</code>, which you can also trigger by hand with the <strong>Scan for clients</strong> button) looks for three public signals that an install necessarily leaves behind:</p>
+        <ul>
+          <li><strong>The <code>labview-ci</code> repository topic</strong> — added to a client repository at install time. This is the primary, most reliable signal, because GitHub indexes repository topics as structured metadata.</li>
+          <li><strong>A catalog reference</strong> — this repository's slug appearing as the <code>source.repo</code> value in a client's <code>.github/labview-ci/catalog.json</code>.</li>
+          <li><strong>A workflow reference</strong> — a <code>uses:</code> reference back to this repository inside a client's <code>.github/workflows/</code> files.</li>
+        </ul>
+        <p>Every candidate is then <strong>verified</strong> before it is listed: the repository must be public, must not be a fork, and its catalog must actually point back to this repository (or it must reference this stack from a workflow). Coincidental text matches in unrelated repositories are dropped, so the count reflects real installs.</p>
+        <p><strong>Privacy.</strong> GitHub's search index only covers <strong>public</strong> repositories, and each candidate is additionally checked to be non-private. <strong>Private repositories are never discovered or listed</strong> — a deliberate property, since the Clients page itself is public. Only information GitHub already exposes publicly is shown: the repository name and owner, its installed tooling version, when it was last updated, and links to its dashboard and repository.</p>
+        <p>The scan runs about once a day, so a brand-new install can take up to a day — plus GitHub's own search-index lag — to appear; <strong>Scan for clients</strong> triggers it on demand. The workflow runs <em>only</em> in the source repository, so a fork or a vendored copy never scans on anyone else's behalf.</p>
+      </div>
+    </div>
+
     <div class="faq-item">
       <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
         <span>Where do I report bugs or request features?</span>
@@ -284,6 +303,26 @@
         if (p && p.repo && p.repo.toLowerCase() !== repo.toLowerCase()) paint(p.repo);
       });
     });
+  })();
+  </script>
+  <script>
+  (function () {
+    // Deep-link support: when the URL carries a hash naming a FAQ item (e.g.
+    // faq.html#discovery, linked from the Clients page), open that item and
+    // scroll it into view so the answer is visible immediately.
+    function openFromHash() {
+      var id = (location.hash || "").replace(/^#/, "");
+      if (!id) return;
+      var item = document.getElementById(id);
+      if (!item || !item.classList || !item.classList.contains("faq-item")) return;
+      var q = item.querySelector(".faq-q");
+      var a = item.querySelector(".faq-a");
+      if (q) q.classList.add("open");
+      if (a) a.classList.add("open");
+      item.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    window.addEventListener("hashchange", openFromHash);
+    openFromHash();
   })();
   </script>
 </body>
