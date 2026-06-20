@@ -51,9 +51,6 @@
              display:flex;flex-direction:column;overflow:hidden}
     #sidebar-header{padding:12px 14px;border-bottom:1px solid var(--border)}
     #sidebar-header h1{font-size:1em;color:var(--fg);margin-bottom:8px}
-    #back-to-dashboard{display:inline-flex;align-items:center;gap:5px;margin-bottom:8px;
-                       font-size:.78em;color:var(--link);text-decoration:none}
-    #back-to-dashboard:hover{text-decoration:underline}
     #commit-select{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);
                    border-radius:6px;padding:5px 8px;font-size:.8em}
     /* When moved into the shared header context bar, the revision selector is inline
@@ -166,7 +163,6 @@
 
 <div id="sidebar">
   <div id="sidebar-header">
-    <a id="back-to-dashboard" href="../" title="Back to the CI Dashboard">&larr; CI Dashboard</a>
     <h1>VI Browser</h1>
     <select id="commit-select"><option value="">Loading commits…</option></select>
     <input id="search" type="search" placeholder="Filter VIs…">
