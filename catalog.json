@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.15.0",
+  "version": "3.16.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.16.0",
+        "date": "2026-06-19",
+        "title": "The header activity indicator now shows running, queued and failed counts",
+        "summary": "The header's live CI indicator is now a compact activity pill with separate running, queued and failed counts instead of a single N-running chip. Each segment appears only when its count is above zero, the whole pill links to the repository Actions list, and it pairs with the attention banner so you can see at a glance how much CI is in flight and whether anything needs attention. Display-only; the underlying activity poll is unchanged.",
+        "highlights": [
+          "The running chip becomes a run / queue / fail activity pill, surfacing queued and failed counts that were not shown before.",
+          "Each count segment shows only when it is non-zero, and the pill hides entirely when there is no activity.",
+          "It reads from the same 60-second activity poll (no extra API calls) and links to the repository Actions list."
+        ]
+      },
       {
         "version": "3.15.0",
         "date": "2026-06-19",
