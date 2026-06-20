@@ -202,6 +202,14 @@
       'background:rgba(177,186,196,.10);border:1px solid #30363d;border-radius:7px;padding:6px 8px;cursor:pointer;color-scheme:dark}',
     '.lvci-rev select:hover{border-color:#8b949e}',
     '@media(prefers-color-scheme:light){.lvci-rev .lvci-revlbl{color:#57606a}.lvci-rev select{color:#1f2328;background:#fff;border-color:#d0d7de;color-scheme:light}}',
+    // Persistent context bar (sticky below the header): one consistent place for
+    // the "which revision" selector + prev/next steppers on per-revision reports.
+    '.lvci-ctxbar{position:sticky;top:var(--lvh-h);z-index:199;display:flex;align-items:center;gap:12px;padding:8px 16px;background:rgba(22,27,34,.96);border-bottom:1px solid #30363d;flex-wrap:wrap}',
+    '.lvci-rev-ctx{flex:0 1 auto}',
+    '.lvci-rev-step{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #30363d;border-radius:7px;background:transparent;color:#8b949e;cursor:pointer;font-size:15px;line-height:1;flex:0 0 auto;padding:0}',
+    '.lvci-rev-step:hover:not(:disabled){color:#e6edf3;background:rgba(177,186,196,.12)}',
+    '.lvci-rev-step:disabled{opacity:.4;cursor:default}',
+    '@media(prefers-color-scheme:light){.lvci-ctxbar{background:rgba(246,248,250,.96);border-bottom-color:#d0d7de}.lvci-rev-step{border-color:#d0d7de;color:#57606a}.lvci-rev-step:hover:not(:disabled){color:#1f2328;background:rgba(80,90,100,.10)}}',
     // Hamburger (mobile)
     '.lvci-burger{position:relative;display:none;align-items:center;justify-content:center;width:38px;height:34px;border:1px solid #30363d;border-radius:7px;background:transparent;color:inherit;cursor:pointer;flex:0 0 auto}',
     '@media(prefers-color-scheme:light){.lvci-burger{border-color:#d0d7de}}',
@@ -309,7 +317,7 @@
     '@media(max-width:820px){body{overflow-x:hidden}}',
     // Printing (Share -> Print, or the browser's own Print): drop the chrome so a
     // printout is just the report / snapshot content, not the surrounding header.
-    '@media print{.lvci-hdr,.lvci-status,.lvci-tok,.lvci-rebuild,.lvci-alertbar,.lvci-menu,.lvci-dropdown-menu{display:none !important}}',
+    '@media print{.lvci-hdr,.lvci-status,.lvci-tok,.lvci-rebuild,.lvci-alertbar,.lvci-ctxbar,.lvci-menu,.lvci-dropdown-menu{display:none !important}}',
     // ── Manual appearance override (Appearance control in the menu) ───────────
     // "System" keeps the prefers-color-scheme rules above. Forcing light/dark
     // sets data-lvci-theme on <html>; these rules re-assert the matching tokens
@@ -354,6 +362,9 @@
     ':root[data-lvci-theme=light] .lvci-menu .lvci-ic{color:#57606a}',
     ':root[data-lvci-theme=light] .lvci-rev .lvci-revlbl{color:#57606a}',
     ':root[data-lvci-theme=light] .lvci-rev select{color:#1f2328;background:#fff;border-color:#d0d7de;color-scheme:light}',
+    ':root[data-lvci-theme=light] .lvci-ctxbar{background:rgba(246,248,250,.96);border-bottom-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-rev-step{border-color:#d0d7de;color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-rev-step:hover:not(:disabled){color:#1f2328;background:rgba(80,90,100,.10)}',
     ':root[data-lvci-theme=light] .lvci-status{background:#f6f8fa;border-bottom-color:#d0d7de;color:#57606a}',
     ':root[data-lvci-theme=light] .lvci-tok{background:#fff;border-color:#d0d7de;color:#1f2328}',
     ':root[data-lvci-theme=light] .lvci-tok code{background:#eef2f6}',
@@ -403,6 +414,8 @@
     ':root[data-lvci-theme=dark] .lvci-menu .lvci-ic{color:#8b949e}',
     ':root[data-lvci-theme=dark] .lvci-rev .lvci-revlbl{color:#8b949e}',
     ':root[data-lvci-theme=dark] .lvci-rev select{color:#e6edf3;background:rgba(177,186,196,.10);border-color:#30363d;color-scheme:dark}',
+    ':root[data-lvci-theme=dark] .lvci-ctxbar{background:rgba(22,27,34,.96);border-bottom-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-rev-step{border-color:#30363d;color:#8b949e}',
     ':root[data-lvci-theme=dark] .lvci-status{background:rgba(22,27,34,.96);border-bottom-color:#30363d;color:#8b949e}',
     ':root[data-lvci-theme=dark] .lvci-tok{background:#161b22;border-color:#30363d;color:#e6edf3}',
     ':root[data-lvci-theme=dark] .lvci-tok code{background:#0d1117}',
@@ -894,8 +907,9 @@
     return base + '/' + DOC.prefix + '/' + sha + '/index.html';
   }
   function makeRevPicker() {
-    var wrap = document.createElement('label'); wrap.className = 'lvci-rev';
+    var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-rev-ctx';
     var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Revision';
+    var prev = document.createElement('button'); prev.type = 'button'; prev.className = 'lvci-rev-step'; prev.title = 'Newer revision'; prev.setAttribute('aria-label', 'Newer revision'); prev.innerHTML = '\u2039';
     var sel = document.createElement('select');
     sel.setAttribute('aria-label', 'View another revision\u2019s ' + (DOC ? DOC.label : '') + ' report');
     var cur = document.createElement('option');
@@ -903,11 +917,17 @@
     cur.textContent = (cfg.short || (cfg.sha || '').slice(0, 7)) || 'this revision';
     sel.appendChild(cur);
     sel.value = cfg.sha || '';
+    var next = document.createElement('button'); next.type = 'button'; next.className = 'lvci-rev-step'; next.title = 'Older revision'; next.setAttribute('aria-label', 'Older revision'); next.innerHTML = '\u203a';
+    function syncSteps() { prev.disabled = sel.selectedIndex <= 0; next.disabled = sel.selectedIndex >= sel.options.length - 1; }
+    function step(d) { var i = sel.selectedIndex + d; if (i >= 0 && i < sel.options.length) { sel.selectedIndex = i; sel.dispatchEvent(new Event('change')); } }
+    prev.addEventListener('click', function () { step(-1); });
+    next.addEventListener('click', function () { step(1); });
     sel.addEventListener('change', function () {
-      var v = sel.value;
+      var v = sel.value; syncSteps();
       if (v && v !== cfg.sha) window.location.href = docDest(v);
     });
-    wrap.appendChild(lbl); wrap.appendChild(sel);
+    sel._lvciSync = syncSteps; syncSteps();
+    wrap.appendChild(lbl); wrap.appendChild(prev); wrap.appendChild(sel); wrap.appendChild(next);
     return { wrap: wrap, sel: sel };
   }
   function optionLabel(c) {
@@ -943,6 +963,7 @@
             sel.appendChild(o);
           });
           sel.value = cfg.sha || final[0].sha;
+          if (sel._lvciSync) sel._lvciSync();
         });
       }
       if (!toCheck.length) { fill(); return; }
@@ -1157,10 +1178,10 @@
     });
     hdr.appendChild(nav);
 
-    // Revision picker (per-revision report contexts only) — sits just left of
-    // the actions cluster so "which revision" + "Regenerate" read together.
-    var revBar = null, revMenu = null;
-    if (DOC) { revBar = makeRevPicker(); hdr.appendChild(revBar.wrap); }
+    // Revision picker (per-revision report contexts only) — lives in the
+    // persistent context bar below the header (built + mounted further down).
+    var revBar = null;
+    if (DOC) { revBar = makeRevPicker(); }
 
     // Actions
     var actions = document.createElement('div');
@@ -1262,7 +1283,6 @@
     // Mobile menu
     var menu = document.createElement('div');
     menu.className = 'lvci-menu';
-    if (DOC) { revMenu = makeRevPicker(); menu.appendChild(revMenu.wrap); var sep0 = document.createElement('div'); sep0.className = 'lvci-sep'; menu.appendChild(sep0); }
     NAV.forEach(function (n) {
       var a = document.createElement('a');
       a.href = n.href;
@@ -1308,10 +1328,7 @@
     // Populate the revision picker(s) once mounted (async; filters to revisions
     // that actually have a report of this type).
     if (DOC) {
-      var sels = [];
-      if (revBar) sels.push(revBar.sel);
-      if (revMenu) sels.push(revMenu.sel);
-      loadRevisions(sels);
+      loadRevisions(revBar ? [revBar.sel] : []);
     }
 
     // Status + token panel (used by re-run)
@@ -1353,6 +1370,11 @@
       renderAlert();
     });
 
+    // Persistent context bar — the revision selector for per-revision reports,
+    // in one consistent place under the header (only built when there's a revision).
+    var ctxbar = null;
+    if (revBar) { ctxbar = document.createElement('div'); ctxbar.className = 'lvci-ctxbar'; ctxbar.appendChild(revBar.wrap); }
+
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
     // (e.g. the VI Browser: `body{display:flex;height:100vh}` for a sidebar +
@@ -1386,6 +1408,7 @@
     document.body.insertBefore(status, tokp);
     document.body.insertBefore(menu, status);
     document.body.insertBefore(hdr, menu);
+    if (ctxbar) document.body.insertBefore(ctxbar, menu);     // persistent context bar (revision selector) under the header
     document.body.insertBefore(alertBar, menu);               // global attention bar, directly under the header
     if (rebuild) document.body.insertBefore(rebuild, menu);   // directly under the bar
 
