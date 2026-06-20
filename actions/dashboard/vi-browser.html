@@ -56,6 +56,9 @@
     #back-to-dashboard:hover{text-decoration:underline}
     #commit-select{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);
                    border-radius:6px;padding:5px 8px;font-size:.8em}
+    /* When moved into the shared header context bar, the revision selector is inline
+       (not full-width) and sits beside a "Revision" label styled by the header CSS. */
+    .lvci-ctxbar #commit-select{width:auto;max-width:46vw;min-width:170px;margin:0}
     #search{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);
             border-radius:6px;padding:5px 8px;font-size:.8em;margin-top:6px}
     #vi-list{flex:1;overflow-y:auto;padding:4px 0}
@@ -1687,6 +1690,23 @@ loadCommits().catch(err => {
 // Light up the "2.0" availability glyphs and keep them current as renders publish.
 loadJson2Index();
 startJson2Poll();
+
+// Persistent revision context: move the commit selector into the shared header
+// context bar (#lvci-ctxbar) so "which revision" sits in the same place as on the
+// report pages, instead of in this page's sidebar. Moving the element keeps its
+// options + change handler intact. No-ops where there is no header (e.g. the
+// embedded snapshot viewer), leaving the selector in the sidebar.
+function lvciPlaceRevInContextBar() {
+  var bar = document.getElementById('lvci-ctxbar');
+  var sel = document.getElementById('commit-select');
+  if (!bar || !sel || bar.contains(sel)) return;
+  var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-rev-ctx';
+  var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Revision';
+  wrap.appendChild(lbl); wrap.appendChild(sel);
+  bar.appendChild(wrap);
+}
+if (window.lvciHeaderReady) lvciPlaceRevInContextBar();
+else document.addEventListener('lvci:ready', lvciPlaceRevInContextBar);
 </script>
 <script>
 /* VI Browser 2.0 empty-state controller. Self-contained.

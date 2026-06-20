@@ -205,6 +205,7 @@
     // Persistent context bar (sticky below the header): one consistent place for
     // the "which revision" selector + prev/next steppers on per-revision reports.
     '.lvci-ctxbar{position:sticky;top:var(--lvh-h);z-index:199;display:flex;align-items:center;gap:12px;padding:8px 16px;background:rgba(22,27,34,.96);border-bottom:1px solid #30363d;flex-wrap:wrap}',
+    '.lvci-ctxbar:empty{display:none}',
     '.lvci-rev-ctx{flex:0 1 auto}',
     '.lvci-rev-step{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #30363d;border-radius:7px;background:transparent;color:#8b949e;cursor:pointer;font-size:15px;line-height:1;flex:0 0 auto;padding:0}',
     '.lvci-rev-step:hover:not(:disabled){color:#e6edf3;background:rgba(177,186,196,.12)}',
@@ -1373,7 +1374,7 @@
     // Persistent context bar — the revision selector for per-revision reports,
     // in one consistent place under the header (only built when there's a revision).
     var ctxbar = null;
-    if (revBar) { ctxbar = document.createElement('div'); ctxbar.className = 'lvci-ctxbar'; ctxbar.appendChild(revBar.wrap); }
+    if (revBar || ctx === 'vi-browser') { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
@@ -1413,6 +1414,9 @@
     if (rebuild) document.body.insertBefore(rebuild, menu);   // directly under the bar
 
     renderBadge();   // initial paint (idle, or the persisted "Updating" flag)
+    // Signal pages that the header (and its #lvci-ctxbar context bar) is mounted,
+    // so a page can move its own revision selector / controls into the shared bar.
+    try { window.lvciHeaderReady = true; document.dispatchEvent(new CustomEvent('lvci:ready')); } catch (e) {}
   }
 
   // ── Badge state ───────────────────────────────────────────────────────────
