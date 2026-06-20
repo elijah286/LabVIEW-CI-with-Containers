@@ -1,22 +1,11 @@
 {
   "schemaVersion": 1,
-  "version": "3.19.1",
+  "version": "3.19.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
-      {
-        "version": "3.19.1",
-        "date": "2026-06-20",
-        "title": "Worker now installs VIPM tooling by package name (fixes headless UTF / -350053)",
-        "summary": "The worker image build applied its VIPM tooling (Antidoc, Caraya, VI Tester, and the UTF JUnit Report library) by handing the generated .vipc file to the modern VIPM CLI - but that CLI rejects the generated config.xml-only .vipc ('Code 42: this file does not appear to be a valid VI package configuration') and no longer has the legacy apply_vipc verb, so none of the tooling was actually installed. In particular the UTF JUnit Report library (ni_lib_utf_junit_report) was missing, which made the headless RunUnitTests operation fail with LabVIEW CLI error -350053. install-vipc.ps1 now reads the package list out of each .vipc's config.xml and installs each package by name using the documented 'vipm install <name>@<version>' form, which needs no VIPM Pro activation. Verified locally against VIPM 2026 Free Edition: the JUnit library installs and RunUnitTests produces its JUnit report.",
-        "highlights": [
-          "Fixes headless NI Unit Test Framework runs: the UTF JUnit Report library is now actually baked into the worker, so RunUnitTests no longer fails with -350053.",
-          "Root cause: the modern VIPM CLI rejects the generated config.xml-only .vipc (Code 42) and dropped the legacy apply_vipc verb, so the old 'vipm install <file.vipc>' path was a silent no-op.",
-          "install-vipc.ps1 now installs each package by name ('vipm install <name>@<version>'), which also restores Antidoc, Caraya and VI Tester; no VIPM Pro activation required."
-        ]
-      },
       {
         "version": "3.19.0",
         "date": "2026-06-20",
