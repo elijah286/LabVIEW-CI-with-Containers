@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.24.3",
+  "version": "3.24.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.24.4",
+        "date": "2026-06-20",
+        "title": "VI Browser drops its redundant Back to dashboard link",
+        "summary": "The VI Browser sidebar had its own back-link to the dashboard at the top, duplicating the shared top bar's Dashboard link and the LabVIEW CI logo that both already return you to the dashboard. It has been removed -- matching the configuration pages, which dropped the same redundant link in 3.23.1 -- so the sidebar now leads with the VI Browser title and the file tree gets a little more room. Nothing is lost: use the Dashboard link or the logo in the top bar to go back.",
+        "highlights": [
+          "Removed the duplicate back-link from the VI Browser sidebar; the shared top bar's Dashboard link and logo already return you to the dashboard.",
+          "The sidebar now leads with the VI Browser title, giving the file tree slightly more vertical room.",
+          "Presentation cleanup only -- no change to how the VI Browser works."
+        ]
+      },
       {
         "version": "3.24.3",
         "date": "2026-06-20",
