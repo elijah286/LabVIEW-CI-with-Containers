@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.13.4",
+  "version": "3.14.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.14.0",
+        "date": "2026-06-19",
+        "title": "Switch the VI Browser 2.0 view between the Linux and Windows render",
+        "summary": "The in-place VI Browser 2.0 viewer can now show the render produced on Windows as well as the one produced on Linux. When a VI has a Windows render, a Linux / Windows switch appears in the 2.0 toolbar next to Front Panel / Block Diagram; picking one loads that platform's position-aware frames, and the choice is carried in the shareable URL. The switch only appears for a VI that actually has a Windows render, so the view stays exactly as before until the Windows render pipeline publishes its frames - Linux remains the default.",
+        "highlights": [
+          "A Linux / Windows toggle in the 2.0 view loads the position-aware render from whichever container produced it.",
+          "The toggle appears only for VIs that have a Windows render (driven by the published render index), so there is never a dead button, and Linux stays the default.",
+          "The selected platform is reflected in the shareable / printable VI Browser URL (plat2=windows)."
+        ]
+      },
       {
         "version": "3.13.4",
         "date": "2026-06-19",
