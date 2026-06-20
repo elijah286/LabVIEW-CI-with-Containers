@@ -964,21 +964,25 @@
   // of returning to the dashboard. Mirrors the revision picker (a labelled <select>
   // in the context bar) and reuses its summary.json availability probe, so a report
   // that was not produced for this revision is shown disabled rather than 404ing.
-  function lensDest(key) {
-    if (key === 'snapshots') return base + '/vi-snapshots/' + (cfg.sha ? '?sha=' + encodeURIComponent(cfg.sha) : '');
-    var d = DOCTYPES[key]; if (!d || !cfg.sha) return base + '/';
-    var bare = base + '/' + d.prefix + '/' + cfg.sha + '/index.html';
-    if (cfg.embedded && cfg.framedSrc) {
-      var title = d.label + ' \u00b7 ' + cfg.sha.slice(0, 7);
-      return base + '/report/index.html?type=' + encodeURIComponent(key)
-           + '&sha=' + encodeURIComponent(cfg.sha)
-           + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
-           + '&src=' + encodeURIComponent(bare)
-           + '&title=' + encodeURIComponent(title);
-    }
-    return bare;
+  function lensDest(key, sha) {
+    sha = sha || cfg.sha || '';
+    if (key === 'snapshots') return base + '/vi-snapshots/' + (sha ? '?sha=' + encodeURIComponent(sha) : '');
+    var d = DOCTYPES[key]; if (!d || !sha) return base + '/';
+    // Always open a report through the framed viewer (shared chrome + this picker),
+    // whether we came from another report or from the VI Browser.
+    var bare = base + '/' + d.prefix + '/' + sha + '/index.html';
+    var title = d.label + ' \u00b7 ' + sha.slice(0, 7);
+    return base + '/report/index.html?type=' + encodeURIComponent(key)
+         + '&sha=' + encodeURIComponent(sha)
+         + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
+         + '&src=' + encodeURIComponent(bare)
+         + '&title=' + encodeURIComponent(title);
   }
-  function makeLensPicker() {
+  function makeLensPicker(opts) {
+    opts = opts || {};
+    var current = opts.current || ctx;
+    var getSha = opts.getSha || function () { return cfg.sha; };
+    var deferProbe = !!opts.deferProbe;   // VI Browser: sha is dynamic -> check at click time, not upfront
     var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-lens-ctx';
     var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Activity';
     var sel = document.createElement('select');
@@ -988,22 +992,37 @@
       if (key === 'snapshots') { label = 'Snapshots'; }
       else { var d = DOCTYPES[key]; if (!d) return; label = d.label; }
       var o = document.createElement('option'); o.value = key; o.textContent = label;
-      if (key === ctx) o.selected = true;
+      if (key === current) o.selected = true;
       sel.appendChild(o);
     });
-    sel.value = ctx;
+    sel.value = current;
+    var note = document.createElement('span'); note.style.cssText = 'font-size:11px;color:#8b949e;white-space:nowrap';
     sel.addEventListener('change', function () {
       var key = sel.value;
-      if (key && key !== ctx) window.location.href = lensDest(key);
+      if (!key || key === current) return;
+      var sha = getSha();
+      if (key === 'snapshots' || !deferProbe) { window.location.href = lensDest(key, sha); return; }
+      // VI Browser: the report may not exist for the live revision -> confirm first.
+      var d = DOCTYPES[key];
+      if (!d || !sha) { window.location.href = lensDest(key, sha); return; }
+      note.textContent = '';
+      fetch(base + '/' + d.prefix + '/' + sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
+        .then(function (r) { if (r.ok) window.location.href = lensDest(key, sha); else noReport(d); })
+        .catch(function () { noReport(d); });
+      function noReport(dd) {
+        sel.value = current;
+        note.textContent = 'No ' + dd.label + ' for this revision';
+        setTimeout(function () { note.textContent = ''; }, 4000);
+      }
     });
-    wrap.appendChild(lbl); wrap.appendChild(sel);
-    // Grey out report types with no report for THIS revision (HEAD-probe
-    // <prefix>/<sha>/summary.json, the same signal the revision picker uses).
-    if (cfg.sha) {
+    wrap.appendChild(lbl); wrap.appendChild(sel); wrap.appendChild(note);
+    // Upfront greying only when the revision is FIXED (report pages). The VI Browser
+    // switches revision in place, so it checks availability at click time instead.
+    if (!deferProbe && getSha()) {
       LENS_ORDER.forEach(function (key) {
-        if (key === ctx) return;
+        if (key === current || key === 'snapshots') return;
         var d = DOCTYPES[key]; if (!d) return;
-        fetch(base + '/' + d.prefix + '/' + cfg.sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
+        fetch(base + '/' + d.prefix + '/' + getSha() + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
           .then(function (r) { if (!r.ok) disableOpt(key, d); })
           .catch(function () { disableOpt(key, d); });
       });
@@ -1501,6 +1520,20 @@
     // Signal pages that the header (and its #lvci-ctxbar context bar) is mounted,
     // so a page can move its own revision selector / controls into the shared bar.
     try { window.lvciHeaderReady = true; document.dispatchEvent(new CustomEvent('lvci:ready')); } catch (e) {}
+
+    // VI Browser: it owns #commit-select and moves it into the context bar on the
+    // lvci:ready we just fired (dispatchEvent is synchronous, so it is in place now).
+    // Add the Activity picker beside it -> jump from the VI Browser to any of this
+    // revision's reports. The VI Browser changes revision in place, so the picker
+    // reads the live sha (commit selector / URL) and checks availability at click time.
+    if (ctx === 'vi-browser' && ctxbar) {
+      var viSha = function () {
+        var cs = document.getElementById('commit-select');
+        if (cs && cs.value) return cs.value;
+        try { return new URLSearchParams(location.search).get('sha') || ''; } catch (e) { return ''; }
+      };
+      try { ctxbar.appendChild(makeLensPicker({ current: 'snapshots', getSha: viSha, deferProbe: true }).wrap); } catch (e) {}
+    }
   }
 
   // ── Badge state ───────────────────────────────────────────────────────────
