@@ -125,6 +125,16 @@
     #pane-toggle button.active{background:var(--link);color:#fff}
     #pane-toggle button:disabled{opacity:.4;cursor:default}
     #pane-toggle .sep{width:1px;background:var(--border)}
+    /* Linux / Windows platform sub-switch (2.0 in-place view; shown when a Windows render exists) */
+    #vb2-plat-toggle{display:none;align-items:center;border:1px solid var(--border);border-radius:7px;
+                 overflow:hidden;font-size:.92em}
+    #vb2-plat-toggle.show{display:inline-flex}
+    #vb2-plat-toggle button{border:none;background:var(--bg);color:var(--fg-muted);cursor:pointer;
+                        padding:3px 11px;font:inherit;font-weight:600}
+    #vb2-plat-toggle button:hover:not(.active):not(:disabled){background:var(--sidebar-hover);color:var(--fg)}
+    #vb2-plat-toggle button.active{background:var(--link);color:#fff}
+    #vb2-plat-toggle button:disabled{opacity:.4;cursor:default}
+    #vb2-plat-toggle .sep{width:1px;background:var(--border)}
     #viewer-mode-note{display:none;color:var(--fg-muted);font-size:.82em;font-style:italic}
     #viewer-mode-note.show{display:inline}
     #viewer{flex:1;overflow:hidden;position:relative}
@@ -183,6 +193,11 @@
       <button type="button" data-pane="fp" title="Front panel — the VI's user interface">Front&nbsp;Panel</button>
       <span class="sep"></span>
       <button type="button" data-pane="bd" title="Block diagram — the VI's code; Case/Event structures navigate in place">Block&nbsp;Diagram</button>
+    </span>
+    <span id="vb2-plat-toggle" title="Show the 2.0 render from the Linux or the Windows container">
+      <button type="button" data-plat2="linux" title="Linux container render">Linux</button>
+      <span class="sep"></span>
+      <button type="button" data-plat2="windows" title="Windows container render">Windows</button>
     </span>
     <span id="viewer-mode-note"></span>
     <span id="vi-title">Select a VI from the sidebar</span>
@@ -312,6 +327,12 @@ let openView = 'snapshot';       // 'snapshot' | 'diff'
 const INIT_VI = new URLSearchParams(location.search).get('vi') || '';
 const INIT_VIEW = (new URLSearchParams(location.search).get('view') === 'diff') ? 'diff' : 'snapshot';
 let json2Set = null;             // blobs that have a 2.0 JSON (from json-blobs.json); drives the live "2.0" glyph
+// VI Browser 2.0 render platform: 'linux' (default, the original) or 'windows'.
+// A preference, restored from ?plat2=; the EFFECTIVE platform falls back to Linux
+// for any VI that has no Windows render, so switching is always safe.
+let vb2Plat = (new URLSearchParams(location.search).get('plat2') === 'windows') ? 'windows' : 'linux';
+let json2WinSet = null;          // blobs that ALSO have a Windows 2.0 render (json-blobs.windows.json); null = none published
+let vb2DidWinRestore = false;    // one-shot: honor a ?plat2=windows deep link once the Windows index loads
 
 const ICON = {
   chevron: '<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M6 4l4 4-4 4z"/></svg>',
@@ -675,7 +696,21 @@ async function loadJson2Index() {
     const arr = await fetchJson(BASE + 'json-blobs.json');
     if (Array.isArray(arr)) json2Set = new Set(arr.map(b => String(b).toLowerCase()));
   } catch (e) { /* no index yet (repo unprovisioned / first run) */ }
+  try {
+    const win = await fetchJson(BASE + 'json-blobs.windows.json');
+    if (Array.isArray(win)) json2WinSet = new Set(win.map(b => String(b).toLowerCase()));
+  } catch (e) { /* no Windows index published yet — the 2.0 view stays Linux-only */ }
   decorate2();
+  syncVb2PlatToggle();
+  // One-shot: if a shared ?plat2=windows link landed before the Windows index was
+  // known and the open VI does have a Windows render, upgrade it to the Windows view.
+  if (!vb2DidWinRestore && json2WinSet) {
+    vb2DidWinRestore = true;
+    if (vb2Plat === 'windows' && viewerMode === '2' && currentSnapshot && !currentDiffVi
+        && vb2WinAvail(vb2BlobOf(currentSnapshot.html))) {
+      openSnapshot(currentSnapshot.html, currentSnapshot.title);
+    }
+  }
 }
 function startJson2Poll() {
   if (json2Poll) return;
@@ -697,6 +732,16 @@ function setViewerLoading(on) {
 // flat-HTML iframe + enhanceSnapshot (unchanged behaviour). The JSON is content-
 // addressed next to the .html (by-blob/<ab>/<blob>.json), so a VI auto-upgrades to
 // the in-place view the moment its frames JSON is rendered — no gallery changes.
+// The 2.0 frames JSON sits beside the snapshot HTML, content-addressed by git blob.
+// Linux renders are <blob>.json; Windows renders (once the Windows pipeline
+// publishes them) are <blob>.windows.json. vb2Plat is the chosen platform, but the
+// EFFECTIVE platform is Linux for any VI with no Windows render, so a Windows
+// preference never strands a VI that only Linux has rendered.
+function vb2BlobOf(url) { const m = String(url || '').match(/([0-9a-f]{40})\.html$/i); return m ? m[1].toLowerCase() : ''; }
+function vb2WinAvail(blob) { return !!(json2WinSet && blob && json2WinSet.has(blob)); }
+function vb2EffPlat(htmlUrl) { return (vb2Plat === 'windows' && vb2WinAvail(vb2BlobOf(htmlUrl))) ? 'windows' : 'linux'; }
+function vb2JsonUrl(htmlUrl) { return htmlUrl.replace(/\.html$/i, vb2EffPlat(htmlUrl) === 'windows' ? '.windows.json' : '.json'); }
+
 let lvController = null;
 function openSnapshot(htmlUrl, title) {
   // 1.0 (classic): always the flat-HTML iframe + enhanceSnapshot stepper view.
@@ -704,7 +749,7 @@ function openSnapshot(htmlUrl, title) {
   // 2.0 (in-place): prefer the position-aware frames JSON; gracefully fall back to
   // the classic view when this VI has no frames JSON yet (e.g. before the backend
   // that emits <blob>.json has rendered it).
-  const jsonUrl = htmlUrl.replace(/\.html$/i, '.json');
+  const jsonUrl = vb2JsonUrl(htmlUrl);
   setViewerLoading(true);
   fetch(jsonUrl, { cache: 'no-store' })
     .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
@@ -736,6 +781,7 @@ function showInPlace(frames, htmlUrl, title) {
   try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   vb2Frames = frames;
   syncPaneToggle();        // reveal the Front Panel / Block Diagram switch for this VI
+  syncVb2PlatToggle();     // reveal the Linux / Windows switch when a Windows render exists
   renderActivePane();      // paint the active pane (front panel or block-diagram tree)
   setViewerLoading(false);
 }
@@ -771,6 +817,24 @@ function hidePaneToggle() {
   if (wrap) wrap.classList.remove('show');
 }
 
+// Linux / Windows platform sub-switch for the 2.0 view. Shown only when the open VI
+// actually has a Windows render to switch to (driven by the json-blobs.windows.json
+// index); otherwise the 2.0 view stays Linux-only and the switch stays hidden, so
+// there is never a dead Windows button.
+function syncVb2PlatToggle() {
+  const wrap = document.getElementById('vb2-plat-toggle');
+  if (!wrap) return;
+  const blob = currentSnapshot ? vb2BlobOf(currentSnapshot.html) : '';
+  if (viewerMode !== '2' || !vb2WinAvail(blob)) { wrap.classList.remove('show'); return; }
+  wrap.classList.add('show');
+  const eff = (vb2Plat === 'windows') ? 'windows' : 'linux';
+  wrap.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.plat2 === eff));
+}
+function hideVb2PlatToggle() {
+  const wrap = document.getElementById('vb2-plat-toggle');
+  if (wrap) wrap.classList.remove('show');
+}
+
 function showNeedsToken(htmlUrl, title) {
   // 2.0 empty state: this VI has no frames JSON yet (no render exists, run in
   // progress, or the run failed). The 2.0 controller below reflects the real state.
@@ -789,6 +853,7 @@ function showNeedsToken(htmlUrl, title) {
   const nt = document.getElementById('vi-needtoken'); if (nt) nt.style.display = 'block';
   const drn = document.getElementById('vi-diffrun'); if (drn) drn.style.display = 'none'; hideRegenLink();
   hidePaneToggle();
+  hideVb2PlatToggle();
   setViewerLoading(false);
   // Let the 2.0 controller pick the right panel (no render yet / running /
   // no-frames / failed). It owns the repo + run-status + dispatch logic.
@@ -803,6 +868,7 @@ function showInFrame(url, title) {
   const drf = document.getElementById('vi-diffrun'); if (drf) drf.style.display = 'none';
   hideRegenLink();
   hidePaneToggle();
+  hideVb2PlatToggle();
   try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
   const frameEl = document.getElementById('vi-frame');
@@ -1292,6 +1358,7 @@ function showDiffRun(viRel, type, mode) {
   try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
   hideRegenLink();
   hidePaneToggle();
+  hideVb2PlatToggle();
   document.getElementById('empty').style.display = 'none';
   document.getElementById('viewer').style.display = 'block';
   const hint = document.getElementById('viewer-hint'); if (hint) hint.style.display = 'none';
@@ -1424,6 +1491,7 @@ function buildShareUrl() {
   }
   if (viewerMode === '2') p.set('viewer', '2');
   if (vb2Pane === 'bd') p.set('pane', 'bd');
+  if (vb2Plat === 'windows') p.set('plat2', 'windows');
   if (diffPlatform === 'linux') p.set('plat', 'linux');
   if (changedOnly) p.set('changed', '1');
   const qs = p.toString();
@@ -1584,6 +1652,18 @@ document.querySelectorAll('#pane-toggle button').forEach(btn => {
     syncPaneToggle();
     renderActivePane();
     syncUrl();
+  });
+});
+
+// Linux / Windows 2.0 platform sub-toggle: switch the render source and re-open the
+// current VI in the chosen platform. The choice sticks across VIs; a VI with no
+// Windows render quietly stays on Linux (the switch only shows when one exists).
+document.querySelectorAll('#vb2-plat-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled || btn.dataset.plat2 === vb2Plat) return;
+    vb2Plat = btn.dataset.plat2;
+    syncUrl();
+    if (currentSnapshot && !currentDiffVi) openSnapshot(currentSnapshot.html, currentSnapshot.title);
   });
 });
 
