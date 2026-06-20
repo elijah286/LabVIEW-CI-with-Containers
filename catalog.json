@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.27.0",
+  "version": "3.28.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.28.0",
+        "date": "2026-06-20",
+        "title": "Restore the Activity switcher's Snapshots entry and the in-VI-Browser picker (regressed by a stale-base change)",
+        "summary": "A recent change to the shared header was built on an older copy of the file and unintentionally reverted two shipped capabilities of the unified Activity switcher: the 'Snapshots' (VI Browser) entry in the report Activity picker (3.25.0), and the Activity picker that mounts inside the VI Browser so you can jump from a revision's VIs straight to any of its reports (3.26.0). This release restores both, so the Activity switcher is once again bidirectional and spans a revision's full activity set -- snapshots plus the four reports. No other behavior changes.",
+        "highlights": [
+          "The report Activity picker again offers 'Snapshots' (VI Browser) as the first entry.",
+          "The VI Browser again shows the Activity picker beside its Revision selector, with live-sha availability checks at click time.",
+          "Pure restoration of 3.25.0 + 3.26.0 picker code that a stale-base edit had reverted -- no other changes."
+        ]
+      },
       {
         "version": "3.27.0",
         "date": "2026-06-20",
