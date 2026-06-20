@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.13.0",
+  "version": "3.13.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.13.1",
+        "date": "2026-06-19",
+        "title": "Dashboard revisions render as one rich row instead of four columns",
+        "summary": "The dashboard's separate Commit, Message, Author, and Date columns are now a single compact \"Revision\" cell: a coloured author initial, the commit message, and a secondary line with the short SHA, author, and date. The same links still open the revision in the VI Browser, and the search box, status filter, run / queue / re-run overlays, and the per-activity Columns menu all keep working - the Columns menu now lists just the activity columns, since the revision identity is always shown. Display-only: no change to the underlying data or actions.",
+        "highlights": [
+          "Commit / Message / Author / Date are merged into one professional Revision cell with an author avatar.",
+          "The short SHA, author, and date move to a compact secondary line; the message stays primary and links to the VI Browser.",
+          "Search and the status filter still match message, author, and SHA; the Columns menu now toggles the activity columns."
+        ]
+      },
       {
         "version": "3.13.0",
         "date": "2026-06-19",
