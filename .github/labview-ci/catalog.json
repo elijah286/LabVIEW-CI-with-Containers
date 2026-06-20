@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.16.0",
+  "version": "3.17.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.17.0",
+        "date": "2026-06-19",
+        "title": "Grouped Settings and Help menus in the header navigation",
+        "summary": "The header navigation now groups the configuration and help pages into two clear top-nav menus: a Settings menu (Configure Workers, VI Analyzer, Unit Testing) and a Help menu (About, and Clients on the source site). They were previously buried together in the More overflow menu, so the configuration pages are now easier to find and the top bar reads as Dashboard / VI Browser / Settings / Help, with the green Apply to New Repo button kept prominent. The More menu still holds the remaining items (Populate history, version, appearance). Display-only; every page and link behaves exactly as before.",
+        "highlights": [
+          "Configuration pages (Configure Workers, VI Analyzer, Unit Testing) are grouped under a new Settings menu in the top navigation.",
+          "About and Clients move into a Help menu, so the header reads Dashboard / VI Browser / Settings / Help.",
+          "The prominent green Apply to New Repo button is unchanged, as are all destinations; only their grouping in the header changed."
+        ]
+      },
       {
         "version": "3.16.0",
         "date": "2026-06-19",

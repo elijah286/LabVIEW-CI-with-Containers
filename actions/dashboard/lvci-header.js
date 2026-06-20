@@ -132,6 +132,19 @@
     '.lvci-nav a .lvci-soon{font-size:9.5px;font-weight:600;color:#8b949e;border:1px solid #30363d;border-radius:999px;padding:0 5px;text-transform:uppercase;letter-spacing:.04em}',
     // Count pill beside a nav item (e.g. Clients), filled in once the registry loads.
     '.lvci-nav a .lvci-ncount{font-size:10px;font-weight:700;color:#8b949e;background:rgba(177,186,196,.16);border-radius:999px;padding:1px 6px;min-width:16px;text-align:center;line-height:1.4}',
+    // Grouped nav dropdowns (Settings / Help) — desktop top-nav menus.
+    '.lvci-navgrp{position:relative;display:inline-flex;align-items:center}',
+    '.lvci-navgrp-btn{display:inline-flex;align-items:center;gap:5px;color:#8b949e;background:transparent;border:0;font:inherit;font-size:13.5px;font-weight:500;padding:6px 10px;border-radius:7px;white-space:nowrap;cursor:pointer}',
+    '.lvci-navgrp-btn:hover,.lvci-navgrp-btn.open{color:#e6edf3;background:rgba(177,186,196,.12)}',
+    '.lvci-navgrp-chev{display:inline-flex}',
+    '.lvci-navgrp-chev svg{width:10px;height:10px;transition:transform .15s}',
+    '.lvci-navgrp-btn.open .lvci-navgrp-chev svg{transform:rotate(180deg)}',
+    '.lvci-navgrp-menu{left:0;right:auto}',
+    '@media(prefers-color-scheme:light){.lvci-navgrp-btn{color:#57606a}.lvci-navgrp-btn:hover,.lvci-navgrp-btn.open{color:#1f2328;background:rgba(80,90,100,.10)}}',
+    ':root[data-lvci-theme=light] .lvci-navgrp-btn{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-navgrp-btn:hover,:root[data-lvci-theme=light] .lvci-navgrp-btn.open{color:#1f2328;background:rgba(80,90,100,.10)}',
+    ':root[data-lvci-theme=dark] .lvci-navgrp-btn{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-navgrp-btn:hover,:root[data-lvci-theme=dark] .lvci-navgrp-btn.open{color:#e6edf3;background:rgba(177,186,196,.12)}',
     // Actions cluster (right)
     '.lvci-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}',
     '.lvci-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;line-height:1;cursor:pointer;',
@@ -806,7 +819,55 @@
     return el;
   }
 
-  // ── Revision picker (per-revision reports only) ───────────────────────────
+  // Grouped top-nav dropdown (Settings / Help): a nav-styled trigger + a standard
+  // dropdown menu of the given secondary actions. Desktop only — the nav is hidden
+  // on mobile, where these same items stay in the hamburger menu.
+  function makeNavDropdown(label, items) {
+    var dd = document.createElement('div');
+    dd.className = 'lvci-navgrp';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lvci-navgrp-btn';
+    btn.setAttribute('aria-haspopup', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = esc(label) + '<span class="lvci-navgrp-chev" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 6l4 4 4-4z"/></svg></span>';
+    dd.appendChild(btn);
+    var menu = document.createElement('div');
+    menu.className = 'lvci-dropdown-menu lvci-navgrp-menu';
+    var close = function () { menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+    items.forEach(function (a) {
+      var el;
+      if (a.href) {
+        el = document.createElement('a'); el.href = a.href;
+        if (a.newTab) { el.target = '_blank'; el.rel = 'noopener'; }
+        el.addEventListener('click', close);
+      } else {
+        el = document.createElement('button'); el.type = 'button';
+        el.addEventListener('click', function () {
+          if (a.kind === 'configure' || a.kind === 'vianalyzer' || a.kind === 'unittests' || a.kind === 'integrate') openPage(a.kind);
+          else if (a.kind === 'runhistory') runHistory();
+          close();
+        });
+      }
+      el.innerHTML = iconHtml(a) + esc(a.label);
+      if (a.source) { el.style.display = 'none'; clientsEls.push(el); }
+      if (a.about) aboutEls.push(el);
+      menu.appendChild(el);
+    });
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = menu.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    menu.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    dd.appendChild(menu);
+    return dd;
+  }
+
+  // Revision picker (per-revision reports only).
   // Reuses the VI Browser's "pick a commit" metaphor: a <select> of revisions
   // that, when changed, opens the SAME document type for that revision
   // (`<prefix>/<sha>/index.html`). The revision list comes from the SAME source
@@ -1124,6 +1185,15 @@
     // site-wide; it also hosts any context-specific secondary actions
     // (Configure Workers / Update / About on the dashboard and VI Browser).
     var secActions = buildSecondaryActions();
+    // Group the secondary actions into the desktop top-nav dropdowns: "Settings"
+    // gathers the per-repo configuration pages, "Help" gathers About / Clients;
+    // the rest (Populate history, VI Browser renders, ...) stays in the More menu.
+    var SETTINGS_KINDS = { configure: 1, vianalyzer: 1, unittests: 1 };
+    var settingsItems = secActions.filter(function (a) { return SETTINGS_KINDS[a.kind]; });
+    var helpItems = secActions.filter(function (a) { return a.about || a.source; });
+    var moreItems = secActions.filter(function (a) { return !SETTINGS_KINDS[a.kind] && !a.about && !a.source; });
+    if (settingsItems.length) nav.appendChild(makeNavDropdown('Settings', settingsItems));
+    if (helpItems.length) nav.appendChild(makeNavDropdown('Help', helpItems));
     {
       var dropdown = document.createElement('div');
       dropdown.className = 'lvci-dropdown';
@@ -1138,7 +1208,7 @@
       var ddMenu = document.createElement('div');
       ddMenu.className = 'lvci-dropdown-menu';
       var closeDD = function () { ddMenu.classList.remove('open'); moreBtn.classList.remove('open'); moreBtn.setAttribute('aria-expanded', 'false'); };
-      secActions.forEach(function (a) {
+      moreItems.forEach(function (a) {
         var el;
         if (a.href) {
           el = document.createElement('a');
