@@ -149,6 +149,50 @@ $lvExe = @(
     ForEach-Object { Get-ChildItem -Path $_ -Directory -Filter 'LabVIEW*' -ErrorAction SilentlyContinue } |
     ForEach-Object { Join-Path $_.FullName 'LabVIEW.exe' } |
     Where-Object { Test-Path $_ } | Select-Object -First 1
+
+# The vipm CLI reads C:\ProgramData\JKI\VIPM\Settings.ini for its target LabVIEW
+# configuration and ABORTS with "IO error: Failed to load ...Settings.ini ...
+# (os error 2)" if that file is missing. In a fresh image VIPM was never launched
+# interactively, so the file does not exist. Seed a minimal Settings.ini that
+# points the CLI at the image's LabVIEW (so `--labview-version <year>` resolves)
+# before any install. Only create it if absent so a real VIPM never gets clobbered.
+$VipmSettingsDir = 'C:\ProgramData\JKI\VIPM'
+$VipmSettings    = Join-Path $VipmSettingsDir 'Settings.ini'
+if ($lvExe -and -not (Test-Path $VipmSettings)) {
+    try {
+        $fi  = (Get-Item $lvExe).VersionInfo
+        $ver = '{0}.{1} ({2}-bit)' -f $fi.ProductMajorPart, $fi.ProductMinorPart, $LabVIEWBitness
+        # INI wants the exe path in "/C/Program Files/.../LabVIEW.exe" form.
+        $lvIni = '/' + (($lvExe -replace ':', '') -replace '\\', '/')
+        $settingsText = @"
+[General]
+IsFirstLaunch="FALSE"
+
+[Targets]
+Names.<size(s)>="1"
+Names 0="LabVIEW"
+Versions.<size(s)>="1"
+Versions 0="$ver"
+Locations.<size(s)>="1"
+Locations 0="$lvIni"
+Ports="<size(s)=1> 3363"
+Tested.<size(s)>="1"
+Tested 0="TRUE"
+Disabled.<size(s)>="1"
+Disabled 0="FALSE"
+Connection Timeout="120"
+Active Target.Name="LabVIEW"
+Active Target.Version="$ver"
+CommunityEdition.<size(s)>="1"
+CommunityEdition 0="TRUE"
+"@
+        New-Item -ItemType Directory -Path $VipmSettingsDir -Force | Out-Null
+        Set-Content -Path $VipmSettings -Value $settingsText -Encoding ASCII
+        Write-Host "Seeded VIPM Settings.ini for target: LabVIEW $ver"
+    } catch {
+        Write-Warning ("Could not seed VIPM Settings.ini (" + $_.Exception.Message + "); vipm install may fail to load.")
+    }
+}
 if ($lvExe) {
     Write-Host "Launching headless LabVIEW for VIPM: $lvExe"
     try {
