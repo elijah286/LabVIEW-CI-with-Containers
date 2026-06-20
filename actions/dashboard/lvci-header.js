@@ -531,10 +531,14 @@
   //    capabilities — Builds, Documentation, Unit Tests — are a one-line add. ─
   var NAV = [
     { key: 'dashboard',   label: 'Dashboard',    href: navBase + '/' },
-    { key: 'vi-browser',  label: 'VI Browser',   href: navBase + '/vi-snapshots/' }
+    { key: 'vi-browser',  label: 'VI Browser',   href: navBase + '/vi-snapshots/' },
+    // Developer documentation. `doc: true` resolves the href/target at render
+    // time from docUrl() / docExternal() (the canonical source site's
+    // documentation.html, opened in a new tab from a consumer dashboard) -- the
+    // same source-relative rule the About link uses.
+    { key: 'docs', label: 'Documentation', doc: true }
     // Future (uncomment / extend as capabilities land):
-    // { key: 'builds', label: 'Builds', href: base + '/builds/', soon: true },
-    // { key: 'docs',   label: 'Docs',   href: base + '/docs/',   soon: true }
+    // { key: 'builds', label: 'Builds', href: navBase + '/builds/', soon: true }
   ];
   // Which nav item is "current" for each context (drives the active pill).
   var NAV_ACTIVE = {
@@ -552,7 +556,7 @@
     'integrate': '',
     'whats-new': '',
     'faq': 'help',
-    'documentation': 'help',
+    'documentation': 'docs',
     'clients': 'clients'
   };
 
@@ -642,7 +646,6 @@
       { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
       { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
       { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-      { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
       { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
     ];
     var A = {
@@ -653,14 +656,12 @@
         { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
         { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
         { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-        { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
         { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'worker-manifest': [],
       'vi-browser': [
         { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
         { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-        { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
         { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'report-viewer': [],
@@ -876,6 +877,19 @@
   // Grouped top-nav dropdown (Settings / Help): a nav-styled trigger + a standard
   // dropdown menu of the given secondary actions. Desktop only — the nav is hidden
   // on mobile, where these same items stay in the hamburger menu.
+  //
+  // Only one top-bar popover is open at a time: every popover (the Settings /
+  // Help nav dropdowns, Share, and More) registers its close() in popoverCloses
+  // and closes the others when it opens, so two menus can never overlap. Each
+  // popover stops propagation on its own trigger click (so the document-level
+  // outside-click handler doesn't immediately re-close it), which is exactly why
+  // that handler can't dismiss a sibling on its own -- hence this explicit list.
+  var popoverCloses = [];
+  function closeOtherPopovers(self) {
+    for (var i = 0; i < popoverCloses.length; i++) {
+      if (popoverCloses[i] !== self) popoverCloses[i]();
+    }
+  }
   function makeNavDropdown(label, items, active) {
     var dd = document.createElement('div');
     dd.className = 'lvci-navgrp';
@@ -890,6 +904,7 @@
     var menu = document.createElement('div');
     menu.className = 'lvci-dropdown-menu lvci-navgrp-menu';
     var close = function () { menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+    popoverCloses.push(close);
     items.forEach(function (a) {
       var el;
       if (a.href) {
@@ -911,7 +926,9 @@
     });
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      var open = menu.classList.toggle('open');
+      var open = !menu.classList.contains('open');
+      if (open) closeOtherPopovers(close);
+      menu.classList.toggle('open', open);
       btn.classList.toggle('open', open);
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
@@ -1201,10 +1218,11 @@
 
     function refresh() { var u = shareUrl(); input.value = u; openBtn.href = u; }
     var closeShare = function () { pop.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+    popoverCloses.push(closeShare);
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       var open = !pop.classList.contains('open');
-      if (open) refresh();
+      if (open) { closeOtherPopovers(closeShare); refresh(); }
       pop.classList.toggle('open', open);
       btn.classList.toggle('open', open);
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -1267,8 +1285,9 @@
     var activeKey = NAV_ACTIVE[ctx] || '';
     NAV.forEach(function (n) {
       var a = document.createElement('a');
-      a.href = n.href;
+      a.href = n.doc ? docUrl() : n.href;
       a.style.position = 'relative';
+      if (n.doc ? docExternal() : n.newTab) { a.target = '_blank'; a.rel = 'noopener'; }
       if (n.key === activeKey) a.className = 'on';
       a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '');
       nav.appendChild(a);
@@ -1326,6 +1345,7 @@
       var ddMenu = document.createElement('div');
       ddMenu.className = 'lvci-dropdown-menu';
       var closeDD = function () { ddMenu.classList.remove('open'); moreBtn.classList.remove('open'); moreBtn.setAttribute('aria-expanded', 'false'); };
+      popoverCloses.push(closeDD);
       moreItems.forEach(function (a) {
         var el;
         if (a.href) {
@@ -1357,7 +1377,9 @@
       dropdown.appendChild(ddMenu);
       moreBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var open = ddMenu.classList.toggle('open');
+        var open = !ddMenu.classList.contains('open');
+        if (open) closeOtherPopovers(closeDD);
+        ddMenu.classList.toggle('open', open);
         moreBtn.classList.toggle('open', open);
         moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
@@ -1382,7 +1404,8 @@
     menu.className = 'lvci-menu';
     NAV.forEach(function (n) {
       var a = document.createElement('a');
-      a.href = n.href;
+      a.href = n.doc ? docUrl() : n.href;
+      if (n.doc ? docExternal() : n.newTab) { a.target = '_blank'; a.rel = 'noopener'; }
       a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '');
       menu.appendChild(a);
     });
