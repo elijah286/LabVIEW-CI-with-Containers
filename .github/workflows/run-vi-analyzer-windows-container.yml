@@ -1,5 +1,11 @@
 name: Run VI Analyzer — Windows Container
 
+# Title each run with the revision it targets and how it was requested, so the
+# Actions list isn't a wall of identical entries. A dashboard Run/Re-run or a manual
+# dispatch arrives as workflow_dispatch with commit_sha = the chosen commit; push/PR
+# fall back to github.sha. Only github/inputs contexts are used (no dispatch input changes).
+run-name: "VI Analyzer (Windows): rev ${{ inputs.commit_sha != '' && inputs.commit_sha || github.sha }} by @${{ github.actor }} (${{ github.event_name }})"
+
 on:
   pull_request:
     paths:
