@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.14.0",
+  "version": "3.14.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.14.1",
+        "date": "2026-06-19",
+        "title": "The VI Browser 2.0 Linux / Windows switch is always visible",
+        "summary": "The Linux / Windows switch in the VI Browser 2.0 view now shows whenever a 2.0 render is on screen, instead of only appearing once a Windows render existed. When a VI has no Windows render yet, the Windows option is shown but greyed with a tooltip explaining it is not published for that VI / repository yet - the same convention as the greyed-out Diff option - so the control is discoverable and Linux stays the active view. It enables itself automatically once the Windows render pipeline publishes its frames.",
+        "highlights": [
+          "The Linux / Windows toggle is now always visible in the 2.0 view, so you can see the platform choice exists.",
+          "Windows is greyed with an explanatory tooltip until a Windows render is published for that VI, then it enables automatically.",
+          "Linux remains the default and active render; nothing else about the 2.0 view changes."
+        ]
+      },
       {
         "version": "3.14.0",
         "date": "2026-06-19",
