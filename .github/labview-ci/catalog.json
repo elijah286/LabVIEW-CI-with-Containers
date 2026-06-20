@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.23.0",
+  "version": "3.23.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.23.1",
+        "date": "2026-06-20",
+        "title": "Configuration pages drop the redundant Back to dashboard link",
+        "summary": "The configuration pages already show the shared top bar -- with its Dashboard link and the LabVIEW CI logo that both return you to the dashboard -- so the extra \"Back to dashboard\" link inside each page's own title was redundant. It has been removed from Configure Workers, VI Analyzer, Apply to New Repo, and What's New, leaving a cleaner page header that matches the rest of the tool. Nothing is lost: use the Dashboard link or the logo in the top bar to go back.",
+        "highlights": [
+          "Removed the duplicate \"Back to dashboard\" link from the Configure Workers, VI Analyzer, Apply to New Repo, and What's New pages.",
+          "The shared top bar's Dashboard link and logo already return you to the dashboard, so the page header is now cleaner with nothing lost.",
+          "Presentation cleanup only -- no change to what any page does."
+        ]
+      },
       {
         "version": "3.23.0",
         "date": "2026-06-20",
