@@ -155,6 +155,22 @@
     #empty{flex:1;display:flex;align-items:center;justify-content:center;
            flex-direction:column;color:var(--fg-muted);gap:10px}
     #empty svg{opacity:.3}
+    /* Unified Explorer: a per-revision report (Mass Compile, VI Analyzer, Unit
+       Tests, Antidoc) framed IN this pane when picked from the Activity switcher.
+       The report is per-revision, not per-VI, so the VI tree + viewer are hidden
+       and the framed report fills the pane (solo). */
+    #lens-frame{flex:1;width:100%;border:none;background:var(--viewer-bg);display:none}
+    #lens-bar{display:none;padding:8px 14px;border-bottom:1px solid var(--border);
+              background:var(--sidebar);font-size:.82em;color:var(--fg-muted);
+              align-items:center;gap:10px}
+    #lens-bar #lens-title{font-weight:600;color:var(--fg)}
+    #lens-bar a{margin-left:auto;color:var(--link)}
+    body.lens-report #sidebar,
+    body.lens-report #toolbar,
+    body.lens-report #empty,
+    body.lens-report #viewer{display:none}
+    body.lens-report #lens-bar{display:flex}
+    body.lens-report #lens-frame{display:block}
   </style>
 </head>
 <body>
@@ -269,6 +285,12 @@
     </div>
     <div id="viewer-loading"><span class="spinner"></span><span>Rendering…</span></div>
   </div>
+  <!-- Unified Explorer: a per-revision report (Activity lens) framed in this pane. -->
+  <div id="lens-bar">
+    <span id="lens-title"></span>
+    <a id="lens-open" href="#" target="_blank" rel="noopener">Open in new tab &#8599;</a>
+  </div>
+  <iframe id="lens-frame" title="CI report"></iframe>
 </div>
 
 <script src="vi-render.js"></script>
@@ -321,8 +343,13 @@ let vb2Frames = null;            // frames of the current in-place render (so th
 // header's Share button — always point at the exact view on screen.
 let openViRel = null;            // vi_rel of the open VI (null = nothing open)
 let openView = 'snapshot';       // 'snapshot' | 'diff'
+// Unified Explorer: which Activity "lens" fills the main pane. 'snapshots' is the
+// native VI tree + snapshot/diff view; a *-report value frames that per-revision
+// report (Mass Compile, VI Analyzer, Unit Tests, Antidoc) in place, tree hidden.
+let curLens = 'snapshots';
 const INIT_VI = new URLSearchParams(location.search).get('vi') || '';
 const INIT_VIEW = (new URLSearchParams(location.search).get('view') === 'diff') ? 'diff' : 'snapshot';
+const INIT_LENS = new URLSearchParams(location.search).get('lens') || '';
 let json2Set = null;             // blobs that have a 2.0 JSON (from json-blobs.json); drives the live "2.0" glyph
 // VI Browser 2.0 render platform: 'linux' (default, the original) or 'windows'.
 // A preference, restored from ?plat2=; the EFFECTIVE platform falls back to Linux
@@ -439,13 +466,17 @@ async function loadCommits() {
     opt.textContent = `${c.short} — ${(c.message || '').slice(0, 40)}`;
     sel.appendChild(opt);
   }
-  sel.addEventListener('change', () => { openViRel = null; openView = 'snapshot'; syncUrl(); syncViewerToggle(); loadManifest(sel.value); });
+  sel.addEventListener('change', () => { if (curLens !== 'snapshots') exitReportLens(true); openViRel = null; openView = 'snapshot'; syncUrl(); syncViewerToggle(); loadManifest(sel.value); });
   const initSha = new URLSearchParams(window.location.search).get('sha');
   const startSha = (initSha && commitList.find(c => c.sha === initSha)) ? initSha : commitList[0].sha;
   sel.value = startSha;
   if (sel._lvciSync) sel._lvciSync();   // refresh the context-bar steppers once the options are populated
   await loadManifest(startSha);
   restoreOpenFromUrl();   // open the VI + view a shared link points at (runs once)
+  // A shared link can also point at a per-revision report lens (?lens=…); frame it.
+  if (INIT_LENS && INIT_LENS !== 'snapshots') {
+    try { if (window.lvciRenderLens(INIT_LENS, startSha)) { const ls = document.querySelector('.lvci-lens-ctx select'); if (ls) ls.value = INIT_LENS; } } catch (e) {}
+  }
 }
 
 // Fetch (and cache) the manifest for any commit — used both for the active view and
@@ -1504,6 +1535,7 @@ function buildShareUrl() {
   if (vb2Plat === 'windows') p.set('plat2', 'windows');
   if (diffPlatform === 'linux') p.set('plat', 'linux');
   if (changedOnly) p.set('changed', '1');
+  if (curLens && curLens !== 'snapshots') p.set('lens', curLens);
   const qs = p.toString();
   return location.origin + location.pathname + (qs ? ('?' + qs) : '');
 }
@@ -1542,13 +1574,60 @@ function restoreOpenFromUrl() {
   try { row.scrollIntoView({ block: 'center' }); } catch (e) {}
 }
 
+// ── Unified Explorer: per-revision report lenses ─────────────────────────────
+// The shared header's Activity switcher calls window.lvciRenderLens(key, sha) when
+// the user picks a lens. 'snapshots' (or anything not a report) returns to the
+// native VI view; a *-report key frames that revision's report IN this pane — the
+// tree is hidden because these reports are per-revision, not per-VI. Returning
+// true tells the header we handled it in place (no navigation away). The header
+// only asks for reports it has already confirmed exist for this revision.
+const LENS_REPORTS = {
+  'masscompile-report': { prefix: 'masscompile', label: 'Mass Compile' },
+  'vi-analyzer-report': { prefix: 'vi-analyzer', label: 'VI Analyzer' },
+  'unit-tests-report':  { prefix: 'unit-tests',  label: 'Unit Tests' },
+  'antidoc-report':     { prefix: 'antidoc',     label: 'Antidoc' },
+};
+function activeSha() {
+  const sel = document.getElementById('commit-select');
+  return (sel && sel.value) || new URLSearchParams(location.search).get('sha') || '';
+}
+function enterReportLens(key, sha) {
+  const info = LENS_REPORTS[key];
+  if (!info) return false;
+  if (!/^[0-9a-f]{7,40}$/i.test(sha)) return false;       // first-party paths only
+  const url = BASE + '../' + info.prefix + '/' + sha + '/index.html';
+  const frame = document.getElementById('lens-frame');
+  if (!frame) return false;
+  const title = document.getElementById('lens-title');
+  const open  = document.getElementById('lens-open');
+  if (title) title.textContent = info.label + ' \u00b7 ' + sha.slice(0, 7);
+  if (open)  open.href = url;
+  frame.src = url;
+  document.body.classList.add('lens-report');
+  curLens = key;
+  syncUrl();
+  return true;
+}
+function exitReportLens(skipUrl) {
+  if (curLens === 'snapshots') return;
+  curLens = 'snapshots';
+  const frame = document.getElementById('lens-frame');
+  if (frame) frame.removeAttribute('src');
+  document.body.classList.remove('lens-report');
+  if (!skipUrl) syncUrl();
+}
+window.lvciRenderLens = function (key, sha) {
+  if (!key || key === 'snapshots' || !LENS_REPORTS[key]) { exitReportLens(); return true; }
+  return enterReportLens(key, sha || activeSha());
+};
+
 // The shared header reads these optional hooks: __lvciShareUrl for the canonical
 // link to copy / share, __lvciPrint to print just the open snapshot/diff (its
 // iframe is same-origin, so we can print only its content — not the chrome).
 window.__lvciShareUrl = function () { return buildShareUrl(); };
 window.__lvciPrint = function () {
   try {
-    const frame = document.getElementById('vi-frame');
+    const frame = (curLens !== 'snapshots') ? document.getElementById('lens-frame') : document.getElementById('vi-frame');
     if (frame && frame.style.display !== 'none' && frame.contentWindow) {
       frame.contentWindow.focus();
       frame.contentWindow.print();

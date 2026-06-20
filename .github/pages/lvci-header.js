@@ -1029,17 +1029,28 @@
     });
     sel.value = current;
     var note = document.createElement('span'); note.style.cssText = 'font-size:11px;color:#8b949e;white-space:nowrap';
+    // Switch lens. A page that can host a lens in its OWN pane (the VI Browser
+    // exposes window.lvciRenderLens) renders it in place; otherwise we navigate to
+    // the framed report. `current` tracks the live lens so re-selecting / reverting
+    // works after an in-place switch.
+    function go(k, s) {
+      if (deferProbe && typeof window.lvciRenderLens === 'function') {
+        try { if (window.lvciRenderLens(k, s)) { current = k; return; } } catch (e) {}
+      }
+      window.location.href = lensDest(k, s);
+    }
     sel.addEventListener('change', function () {
       var key = sel.value;
-      if (!key || key === current) return;
+      if (!key) return;
+      if (!deferProbe && key === current) return;   // report pages: re-picking the current lens is a no-op
       var sha = getSha();
-      if (key === 'snapshots' || !deferProbe) { window.location.href = lensDest(key, sha); return; }
+      if (key === 'snapshots' || !deferProbe) { go(key, sha); return; }
       // VI Browser: the report may not exist for the live revision -> confirm first.
       var d = DOCTYPES[key];
-      if (!d || !sha) { window.location.href = lensDest(key, sha); return; }
+      if (!d || !sha) { go(key, sha); return; }
       note.textContent = '';
       fetch(base + '/' + d.prefix + '/' + sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
-        .then(function (r) { if (r.ok) window.location.href = lensDest(key, sha); else noReport(d); })
+        .then(function (r) { if (r.ok) go(key, sha); else noReport(d); })
         .catch(function () { noReport(d); });
       function noReport(dd) {
         sel.value = current;
