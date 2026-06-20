@@ -824,10 +824,22 @@ function hidePaneToggle() {
 function syncVb2PlatToggle() {
   const wrap = document.getElementById('vb2-plat-toggle');
   if (!wrap) return;
-  const blob = currentSnapshot ? vb2BlobOf(currentSnapshot.html) : '';
-  if (viewerMode !== '2' || !vb2WinAvail(blob)) { wrap.classList.remove('show'); return; }
+  // Show the switch whenever a 2.0 render is on screen, so it is always discoverable.
+  // Windows is selectable only when this VI actually has a Windows render; otherwise
+  // it is greyed with a tip (the same pattern as the Diff segment) and Linux stays the
+  // active view, so the control never lies and never strands a VI on a missing render.
+  if (viewerMode !== '2' || !Array.isArray(vb2Frames) || !vb2Frames.length) { wrap.classList.remove('show'); return; }
   wrap.classList.add('show');
-  const eff = (vb2Plat === 'windows') ? 'windows' : 'linux';
+  const blob = currentSnapshot ? vb2BlobOf(currentSnapshot.html) : '';
+  const winOk = vb2WinAvail(blob);
+  const winBtn = wrap.querySelector('button[data-plat2="windows"]');
+  if (winBtn) {
+    winBtn.disabled = !winOk;
+    winBtn.title = winOk ? 'Windows container render'
+      : (json2WinSet ? 'No Windows 2.0 render for this VI yet'
+                     : 'Windows 2.0 renders aren\u2019t published for this repository yet');
+  }
+  const eff = vb2EffPlat(currentSnapshot ? currentSnapshot.html : '');
   wrap.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.plat2 === eff));
 }
 function hideVb2PlatToggle() {
