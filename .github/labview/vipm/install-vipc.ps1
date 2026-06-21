@@ -54,6 +54,19 @@ $PublicRepoUrl    = if ($Env:VIPM_PUBLIC_REPO_URL) { $Env:VIPM_PUBLIC_REPO_URL }
 $Env:VIPM_NONINTERACTIVE    = '1'
 $Env:VIPM_ASSUME_YES        = '1'
 $Env:NO_COLOR               = '1'
+# Turn on VIPM's verbose debug log so a failing build records WHY an install
+# fails - e.g. why `vipm refresh` reports success yet `vipm install <name>`
+# returns exit 3 "package not found" (an empty resolver index), and why applying
+# the .vipc file returns Code 42. Overridable: set VIPM_DEBUG=0 to quiet it once
+# the install path is proven. See docs.vipm.io/latest/cli/environment-variables.
+$Env:VIPM_DEBUG             = if ($null -ne $Env:VIPM_DEBUG -and $Env:VIPM_DEBUG -ne '') { $Env:VIPM_DEBUG } else { '1' }
+# Make VIPM treat this `docker build` step as a CI environment. The official VIPM
+# docs note the CLI auto-detects CI from these env vars and then uses its longer,
+# CI-tuned default timeouts and non-interactive behavior; during `docker build`
+# none of them are set, so VIPM falls back to short desktop defaults that can
+# abort a cold headless LabVIEW. (VIPM_TIMEOUT still overrides the actual value.)
+if (-not $Env:CI)             { $Env:CI = 'true' }
+if (-not $Env:GITHUB_ACTIONS)  { $Env:GITHUB_ACTIONS = 'true' }
 # Bound the per-operation timeout. During `docker build` the GITHUB_ACTIONS / CI
 # env vars are NOT present, so VIPM does not apply its longer "CI" default timeouts
 # and its short defaults (check_for_updates ~270s, library_list ~330s) can abort a
@@ -342,6 +355,33 @@ function Invoke-VipmInstall {
 function New-PublicRepoWorkdir {
     param([string] $RepoUrl)
     $work = Join-Path $env:TEMP ('vipm-install-' + [Guid]::NewGuid().ToString('N'))
+
+    # Preferred: actually CLONE the public repo so the working directory is a REAL
+    # git checkout - a genuine remote, real HEAD/commits, and the project's own
+    # .vipc present on disk - rather than a fabricated stub. If VIPM Community
+    # Edition verifies repository visibility by shelling out to git (git rev-parse
+    # HEAD / git ls-remote origin reaching GitHub), only a real clone satisfies it.
+    # Shallow + single-branch + no-tags keeps it fast. Best-effort: any failure
+    # (no git, no network in the build layer) falls back to the fabricated .git
+    # context below, which is enough to read .git/config's origin URL.
+    if (Get-Command git -ErrorAction SilentlyContinue) {
+        try {
+            Write-Host "Cloning public repo for VIPM CE context: $RepoUrl"
+            & git clone --depth 1 --single-branch --no-tags --quiet $RepoUrl $work 2>&1 | Out-Host
+            if (($LASTEXITCODE -eq 0) -and (Test-Path (Join-Path $work '.git'))) {
+                Write-Host "  Cloned public repo into $work"
+                return $work
+            }
+            Write-Warning "  git clone failed (exit $LASTEXITCODE); falling back to a fabricated .git context."
+        } catch {
+            Write-Warning ("  git clone threw (" + $_.Exception.Message + "); falling back to a fabricated .git context.")
+        }
+        if (Test-Path $work) { Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue }
+    }
+
+    # Fallback: minimal fabricated .git (origin URL only). Enough for VIPM to read
+    # .git/config's origin remote, but with no commits a deeper `git rev-parse HEAD`
+    # / `git ls-remote` check would not pass - hence the real clone is preferred.
     New-Item -ItemType Directory -Path (Join-Path $work '.git\objects')    -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $work '.git\refs\heads') -Force | Out-Null
     Set-Content -Path (Join-Path $work '.git\HEAD') -Value 'ref: refs/heads/main' -NoNewline -Encoding ascii
