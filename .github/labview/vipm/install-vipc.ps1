@@ -245,6 +245,31 @@ if ($lvExe) {
     Write-Warning 'LabVIEW.exe not found; attempting VIPM install without pre-launching LabVIEW.'
 }
 
+# The vipm CLI does not install packages itself -- it delegates to the VIPM "engine"
+# application (VI Package Manager.exe, the LabVIEW-runtime VIPM app). When that engine
+# is not already running the CLI tries to start it and BLOCKS on "wait for VIPM
+# startup"; in a fresh headless container that startup never completed, so
+# `vipm install` aborted after the full VIPM_TIMEOUT ("Operation 'wait for VIPM
+# startup' timed out after 900s"). Locally the install works only because the VIPM
+# engine is already running. Pre-launch the engine here (best-effort) and give it
+# time to come up so the install can attach to an already-running engine.
+$VipmEngineProc = $null
+$vipmEngineExe = @(
+    (Join-Path $VipmDir 'VI Package Manager.exe'),
+    'C:\Program Files (x86)\JKI\VI Package Manager\VI Package Manager.exe'
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($vipmEngineExe -and -not (Get-Process -Name 'VI Package Manager' -ErrorAction SilentlyContinue)) {
+    Write-Host "Pre-launching VIPM engine so the CLI can attach: $vipmEngineExe"
+    try {
+        $VipmEngineProc = Start-Process -FilePath $vipmEngineExe -PassThru -ErrorAction Stop
+        # Give the LabVIEW-runtime engine time to initialize before the first install.
+        Start-Sleep -Seconds 45
+        Write-Host 'VIPM engine launch requested (allowed 45s to initialize).'
+    } catch {
+        Write-Warning ("Could not pre-launch the VIPM engine (" + $_.Exception.Message + "); the CLI will try to start it itself.")
+    }
+}
+
 # NOTE: this vipm CLI (2026.1.0) has NO standalone 'refresh' command; the package
 # list is refreshed via the global '--refresh' option passed to 'install' below.
 
@@ -343,6 +368,19 @@ try {
         $rc = Invoke-VipmInstall '-y' $vipc.FullName
         if ($rc -eq 0) { continue }
 
+        # Exit 8 (IO_ERROR, "Operation 'wait for VIPM startup' timed out") and exit
+        # 124 (TIMEOUT) mean the VIPM engine never came online -- this is NOT a
+        # per-package problem. Installing each package by name would hit the SAME
+        # wall and burn another VIPM_TIMEOUT apiece (build 27885267098 wasted ~64
+        # min that way), so skip the fallback and surface the engine-startup
+        # failure immediately rather than serially timing out on every package.
+        if ($rc -eq 8 -or $rc -eq 124) {
+            Write-Warning ("  VIPM could not install '$($vipc.Name)' (exit $rc): the VIPM engine did not " +
+                "start ('wait for VIPM startup' timeout). Skipping the per-package fallback (same root cause).")
+            $applyFailed = $true
+            continue
+        }
+
         # Fall back to per-package install by name parsed from the .vipc's config.xml.
         Write-Host "  install from file failed (exit $rc); falling back to per-package names ..."
         $specs = @(Get-VipcPackageSpecs $vipc.FullName)
@@ -376,6 +414,12 @@ finally {
 if ($LabVIEWProc -and -not $LabVIEWProc.HasExited) {
     Write-Host 'Stopping headless LabVIEW...'
     try { $LabVIEWProc | Stop-Process -Force -ErrorAction SilentlyContinue } catch { }
+}
+
+# Stop the VIPM engine we pre-launched for the install (best-effort).
+if ($VipmEngineProc -and -not $VipmEngineProc.HasExited) {
+    Write-Host 'Stopping VIPM engine...'
+    try { $VipmEngineProc | Stop-Process -Force -ErrorAction SilentlyContinue } catch { }
 }
 
 if ($applyFailed) {
