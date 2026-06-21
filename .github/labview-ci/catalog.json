@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.32.0",
+  "version": "3.32.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.32.1",
+        "date": "2026-06-20",
+        "title": "VI Browser 2.0 missing platform renders now stay actionable",
+        "summary": "When Windows or Linux 2.0 frames are missing for the selected VI, the VI Browser now keeps that platform selected and shows the empty render panel instead of disabling the platform or falling back to the other renderer. The panel offers the matching platform snapshot run for the current revision, so a missing Windows render prompts the Windows 2.0 workflow and a missing Linux render prompts the Linux 2.0 workflow.",
+        "highlights": [
+          "Windows and Linux 2.0 platform buttons stay clickable even when that platform has no frames yet.",
+          "Missing platform frames show an empty panel that names the selected platform and workflow.",
+          "The run button dispatches the selected platform workflow for the current revision and VI context."
+        ]
+      },
       {
         "version": "3.32.0",
         "date": "2026-06-20",
@@ -2294,6 +2305,7 @@
           ".github/labview/build-gallery.py",
           ".github/labview/PrintToSingleFileHtml/",
           ".github/workflows/vi-snapshots-json.yml",
+          ".github/workflows/vi-snapshots-json-windows.yml",
           ".github/workflows/build-toimages-image.yml",
           ".github/labview/run-toimages.sh",
           ".github/labview/build-json-worklist.sh",
