@@ -1,11 +1,35 @@
 {
   "schemaVersion": 1,
-  "version": "3.32.2",
+  "version": "3.33.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.33.0",
+        "date": "2026-06-21",
+        "title": "Reliable VIPM dependency baking: layered worker image, headless UTF JUnit support, and a dependency gate",
+        "summary": "The Windows worker image is now built in two layers - a reusable LabVIEW+VIPM base image and a thin per-repo dependency layer - so changing a repo's .vipc no longer reinstalls VIPM. Project .vipc files are discovered recursively and baked headlessly without a VIPM Pro licence, via a public-index fallback that downloads and installs package files directly when the container's VIPM resolver is empty. The UTF JUnit reporter (ni_lib_utf_junit_report) and its dependencies now install reliably, so the built-in 'LabVIEWCLI -OperationName RunUnitTests' operation executes the tests and emits a JUnit report instead of failing with error -350053. Container activities (VI Analyzer, Mass Compile, Unit Tests, Antidoc, VIDiff) wait for the worker image rebuild before they run, so they never execute against a worker missing a dependency. Heavy add-ons that can wedge the headless VIPM engine (e.g. Antidoc) install best-effort so they can never fail an otherwise-good image build.",
+        "highlights": [
+          "Two-layer Windows image: a reusable LabVIEW+VIPM base plus a thin per-repo VIPC layer, so dependency changes no longer reinstall VIPM.",
+          "Headless VIPC baking with no VIPM Pro licence, including a public-index fallback for an empty container resolver.",
+          "UTF JUnit reporter installs reliably - RunUnitTests now runs the tests and writes a JUnit report (no more -350053).",
+          "Recursive .vipc discovery; required UTF essentials and project dependencies install first, tooling add-ons (Antidoc/Caraya/VI Tester) are best-effort.",
+          "Dependency gate: container activities wait for the worker image rebuild for a revision before running."
+        ]
+      },
+      {
+        "version": "3.32.3",
+        "date": "2026-06-21",
+        "title": "VI Browser 2.0 dispatches the selected platform workflow",
+        "summary": "Fixes the Run button shown when a Windows VI Browser 2.0 render is missing. The empty-state panel now keeps the selected platform, checks the matching workflow, and dispatches Windows renders through vi-snapshots.yml instead of the retired vi-snapshots-json-windows.yml workflow. Linux 2.0 renders continue to use vi-snapshots-json.yml. The dispatch also targets the repository's default branch instead of assuming main, and the installer no longer lists the removed Windows JSON workflow file.",
+        "highlights": [
+          "Missing Windows 2.0 frames dispatch vi-snapshots.yml, the workflow that now emits Windows frames JSON.",
+          "Missing Linux 2.0 frames continue to dispatch vi-snapshots-json.yml.",
+          "Removed the stale vi-snapshots-json-windows.yml catalog file entry and default-branch dispatch assumption."
+        ]
+      },
       {
         "version": "3.32.2",
         "date": "2026-06-21",
@@ -2316,7 +2340,6 @@
           ".github/labview/build-gallery.py",
           ".github/labview/PrintToSingleFileHtml/",
           ".github/workflows/vi-snapshots-json.yml",
-          ".github/workflows/vi-snapshots-json-windows.yml",
           ".github/workflows/build-toimages-image.yml",
           ".github/labview/run-toimages.sh",
           ".github/labview/build-json-worklist.sh",
