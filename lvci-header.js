@@ -215,6 +215,18 @@
     '.lvci-rev-step:hover:not(:disabled){color:#e6edf3;background:rgba(177,186,196,.12)}',
     '.lvci-rev-step:disabled{opacity:.4;cursor:default}',
     '@media(prefers-color-scheme:light){.lvci-ctxbar{background:rgba(246,248,250,.96);border-bottom-color:#d0d7de}.lvci-rev-step{border-color:#d0d7de;color:#57606a}.lvci-rev-step:hover:not(:disabled){color:#1f2328;background:rgba(80,90,100,.10)}}',
+    // Settings sub-nav: the per-repo configuration sections (Configure Workers / VI
+    // Analyzer / Unit Testing) as a tab strip in the context bar, so the settings
+    // pages read as one navigable area instead of isolated pages.
+    '.lvci-subnav{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}',
+    '.lvci-subnav a{display:inline-flex;align-items:center;color:#8b949e;text-decoration:none;font-size:13px;font-weight:500;padding:5px 11px;border-radius:7px;white-space:nowrap;cursor:pointer}',
+    '.lvci-subnav a:hover{color:#e6edf3;background:rgba(177,186,196,.12)}',
+    '.lvci-subnav a.on{color:#e6edf3;background:rgba(177,186,196,.16)}',
+    '@media(prefers-color-scheme:light){.lvci-subnav a{color:#57606a}.lvci-subnav a:hover,.lvci-subnav a.on{color:#1f2328;background:rgba(80,90,100,.10)}}',
+    ':root[data-lvci-theme=light] .lvci-subnav a{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-subnav a:hover,:root[data-lvci-theme=light] .lvci-subnav a.on{color:#1f2328;background:rgba(80,90,100,.10)}',
+    ':root[data-lvci-theme=dark] .lvci-subnav a{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-subnav a:hover,:root[data-lvci-theme=dark] .lvci-subnav a.on{color:#e6edf3;background:rgba(177,186,196,.16)}',
     // Hamburger (mobile)
     '.lvci-burger{position:relative;display:none;align-items:center;justify-content:center;width:38px;height:34px;border:1px solid #30363d;border-radius:7px;background:transparent;color:inherit;cursor:pointer;flex:0 0 auto}',
     '@media(prefers-color-scheme:light){.lvci-burger{border-color:#d0d7de}}',
@@ -762,6 +774,33 @@
   function runHistory() {
     if (typeof window.lvciRunHistory === 'function') window.lvciRunHistory();
     else window.location.href = base + '/';   // fall back to the dashboard
+  }
+
+  // Settings sub-navigation: the per-repo configuration sections as a tab strip in
+  // the context bar, so they read as one "Settings" area (with the current section
+  // marked) instead of separate islands reachable only via the Settings menu. Plain
+  // links (base + page + ?repo) so middle-/ctrl-click and the active state work.
+  function makeSettingsNav() {
+    var SECTIONS = [
+      { key: 'configure',  label: 'Configure Workers', file: 'configure.html' },
+      { key: 'vianalyzer', label: 'VI Analyzer',       file: 'vi-analyzer.html' },
+      { key: 'unittests',  label: 'Unit Testing',      file: 'unit-tests.html' }
+    ];
+    var CUR = { 'configure': 'configure', 'vianalyzer': 'vianalyzer', 'unit-tests-config': 'unittests' };
+    var cur = CUR[ctx] || '';
+    var q = repo ? ('?repo=' + encodeURIComponent(repo)) : '';
+    var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-settings-ctx';
+    var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Settings';
+    var subnav = document.createElement('div'); subnav.className = 'lvci-subnav';
+    SECTIONS.forEach(function (s) {
+      var a = document.createElement('a');
+      a.href = base + '/' + s.file + q;
+      a.textContent = s.label;
+      if (s.key === cur) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); }
+      subnav.appendChild(a);
+    });
+    wrap.appendChild(lbl); wrap.appendChild(subnav);
+    return wrap;
   }
 
   // ── Regenerate this revision's report: dispatch a fresh run for THIS commit,
@@ -1547,8 +1586,10 @@
 
     // Persistent context bar — the revision selector for per-revision reports,
     // in one consistent place under the header (only built when there's a revision).
+    // On config pages it instead holds the Settings sub-nav (section tabs).
     var ctxbar = null;
-    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard') { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (DOC) ctxbar.appendChild(makeLensPicker().wrap); }
+    var isSettings = (NAV_ACTIVE[ctx] === 'settings');
+    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard' || isSettings) { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (DOC) ctxbar.appendChild(makeLensPicker().wrap); if (isSettings) ctxbar.appendChild(makeSettingsNav()); }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
