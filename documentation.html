@@ -377,6 +377,16 @@ ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware 
         the only changed <code>.vipc</code> files are marked <code>monitor: false</code> — that is the "bake once,
         pin forever" path.</p>
 
+      <h3>Dependency gate (activities wait for the rebuild)</h3>
+      <p>VIPC files are the source of truth for a repo's project dependencies, so the container-based activities must
+        never run against a worker image that predates a dependency change. When a push changes a monitored
+        <code>.vipc</code> (or any other worker input), the activity workflows — VI Analyzer, Mass Compile, Unit Tests,
+        Antidoc, and VIDiff — call <code>.github/labview/wait-for-worker-images.sh</code> before they pull the image
+        and <strong>block</strong> until the worker image build(s) for that revision finish. In the reusable workflow a
+        single <code>gate-images</code> job does this and the dependency-consuming jobs <code>need</code> it. If the
+        rebuild fails the activities do not run; if nothing worker-affecting changed the gate returns immediately. The
+        snapshot renderer is intentionally exempt because it renders on the bare NI base image.</p>
+
       <h3>Manual VIPC base-image bake</h3>
       <p><code>bake-vipc-windows-base.yml</code> is a focused proof-and-promote workflow for a single VIPC. It runs on
         <code>windows-2022</code>, pulls <code>:2026</code> of the shared <code>-labview-vipm-base</code> image (or
@@ -480,6 +490,17 @@ docker run --rm `
           <code>No packages were installed</code>. The hook treats that text as a failed apply and continues to the
           package-spec and local-file fallback paths.</li>
       </ol>
+      <div class="note"><span class="lbl">Discovery, monitoring &amp; the base/project stack</span>
+        Every <code>.vipc</code> in the repo (discovered recursively, outside <code>.github/</code>) is treated as
+        project dependency source-of-truth and baked into the worker by default; the Configure dialog lists them all
+        <em>selected</em> and <em>monitored</em>, and you can un-tick or stop monitoring individual files (written back
+        as <code>config.container.vipc</code> entries with <code>monitor: true|false</code>). The tooling also ships a
+        base configuration — <code>.github/labview/vipm/ci-tooling.vipc</code> — that is always applied first; a
+        project's own discovered VIPC files stack on top of it. When this template repo updates that base, consumers
+        receive the new base on their next tooling update and the next container rebuild re-applies base + project
+        together. Because each repo publishes to its own GHCR namespace, those rebuilds produce that repo's own unique
+        worker image.
+      </div>
       <div class="note"><span class="lbl">Public-index fallback</span>
         The resolver-bypass fallback covers packages in the built-in NI LabVIEW Tools Network and VIPM Community
         repositories, including old OpenG <code>sf://opengtoolkit</code> URLs and the legacy
