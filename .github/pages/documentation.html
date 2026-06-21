@@ -501,6 +501,14 @@ docker run --rm `
         together. Because each repo publishes to its own GHCR namespace, those rebuilds produce that repo's own unique
         worker image.
       </div>
+      <div class="note"><span class="lbl">Required essentials vs. best-effort tooling</span>
+        <code>install-vipc.ps1</code> installs the UTF JUnit essentials
+        (<code>ni_lib_utf_junit_report</code> + its <code>ni_lib_junit_results_api</code> /
+        <code>ni_lib_simple_xml</code> deps) <strong>first</strong> as <em>required</em>, then applies project
+        <code>.vipc</code> files (also required). Tooling VIPCs (<code>ci-tooling*.vipc</code>, e.g. Antidoc / Caraya /
+        VI Tester) are <em>best-effort</em>: if a heavy add-on wedges the headless VIPM engine it is logged as a warning
+        and the build still publishes a working, UTF-capable image. Override the required set with
+        <code>VIPM_REQUIRED_PACKAGES</code>.</div>
       <div class="note"><span class="lbl">Public-index fallback</span>
         The resolver-bypass fallback covers packages in the built-in NI LabVIEW Tools Network and VIPM Community
         repositories, including old OpenG <code>sf://opengtoolkit</code> URLs and the legacy
@@ -588,15 +596,19 @@ docker run --rm `
       <p>This is the one place that deliberately reuses a warm container. Snapshots are <strong>content-addressed by
         git blob SHA</strong>, so each unique VI is rendered exactly once — ever — and reused across every commit
         that contains it.</p>
-      <h4>Phase 1 — HTML snapshots <span class="pill win">Windows</span></h4>
+      <h4>Phase 1 — HTML snapshots and Windows 2.0 frames <span class="pill win">Windows</span></h4>
       <p>Orchestrated by <code>build-snapshots.ps1</code>, which starts a single long-lived container
         (<code>docker run -d … while true sleep</code>) and renders many commits through it via
         <code>docker exec</code> calling <code>render-snapshots.ps1</code> — no per-VI or per-commit container
         churn. A TSV worklist (<code>&lt;blob&gt;\t&lt;rel-path&gt;</code>) drives rendering;
         <code>render-snapshots.ps1</code> skips any blob already present in the deployed
         <code>by-blob</code> store (seeded from <code>gh-pages</code>) and writes a placeholder HTML for any VI that
-        fails to render, so the gallery is never broken by a single bad VI. <code>build-gallery.py</code> emits the
-        per-commit <code>manifest.json</code> (VI → by-blob HTML) and the rolling <code>commits.json</code>.</p>
+        fails to render, so the gallery is never broken by a single bad VI. When
+        <code>config.viBrowser.positionAware</code> includes <code>windows</code> and the bundled
+        <code>PrintToImagesJson</code> operation is available, the same workflow also writes Windows 2.0 frame
+        JSON beside the HTML as <code>&lt;blob&gt;.windows.json</code>. <code>build-gallery.py</code> emits the
+        per-commit <code>manifest.json</code> (VI → by-blob HTML), the rolling <code>commits.json</code>, and the
+        Windows JSON index used by the in-place browser.</p>
       <h4>Phase 2 — position-aware JSON (VI Browser 2.0) <span class="pill lin">Linux</span></h4>
       <p>The <code>vi-snapshots-json.yml</code> workflow pulls the <code>-toimages</code> image and renders
         position-aware frame JSON for the in-place browser. Inside that image, a Go batch runner

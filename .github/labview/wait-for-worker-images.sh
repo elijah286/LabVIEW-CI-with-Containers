@@ -7,7 +7,17 @@ repo="${GITHUB_REPOSITORY:-}"
 workflows=("Build LabVIEW CI Image" "Build LabVIEW CI Image - Linux")
 appear_timeout=300
 overall_timeout=2400
-changed_pattern='(\.vipc$|^\.github/docker/labview-ci\.Dockerfile$|^\.github/docker/labview-ci-linux\.Dockerfile$|^\.github/docker/labview-vipm-base\.Dockerfile$|^\.github/docker/labview-vipc-layer\.Dockerfile$|^\.github/labview/vipm/|^\.github/labview/wait-for-worker-images\.sh$|^\.github/workflows/build-labview-image\.yml$|^\.github/workflows/build-labview-linux-image\.yml$)'
+
+# The worker image build (build-labview-image.yml / build-labview-linux-image.yml)
+# triggers ONLY when a PROJECT .vipc changes - that is, a *.vipc that is NOT under
+# .github/ (the tooling's own ci-tooling.vipc and other .github/ files are excluded
+# from the build trigger). The gate must therefore wait under exactly those same
+# conditions; otherwise it would block on a worker build that was never triggered
+# (a VI-only change, a tooling-only change under .github/, or a bake-built image).
+# Reads a newline-separated file list on stdin; exits 0 if a project .vipc changed.
+is_worker_change() {
+  grep -E '\.vipc$' | grep -qv '^\.github/'
+}
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -28,20 +38,20 @@ if [ -z "${GH_TOKEN:-}" ]; then echo "GH_TOKEN is required to query workflow run
 
 changed=false
 if [ -n "${before:-}" ] && [ "${before//0/}" != "" ] && git cat-file -e "${before}^{commit}" 2>/dev/null; then
-  if git diff --name-only "$before" "$sha" | grep -Eq "$changed_pattern"; then
+  if git diff --name-only "$before" "$sha" | is_worker_change; then
     changed=true
   fi
 else
   # Manual dispatches and unusual events do not always provide a comparable base.
   # In that case, look at the target commit itself and wait only if it touched a
-  # worker input.
-  if git diff-tree --no-commit-id --name-only -r "$sha" | grep -Eq "$changed_pattern"; then
+  # project .vipc (the only thing that triggers a worker rebuild).
+  if git diff-tree --no-commit-id --name-only -r "$sha" | is_worker_change; then
     changed=true
   fi
 fi
 
 if [ "$changed" != "true" ]; then
-  echo "No worker-affecting change detected; not waiting for image builds."
+  echo "No project .vipc change detected; not waiting for image builds."
   exit 0
 fi
 

@@ -59,6 +59,30 @@ image and run, so they never execute against a worker that is missing a project
 dependency. The `ci-tooling.vipc` distributed by the tooling is the **base**
 configuration applied first; a project's own discovered VIPC files stack on top.
 
+### Required essentials vs. best-effort tooling
+
+`install-vipc.ps1` does not treat all packages equally, because a single heavy
+add-on must never be able to break the whole worker:
+
+1. **Required UTF essentials, installed FIRST.** Before any VIPC is applied, the
+   script installs the UTF JUnit reporter set (`ni_lib_utf_junit_report`,
+   `ni_lib_junit_results_api`, `ni_lib_simple_xml`) while the engine is fresh.
+   These are what the built-in `RunUnitTests` CLI links against; without them
+   headless UTF fails with `-350053`. A failure here **fails the build**. Override
+   the list with the `VIPM_REQUIRED_PACKAGES` env var (set it to `-` to disable).
+2. **Project VIPCs are required.** Any discovered project `*.vipc` (the OpenG /
+   domain dependencies the project's VIs load against) must install or the build
+   fails.
+3. **Tooling VIPCs (`ci-tooling*.vipc`) are best-effort.** Their add-ons
+   (Antidoc, Caraya, VI Tester) are opportunistic: if one wedges the headless VIPM
+   engine — Antidoc's large dependency tree is the known offender — the script
+   warns and continues, and the image is still published. The required essentials
+   above are already installed, so UTF still works. Bake a wedge-prone add-on from
+   its own dedicated VIPC if you need it guaranteed in the worker.
+
+This ordering is why the main `build-labview-image.yml` produces a working,
+UTF-capable image even when Antidoc cannot currently be baked headless.
+
 To add **custom** project dependencies: commit a `.vipc` (made in the VIPM
 editor, or generated like `ci-tooling.vipc`) at the repo root or under
 `.github/labview/vipm/`, then rebuild the image. No script changes are needed.
@@ -243,8 +267,9 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 | `VIPM_NONINTERACTIVE` | `1` | Never block on prompts. |
 | `VIPM_ASSUME_YES` | `1` | Auto-confirm. |
 | `VIPM_TIMEOUT` | `900` | Override the per-operation timeout (seconds). |
+| `VIPM_REQUIRED_PACKAGES` | UTF JUnit essentials | Comma/semicolon list of `name@version` installed FIRST as required (build fails if they fail). Default: `ni_lib_utf_junit_report@1.0.1.43,ni_lib_junit_results_api@1.0.1.6,ni_lib_simple_xml@1.0.0.4`. Set to `-` to disable the required pre-install. |
 | `VIPM_PUBLIC_REPO_URL` | this repo's clone URL | Public Git repo `origin` used to satisfy Community Edition's public-repo requirement. |
-| `VIPM_ALLOW_MISSING_PACKAGES` | _(unset)_ | Set to `1` only for emergency best-effort builds; otherwise a failed VIPM bake fails the image build. |
+| `VIPM_ALLOW_MISSING_PACKAGES` | _(unset)_ | Set to `1` only for emergency best-effort builds; otherwise a failed REQUIRED package fails the image build. (Best-effort `ci-tooling*.vipc` add-ons never fail the build regardless.) |
 | `GIT_INSTALLER_URL` | Git for Windows 2.54.0 installer | Full Git for Windows installer used before the MinGit fallback. |
 | `NO_COLOR` | `1` | Strip ANSI color from logs. |
 | `LABVIEW_VERSION` | `2026` | Target LabVIEW year for `--labview-version`. |

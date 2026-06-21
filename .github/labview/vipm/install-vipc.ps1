@@ -532,6 +532,10 @@ function Get-LocalVipFilesForSpecs([string[]] $Specs) {
 }
 
 $applyFailed = $false
+# Set when a best-effort tooling VIPC (ci-tooling*) does not fully install. This is
+# surfaced as a warning but does NOT fail the image build (the required essentials
+# and project dependencies are what gate CI correctness).
+$script:bestEffortFailed = $false
 # Set once a VIPM call reports the engine-startup timeout. After that the headless
 # VIPM engine is wedged and will NOT recover within this build, so every subsequent
 # 'vipm install' would burn another full VIPM_TIMEOUT (900s) before failing. We use
@@ -568,6 +572,46 @@ function Invoke-VipmInstall {
     # this build; record it so callers stop hammering it (each retry costs ~900s).
     if ($script:LastVipmOutput -match 'wait for VIPM startup') { $script:VipmEngineDead = $true }
     return $LASTEXITCODE
+}
+
+# Install a set of package SPECS (name@version) using the by-name path first and,
+# when the container resolver index is empty, the public-index local-file fallback.
+# Returns $true only if every spec installed. Stops early (returns $false) the
+# moment the VIPM engine wedges so we never stack 900s timeouts.
+function Install-VipmSpecs {
+    param([string[]] $Specs)
+    if (-not $Specs -or $Specs.Count -eq 0) { return $true }
+    Write-Host ("  Installing by name: " + ($Specs -join ', '))
+    $rc = Invoke-VipmInstall @Specs
+    $failed = $false
+    if ($rc -ne 0) {
+        Write-Host "  batch install failed (exit $rc); retrying each package individually ..."
+        foreach ($spec in $Specs) {
+            $rc = Invoke-VipmInstall $spec
+            if ($rc -ne 0) { Write-Warning "  package '$spec' failed (exit $rc)."; $failed = $true }
+            if ($script:VipmEngineDead) { Write-Warning '  VIPM engine wedged; stopping per-package retries.'; return $false }
+        }
+    }
+    if ($rc -eq 0 -and -not $failed) { return $true }
+    if ($script:VipmEngineDead) { Write-Warning '  VIPM engine wedged; skipping the local-file fallback.'; return $false }
+    Write-Host '  VIPM name-based resolution failed; downloading public .vip files and installing from local files ...'
+    try {
+        $vipFiles = @(Get-LocalVipFilesForSpecs $Specs)
+        Write-Host ("  Installing local VIP files: " + (($vipFiles | ForEach-Object { Split-Path $_ -Leaf }) -join ', '))
+        $rc = Invoke-VipmInstall @vipFiles
+        if ($rc -eq 0) { return $true }
+        Write-Host "  local VIP file batch install failed (exit $rc); retrying each file individually ..."
+        $localFailed = $false
+        foreach ($vipFile in $vipFiles) {
+            $rc = Invoke-VipmInstall $vipFile
+            if ($rc -ne 0) { Write-Warning "  local package file '$vipFile' failed (exit $rc)."; $localFailed = $true }
+            if ($script:VipmEngineDead) { Write-Warning '  VIPM engine wedged; stopping per-file retries.'; return $false }
+        }
+        return (-not $localFailed)
+    } catch {
+        Write-Warning ("  local VIP file fallback failed: " + $_.Exception.Message)
+        return $false
+    }
 }
 
 # Refresh all package sources once (best-effort - a refresh failure is only a warning
@@ -651,95 +695,80 @@ try {
     Write-Host 'Refreshing VIPM package sources (vipm refresh --force) ...'
     & $VipmExe refresh --force 2>&1 | Out-Host
 
+    # Phase A (REQUIRED, installed FIRST): the UTF JUnit essentials the built-in
+    # 'LabVIEWCLI -OperationName RunUnitTests' operation links against. Install them
+    # before any heavy tooling VIPC so they land while the engine is fresh - even if
+    # a later add-on (e.g. Antidoc) wedges the engine, headless UTF still works.
+    # Without them RunUnitTests fails with LabVIEW CLI error -350053. Override the
+    # list with VIPM_REQUIRED_PACKAGES (comma/semicolon separated name@version); set
+    # it to a single '-' to disable the required pre-install entirely.
+    $requiredRaw = if ($null -ne $Env:VIPM_REQUIRED_PACKAGES) { $Env:VIPM_REQUIRED_PACKAGES } else {
+        'ni_lib_utf_junit_report@1.0.1.43,ni_lib_junit_results_api@1.0.1.6,ni_lib_simple_xml@1.0.0.4'
+    }
+    $requiredSpecs = @($requiredRaw -split '[,;]' | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne '-' })
+    if ($requiredSpecs.Count -gt 0) {
+        Write-Host ("Installing REQUIRED UTF essentials first: " + ($requiredSpecs -join ', '))
+        if (Install-VipmSpecs $requiredSpecs) {
+            Write-Host 'REQUIRED UTF essentials installed.'
+        } else {
+            Write-Warning 'One or more REQUIRED UTF essentials failed to install; headless UTF (RunUnitTests) will fail with -350053.'
+            $applyFailed = $true
+        }
+    }
+
     foreach ($vipc in $vipcFiles) {
+        # Tooling VIPCs (ci-tooling*.vipc) carry opportunistic add-ons (Antidoc,
+        # Caraya, VI Tester). Antidoc's heavy dependency tree can wedge the headless
+        # VIPM engine, so a tooling VIPC failure is BEST-EFFORT: it warns but does not
+        # fail the image build (the required essentials above are already installed).
+        # Any other (project) VIPC is REQUIRED - its packages are what the project's
+        # VIs load against, so a failure must fail the build.
+        $bestEffort = ($vipc.Name -like 'ci-tooling*')
+        $label = if ($bestEffort) { 'best-effort tooling' } else { 'required project' }
+        $vipcFailed = $false
+
         if ($script:VipmEngineDead) {
-            Write-Warning ("  Skipping '$($vipc.Name)': the VIPM engine wedged on a 'wait for VIPM startup' " +
-                "timeout earlier in this build and will not recover; aborting the remaining VIPC installs.")
-            $applyFailed = $true
-            continue
+            Write-Warning ("  Skipping '$($vipc.Name)' ($label): the VIPM engine wedged earlier in this build and will not recover.")
+            $vipcFailed = $true
         }
-        Write-Host "Applying VIPC: $($vipc.Name)"
-        # Preferred path: install the .vipc file directly (the form VIPM documents:
-        # `vipm install -y project.vipc`). VIPM resolves the full package set from the
-        # file, including transitive dependencies, rather than us parsing names.
-        Write-Host "  Installing from file: vipm install -y '$($vipc.Name)'"
-        $rc = Invoke-VipmInstall '-y' $vipc.FullName
-        if ($rc -eq 0 -and $script:LastVipmOutput -match 'No packages were installed') {
-            Write-Warning "  VIPM accepted '$($vipc.Name)' but reported that no packages were installed; falling back to package-level install."
-            $rc = 42
-        }
-        if ($rc -eq 0) { continue }
-
-        # ONLY the genuine "wait for VIPM startup" timeout means the VIPM engine
-        # never came online; retrying by name would hit the SAME wall and burn
-        # another VIPM_TIMEOUT apiece (build 27885267098 wasted ~64 min that way),
-        # so skip the fallback and surface the engine-startup failure immediately.
-        #
-        # Other exit-8 failures (notably Code 42 "This file does not appear to be a
-        # valid VI package configuration", seen once the engine is pre-launched and
-        # `vipm refresh` already succeeded) mean the engine IS up but rejected the
-        # .vipc-FILE apply path. In that case the by-name install below bypasses the
-        # file entirely and can still succeed, so we must fall through to it.
-        if (($rc -eq 8 -or $rc -eq 124) -and ($script:LastVipmOutput -match 'wait for VIPM startup')) {
-            Write-Warning ("  VIPM could not install '$($vipc.Name)' (exit $rc): the VIPM engine never " +
-                "came online ('wait for VIPM startup' timeout). Skipping the per-package fallback (same root cause).")
-            $applyFailed = $true
-            continue
-        }
-
-        # Fall back to per-package install by name parsed from the .vipc's config.xml.
-        # (The engine is up - `refresh` succeeded - so this can resolve and install.)
-        Write-Host "  install from file failed (exit $rc); falling back to per-package names ..."
-        $specs = @(Get-VipcPackageSpecs $vipc.FullName)
-        if ($specs.Count -eq 0) {
-            Write-Warning "VIPM could not install from '$($vipc.Name)' (exit $rc) and no package names could be parsed."
-            $applyFailed = $true
-            continue
-        }
-        Write-Host ("  Installing by name: " + ($specs -join ', '))
-        $rc = Invoke-VipmInstall @specs
-        if ($rc -ne 0) {
-            Write-Host "  batch install failed (exit $rc); retrying each package individually ..."
-            foreach ($spec in $specs) {
-                $rc = Invoke-VipmInstall $spec
-                if ($rc -ne 0) {
-                    Write-Warning "  package '$spec' failed (exit $rc)."
-                    $applyFailed = $true
+        else {
+            Write-Host "Applying VIPC: $($vipc.Name) [$label]"
+            # Preferred path: install the .vipc file directly (the form VIPM documents:
+            # `vipm install -y project.vipc`).
+            Write-Host "  Installing from file: vipm install -y '$($vipc.Name)'"
+            $rc = Invoke-VipmInstall '-y' $vipc.FullName
+            if ($rc -eq 0 -and $script:LastVipmOutput -match 'No packages were installed') {
+                Write-Warning "  VIPM accepted '$($vipc.Name)' but reported that no packages were installed; falling back to package-level install."
+                $rc = 42
+            }
+            if ($rc -ne 0) {
+                if (($rc -eq 8 -or $rc -eq 124) -and ($script:LastVipmOutput -match 'wait for VIPM startup')) {
+                    # Engine never came online; the by-name fallback would hit the same
+                    # wall and burn another VIPM_TIMEOUT, so surface it immediately.
+                    Write-Warning ("  VIPM could not install '$($vipc.Name)' (exit $rc): the VIPM engine never came online ('wait for VIPM startup').")
+                    $vipcFailed = $true
                 }
-                if ($script:VipmEngineDead) {
-                    Write-Warning '  VIPM engine wedged; stopping per-package retries (further attempts would each time out ~900s).'
-                    break
+                else {
+                    # Code 42 etc. mean the engine is up but rejected the .vipc-FILE
+                    # apply path; the by-name + local-file fallback can still succeed.
+                    Write-Host "  install from file failed (exit $rc); falling back to per-package names ..."
+                    $specs = @(Get-VipcPackageSpecs $vipc.FullName)
+                    if ($specs.Count -eq 0) {
+                        Write-Warning "VIPM could not install from '$($vipc.Name)' (exit $rc) and no package names could be parsed."
+                        $vipcFailed = $true
+                    }
+                    elseif (-not (Install-VipmSpecs $specs)) {
+                        $vipcFailed = $true
+                    }
                 }
             }
         }
-        if ($rc -ne 0 -or $applyFailed) {
-            if ($script:VipmEngineDead) {
-                Write-Warning '  VIPM engine wedged; skipping the local-file fallback (every install would time out ~900s).'
-                $applyFailed = $true
-                continue
-            }
-            Write-Host '  VIPM name-based resolution failed; downloading public .vip files and installing from local files ...'
-            try {
-                $vipFiles = @(Get-LocalVipFilesForSpecs $specs)
-                Write-Host ("  Installing local VIP files: " + (($vipFiles | ForEach-Object { Split-Path $_ -Leaf }) -join ', '))
-                $rc = Invoke-VipmInstall @vipFiles
-                if ($rc -eq 0) { $applyFailed = $false; continue }
-                Write-Host "  local VIP file batch install failed (exit $rc); retrying each file individually ..."
-                $localFailed = $false
-                foreach ($vipFile in $vipFiles) {
-                    $rc = Invoke-VipmInstall $vipFile
-                    if ($rc -ne 0) {
-                        Write-Warning "  local package file '$vipFile' failed (exit $rc)."
-                        $localFailed = $true
-                    }
-                    if ($script:VipmEngineDead) {
-                        Write-Warning '  VIPM engine wedged; stopping per-file retries (further attempts would each time out ~900s).'
-                        break
-                    }
-                }
-                $applyFailed = $localFailed
-            } catch {
-                Write-Warning ("  local VIP file fallback failed: " + $_.Exception.Message)
+
+        if ($vipcFailed) {
+            if ($bestEffort) {
+                $script:bestEffortFailed = $true
+                Write-Warning ("  '$($vipc.Name)' did not fully install, but it is best-effort tooling - continuing the build.")
+            } else {
                 $applyFailed = $true
             }
         }
@@ -765,17 +794,23 @@ if ($VipmEngineProc -and -not $VipmEngineProc.HasExited) {
 }
 
 if ($applyFailed) {
-    $message = ('One or more VIPM packages could not be installed. VIPM-distributed add-ons ' +
-        '(Antidoc, Caraya, VI Tester, and the UTF JUnit Report library that the RunUnitTests ' +
-        'CLI operation links against to emit its JUnit report) may be absent, so headless UTF ' +
-        'may fail with LabVIEW CLI error -350053. Check the install log above for the failing ' +
-        'package(s) and confirm they exist on the configured VIPM repository.')
+    $message = ('One or more REQUIRED VIPM packages could not be installed (a project .vipc ' +
+        'dependency or a UTF JUnit essential the RunUnitTests CLI links against). Headless UTF ' +
+        'may fail with LabVIEW CLI error -350053, or project VIs may not load. Check the install ' +
+        'log above for the failing package(s) and confirm they exist on the configured VIPM repository.')
     if ($Env:VIPM_ALLOW_MISSING_PACKAGES -eq '1') {
-        Write-Warning ($message + ' VIPM_ALLOW_MISSING_PACKAGES=1 is set, so the image build will continue without those add-ons.')
+        Write-Warning ($message + ' VIPM_ALLOW_MISSING_PACKAGES=1 is set, so the image build will continue without those packages.')
         exit 0
     }
-    Write-Error ($message + ' Failing the image build so CI cannot publish or run against a worker image with stale/missing VIPC dependencies. Set VIPM_ALLOW_MISSING_PACKAGES=1 only for emergency best-effort builds.')
+    Write-Error ($message + ' Failing the image build so CI cannot publish or run against a worker image with stale/missing required dependencies. Set VIPM_ALLOW_MISSING_PACKAGES=1 only for emergency best-effort builds.')
     exit 1
 }
 
-Write-Host 'All VIPM packages installed successfully.'
+if ($script:bestEffortFailed) {
+    Write-Warning ('Some best-effort tooling add-ons (e.g. Antidoc / Caraya / VI Tester from ci-tooling.vipc) ' +
+        'did not fully install - typically because a heavy dependency tree wedged the headless VIPM engine. ' +
+        'The image is still valid: the required project dependencies and UTF JUnit essentials are present. ' +
+        'Bake the missing add-on separately (e.g. a dedicated VIPC) if you need it in the worker.')
+}
+
+Write-Host 'Required VIPM packages installed successfully.'
