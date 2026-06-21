@@ -129,32 +129,65 @@ RUN $ErrorActionPreference = 'Continue'; `
       Remove-Item $vipmSetup -Force -ErrorAction SilentlyContinue `
     }
 
-# Install portable Git (MinGit) so VIPM can verify repository visibility.
-# VIPM 26.3 Community Edition shells out to a real `git` binary to confirm that the
-# current working directory is a PUBLIC Git repository before it installs anything.
-# The Windows base image has no git on PATH, so VIPM otherwise fails with
-# "error: Cannot determine repository visibility: failed to execute git: program not
-# found" (exit 6) and no add-ons are baked in. MinGit is the official lightweight,
-# redistributable git-for-windows build; we unzip it to C:\git and prepend C:\git\cmd
-# to the machine PATH so VIPM (and install-vipc.ps1) can find it.
-# BEST-EFFORT: a failure only means the VIPM add-ons (UTF JUnit Report) are absent.
-ARG GIT_INSTALLER_URL=https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/MinGit-2.54.0-64-bit.zip
+# Install Git so VIPM can verify repository visibility AND reach the community
+# package repository. VIPM 26.3 Community Edition shells out to a real `git` binary to
+# confirm the working directory is a PUBLIC Git repository before it installs anything;
+# JKI (Jim Kring) advised installing a FULL Git (not just MinGit) because the lightweight
+# MinGit build cleared the exit-6 visibility gate yet still left the install resolver's
+# package index empty (every package resolved as "not found", exit 3). The full
+# Git-for-Windows build provides the complete toolset (curl/openssl/credential helpers)
+# the CE repo check relies on.
+#
+# Order of attempts (BEST-EFFORT - a total failure only means the VIPM add-ons such as
+# the UTF JUnit Report library are absent):
+#   1. `winget install -e --id Git.Git` (Jim's suggestion) - used only if the base image
+#      actually ships the Windows Package Manager (Server Core images usually do not).
+#   2. Official Git-for-Windows SILENT installer (Inno Setup /VERYSILENT) -> installs to
+#      C:\Program Files\Git; this is what winget ultimately delivers.
+#   3. Portable MinGit unzipped to C:\git as a last resort.
+# Whichever succeeds, its `cmd` dir is prepended to the machine PATH so VIPM (and
+# install-vipc.ps1) can find git.exe.
+ARG GIT_INSTALLER_URL=https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/Git-2.54.0-64-bit.exe
+ARG GIT_MINGIT_URL=https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/MinGit-2.54.0-64-bit.zip
 RUN $ErrorActionPreference = 'Continue'; `
-    $gitZip = Join-Path $env:TEMP 'mingit.zip'; `
-    try { `
-      Write-Host "Downloading portable Git MinGit from $env:GIT_INSTALLER_URL"; `
-      Invoke-WebRequest -Uri $env:GIT_INSTALLER_URL -OutFile $gitZip -UseBasicParsing; `
-      Write-Host ('Downloaded {0:N1} MB; extracting to C:\git ...' -f ((Get-Item $gitZip).Length / 1MB)); `
-      Expand-Archive -Path $gitZip -DestinationPath 'C:\git' -Force; `
-      $machinePath = [Environment]::GetEnvironmentVariable('Path','Machine'); `
-      if ($machinePath -notlike '*C:\git\cmd*') { [Environment]::SetEnvironmentVariable('Path', 'C:\git\cmd;' + $machinePath, 'Machine') }; `
-      $env:Path = 'C:\git\cmd;' + $env:Path; `
-      Write-Host ('Installed portable Git: ' + (& 'C:\git\cmd\git.exe' --version)) `
-    } catch { `
-      Write-Host ('::warning::Portable Git install failed: ' + $_.Exception.Message + ' VIPM Community Edition cannot verify repository visibility, so the VIPM add-ons including the UTF JUnit Report library will not be baked in.') `
-    } finally { `
-      Remove-Item $gitZip -Force -ErrorAction SilentlyContinue `
-    }
+    function Add-MachinePath([string] $dir) { `
+      $mp = [Environment]::GetEnvironmentVariable('Path','Machine'); `
+      if ($mp -notlike ('*' + $dir + '*')) { [Environment]::SetEnvironmentVariable('Path', $dir + ';' + $mp, 'Machine') }; `
+      $env:Path = $dir + ';' + $env:Path `
+    }; `
+    function Test-GitOk { try { $v = & git --version 2>$null; return ($LASTEXITCODE -eq 0 -and $v) } catch { return $false } }; `
+    $ok = $false; `
+    if (Get-Command winget -ErrorAction SilentlyContinue) { `
+      Write-Host 'Installing Git via winget (Git.Git) ...'; `
+      try { `
+        & winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements --silent --disable-interactivity; `
+        Add-MachinePath 'C:\Program Files\Git\cmd'; `
+        $ok = Test-GitOk `
+      } catch { Write-Host ('winget Git install failed: ' + $_.Exception.Message) } `
+    } else { Write-Host 'winget is not available in this base image; using the Git-for-Windows installer instead.' }; `
+    if (-not $ok) { `
+      $exe = Join-Path $env:TEMP 'git-setup.exe'; `
+      try { `
+        Write-Host "Downloading Git for Windows from $env:GIT_INSTALLER_URL"; `
+        Invoke-WebRequest -Uri $env:GIT_INSTALLER_URL -OutFile $exe -UseBasicParsing; `
+        Write-Host ('Downloaded {0:N1} MB; installing silently ...' -f ((Get-Item $exe).Length / 1MB)); `
+        Start-Process -FilePath $exe -ArgumentList '/VERYSILENT','/NORESTART','/SP-','/SUPPRESSMSGBOXES','/NOCANCEL' -Wait; `
+        Add-MachinePath 'C:\Program Files\Git\cmd'; `
+        $ok = Test-GitOk `
+      } catch { Write-Host ('Git-for-Windows installer failed: ' + $_.Exception.Message) } finally { Remove-Item $exe -Force -ErrorAction SilentlyContinue } `
+    }; `
+    if (-not $ok) { `
+      $gitZip = Join-Path $env:TEMP 'mingit.zip'; `
+      try { `
+        Write-Host "Falling back to portable MinGit from $env:GIT_MINGIT_URL"; `
+        Invoke-WebRequest -Uri $env:GIT_MINGIT_URL -OutFile $gitZip -UseBasicParsing; `
+        Expand-Archive -Path $gitZip -DestinationPath 'C:\git' -Force; `
+        Add-MachinePath 'C:\git\cmd'; `
+        $ok = Test-GitOk `
+      } catch { Write-Host ('MinGit fallback failed: ' + $_.Exception.Message) } finally { Remove-Item $gitZip -Force -ErrorAction SilentlyContinue } `
+    }; `
+    if ($ok) { Write-Host ('Installed Git: ' + (& git --version)) } `
+    else { Write-Host '::warning::No Git could be installed; VIPM Community Edition cannot verify repository visibility, so the VIPM add-ons including the UTF JUnit Report library will not be baked in.' }
 
 # Optional VIPC support hook. If .vipc files exist, an installer script must be
 # present so dependencies are handled explicitly.
