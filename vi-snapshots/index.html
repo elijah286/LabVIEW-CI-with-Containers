@@ -92,7 +92,7 @@
     .changed-toggle .count{color:var(--fg-muted);font-weight:600}
 
     /* ── Main panel ── */
-    #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    #main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
     #toolbar{padding:8px 14px;border-bottom:1px solid var(--border);background:var(--sidebar);
              font-size:.82em;color:var(--fg-muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     #vi-title{font-weight:600;color:var(--fg)}
@@ -164,9 +164,16 @@
     #lens-frame{flex:1;width:100%;border:none;background:var(--viewer-bg);display:none}
     #lens-bar{display:none;padding:8px 14px;border-bottom:1px solid var(--border);
               background:var(--sidebar);font-size:.82em;color:var(--fg-muted);
-              align-items:center;gap:10px}
+              align-items:center;gap:10px;flex-wrap:wrap}
     #lens-bar #lens-title{font-weight:600;color:var(--fg)}
-    #lens-bar a{margin-left:auto;color:var(--link)}
+    #lens-bar a{color:var(--link);cursor:pointer;text-decoration:none}
+    #lens-bar a:hover{text-decoration:underline}
+    #lens-bar #lens-back{font-weight:600}
+    #lens-bar #lens-open{margin-left:auto}
+    #lens-loading{display:none;position:absolute;inset:0;z-index:4;align-items:center;
+                  justify-content:center;gap:10px;background:var(--viewer-bg);
+                  color:var(--fg-muted);font-size:.85em}
+    #lens-loading.show{display:flex}
     body.lens-report #sidebar,
     body.lens-report #toolbar,
     body.lens-report #empty,
@@ -289,10 +296,12 @@
   </div>
   <!-- Unified Explorer: a per-revision report (Activity lens) framed in this pane. -->
   <div id="lens-bar">
+    <a id="lens-back" href="#" title="Back to the VI tree">&#8249;&nbsp;VIs</a>
     <span id="lens-title"></span>
-    <a id="lens-open" href="#" target="_blank" rel="noopener">Open in new tab &#8599;</a>
+    <a id="lens-open" href="#" target="_blank" rel="noopener">Open full report &#8599;</a>
   </div>
   <iframe id="lens-frame" title="CI report"></iframe>
+  <div id="lens-loading"><span class="spinner"></span><span>Loading report&hellip;</span></div>
 </div>
 
 <script src="vi-render.js"></script>
@@ -1597,14 +1606,27 @@ function enterReportLens(key, sha) {
   const info = LENS_REPORTS[key];
   if (!info) return false;
   if (!/^[0-9a-f]{7,40}$/i.test(sha)) return false;       // first-party paths only
-  const url = BASE + '../' + info.prefix + '/' + sha + '/index.html';
+  const rel  = '../' + info.prefix + '/' + sha + '/index.html';
+  const bare = BASE + rel;
+  // "Open full report" -> the framed report viewer (its own chrome: Regenerate /
+  // Re-run, raw report, the revision + activity pickers) -- the same page the
+  // dashboard badges open. src stays RELATIVE + same-origin (report-viewer
+  // validates it the same way) so the link can only ever load first-party content.
+  const viewer = BASE + '../report/index.html?type=' + encodeURIComponent(key)
+    + '&sha=' + encodeURIComponent(sha)
+    + '&src=' + encodeURIComponent(rel)
+    + '&title=' + encodeURIComponent(info.label + ' \u00b7 ' + sha.slice(0, 7));
   const frame = document.getElementById('lens-frame');
   if (!frame) return false;
   const title = document.getElementById('lens-title');
   const open  = document.getElementById('lens-open');
+  const loading = document.getElementById('lens-loading');
   if (title) title.textContent = info.label + ' \u00b7 ' + sha.slice(0, 7);
-  if (open)  open.href = url;
-  frame.src = url;
+  if (open)  open.href = viewer;
+  if (loading) loading.classList.add('show');
+  frame.title = info.label + ' report';
+  frame.onload = function () { if (loading) loading.classList.remove('show'); };
+  frame.src = bare;
   document.body.classList.add('lens-report');
   curLens = key;
   syncUrl();
@@ -1614,7 +1636,9 @@ function exitReportLens(skipUrl) {
   if (curLens === 'snapshots') return;
   curLens = 'snapshots';
   const frame = document.getElementById('lens-frame');
-  if (frame) frame.removeAttribute('src');
+  if (frame) { frame.onload = null; frame.removeAttribute('src'); }
+  const loading = document.getElementById('lens-loading');
+  if (loading) loading.classList.remove('show');
   document.body.classList.remove('lens-report');
   if (!skipUrl) syncUrl();
 }
@@ -1622,6 +1646,18 @@ window.lvciRenderLens = function (key, sha) {
   if (!key || key === 'snapshots' || !LENS_REPORTS[key]) { exitReportLens(); return true; }
   return enterReportLens(key, sha || activeSha());
 };
+// "‹ VIs" in the lens bar returns to the VI tree. Route through the Activity
+// picker (so the dropdown + header state follow) and fall back to a direct exit.
+(function () {
+  const back = document.getElementById('lens-back');
+  if (!back) return;
+  back.addEventListener('click', function (e) {
+    e.preventDefault();
+    const s = document.querySelector('.lvci-lens-ctx select');
+    if (s) { s.value = 'snapshots'; s.dispatchEvent(new Event('change')); }
+    else { exitReportLens(); }
+  });
+})();
 
 // The shared header reads these optional hooks: __lvciShareUrl for the canonical
 // link to copy / share, __lvciPrint to print just the open snapshot/diff (its
