@@ -312,11 +312,17 @@ $GlobalFlags = @('--labview-version', $LabVIEWVersion, '--labview-bitness', $Lab
 # back to the bare form, which targets the active LabVIEW from the seeded Settings.ini.
 function Invoke-VipmInstall {
     param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Targets)
-    & $VipmExe @GlobalFlags install @Targets 2>&1 | Out-Host
+    $out = & $VipmExe @GlobalFlags install @Targets 2>&1
+    $out | Out-Host
     if ($LASTEXITCODE -eq 2) {
         Write-Host '  (install rejected global LabVIEW flags; retrying bare form against active target)'
-        & $VipmExe install @Targets 2>&1 | Out-Host
+        $out = & $VipmExe install @Targets 2>&1
+        $out | Out-Host
     }
+    # Stash the CLI text so callers can distinguish failure causes that share exit
+    # code 8 (IO_ERROR) - e.g. the engine-startup timeout vs. the engine rejecting
+    # the .vipc file itself.
+    $script:LastVipmOutput = ($out | Out-String)
     return $LASTEXITCODE
 }
 
@@ -368,20 +374,25 @@ try {
         $rc = Invoke-VipmInstall '-y' $vipc.FullName
         if ($rc -eq 0) { continue }
 
-        # Exit 8 (IO_ERROR, "Operation 'wait for VIPM startup' timed out") and exit
-        # 124 (TIMEOUT) mean the VIPM engine never came online -- this is NOT a
-        # per-package problem. Installing each package by name would hit the SAME
-        # wall and burn another VIPM_TIMEOUT apiece (build 27885267098 wasted ~64
-        # min that way), so skip the fallback and surface the engine-startup
-        # failure immediately rather than serially timing out on every package.
-        if ($rc -eq 8 -or $rc -eq 124) {
-            Write-Warning ("  VIPM could not install '$($vipc.Name)' (exit $rc): the VIPM engine did not " +
-                "start ('wait for VIPM startup' timeout). Skipping the per-package fallback (same root cause).")
+        # ONLY the genuine "wait for VIPM startup" timeout means the VIPM engine
+        # never came online; retrying by name would hit the SAME wall and burn
+        # another VIPM_TIMEOUT apiece (build 27885267098 wasted ~64 min that way),
+        # so skip the fallback and surface the engine-startup failure immediately.
+        #
+        # Other exit-8 failures (notably Code 42 "This file does not appear to be a
+        # valid VI package configuration", seen once the engine is pre-launched and
+        # `vipm refresh` already succeeded) mean the engine IS up but rejected the
+        # .vipc-FILE apply path. In that case the by-name install below bypasses the
+        # file entirely and can still succeed, so we must fall through to it.
+        if (($rc -eq 8 -or $rc -eq 124) -and ($script:LastVipmOutput -match 'wait for VIPM startup')) {
+            Write-Warning ("  VIPM could not install '$($vipc.Name)' (exit $rc): the VIPM engine never " +
+                "came online ('wait for VIPM startup' timeout). Skipping the per-package fallback (same root cause).")
             $applyFailed = $true
             continue
         }
 
         # Fall back to per-package install by name parsed from the .vipc's config.xml.
+        # (The engine is up - `refresh` succeeded - so this can resolve and install.)
         Write-Host "  install from file failed (exit $rc); falling back to per-package names ..."
         $specs = @(Get-VipcPackageSpecs $vipc.FullName)
         if ($specs.Count -eq 0) {
