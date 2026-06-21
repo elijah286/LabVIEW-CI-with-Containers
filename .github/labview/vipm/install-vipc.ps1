@@ -532,7 +532,12 @@ function Get-LocalVipFilesForSpecs([string[]] $Specs) {
 }
 
 $applyFailed = $false
-# VIPM 2026 Q3 (26.3) CLI flags (verified against docs.vipm.io command-reference):
+# Set once a VIPM call reports the engine-startup timeout. After that the headless
+# VIPM engine is wedged and will NOT recover within this build, so every subsequent
+# 'vipm install' would burn another full VIPM_TIMEOUT (900s) before failing. We use
+# this flag to abort the remaining install attempts immediately rather than stacking
+# 15-minute timeouts into a multi-hour hang (build 27910621710 ran 90+ min that way).
+$script:VipmEngineDead = $false
 #   * --labview-version / --labview-bitness are GLOBAL options and must PRECEDE the
 #     'install' subcommand; they target the LabVIEW baked into the image.
 #   * There is NO '--refresh' option on 'install' anymore - the package list is
@@ -559,6 +564,9 @@ function Invoke-VipmInstall {
     # code 8 (IO_ERROR) - e.g. the engine-startup timeout vs. the engine rejecting
     # the .vipc file itself.
     $script:LastVipmOutput = ($out | Out-String)
+    # A 'wait for VIPM startup' timeout means the engine is wedged for the rest of
+    # this build; record it so callers stop hammering it (each retry costs ~900s).
+    if ($script:LastVipmOutput -match 'wait for VIPM startup') { $script:VipmEngineDead = $true }
     return $LASTEXITCODE
 }
 
@@ -644,6 +652,12 @@ try {
     & $VipmExe refresh --force 2>&1 | Out-Host
 
     foreach ($vipc in $vipcFiles) {
+        if ($script:VipmEngineDead) {
+            Write-Warning ("  Skipping '$($vipc.Name)': the VIPM engine wedged on a 'wait for VIPM startup' " +
+                "timeout earlier in this build and will not recover; aborting the remaining VIPC installs.")
+            $applyFailed = $true
+            continue
+        }
         Write-Host "Applying VIPC: $($vipc.Name)"
         # Preferred path: install the .vipc file directly (the form VIPM documents:
         # `vipm install -y project.vipc`). VIPM resolves the full package set from the
@@ -692,9 +706,18 @@ try {
                     Write-Warning "  package '$spec' failed (exit $rc)."
                     $applyFailed = $true
                 }
+                if ($script:VipmEngineDead) {
+                    Write-Warning '  VIPM engine wedged; stopping per-package retries (further attempts would each time out ~900s).'
+                    break
+                }
             }
         }
         if ($rc -ne 0 -or $applyFailed) {
+            if ($script:VipmEngineDead) {
+                Write-Warning '  VIPM engine wedged; skipping the local-file fallback (every install would time out ~900s).'
+                $applyFailed = $true
+                continue
+            }
             Write-Host '  VIPM name-based resolution failed; downloading public .vip files and installing from local files ...'
             try {
                 $vipFiles = @(Get-LocalVipFilesForSpecs $specs)
@@ -708,6 +731,10 @@ try {
                     if ($rc -ne 0) {
                         Write-Warning "  local package file '$vipFile' failed (exit $rc)."
                         $localFailed = $true
+                    }
+                    if ($script:VipmEngineDead) {
+                        Write-Warning '  VIPM engine wedged; stopping per-file retries (further attempts would each time out ~900s).'
+                        break
                     }
                 }
                 $applyFailed = $localFailed
