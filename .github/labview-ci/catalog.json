@@ -1,11 +1,76 @@
 {
   "schemaVersion": 1,
-  "version": "3.28.0",
+  "version": "3.32.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.32.2",
+        "date": "2026-06-21",
+        "title": "VI Browser 2.0 always shows a generate prompt when frames are missing",
+        "summary": "Fixes a blank VI Browser 2.0 panel that could appear when the selected Windows or Linux frames JSON was missing or contained no drawable diagram. The empty-state prompt now resolves the current revision safely and appears reliably, so the Run button can dispatch the matching 2.0 snapshot workflow instead of leaving an empty viewer.",
+        "highlights": [
+          "Missing Windows/Linux 2.0 frames now reliably show the generate prompt instead of a blank panel.",
+          "The prompt reads the selected revision safely from the page, avoiding a ReferenceError in the empty-state path.",
+          "Non-drawable 2.0 frame JSON is treated as missing frames and routes to the same generate prompt."
+        ]
+      },
+      {
+        "version": "3.32.1",
+        "date": "2026-06-20",
+        "title": "VI Browser 2.0 missing platform renders now stay actionable",
+        "summary": "When Windows or Linux 2.0 frames are missing for the selected VI, the VI Browser now keeps that platform selected and shows the empty render panel instead of disabling the platform or falling back to the other renderer. The panel offers the matching platform snapshot run for the current revision, so a missing Windows render prompts the Windows 2.0 workflow and a missing Linux render prompts the Linux 2.0 workflow.",
+        "highlights": [
+          "Windows and Linux 2.0 platform buttons stay clickable even when that platform has no frames yet.",
+          "Missing platform frames show an empty panel that names the selected platform and workflow.",
+          "The run button dispatches the selected platform workflow for the current revision and VI context."
+        ]
+      },
+      {
+        "version": "3.32.0",
+        "date": "2026-06-20",
+        "title": "Settings pages share a sub-navigation, so the configuration sections feel like one area",
+        "summary": "The per-repo configuration pages -- Configure Workers, VI Analyzer, and Unit Testing -- now show a Settings sub-navigation strip in the context bar directly under the header, with the section you are on marked. Previously each was an isolated page you could only reach by reopening the Settings menu; now they read as one Settings area you can move through in a click, matching how the Revision and Activity bars work on the other surfaces. The Settings item in the top navigation already highlights while you are on any of these pages.",
+        "highlights": [
+          "Configure Workers, VI Analyzer, and Unit Testing now share a Settings sub-navigation with the current section marked.",
+          "The sub-navigation sits in the same context bar used for the Revision / Activity controls elsewhere, for a consistent layout.",
+          "Shared header asset only -- every configuration page gets it automatically, on the source site and consumer dashboards."
+        ]
+      },
+      {
+        "version": "3.31.0",
+        "date": "2026-06-20",
+        "title": "In-pane reports gain a Back-to-VIs link, a one-click full report, and a loading state",
+        "summary": "Polishing the unified Explorer: when a report (Mass Compile, VI Analyzer, Unit Tests, Antidoc) is framed in the VI Browser pane, a small bar above it now offers a Back to VIs link (one click back to the project tree), an Open full report link that opens the standalone report viewer -- where Regenerate / Re-run and the raw report live -- and a brief loading indicator while the report loads. The framed report also carries an accessible, report-specific title, and the bar wraps gracefully on narrow screens.",
+        "highlights": [
+          "Back to VIs returns from a framed report to the project tree in one click.",
+          "Open full report opens the report viewer with its Regenerate / Re-run and raw-report controls.",
+          "Added a loading indicator and an accessible per-report title for the framed report."
+        ]
+      },
+      {
+        "version": "3.30.0",
+        "date": "2026-06-20",
+        "title": "Activity switcher: grouped lenses and a deep-link that opens on the right one",
+        "summary": "The Activity switcher (in the VI Browser and report context bars) now groups its lenses -- Code & changes, Quality, and Artifacts -- so the list stays legible as more activities are added, instead of one long flat menu. Opening a shared VI Browser link that points at a report (a lens parameter in the URL) now also starts the Activity dropdown on that report, so the menu matches the framed view from the first paint.",
+        "highlights": [
+          "Activity lenses are grouped (Code & changes / Quality / Artifacts) for a switcher that scales.",
+          "A report deep link now selects the matching entry in the Activity dropdown on load."
+        ]
+      },
+      {
+        "version": "3.29.0",
+        "date": "2026-06-20",
+        "title": "VI Browser: open a revision's reports right in the pane (unified Activity switcher)",
+        "summary": "Picking Mass Compile, VI Analyzer, Unit Tests or Antidoc from the Activity switcher while you are in the VI Browser now frames that report directly in the browser pane, instead of navigating away to a separate report page. The shared Revision and Activity pickers stay put at the top, so you can flip between a revision's VIs and its reports without losing your place; the project tree is hidden for these per-revision reports (they are not per-VI). The view is shareable -- the address bar carries a lens parameter, and opening such a link restores the framed report. This is the first step of the unified Explorer that merges the VI Browser and the report viewer into one surface.",
+        "highlights": [
+          "Reports (Mass Compile, VI Analyzer, Unit Tests, Antidoc) now open in place inside the VI Browser pane.",
+          "The Revision + Activity pickers stay in the shared context bar; switch between VIs and reports without a page change.",
+          "Report views are deep-linkable (a lens parameter in the URL) and restore on load; picking a report a revision lacks shows a brief note instead of switching."
+        ]
+      },
       {
         "version": "3.28.0",
         "date": "2026-06-20",
@@ -2251,6 +2316,7 @@
           ".github/labview/build-gallery.py",
           ".github/labview/PrintToSingleFileHtml/",
           ".github/workflows/vi-snapshots-json.yml",
+          ".github/workflows/vi-snapshots-json-windows.yml",
           ".github/workflows/build-toimages-image.yml",
           ".github/labview/run-toimages.sh",
           ".github/labview/build-json-worklist.sh",
