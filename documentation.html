@@ -374,6 +374,14 @@ ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware 
         the only changed <code>.vipc</code> files are marked <code>monitor: false</code> — that is the "bake once,
         pin forever" path.</p>
 
+      <h3>Manual VIPC base-image bake</h3>
+      <p><code>bake-vipc-windows-base.yml</code> is a focused proof-and-promote workflow for a single VIPC. It runs on
+        <code>windows-2022</code>, stages only the selected VIPC (default: <code>example/Dependencies.vipc</code>) into
+        the Windows Docker build, builds the image locally, verifies that VIPM reports the VIPC packages as installed
+        inside the resulting container, and only then pushes the verified image to GHCR. On success it promotes the
+        normal project tag (for example <code>:2026</code>), an operator-selected moving tag (default
+        <code>:vipc-base</code>), and an immutable VIPC-hash tag.</p>
+
       <h3>Per-action image routing</h3>
       <p>Image selection is a three-level lookup against <code>.github/labview-ci.yml</code>:</p>
       <ol>
@@ -426,16 +434,18 @@ docker run --rm `
 
       <!-- 8 ───────────────────────────────────────────────────────────────── -->
       <h2 id="vipm">8. VIPM dependency baking <a class="anchor" href="#vipm">#</a></h2>
-      <p>Third-party LabVIEW packages (Antidoc, Caraya, VI Tester, the UTF JUnit reporter) are <strong>baked into
-        the Windows worker image</strong> at build time so they are available headless during CI. Getting the modern
-        VIPM CLI to install packages non-interactively inside a <code>docker build</code> required solving several
-        non-obvious problems, documented in <code>.github/labview/vipm/README.md</code> and implemented by
+      <p>Third-party LabVIEW packages (Antidoc, Caraya, VI Tester, the UTF JUnit reporter, and project packages
+        declared in staged <code>.vipc</code> files) are <strong>baked into the Windows worker image</strong> at build
+        time so they are available headless during CI. Getting the modern VIPM CLI to install packages
+        non-interactively inside a <code>docker build</code> required solving several non-obvious problems,
+        documented in <code>.github/labview/vipm/README.md</code> and implemented by
         <code>install-vipc.ps1</code>:</p>
       <ol>
         <li><strong>Use VIPM 2026 Q3</strong> from the JKI CDN — the older NI-feed CLI times out on
           <code>library_list</code> with no diagnostic.</li>
-        <li><strong>Community Edition mode</strong> (<code>VIPM_COMMUNITY_EDITION=1</code>) so no Pro licence/activation
-          is needed.</li>
+        <li><strong>Run without requiring VIPM Pro</strong> — the script does not force
+          <code>VIPM_COMMUNITY_EDITION=1</code>, but it does satisfy the Free/Community public-repo checks by running
+          from a real shallow clone (or a minimal fallback <code>.git</code>) of the public repository.</li>
         <li><strong>Non-interactive env</strong> (<code>VIPM_NONINTERACTIVE=1</code>, <code>VIPM_ASSUME_YES=1</code>,
           <code>NO_COLOR=1</code>) so the CLI never blocks on a prompt.</li>
         <li><strong>Seed <code>Settings.ini</code></strong> before installing — a fresh image lacks
@@ -445,9 +455,22 @@ docker run --rm `
         <li><strong>Extend timeouts</strong> (<code>VIPM_TIMEOUT=900</code>) — cold first-run headless LabVIEW
           exceeds the CLI's short defaults during a build, where <code>CI</code>/<code>GITHUB_ACTIONS</code> env hints
           are absent.</li>
-        <li><strong>Use the modern command shape</strong> — <code>vipm install &lt;name&gt;@&lt;version&gt; --refresh</code>;
-          there is no <code>-y</code> flag, and <code>--refresh</code> is a global option.</li>
+        <li><strong>Use the modern command shape</strong> — <code>vipm refresh --force</code> is a standalone command;
+          package installs use <code>vipm --labview-version 2026 --labview-bitness 64 install &lt;name&gt;@&lt;version&gt;</code>
+          or <code>vipm install -y project.vipc</code>. The old <code>install --refresh</code> form is rejected by VIPM 26.3.</li>
+        <li><strong>Bypass the empty Free/Community resolver when needed</strong> — JKI's public Docker example notes
+          that container use currently requires Pro activation and that Free/Community support is still being fixed.
+          Our tests match that: desktop Free refresh downloads the NI Tool Network and VIPM Community indexes, but
+          Windows Server Core refresh can report success without populating the install resolver. When by-name installs
+          fail with package-not-found, the script downloads the public <code>.vipr</code>/<code>.ogpd</code> indexes
+          directly, resolves the VIPC package set plus transitive dependencies, downloads the public <code>.vip</code>
+          / <code>.ogp</code> files, validates them, and installs those local files with VIPM.</li>
       </ol>
+      <div class="note"><span class="lbl">Public-index fallback</span>
+        The resolver-bypass fallback covers packages in the built-in NI LabVIEW Tools Network and VIPM Community
+        repositories, including old OpenG <code>sf://opengtoolkit</code> URLs and the legacy
+        <code>jki_vi_tester</code> alias. Private/custom VIPM repositories still require either a populated VIPM
+        resolver cache, a committed offline VIPC that embeds package files, or direct package-file URLs.</div>
       <div class="warn"><span class="lbl">Why the UTF JUnit reporter is mandatory for unit tests</span>
         The built-in <code>LabVIEWCLI -OperationName RunUnitTests</code> links against
         <code>ni_lib_utf_junit_report</code>. Without it baked in, headless UTF runs fail with error
