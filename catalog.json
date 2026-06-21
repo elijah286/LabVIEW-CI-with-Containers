@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.32.1",
+  "version": "3.32.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.32.2",
+        "date": "2026-06-21",
+        "title": "VI Browser 2.0 always shows a generate prompt when frames are missing",
+        "summary": "Fixes a blank VI Browser 2.0 panel that could appear when the selected Windows or Linux frames JSON was missing or contained no drawable diagram. The empty-state prompt now resolves the current revision safely and appears reliably, so the Run button can dispatch the matching 2.0 snapshot workflow instead of leaving an empty viewer.",
+        "highlights": [
+          "Missing Windows/Linux 2.0 frames now reliably show the generate prompt instead of a blank panel.",
+          "The prompt reads the selected revision safely from the page, avoiding a ReferenceError in the empty-state path.",
+          "Non-drawable 2.0 frame JSON is treated as missing frames and routes to the same generate prompt."
+        ]
+      },
       {
         "version": "3.32.1",
         "date": "2026-06-20",
