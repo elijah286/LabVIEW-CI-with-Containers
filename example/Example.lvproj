@@ -13,11 +13,41 @@
 		<Property Name="server.vi.callsEnabled" Type="Bool">true</Property>
 		<Property Name="server.vi.propertiesEnabled" Type="Bool">true</Property>
 		<Property Name="specify.custom.address" Type="Bool">false</Property>
+		<Item Name="Basic Functions" Type="Folder">
+			<Item Name="Add.lvtest" Type="TestItem" URL="../Basic Functions/Add.lvtest">
+				<Property Name="utf.test.bind" Type="Str">Add.vi</Property>
+				<Property Name="utf.vector.test.bind" Type="Str">63C16D64-FBC8-8BD6-A0B8-5DE124ED8F1A</Property>
+			</Item>
+			<Item Name="Add.vi" Type="VI" URL="../Basic Functions/Add.vi"/>
+			<Item Name="Divide by Zero.lvtest" Type="TestItem" URL="../Basic Functions/Divide by Zero.lvtest">
+				<Property Name="utf.test.bind" Type="Str">Divide.vi</Property>
+				<Property Name="utf.vector.test.bind" Type="Str">61D27C2D-9060-2DA7-1543-15F015372E65</Property>
+			</Item>
+			<Item Name="Divide.lvtest" Type="TestItem" URL="../Basic Functions/Divide.lvtest">
+				<Property Name="utf.test.bind" Type="Str">Divide.vi</Property>
+				<Property Name="utf.vector.test.bind" Type="Str">82EB2550-E334-0066-05C5-BAEB790AD066</Property>
+			</Item>
+			<Item Name="Divide.vi" Type="VI" URL="../Basic Functions/Divide.vi"/>
+			<Item Name="Multiply.lvtest" Type="TestItem" URL="../Basic Functions/Multiply.lvtest">
+				<Property Name="utf.test.bind" Type="Str">Multiply.vi</Property>
+				<Property Name="utf.vector.test.bind" Type="Str">57BF4572-2CB9-D844-B2C4-6EE6A8D1C152</Property>
+			</Item>
+			<Item Name="Multiply.vi" Type="VI" URL="../Basic Functions/Multiply.vi"/>
+			<Item Name="Subtract.lvtest" Type="TestItem" URL="../Basic Functions/Subtract.lvtest">
+				<Property Name="utf.test.bind" Type="Str">Subtract.vi</Property>
+				<Property Name="utf.vector.test.bind" Type="Str">91F62AC1-1827-F199-5DD3-F52E2B350AB7</Property>
+			</Item>
+			<Item Name="Subtract.vi" Type="VI" URL="../Basic Functions/Subtract.vi"/>
+			<Item Name="Waveforms.lvlib" Type="Library" URL="../Basic Functions/Waveforms.lvlib"/>
+		</Item>
 		<Item Name="Curriculum" Type="Folder" URL="../Curriculum">
 			<Property Name="NI.DISK" Type="Bool">true</Property>
 		</Item>
 		<Item Name="User-Defined Test" Type="Folder">
 			<Item Name="Example.css" Type="Document" URL="../User-Defined Test/Example.css"/>
+			<Item Name="Untitled.lvtest" Type="TestItem" URL="../Untitled.lvtest">
+				<Property Name="utf.vector.test.bind" Type="Str">CDE2EE68-5237-75F3-46ED-C965091E7211</Property>
+			</Item>
 			<Item Name="User-Defined Advanced.lvtest" Type="TestItem" URL="../User-Defined Test/User-Defined Advanced.lvtest">
 				<Property Name="utf.test.bind" Type="Str">VI Under Test.vi</Property>
 				<Property Name="utf.vector.test.bind" Type="Str">61EAC8C5-E35E-592E-5D82-33F46F680054</Property>
@@ -29,7 +59,6 @@
 			<Item Name="User-Defined Test Advanced.vi" Type="VI" URL="../User-Defined Test/User-Defined Test Advanced.vi"/>
 			<Item Name="User-Defined Test Basic.vi" Type="VI" URL="../User-Defined Test/User-Defined Test Basic.vi"/>
 			<Item Name="User-Defined Test.aliases" Type="Document" URL="../User-Defined Test/User-Defined Test.aliases"/>
-			<Item Name="User-Defined Test.lvproj" Type="Document" URL="../User-Defined Test/User-Defined Test.lvproj"/>
 			<Item Name="VI Under Test.vi" Type="VI" URL="../User-Defined Test/VI Under Test.vi"/>
 		</Item>
 		<Item Name="Controller Commands.ctl" Type="VI" URL="../Controller Commands.ctl"/>
