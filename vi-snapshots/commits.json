@@ -1,10 +1,10 @@
 [
   {
-    "sha": "95cd97cdaf14ef9be9becef3bd966ff53810756d",
-    "short": "95cd97c",
-    "message": "unit tests: run NI Unit Test Framework via built-in LabVIEWCLI RunUnitTests; drop vendored DCAF runner (v3.8.0)",
+    "sha": "29d43f043d308719c96a7a936ad7b42dd28efded",
+    "short": "29d43f0",
+    "message": "unit-tests: run UTF through native API wrapper",
     "author": "Elijah Kerry",
-    "date": "2026-06-19T08:28:58-05:00",
+    "date": "2026-06-21T09:22:42-05:00",
     "vi_count": 54
   }
 ]
