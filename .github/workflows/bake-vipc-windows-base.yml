@@ -220,10 +220,10 @@ jobs:
       - name: Summary
         shell: powershell
         run: |
-          "### VIPC-baked Windows image published" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "- VIPC: `${{ inputs.vipc_path }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "- VIPM base image: `${{ steps.image.outputs.vipm_base_ref }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "- Project base tag: `${{ steps.image.outputs.project_ref }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "- Moving tag: `${{ steps.image.outputs.moving_ref }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "- Immutable VIPC tag: `${{ steps.image.outputs.hash_ref }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          "- Worker version: `${{ steps.image.outputs.worker_version }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '### VIPC-baked Windows image published' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- VIPC: `${{ inputs.vipc_path }}`' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- VIPM base image: `${{ steps.image.outputs.vipm_base_ref }}`' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Project base tag: `${{ steps.image.outputs.project_ref }}`' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Moving tag: `${{ steps.image.outputs.moving_ref }}`' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Immutable VIPC tag: `${{ steps.image.outputs.hash_ref }}`' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Worker version: `${{ steps.image.outputs.worker_version }}`' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
