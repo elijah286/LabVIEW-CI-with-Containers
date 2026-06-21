@@ -386,6 +386,11 @@ ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware 
         success it promotes the
         normal project tag (for example <code>:2026</code>), an operator-selected moving tag (default
         <code>:vipc-base</code>), and an immutable VIPC-hash tag.</p>
+      <div class="note"><span class="lbl">Validated Windows base split</span>
+        The successful 2026 proof path stores VIPM and Git in
+        <code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview-vipm-base:2026</code>. VIPC rebuilds then pull that base and apply
+        only the dependency layer. The verified project image for the example VIPC reported all seven expected OpenG
+        packages from <code>vipm list --installed</code> before GHCR tags were pushed.</div>
 
       <h3>Per-action image routing</h3>
       <p>Image selection is a three-level lookup against <code>.github/labview-ci.yml</code>:</p>
@@ -470,6 +475,10 @@ docker run --rm `
           fail with package-not-found, the script downloads the public <code>.vipr</code>/<code>.ogpd</code> indexes
           directly, resolves the VIPC package set plus transitive dependencies, downloads the public <code>.vip</code>
           / <code>.ogp</code> files, validates them, and installs those local files with VIPM.</li>
+        <li><strong>Treat direct VIPC no-op applies as failures</strong> — in the container VIPM can return exit
+          <code>0</code> from <code>vipm install -y project.vipc</code> while printing
+          <code>No packages were installed</code>. The hook treats that text as a failed apply and continues to the
+          package-spec and local-file fallback paths.</li>
       </ol>
       <div class="note"><span class="lbl">Public-index fallback</span>
         The resolver-bypass fallback covers packages in the built-in NI LabVIEW Tools Network and VIPM Community
