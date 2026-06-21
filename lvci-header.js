@@ -215,18 +215,6 @@
     '.lvci-rev-step:hover:not(:disabled){color:#e6edf3;background:rgba(177,186,196,.12)}',
     '.lvci-rev-step:disabled{opacity:.4;cursor:default}',
     '@media(prefers-color-scheme:light){.lvci-ctxbar{background:rgba(246,248,250,.96);border-bottom-color:#d0d7de}.lvci-rev-step{border-color:#d0d7de;color:#57606a}.lvci-rev-step:hover:not(:disabled){color:#1f2328;background:rgba(80,90,100,.10)}}',
-    // Settings sub-nav: the per-repo configuration sections (Configure Workers / VI
-    // Analyzer / Unit Testing) as a tab strip in the context bar, so the settings
-    // pages read as one navigable area instead of isolated pages.
-    '.lvci-subnav{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}',
-    '.lvci-subnav a{display:inline-flex;align-items:center;color:#8b949e;text-decoration:none;font-size:13px;font-weight:500;padding:5px 11px;border-radius:7px;white-space:nowrap;cursor:pointer}',
-    '.lvci-subnav a:hover{color:#e6edf3;background:rgba(177,186,196,.12)}',
-    '.lvci-subnav a.on{color:#e6edf3;background:rgba(177,186,196,.16)}',
-    '@media(prefers-color-scheme:light){.lvci-subnav a{color:#57606a}.lvci-subnav a:hover,.lvci-subnav a.on{color:#1f2328;background:rgba(80,90,100,.10)}}',
-    ':root[data-lvci-theme=light] .lvci-subnav a{color:#57606a}',
-    ':root[data-lvci-theme=light] .lvci-subnav a:hover,:root[data-lvci-theme=light] .lvci-subnav a.on{color:#1f2328;background:rgba(80,90,100,.10)}',
-    ':root[data-lvci-theme=dark] .lvci-subnav a{color:#8b949e}',
-    ':root[data-lvci-theme=dark] .lvci-subnav a:hover,:root[data-lvci-theme=dark] .lvci-subnav a.on{color:#e6edf3;background:rgba(177,186,196,.16)}',
     // Hamburger (mobile)
     '.lvci-burger{position:relative;display:none;align-items:center;justify-content:center;width:38px;height:34px;border:1px solid #30363d;border-radius:7px;background:transparent;color:inherit;cursor:pointer;flex:0 0 auto}',
     '@media(prefers-color-scheme:light){.lvci-burger{border-color:#d0d7de}}',
@@ -543,14 +531,10 @@
   //    capabilities — Builds, Documentation, Unit Tests — are a one-line add. ─
   var NAV = [
     { key: 'dashboard',   label: 'Dashboard',    href: navBase + '/' },
-    { key: 'vi-browser',  label: 'VI Browser',   href: navBase + '/vi-snapshots/' },
-    // Developer documentation. `doc: true` resolves the href/target at render
-    // time from docUrl() / docExternal() (the canonical source site's
-    // documentation.html, opened in a new tab from a consumer dashboard) -- the
-    // same source-relative rule the About link uses.
-    { key: 'docs', label: 'Documentation', doc: true }
+    { key: 'vi-browser',  label: 'VI Browser',   href: navBase + '/vi-snapshots/' }
     // Future (uncomment / extend as capabilities land):
-    // { key: 'builds', label: 'Builds', href: navBase + '/builds/', soon: true }
+    // { key: 'builds', label: 'Builds', href: base + '/builds/', soon: true },
+    // { key: 'docs',   label: 'Docs',   href: base + '/docs/',   soon: true }
   ];
   // Which nav item is "current" for each context (drives the active pill).
   var NAV_ACTIVE = {
@@ -568,7 +552,7 @@
     'integrate': '',
     'whats-new': '',
     'faq': 'help',
-    'documentation': 'docs',
+    'documentation': 'help',
     'clients': 'clients'
   };
 
@@ -610,7 +594,7 @@
 
   // Order the per-revision activities appear in the context-bar Activity picker
   // (the report half of the unified Activity switcher; per-VI lenses join later).
-  var LENS_ORDER = ['snapshots', 'masscompile-report', 'vi-analyzer-report', 'unit-tests-report', 'antidoc-report'];
+  var LENS_ORDER = ['masscompile-report', 'vi-analyzer-report', 'unit-tests-report', 'antidoc-report'];
 
   // ── Context actions (surfaced on the right; collapse into the mobile menu).
   //    Each action: {label, kind|href, primary|accent, newTab}. `kind` triggers
@@ -658,6 +642,7 @@
       { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
       { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
       { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
+      { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
       { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
     ];
     var A = {
@@ -668,12 +653,14 @@
         { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
         { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
         { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
+        { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
         { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'worker-manifest': [],
       'vi-browser': [
         { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
         { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
+        { label: 'Documentation', svg: ICON.docs, href: docUrl(), doc: true, newTab: docExternal() },
         { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
       ],
       'report-viewer': [],
@@ -774,33 +761,6 @@
   function runHistory() {
     if (typeof window.lvciRunHistory === 'function') window.lvciRunHistory();
     else window.location.href = base + '/';   // fall back to the dashboard
-  }
-
-  // Settings sub-navigation: the per-repo configuration sections as a tab strip in
-  // the context bar, so they read as one "Settings" area (with the current section
-  // marked) instead of separate islands reachable only via the Settings menu. Plain
-  // links (base + page + ?repo) so middle-/ctrl-click and the active state work.
-  function makeSettingsNav() {
-    var SECTIONS = [
-      { key: 'configure',  label: 'Configure Workers', file: 'configure.html' },
-      { key: 'vianalyzer', label: 'VI Analyzer',       file: 'vi-analyzer.html' },
-      { key: 'unittests',  label: 'Unit Testing',      file: 'unit-tests.html' }
-    ];
-    var CUR = { 'configure': 'configure', 'vianalyzer': 'vianalyzer', 'unit-tests-config': 'unittests' };
-    var cur = CUR[ctx] || '';
-    var q = repo ? ('?repo=' + encodeURIComponent(repo)) : '';
-    var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-settings-ctx';
-    var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Settings';
-    var subnav = document.createElement('div'); subnav.className = 'lvci-subnav';
-    SECTIONS.forEach(function (s) {
-      var a = document.createElement('a');
-      a.href = base + '/' + s.file + q;
-      a.textContent = s.label;
-      if (s.key === cur) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); }
-      subnav.appendChild(a);
-    });
-    wrap.appendChild(lbl); wrap.appendChild(subnav);
-    return wrap;
   }
 
   // ── Regenerate this revision's report: dispatch a fresh run for THIS commit,
@@ -916,19 +876,6 @@
   // Grouped top-nav dropdown (Settings / Help): a nav-styled trigger + a standard
   // dropdown menu of the given secondary actions. Desktop only — the nav is hidden
   // on mobile, where these same items stay in the hamburger menu.
-  //
-  // Only one top-bar popover is open at a time: every popover (the Settings /
-  // Help nav dropdowns, Share, and More) registers its close() in popoverCloses
-  // and closes the others when it opens, so two menus can never overlap. Each
-  // popover stops propagation on its own trigger click (so the document-level
-  // outside-click handler doesn't immediately re-close it), which is exactly why
-  // that handler can't dismiss a sibling on its own -- hence this explicit list.
-  var popoverCloses = [];
-  function closeOtherPopovers(self) {
-    for (var i = 0; i < popoverCloses.length; i++) {
-      if (popoverCloses[i] !== self) popoverCloses[i]();
-    }
-  }
   function makeNavDropdown(label, items, active) {
     var dd = document.createElement('div');
     dd.className = 'lvci-navgrp';
@@ -943,7 +890,6 @@
     var menu = document.createElement('div');
     menu.className = 'lvci-dropdown-menu lvci-navgrp-menu';
     var close = function () { menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
-    popoverCloses.push(close);
     items.forEach(function (a) {
       var el;
       if (a.href) {
@@ -965,9 +911,7 @@
     });
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      var open = !menu.classList.contains('open');
-      if (open) closeOtherPopovers(close);
-      menu.classList.toggle('open', open);
+      var open = menu.classList.toggle('open');
       btn.classList.toggle('open', open);
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
@@ -1035,98 +979,43 @@
   // of returning to the dashboard. Mirrors the revision picker (a labelled <select>
   // in the context bar) and reuses its summary.json availability probe, so a report
   // that was not produced for this revision is shown disabled rather than 404ing.
-  function lensDest(key, sha) {
-    sha = sha || cfg.sha || '';
-    if (key === 'snapshots') return base + '/vi-snapshots/' + (sha ? '?sha=' + encodeURIComponent(sha) : '');
-    var d = DOCTYPES[key]; if (!d || !sha) return base + '/';
-    // Always open a report through the framed viewer (shared chrome + this picker),
-    // whether we came from another report or from the VI Browser.
-    var bare = base + '/' + d.prefix + '/' + sha + '/index.html';
-    var title = d.label + ' \u00b7 ' + sha.slice(0, 7);
-    return base + '/report/index.html?type=' + encodeURIComponent(key)
-         + '&sha=' + encodeURIComponent(sha)
-         + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
-         + '&src=' + encodeURIComponent(bare)
-         + '&title=' + encodeURIComponent(title);
+  function lensDest(key) {
+    var d = DOCTYPES[key]; if (!d || !cfg.sha) return base + '/';
+    var bare = base + '/' + d.prefix + '/' + cfg.sha + '/index.html';
+    if (cfg.embedded && cfg.framedSrc) {
+      var title = d.label + ' \u00b7 ' + cfg.sha.slice(0, 7);
+      return base + '/report/index.html?type=' + encodeURIComponent(key)
+           + '&sha=' + encodeURIComponent(cfg.sha)
+           + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
+           + '&src=' + encodeURIComponent(bare)
+           + '&title=' + encodeURIComponent(title);
+    }
+    return bare;
   }
-  function makeLensPicker(opts) {
-    opts = opts || {};
-    var current = opts.current || ctx;
-    var getSha = opts.getSha || function () { return cfg.sha; };
-    var deferProbe = !!opts.deferProbe;   // VI Browser: sha is dynamic -> check at click time, not upfront
-    // In the VI Browser a ?lens= deep link means a report lens is active on load;
-    // start the picker on it so the dropdown matches the framed report.
-    if (deferProbe) { try { var _ql = new URLSearchParams(location.search).get('lens'); if (_ql && LENS_ORDER.indexOf(_ql) >= 0) current = _ql; } catch (e) {} }
+  function makeLensPicker() {
     var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-lens-ctx';
     var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Activity';
     var sel = document.createElement('select');
-    sel.setAttribute('aria-label', 'Switch to another view of this revision');
-    // Lenses grouped for scale (a flat list does not stay legible as activities grow):
-    // Code & changes (snapshots/diff) | Quality (the checks) | Artifacts (docs, ...).
-    var LENS_GROUPS = [
-      { label: 'Code & changes', keys: ['snapshots'] },
-      { label: 'Quality',        keys: ['masscompile-report', 'vi-analyzer-report', 'unit-tests-report'] },
-      { label: 'Artifacts',      keys: ['antidoc-report'] }
-    ];
-    function lensLabel(key) {
-      if (key === 'snapshots') return 'Snapshots';
-      var d = DOCTYPES[key]; return d ? d.label : null;
-    }
-    function addOpt(parent, key) {
-      var label = lensLabel(key); if (!label) return;
-      var o = document.createElement('option'); o.value = key; o.textContent = label;
-      if (key === current) o.selected = true;
-      parent.appendChild(o);
-    }
-    var placed = {};
-    LENS_GROUPS.forEach(function (g) {
-      var keys = g.keys.filter(function (k) { return LENS_ORDER.indexOf(k) >= 0 && lensLabel(k); });
-      if (!keys.length) return;
-      var og = document.createElement('optgroup'); og.label = g.label;
-      keys.forEach(function (k) { addOpt(og, k); placed[k] = 1; });
-      sel.appendChild(og);
+    sel.setAttribute('aria-label', 'Switch to another report for this revision');
+    LENS_ORDER.forEach(function (key) {
+      var d = DOCTYPES[key]; if (!d) return;
+      var o = document.createElement('option'); o.value = key; o.textContent = d.label;
+      if (key === ctx) o.selected = true;
+      sel.appendChild(o);
     });
-    // Any lens not assigned to a group (future-proofing) -> ungrouped, in order.
-    LENS_ORDER.forEach(function (key) { if (!placed[key]) addOpt(sel, key); });
-    sel.value = current;
-    var note = document.createElement('span'); note.style.cssText = 'font-size:11px;color:#8b949e;white-space:nowrap';
-    // Switch lens. A page that can host a lens in its OWN pane (the VI Browser
-    // exposes window.lvciRenderLens) renders it in place; otherwise we navigate to
-    // the framed report. `current` tracks the live lens so re-selecting / reverting
-    // works after an in-place switch.
-    function go(k, s) {
-      if (deferProbe && typeof window.lvciRenderLens === 'function') {
-        try { if (window.lvciRenderLens(k, s)) { current = k; return; } } catch (e) {}
-      }
-      window.location.href = lensDest(k, s);
-    }
+    sel.value = ctx;
     sel.addEventListener('change', function () {
       var key = sel.value;
-      if (!key) return;
-      if (!deferProbe && key === current) return;   // report pages: re-picking the current lens is a no-op
-      var sha = getSha();
-      if (key === 'snapshots' || !deferProbe) { go(key, sha); return; }
-      // VI Browser: the report may not exist for the live revision -> confirm first.
-      var d = DOCTYPES[key];
-      if (!d || !sha) { go(key, sha); return; }
-      note.textContent = '';
-      fetch(base + '/' + d.prefix + '/' + sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
-        .then(function (r) { if (r.ok) go(key, sha); else noReport(d); })
-        .catch(function () { noReport(d); });
-      function noReport(dd) {
-        sel.value = current;
-        note.textContent = 'No ' + dd.label + ' for this revision';
-        setTimeout(function () { note.textContent = ''; }, 4000);
-      }
+      if (key && key !== ctx) window.location.href = lensDest(key);
     });
-    wrap.appendChild(lbl); wrap.appendChild(sel); wrap.appendChild(note);
-    // Upfront greying only when the revision is FIXED (report pages). The VI Browser
-    // switches revision in place, so it checks availability at click time instead.
-    if (!deferProbe && getSha()) {
+    wrap.appendChild(lbl); wrap.appendChild(sel);
+    // Grey out report types with no report for THIS revision (HEAD-probe
+    // <prefix>/<sha>/summary.json, the same signal the revision picker uses).
+    if (cfg.sha) {
       LENS_ORDER.forEach(function (key) {
-        if (key === current || key === 'snapshots') return;
+        if (key === ctx) return;
         var d = DOCTYPES[key]; if (!d) return;
-        fetch(base + '/' + d.prefix + '/' + getSha() + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
+        fetch(base + '/' + d.prefix + '/' + cfg.sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
           .then(function (r) { if (!r.ok) disableOpt(key, d); })
           .catch(function () { disableOpt(key, d); });
       });
@@ -1312,11 +1201,10 @@
 
     function refresh() { var u = shareUrl(); input.value = u; openBtn.href = u; }
     var closeShare = function () { pop.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
-    popoverCloses.push(closeShare);
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       var open = !pop.classList.contains('open');
-      if (open) { closeOtherPopovers(closeShare); refresh(); }
+      if (open) refresh();
       pop.classList.toggle('open', open);
       btn.classList.toggle('open', open);
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -1379,9 +1267,8 @@
     var activeKey = NAV_ACTIVE[ctx] || '';
     NAV.forEach(function (n) {
       var a = document.createElement('a');
-      a.href = n.doc ? docUrl() : n.href;
+      a.href = n.href;
       a.style.position = 'relative';
-      if (n.doc ? docExternal() : n.newTab) { a.target = '_blank'; a.rel = 'noopener'; }
       if (n.key === activeKey) a.className = 'on';
       a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '');
       nav.appendChild(a);
@@ -1439,7 +1326,6 @@
       var ddMenu = document.createElement('div');
       ddMenu.className = 'lvci-dropdown-menu';
       var closeDD = function () { ddMenu.classList.remove('open'); moreBtn.classList.remove('open'); moreBtn.setAttribute('aria-expanded', 'false'); };
-      popoverCloses.push(closeDD);
       moreItems.forEach(function (a) {
         var el;
         if (a.href) {
@@ -1471,9 +1357,7 @@
       dropdown.appendChild(ddMenu);
       moreBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var open = !ddMenu.classList.contains('open');
-        if (open) closeOtherPopovers(closeDD);
-        ddMenu.classList.toggle('open', open);
+        var open = ddMenu.classList.toggle('open');
         moreBtn.classList.toggle('open', open);
         moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
@@ -1498,8 +1382,7 @@
     menu.className = 'lvci-menu';
     NAV.forEach(function (n) {
       var a = document.createElement('a');
-      a.href = n.doc ? docUrl() : n.href;
-      if (n.doc ? docExternal() : n.newTab) { a.target = '_blank'; a.rel = 'noopener'; }
+      a.href = n.href;
       a.innerHTML = esc(n.label) + (n.soon ? ' <span class="lvci-soon">soon</span>' : '');
       menu.appendChild(a);
     });
@@ -1586,10 +1469,8 @@
 
     // Persistent context bar — the revision selector for per-revision reports,
     // in one consistent place under the header (only built when there's a revision).
-    // On config pages it instead holds the Settings sub-nav (section tabs).
     var ctxbar = null;
-    var isSettings = (NAV_ACTIVE[ctx] === 'settings');
-    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard' || isSettings) { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (DOC) ctxbar.appendChild(makeLensPicker().wrap); if (isSettings) ctxbar.appendChild(makeSettingsNav()); }
+    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard') { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (DOC) ctxbar.appendChild(makeLensPicker().wrap); }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
@@ -1632,20 +1513,6 @@
     // Signal pages that the header (and its #lvci-ctxbar context bar) is mounted,
     // so a page can move its own revision selector / controls into the shared bar.
     try { window.lvciHeaderReady = true; document.dispatchEvent(new CustomEvent('lvci:ready')); } catch (e) {}
-
-    // VI Browser: it owns #commit-select and moves it into the context bar on the
-    // lvci:ready we just fired (dispatchEvent is synchronous, so it is in place now).
-    // Add the Activity picker beside it -> jump from the VI Browser to any of this
-    // revision's reports. The VI Browser changes revision in place, so the picker
-    // reads the live sha (commit selector / URL) and checks availability at click time.
-    if (ctx === 'vi-browser' && ctxbar) {
-      var viSha = function () {
-        var cs = document.getElementById('commit-select');
-        if (cs && cs.value) return cs.value;
-        try { return new URLSearchParams(location.search).get('sha') || ''; } catch (e) { return ''; }
-      };
-      try { ctxbar.appendChild(makeLensPicker({ current: 'snapshots', getSha: viSha, deferProbe: true }).wrap); } catch (e) {}
-    }
   }
 
   // ── Badge state ───────────────────────────────────────────────────────────
