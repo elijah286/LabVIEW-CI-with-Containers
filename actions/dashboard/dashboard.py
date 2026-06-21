@@ -271,18 +271,49 @@ for _cap, _d in RUN_TARGETS.items():
             _WF_TO_CAP[_p['wf']] = _cap
 _CAP_RUN_LABEL = {'masscompile': 'compile', 'vi-analyzer': 'analyze', 'vidiff': 'diff',
                   'snapshots': 'snapshots', 'unit-tests': 'tests', 'antidoc': 'docs'}
+# Activities whose workflows share ONE GitHub Actions concurrency group queue behind
+# each other (only one runs at a time, by design, so their gh-pages report deploys
+# never race). Used to tell a queued cell its place in that shared line.
+_CAP_CONCURRENCY = {'masscompile': 'report-pages-deploy', 'vi-analyzer': 'report-pages-deploy',
+                    'unit-tests': 'report-pages-deploy', 'antidoc': 'report-pages-deploy'}
 
 def fetch_active_runs():
     by_sha = {}
+    all_active = []
     for _st in ('in_progress', 'queued'):   # in_progress first so it wins over a stale 'queued'
         data = gh_get(f'actions/runs?status={_st}&per_page=100')
         for run in ((data or {}).get('workflow_runs') or []):
             wf = (run.get('path') or '').rsplit('/', 1)[-1]
             cap = _WF_TO_CAP.get(wf)
-            sha_ = run.get('head_sha')
-            if not cap or not sha_:
+            if not cap:
                 continue
+            # A manual re-run targets a specific commit via the commit_sha input,
+            # recorded in the run name as "rev <sha>"; the run's head_sha is the
+            # dispatch ref (often the default branch), NOT the targeted commit. Key
+            # by the targeted commit when present so the cell lands on the right row.
+            title = run.get('display_title') or run.get('name') or ''
+            m = re.search(r'\brev\s+([0-9a-f]{7,40})\b', title)
+            sha_ = m.group(1) if m else run.get('head_sha')
+            if not sha_:
+                continue
+            run['_cap'] = cap
             by_sha.setdefault(sha_, {}).setdefault(cap, run)
+            all_active.append(run)
+    # For each QUEUED run in a shared concurrency group, count how many runs are
+    # ahead of it in that group: every in-progress run, plus queued runs created
+    # earlier. That count is its place in the shared line (0 = next to run).
+    for run in all_active:
+        grp = _CAP_CONCURRENCY.get(run.get('_cap'))
+        ahead = 0
+        if grp and run.get('status') == 'queued':
+            for other in all_active:
+                if other is run or _CAP_CONCURRENCY.get(other.get('_cap')) != grp:
+                    continue
+                if other.get('status') == 'in_progress':
+                    ahead += 1
+                elif other.get('status') == 'queued' and other.get('created_at', '') < run.get('created_at', ''):
+                    ahead += 1
+        run['_queue_ahead'] = ahead
     return by_sha
 
 active_runs = fetch_active_runs()
@@ -486,7 +517,7 @@ for c in commits_data:
         if ar is not None:
             caps_ran.add(cap)
             if ar.get('status') == 'queued':
-                return queued_cell(ar.get('html_url', ''))
+                return queued_cell(ar.get('html_url', ''), ar.get('_queue_ahead', 0))
             return running_cell(_CAP_RUN_LABEL.get(cap, cap), ar.get('html_url', ''))
         run_count['n'] += 1
         return ('<td style="text-align:center">'
@@ -523,17 +554,23 @@ for c in commits_data:
                 '<span class="run-badge" title="Running — click to view progress">'
                 f'{body}</span></td>')
 
-    def queued_cell(url):
+    def queued_cell(url, ahead=0):
         # A run that is QUEUED on GitHub Actions but has not started yet, so it has
-        # posted no commit status. Mirrors running_cell but reads "Queued", so a
-        # brand-new revision shows its activities are already on their way rather
-        # than an idle run arrow.
+        # posted no commit status. Mirrors running_cell but reads "Queued". When the
+        # activity is waiting behind others in a shared concurrency group, show how
+        # many jobs are ahead of it in that shared line.
         running_flag['on'] = True
-        inner = '<span class="run-spin"></span>Queued'
+        if ahead and ahead > 0:
+            label = f'Queued &middot; {ahead} ahead'
+            ttl = f'Queued on GitHub Actions - {ahead} job{"s" if ahead != 1 else ""} ahead in the shared report queue'
+        else:
+            label = 'Queued'
+            ttl = 'Queued on GitHub Actions - next to run'
+        inner = f'<span class="run-spin"></span>{label}'
         body  = (f'<a href="{url}" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">{inner}</a>'
                  if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
         return ('<td style="text-align:center">'
-                '<span class="run-badge" title="Queued on GitHub Actions - waiting for a runner">'
+                f'<span class="run-badge" title="{ttl}">'
                 f'{body}</span></td>')
 
     def badge(label, *contexts, url_override=None, cap=None, doc=None):
