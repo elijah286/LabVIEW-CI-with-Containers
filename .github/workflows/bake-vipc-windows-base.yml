@@ -1,0 +1,188 @@
+name: Bake VIPC Windows Base Image
+
+run-name: "Bake VIPC Windows base: ${{ inputs.vipc_path }} -> ${{ inputs.image_tag }} by @${{ github.actor }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      vipc_path:
+        description: 'Repo path to the VIPC to bake into the Windows worker image'
+        required: true
+        default: 'example/Dependencies.vipc'
+      image_tag:
+        description: 'Additional moving GHCR tag to publish after verification succeeds'
+        required: true
+        default: 'vipc-base'
+      push_latest:
+        description: 'Also move :latest to this verified image'
+        type: boolean
+        default: false
+
+env:
+  DEFAULT_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: bake-vipc-windows-base-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bake-vipc-base:
+    runs-on: windows-2022
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
+          if ($null -eq $svc) { throw 'Docker service not found on this runner.' }
+          if ($svc.Status -ne 'Running') { Start-Service docker }
+          docker version
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stage selected VIPC only
+        id: vipc
+        shell: powershell
+        run: |
+          $vipcPath = '${{ inputs.vipc_path }}'
+          if (-not (Test-Path -LiteralPath $vipcPath)) {
+            throw "VIPC file was not found: $vipcPath"
+          }
+
+          $stageDir = '.github\labview\vipm'
+          New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+          Get-ChildItem -Path $stageDir -Filter '*.vipc' -File -ErrorAction SilentlyContinue |
+            Remove-Item -Force
+
+          $stagedVipc = Join-Path $stageDir (Split-Path -Leaf $vipcPath)
+          Copy-Item -LiteralPath $vipcPath -Destination $stagedVipc -Force
+          Write-Host "Staged VIPC: $stagedVipc"
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $stagedVipc))
+          try {
+            $entry = $zip.Entries | Where-Object { $_.Name -eq 'config.xml' } | Select-Object -First 1
+            if (-not $entry) { throw "VIPC has no config.xml: $stagedVipc" }
+            $reader = New-Object System.IO.StreamReader($entry.Open())
+            try { [xml]$cfg = $reader.ReadToEnd() } finally { $reader.Close() }
+          } finally {
+            $zip.Dispose()
+          }
+
+          $expected = @($cfg.VI_Package_Configuration.Target.Package | ForEach-Object {
+            $name = [string]$_.Name
+            if ($name -match '^(?<n>.+)-(?<v>\d+(?:\.\d+)+)$') { $Matches.n } else { $name.Trim() }
+          } | Where-Object { $_ })
+          if ($expected.Count -eq 0) { throw "No packages were found in $stagedVipc" }
+
+          New-Item -ItemType Directory -Force -Path 'ci-out\vipc-bake' | Out-Null
+          $expected | Set-Content -Path 'ci-out\vipc-bake\expected-packages.txt' -Encoding ASCII
+          Write-Host 'Expected VIPM packages:'
+          $expected | ForEach-Object { Write-Host "  $_" }
+
+          $vipcHash = (Get-FileHash -LiteralPath $stagedVipc -Algorithm SHA256).Hash.ToLowerInvariant().Substring(0, 12)
+          "staged_vipc=$stagedVipc" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "vipc_hash=$vipcHash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Resolve image references
+        id: image
+        shell: powershell
+        run: |
+          $owner = '${{ github.repository_owner }}'.ToLowerInvariant()
+          $override = '${{ vars.LABVIEW_IMAGE_NAME }}'
+          $repoName = '${{ github.event.repository.name }}'
+          if ($override) { $name = $override } else { $name = "$repoName-labview" }
+          $name = $name.ToLowerInvariant()
+          $base = "ghcr.io/$owner/$name"
+          $movingTag = '${{ inputs.image_tag }}'
+          $hashTag = "$movingTag-${{ steps.vipc.outputs.vipc_hash }}"
+          $workerVersion = "win-vipc-${{ steps.vipc.outputs.vipc_hash }}"
+          $projectTag = '${{ env.DEFAULT_TAG }}'
+
+          "base=$base" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "project_ref=${base}:$projectTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "moving_ref=${base}:$movingTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "hash_ref=${base}:$hashTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "worker_version=$workerVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Project base tag: ${base}:$projectTag"
+          Write-Host "Moving tag: ${base}:$movingTag"
+          Write-Host "Immutable VIPC tag: ${base}:$hashTag"
+          Write-Host "Worker version: $workerVersion"
+
+      - name: Build VIPC-baked Windows image
+        shell: powershell
+        run: |
+          $base = '${{ steps.image.outputs.base }}'
+          $projectRef = '${{ steps.image.outputs.project_ref }}'
+          $movingRef = '${{ steps.image.outputs.moving_ref }}'
+          $hashRef = '${{ steps.image.outputs.hash_ref }}'
+          $workerVersion = '${{ steps.image.outputs.worker_version }}'
+          $repoUrl = '${{ github.server_url }}/${{ github.repository }}.git'
+          $tags = @('labview-vipc-base:test', $projectRef, $movingRef, $hashRef)
+          if ('${{ inputs.push_latest }}' -eq 'true') { $tags += "${base}:latest" }
+          $tagFlags = ($tags | ForEach-Object { '-t', $_ })
+
+          docker build -f .github/docker/labview-ci.Dockerfile `
+            --build-arg CI_WORKER_VERSION=$workerVersion `
+            --build-arg VIPM_PUBLIC_REPO_URL=$repoUrl `
+            @tagFlags .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify VIPC packages inside image
+        shell: powershell
+        run: |
+          $image = 'labview-vipc-base:test'
+          docker run --rm $image powershell -NoLogo -NoProfile -Command "& 'C:\Program Files\JKI\VI Package Manager\support\vipm.exe' --labview-version ${{ env.DEFAULT_TAG }} --labview-bitness 64 list --installed" |
+            Tee-Object -FilePath 'ci-out\vipc-bake\installed-packages.txt'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $installed = Get-Content -Path 'ci-out\vipc-bake\installed-packages.txt' -Raw
+          $expected = Get-Content -Path 'ci-out\vipc-bake\expected-packages.txt'
+          $aliases = @{
+            'jki_vi_tester' = 'jki_labs_tool_vi_tester'
+          }
+          $missing = @()
+          foreach ($pkg in $expected) {
+            $needle = if ($aliases.ContainsKey($pkg)) { $aliases[$pkg] } else { $pkg }
+            if ($installed -notmatch [regex]::Escape($needle)) { $missing += $pkg }
+          }
+          if ($missing.Count -gt 0) {
+            Write-Host 'Installed package list:'
+            Write-Host $installed
+            throw ('The built image is missing expected VIPC package(s): ' + ($missing -join ', '))
+          }
+          Write-Host 'All expected VIPC packages were found in the built image.'
+
+      - name: Push verified image to GHCR
+        shell: powershell
+        run: |
+          $refs = @('${{ steps.image.outputs.project_ref }}', '${{ steps.image.outputs.moving_ref }}', '${{ steps.image.outputs.hash_ref }}')
+          if ('${{ inputs.push_latest }}' -eq 'true') { $refs += '${{ steps.image.outputs.base }}:latest' }
+          foreach ($ref in $refs) {
+            Write-Host "Pushing $ref"
+            docker push $ref
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Summary
+        shell: powershell
+        run: |
+          "### VIPC-baked Windows image published" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- VIPC: `${{ inputs.vipc_path }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Project base tag: `${{ steps.image.outputs.project_ref }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Moving tag: `${{ steps.image.outputs.moving_ref }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Immutable VIPC tag: `${{ steps.image.outputs.hash_ref }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- Worker version: `${{ steps.image.outputs.worker_version }}`" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

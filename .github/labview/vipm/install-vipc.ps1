@@ -148,7 +148,7 @@ if (-not $VipmExe -or -not (Test-Path $VipmExe)) {
         Write-Warning ("VIPM add-on install SKIPPED: could not install VIPM from '" + $VipmInstallerUrl + "' (" + $_.Exception.Message + "). " +
             "Core image (LabVIEW + VI Analyzer) is unaffected; VIPM-only add-ons such as Antidoc are NOT baked in. " +
             "Provide a reachable VIPM_INSTALLER_URL to enable them.")
-        exit 0
+        exit 1
     }
 }
 
@@ -318,6 +318,219 @@ function Get-VipcPackageSpecs([string]$VipcPath) {
     return @($specs)
 }
 
+function Split-VipmPackageSpec([string] $Spec) {
+    $s = ([string]$Spec).Trim()
+    $aliases = @{
+        # Older VIPC files can use the short/legacy VI Tester name, while the
+        # public VIPM repository indexes expose the package under this ID.
+        'jki_vi_tester' = 'jki_labs_tool_vi_tester'
+    }
+    if ($s -match '^(?<name>[^@]+)@(?<version>.+)$') {
+        $name = $Matches.name.Trim()
+        if ($aliases.ContainsKey($name)) { $name = $aliases[$name] }
+        return [pscustomobject]@{ Name = $name; Version = $Matches.version.Trim(); Minimum = $false }
+    }
+    if ($s -match '^(?<name>[A-Za-z0-9_\.\-]+)\s*>\=\s*(?<version>.+)$') {
+        $name = $Matches.name.Trim()
+        if ($aliases.ContainsKey($name)) { $name = $aliases[$name] }
+        return [pscustomobject]@{ Name = $name; Version = $Matches.version.Trim(); Minimum = $true }
+    }
+    if ($aliases.ContainsKey($s)) { $s = $aliases[$s] }
+    return [pscustomobject]@{ Name = $s; Version = ''; Minimum = $false }
+}
+
+function Get-NumericVersionKey([string] $Version) {
+    $nums = @([regex]::Matches(([string]$Version), '\d+') | ForEach-Object { [int]$_.Value })
+    while ($nums.Count -lt 6) { $nums += 0 }
+    return ($nums[0..5] | ForEach-Object { '{0:D8}' -f $_ }) -join '.'
+}
+
+function ConvertFrom-VipmRepositoryIndex([string] $IndexPath, [string] $BaseUrl, [string] $Name) {
+    $packages = New-Object System.Collections.Generic.List[object]
+    $current = $null
+    foreach ($line in Get-Content -LiteralPath $IndexPath -ErrorAction Stop) {
+        if ($line -match '^\[Package\s+(?<id>.+)\]\s*$') {
+            if ($current) { $packages.Add($current) }
+            $id = $Matches.id.Trim()
+            $pkgName = $id
+            $pkgVersion = ''
+            if ($id -match '^(?<name>.+)-(?<version>\d+(?:\.\d+)+(?:[A-Za-z0-9_.-]*)?)$') {
+                $pkgName = $Matches.name
+                $pkgVersion = $Matches.version
+            }
+            $current = [ordered]@{
+                Id          = $id
+                Name        = $pkgName
+                Version     = $pkgVersion
+                VersionKey  = Get-NumericVersionKey $pkgVersion
+                Repository  = $Name
+                BaseUrl     = $BaseUrl
+                PackageUrl  = ''
+                PackageMD5  = ''
+                Dependencies = ''
+            }
+            continue
+        }
+        if (-not $current) { continue }
+        if ($line -match '^(?<key>[^=]+)=(?<value>.*)$') {
+            $key = $Matches.key.Trim()
+            $value = $Matches.value.Trim()
+            switch ($key) {
+                'Package.URL' { $current.PackageUrl = $value }
+                'Package.MD5' { $current.PackageMD5 = $value.ToLowerInvariant() }
+                'Dependencies.Requires' { $current.Dependencies = $value }
+            }
+        }
+    }
+    if ($current) { $packages.Add($current) }
+    return @($packages | ForEach-Object { [pscustomobject]$_ })
+}
+
+function Get-PublicVipmRepositoryPackages {
+    $repoDir = Join-Path $env:TEMP 'vipm-public-indexes'
+    New-Item -ItemType Directory -Force -Path $repoDir | Out-Null
+    $repos = @(
+        [pscustomobject]@{
+            Name = 'NI LabVIEW Tools Network'
+            Url = 'http://download.ni.com/evaluation/labview/lvtn/vipm/index.vipr'
+            BaseUrl = 'http://download.ni.com/evaluation/labview/lvtn/vipm/'
+            FileName = 'ni-lvtn.vipr'
+        },
+        [pscustomobject]@{
+            Name = 'VIPM Community'
+            Url = 'http://www.jkisoft.com/packages/jkisoft.ogpd'
+            BaseUrl = 'http://www.jkisoft.com/packages/'
+            FileName = 'vipm-community.ogpd'
+        }
+    )
+    $all = New-Object System.Collections.Generic.List[object]
+    foreach ($repo in $repos) {
+        $indexFile = Join-Path $repoDir $repo.FileName
+        Write-Host "Downloading public VIPM repository index: $($repo.Url)"
+        Invoke-WebRequest -Uri $repo.Url -OutFile $indexFile -UseBasicParsing -TimeoutSec 120 | Out-Null
+        foreach ($pkg in (ConvertFrom-VipmRepositoryIndex $indexFile $repo.BaseUrl $repo.Name)) { $all.Add($pkg) }
+    }
+    Write-Host "Loaded $($all.Count) package versions from public VIPM indexes."
+    return @($all.ToArray())
+}
+
+function Resolve-PublicVipmPackageUrl($Package) {
+    $url = [string]$Package.PackageUrl
+    if ($url -match '^https?://') { return $url }
+    if ($url -match '^packages/') { return ([string]$Package.BaseUrl).TrimEnd('/') + '/' + $url }
+    if ($url -match '^sf://opengtoolkit/(?<file>[^/]+)$') {
+        $file = $Matches.file
+        if ($Package.Name -match '^oglib_(?<lib>.+)$') {
+            $lib = $Matches.lib
+            $major = if ($Package.Version -match '^(?<major>\d+)\.') { $Matches.major } else { '4' }
+            return "https://downloads.sourceforge.net/project/opengtoolkit/lib_$lib/$major.x/$file`?download"
+        }
+    }
+    if ($url -match '^sf://(?<project>[^/]+)/(?<file>[^/]+)$') {
+        return "https://downloads.sourceforge.net/project/$($Matches.project)/$($Matches.file)`?download"
+    }
+    if ($url) { return ([string]$Package.BaseUrl).TrimEnd('/') + '/' + $url.TrimStart('/') }
+    return ''
+}
+
+function Select-PublicVipmPackage($Request, [object[]] $Packages) {
+    $matches = @($Packages | Where-Object { $_.Name -eq $Request.Name })
+    if ($matches.Count -eq 0) { return $null }
+    if ($Request.Version) {
+        if ($Request.Minimum) {
+            $minKey = Get-NumericVersionKey $Request.Version
+            $matches = @($matches | Where-Object { $_.VersionKey -ge $minKey })
+        } else {
+            $matches = @($matches | Where-Object { $_.Version -eq $Request.Version })
+        }
+    }
+    return @($matches | Sort-Object VersionKey -Descending | Select-Object -First 1)[0]
+}
+
+function Get-PublicVipmDependencyRequests($Package) {
+    $deps = @()
+    $text = [string]$Package.Dependencies
+    if ([string]::IsNullOrWhiteSpace($text)) { return @() }
+    foreach ($part in ($text -split ',')) {
+        $p = $part.Trim()
+        if ($p -match '^(?<name>[A-Za-z0-9_\.\-]+)\s*(?<op>>=|=|==)?\s*(?<version>[A-Za-z0-9_.\-]+)?') {
+            $op = [string]$Matches.op
+            $deps += [pscustomobject]@{
+                Name = $Matches.name.Trim()
+                Version = if ($Matches.version) { $Matches.version.Trim() } else { '' }
+                Minimum = ($op -eq '>=' -or -not $op)
+            }
+        }
+    }
+    return @($deps)
+}
+
+function Save-PublicVipmPackage($Package, [string] $OutDir) {
+    New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+    $ext = '.vip'
+    if ([string]$Package.PackageUrl -match '\.(?<ext>vip|ogp)(?:$|\?)') { $ext = '.' + $Matches.ext }
+    $fileName = '{0}-{1}{2}' -f $Package.Name, $Package.Version, $ext
+    $outFile = Join-Path $OutDir $fileName
+    if (Test-Path $outFile) { return $outFile }
+    $url = Resolve-PublicVipmPackageUrl $Package
+    if (-not $url) { throw "No downloadable package URL found for $($Package.Id) from $($Package.Repository)." }
+    Write-Host "  Downloading $($Package.Id) from $url"
+    Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 300 -Headers @{ 'User-Agent' = 'LabVIEW-CI-with-Containers VIPM downloader' } | Out-Null
+    $bytes = Get-Content -LiteralPath $outFile -Encoding Byte -TotalCount 4
+    if ($bytes.Count -lt 4 -or $bytes[0] -ne 0x50 -or $bytes[1] -ne 0x4b) {
+        throw "Downloaded file for $($Package.Id) is not a VIP/ZIP archive: $outFile"
+    }
+    if ($Package.PackageMD5) {
+        $md5 = (Get-FileHash -LiteralPath $outFile -Algorithm MD5).Hash.ToLowerInvariant()
+        if ($md5 -ne $Package.PackageMD5) { throw "MD5 mismatch for $($Package.Id): expected $($Package.PackageMD5), got $md5" }
+    }
+    return $outFile
+}
+
+function Get-LocalVipFilesForSpecs([string[]] $Specs) {
+    $repoPackages = @(Get-PublicVipmRepositoryPackages)
+    $rootRequests = @($Specs | ForEach-Object { Split-VipmPackageSpec $_ })
+    $exactByName = @{}
+    foreach ($root in $rootRequests) {
+        if ($root.Version -and -not $root.Minimum) { $exactByName[$root.Name] = $root }
+    }
+    $resolved = New-Object System.Collections.Generic.List[object]
+    $visiting = @{}
+    $visited = @{}
+    $visitedPackageIds = @{}
+
+    function Resolve-One($Request) {
+        if ($Request.Minimum -and $exactByName.ContainsKey($Request.Name)) {
+            $Request = $exactByName[$Request.Name]
+        }
+        $key = '{0}@{1}:{2}' -f $Request.Name, $Request.Version, $Request.Minimum
+        if ($visited.ContainsKey($key)) { return }
+        if ($visiting.ContainsKey($key)) { return }
+        $visiting[$key] = $true
+        $pkg = Select-PublicVipmPackage $Request $repoPackages
+        if (-not $pkg) {
+            if ($Request.Version) { throw "Package '$($Request.Name)' version '$($Request.Version)' was not found in the public VIPM indexes." }
+            throw "Package '$($Request.Name)' was not found in the public VIPM indexes."
+        }
+        if ($visitedPackageIds.ContainsKey($pkg.Id)) {
+            $visited[$key] = $true
+            $visiting.Remove($key)
+            return
+        }
+        foreach ($dep in (Get-PublicVipmDependencyRequests $pkg)) { Resolve-One $dep }
+        $resolved.Add($pkg)
+        $visitedPackageIds[$pkg.Id] = $true
+        $visited[$key] = $true
+        $visiting.Remove($key)
+    }
+
+    foreach ($root in $rootRequests) { Resolve-One $root }
+    $downloadDir = Join-Path $env:TEMP 'vipm-package-files'
+    $files = New-Object System.Collections.Generic.List[string]
+    foreach ($pkg in $resolved) { $files.Add((Save-PublicVipmPackage $pkg $downloadDir)) }
+    return @($files.ToArray() | Select-Object -Unique)
+}
+
 $applyFailed = $false
 # VIPM 2026 Q3 (26.3) CLI flags (verified against docs.vipm.io command-reference):
 #   * --labview-version / --labview-bitness are GLOBAL options and must PRECEDE the
@@ -477,6 +690,28 @@ try {
                 }
             }
         }
+        if ($rc -ne 0 -or $applyFailed) {
+            Write-Host '  VIPM name-based resolution failed; downloading public .vip files and installing from local files ...'
+            try {
+                $vipFiles = @(Get-LocalVipFilesForSpecs $specs)
+                Write-Host ("  Installing local VIP files: " + (($vipFiles | ForEach-Object { Split-Path $_ -Leaf }) -join ', '))
+                $rc = Invoke-VipmInstall @vipFiles
+                if ($rc -eq 0) { $applyFailed = $false; continue }
+                Write-Host "  local VIP file batch install failed (exit $rc); retrying each file individually ..."
+                $localFailed = $false
+                foreach ($vipFile in $vipFiles) {
+                    $rc = Invoke-VipmInstall $vipFile
+                    if ($rc -ne 0) {
+                        Write-Warning "  local package file '$vipFile' failed (exit $rc)."
+                        $localFailed = $true
+                    }
+                }
+                $applyFailed = $localFailed
+            } catch {
+                Write-Warning ("  local VIP file fallback failed: " + $_.Exception.Message)
+                $applyFailed = $true
+            }
+        }
     }
 }
 finally {
@@ -499,14 +734,17 @@ if ($VipmEngineProc -and -not $VipmEngineProc.HasExited) {
 }
 
 if ($applyFailed) {
-    Write-Warning ('One or more VIPM packages could not be installed. VIPM-distributed add-ons ' +
+    $message = ('One or more VIPM packages could not be installed. VIPM-distributed add-ons ' +
         '(Antidoc, Caraya, VI Tester, and the UTF JUnit Report library that the RunUnitTests ' +
         'CLI operation links against to emit its JUnit report) may be absent, so headless UTF ' +
         'may fail with LabVIEW CLI error -350053. Check the install log above for the failing ' +
-        'package(s) and confirm they exist on the configured VIPM repository. Core image ' +
-        '(LabVIEW + VI Analyzer + UTF) is unaffected.')
-    # Best-effort: never fail the whole image build over optional VIPM add-ons.
-    exit 0
+        'package(s) and confirm they exist on the configured VIPM repository.')
+    if ($Env:VIPM_ALLOW_MISSING_PACKAGES -eq '1') {
+        Write-Warning ($message + ' VIPM_ALLOW_MISSING_PACKAGES=1 is set, so the image build will continue without those add-ons.')
+        exit 0
+    }
+    Write-Error ($message + ' Failing the image build so CI cannot publish or run against a worker image with stale/missing VIPC dependencies. Set VIPM_ALLOW_MISSING_PACKAGES=1 only for emergency best-effort builds.')
+    exit 1
 }
 
 Write-Host 'All VIPM packages installed successfully.'
