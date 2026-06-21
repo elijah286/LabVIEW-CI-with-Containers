@@ -241,7 +241,7 @@
         </div>
 
         <div class="subhead">VIPC dependencies baked into the container</div>
-        <p class="hint">VIPC files found in your repository are listed below, <strong>de-selected by default</strong>. Tick the ones you want baked into the worker image so their add-on dependencies are available in CI. Turn on <strong>Monitor</strong> for an included file to rebuild and re-push the container automatically whenever it changes on a submission &mdash; so the container always matches the dependencies the project needs.</p>
+        <p class="hint">VIPC files found in your repository are listed below, <strong>selected and monitored by default</strong> &mdash; VIPC files are the source of truth for project dependencies, so every one is baked into the worker image unless you un-tick it. <strong>Monitor</strong> rebuilds and re-pushes the container automatically whenever an included file changes on a submission, and the other CI actions wait for that rebuild before they run &mdash; so they never run against missing dependencies.</p>
         <div class="pkgs" id="vipcs"></div>
         <div class="addpkg">
           <input type="text" id="newVipcPath" placeholder="path to a .vipc file (e.g. COTC Dependencies.vipc)">
@@ -576,7 +576,7 @@
       vipcList.forEach((v, i) => {
         const included = v.include === true;
         const row = document.createElement("div"); row.className = "pkg";
-        // Primary control: include this VIPC in the worker container (de-selected by default).
+        // Primary control: include this VIPC in the worker container (selected by default).
         const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = included;
         cb.title = "Include this VIPC file in the worker container";
         cb.addEventListener("change", () => { v.include = cb.checked; renderVipcs(); update(); });
@@ -612,7 +612,7 @@
         const sel = vipcList.filter(v => v.include === true).length;
         parts.push(sel
           ? (sel + " selected to bake into the container.")
-          : "None selected \u2014 files are de-selected by default; tick the ones you want baked in.");
+          : "None selected \u2014 no VIPC files will be baked into the container.");
       }
       el.textContent = parts.join(" ");
     }
@@ -973,8 +973,8 @@
         vipcFoundCount = found.length;
         const have = new Set(vipcList.map(v => v.path));
         let added = false;
-        // Pre-populate every discovered file, de-selected by default — the user picks which to bake.
-        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true, include: false }); added = true; } });
+        // Pre-populate every discovered file, selected and monitored by default — the user can un-tick any to exclude.
+        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true, include: true }); added = true; } });
         renderVipcs();
         if (added) update();
         // VI Analyzer: discover .viancfg configs + folder/VI path suggestions from
