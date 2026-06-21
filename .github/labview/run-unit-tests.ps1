@@ -11,9 +11,11 @@
     a glob / file-extension pattern) and invokes that tool's headless runner via
     g-cli (already baked into the CI image), writing JUnit XML.
 
-    Caraya is the reference implementation, driven via g-cli. NI UTF runs through the
-    built-in LabVIEWCLI RunUnitTests operation (see Invoke-UtfTests); JKI VI Tester is
-    scaffolded with the same contract. The exact command for each tool is a per-tool
+    Caraya is the reference implementation, driven via g-cli. NI UTF is driven through
+    a small top-level VI that calls the native UTF API (Run Tests from Project.vi ->
+    Create Report.vi); the built-in LabVIEWCLI RunUnitTests operation is only a
+    fallback because it can fail to load before UTF gets a chance to run. JKI VI Tester
+    is scaffolded with the same contract. The exact command for each tool is a per-tool
     template that can be overridden from the config (`command:` key) so the precise
     invocation can be corrected on a real worker without editing this script.
 
@@ -186,15 +188,26 @@ function Resolve-LabVIEWCLI([string]$LabVIEWExePath) {
     return $null
 }
 
+function Resolve-LabVIEWPort([string]$LabVIEWExePath) {
+    $ini = Join-Path (Split-Path -Parent $LabVIEWExePath) 'LabVIEW.ini'
+    if (Test-Path -LiteralPath $ini) {
+        $m = Select-String -LiteralPath $ini -Pattern '^server\.tcp\.port\s*=\s*(\d+)\s*$' -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($m -and $m.Matches.Count -gt 0) { return [int]$m.Matches[0].Groups[1].Value }
+    }
+    return 3363
+}
+
 $LabVIEWPath = Resolve-LabVIEWPath $LabVIEWPath
 Sync-PathFromRegistry
 $GCli        = Resolve-Cmd @('g-cli', 'g-cli.exe')
 $CliExe      = Resolve-LabVIEWCLI $LabVIEWPath
+$LabVIEWPort = Resolve-LabVIEWPort $LabVIEWPath
 
 Write-Host "=== Unit Tests (Windows) ==="
 Write-Host "  Workspace : $WorkspaceRoot"
 Write-Host "  Results   : $ResultsDir"
 Write-Host "  LabVIEW   : $LabVIEWPath  (v$LabVIEWVersion)"
+Write-Host "  VI Server : $LabVIEWPort"
 Write-Host "  LabVIEWCLI: $(if ($CliExe) { $CliExe } else { '<not found>' })"
 Write-Host "  g-cli     : $(if ($GCli) { $GCli } else { '<not found on PATH>' })"
 Write-Host "  Config    : $ConfigPath"
@@ -291,12 +304,16 @@ $DEFAULT_CMD = @{
 
 # NI Unit Test Framework runs the .lvtest files of a PROJECT (not a flat directory of
 # test VIs), so UTF has its own runner (Invoke-UtfTests) rather than the generic
-# {dir} template. The default uses the FIRST-PARTY LabVIEWCLI RunUnitTests operation
-# (built into the LabVIEW CLI in the container): it runs every unit test in the
-# project and writes a JUnit report to -JUnitReportPath. -Headless is required for
-# LabVIEW 2026 Windows containers (mirrors run-vi-analyzer / RunVIAnalyzer).
-# Tokens: {cli}=LabVIEWCLI, {lv}=LabVIEW.exe, {proj}=.lvproj path, {out}=JUnit output
-# path, {ver}=LabVIEW year. Override per tool with the config `command:` key.
+# {dir} template. The preferred path uses a repo-provided top-level VI that calls
+# the native UTF API and saves the native UTF report. This avoids the LabVIEW CLI
+# RunUnitTests operation, whose operation folder can fail to load before the UTF API
+# is reached. -Headless is required for LabVIEW 2026 Windows containers (mirrors
+# run-vi-analyzer / RunVIAnalyzer).
+# Tokens: {cli}=LabVIEWCLI, {lv}=LabVIEW.exe, {proj}=.lvproj path, {out}=report output
+# path, {runner}=native UTF runner VI, {port}=VI Server port, {ver}=LabVIEW year.
+# Override per tool with the config `command:` key.
+$UTF_NATIVE_RUNNER = Join-Path $WorkspaceRoot '.github\utf\Run UTF Tests.vi'
+$UTF_NATIVE_CMD = '"{cli}" -LogToConsole TRUE -OperationName RunVI -VIPath "{runner}" -LabVIEWPath "{lv}" -PortNumber {port} -Arguments "{proj}" "{out}" -Headless'
 $UTF_DEFAULT_CMD = '"{cli}" -LogToConsole TRUE -OperationName RunUnitTests -ProjectPath "{proj}" -JUnitReportPath "{out}" -LabVIEWPath "{lv}" -Headless'
 
 function Invoke-Tool($tool, [int]$index) {
@@ -368,17 +385,23 @@ function Invoke-UtfTests($tool, [int]$index) {
     }
     if (-not $CliExe) { Write-Warning "  LabVIEWCLI not found; cannot run UTF."; return }
 
-    Show-UtfAddonsDiag $LabVIEWPath
+    $nativeRunner = if (Test-Path -LiteralPath $UTF_NATIVE_RUNNER) { (Resolve-Path -LiteralPath $UTF_NATIVE_RUNNER).Path } else { '' }
+    $useNative = [bool]$nativeRunner
+    if ($useNative) {
+        Write-Host "  [utf] native UTF runner: $nativeRunner"
+    } else {
+        Write-Warning "  native UTF runner not found at $UTF_NATIVE_RUNNER; falling back to LabVIEWCLI RunUnitTests."
+        Show-UtfAddonsDiag $LabVIEWPath
+    }
 
-    $tmpl = if ($tool.command) { $tool.command } else { $UTF_DEFAULT_CMD }
+    $tmpl = if ($tool.command) { $tool.command } elseif ($useNative) { $UTF_NATIVE_CMD } else { $UTF_DEFAULT_CMD }
 
     $i = 0
     foreach ($proj in $projects) {
         $out = Join-Path $ResultsDir ("utf-{0}.xml" -f ($index * 100 + $i))
         Write-Host "  [utf] project: $proj"
 
-        # RunUnitTests writes the JUnit report directly to -JUnitReportPath ({out}).
-        $cmd = $tmpl.Replace('{cli}', $CliExe).Replace('{lv}', $LabVIEWPath).Replace('{proj}', $proj).Replace('{out}', $out).Replace('{ver}', $LabVIEWVersion)
+        $cmd = $tmpl.Replace('{cli}', $CliExe).Replace('{lv}', $LabVIEWPath).Replace('{proj}', $proj).Replace('{out}', $out).Replace('{runner}', $nativeRunner).Replace('{port}', [string]$LabVIEWPort).Replace('{ver}', $LabVIEWVersion)
         Write-Host "  [utf] $cmd"
 
         $prevEAP = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
@@ -394,7 +417,8 @@ function Invoke-UtfTests($tool, [int]$index) {
 
         if (Test-Path -LiteralPath $out) { Write-Host "  [utf] wrote $out" }
         else {
-            Write-Warning "  [utf] produced no JUnit at $out (check the RunUnitTests output above; override with the tool's command: key)."
+            $expected = if ($useNative) { 'native UTF report' } else { 'JUnit' }
+            Write-Warning "  [utf] produced no $expected at $out (check the runner output above; override with the tool's command: key)."
             # The LabVIEWCLI console error (e.g. -350053) is generic; the actual
             # detail (which VI is broken / which module is missing) is written to
             # the CLI's own session log. Echo it so failures are diagnosable.
@@ -411,21 +435,23 @@ function Invoke-UtfTests($tool, [int]$index) {
             } else {
                 Write-Host "  [utf] (no CLI session-log path found in output)"
             }
-            # DIAGNOSTIC PROBE: re-run the SAME operation WITHOUT -JUnitReportPath. If it
-            # then loads/succeeds, the -350053 is specific to the JUnit-report step (its
-            # VIs), not the operation; if it still fails, the RunUnitTests operation cannot
-            # load at all in this LabVIEW. Output-only; does not affect the report.
-            $cmdNoJUnit = $tmpl.Replace('{cli}', $CliExe).Replace('{lv}', $LabVIEWPath).Replace('{proj}', $proj).Replace('{out}', $out).Replace('{ver}', $LabVIEWVersion)
-            $cmdNoJUnit = $cmdNoJUnit -replace '\s*-JUnitReportPath\s+"[^"]*"', ''
-            Write-Host "  [utf][diag] retry WITHOUT -JUnitReportPath:"
-            Write-Host "  [utf][diag] $cmdNoJUnit"
-            $prevEAP2 = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-            try {
-                $diagOut = (& cmd.exe /c $cmdNoJUnit 2>&1 | Out-String)
-                Write-Host $diagOut
-                Write-Host ("  [utf][diag] exit={0}" -f $LASTEXITCODE)
-            } catch { Write-Warning "  [utf][diag] runner error: $($_.Exception.Message)" }
-            $ErrorActionPreference = $prevEAP2
+            if (-not $useNative) {
+                # DIAGNOSTIC PROBE: re-run the SAME operation WITHOUT -JUnitReportPath. If it
+                # then loads/succeeds, the -350053 is specific to the JUnit-report step (its
+                # VIs), not the operation; if it still fails, the RunUnitTests operation cannot
+                # load at all in this LabVIEW. Output-only; does not affect the report.
+                $cmdNoJUnit = $tmpl.Replace('{cli}', $CliExe).Replace('{lv}', $LabVIEWPath).Replace('{proj}', $proj).Replace('{out}', $out).Replace('{runner}', $nativeRunner).Replace('{port}', [string]$LabVIEWPort).Replace('{ver}', $LabVIEWVersion)
+                $cmdNoJUnit = $cmdNoJUnit -replace '\s*-JUnitReportPath\s+"[^"]*"', ''
+                Write-Host "  [utf][diag] retry WITHOUT -JUnitReportPath:"
+                Write-Host "  [utf][diag] $cmdNoJUnit"
+                $prevEAP2 = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+                try {
+                    $diagOut = (& cmd.exe /c $cmdNoJUnit 2>&1 | Out-String)
+                    Write-Host $diagOut
+                    Write-Host ("  [utf][diag] exit={0}" -f $LASTEXITCODE)
+                } catch { Write-Warning "  [utf][diag] runner error: $($_.Exception.Message)" }
+                $ErrorActionPreference = $prevEAP2
+            }
             # Record that UTF could not run, so the report shows the shared
             # "missing container tooling" banner. -350053 / "missing or bad files"
             # / "required modules or toolkits" => the UTF toolkit is absent.
