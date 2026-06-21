@@ -338,6 +338,12 @@ mass-compile:
         serialising them prevents one job's <code>git push</code> from racing another's. The dashboard build uses a
         separate group (<code>dashboard-pages</code>, <code>cancel-in-progress: true</code>) so a burst of status
         events collapses into a single latest-wins rebuild.</p>
+      <p>The dashboard surfaces this line live. It reads GitHub's in-progress and queued runs and shows each enqueued
+        activity as a spinning <em>Queued</em> cell on the revision it targets. Because a manual re-run is dispatched
+        with <code>inputs.commit_sha</code>, the dashboard keys an active run on the commit named in its run title
+        (<code>rev &lt;sha&gt;</code>) rather than the dispatch ref, so the cell lands on the right row instead of on
+        the branch head. When several activities wait behind each other in the <code>report-pages-deploy</code> line,
+        each queued cell also reports how many jobs are ahead of it (for example <em>Queued &middot; 1 ahead</em>).</p>
 
       <!-- 6 ───────────────────────────────────────────────────────────────── -->
       <h2 id="images">6. Worker container images <a class="anchor" href="#images">#</a></h2>
