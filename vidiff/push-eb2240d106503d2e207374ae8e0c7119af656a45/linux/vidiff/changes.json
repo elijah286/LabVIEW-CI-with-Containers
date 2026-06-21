@@ -1,0 +1,35 @@
+{
+  "platform": "linux",
+  "files": [
+    {
+      "file": "example/Basic Functions/Add.vi",
+      "type": "added",
+      "report": "example-Basic_Functions-Add.vi/index.html"
+    },
+    {
+      "file": "example/Basic Functions/Array of Waveforms.vi",
+      "type": "added",
+      "report": "example-Basic_Functions-Array_of_Waveforms.vi/index.html"
+    },
+    {
+      "file": "example/Basic Functions/Divide.vi",
+      "type": "added",
+      "report": "example-Basic_Functions-Divide.vi/index.html"
+    },
+    {
+      "file": "example/Basic Functions/Multiply.vi",
+      "type": "added",
+      "report": "example-Basic_Functions-Multiply.vi/index.html"
+    },
+    {
+      "file": "example/Basic Functions/Subtract.vi",
+      "type": "added",
+      "report": "example-Basic_Functions-Subtract.vi/index.html"
+    },
+    {
+      "file": "example/Basic Functions/Waveforms.vi",
+      "type": "added",
+      "report": "example-Basic_Functions-Waveforms.vi/index.html"
+    }
+  ]
+}
