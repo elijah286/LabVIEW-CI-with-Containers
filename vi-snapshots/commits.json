@@ -1,10 +1,10 @@
 [
   {
-    "sha": "29d43f043d308719c96a7a936ad7b42dd28efded",
-    "short": "29d43f0",
-    "message": "unit-tests: run UTF through native API wrapper",
+    "sha": "eb2240d106503d2e207374ae8e0c7119af656a45",
+    "short": "eb2240d",
+    "message": "example: run UTF tests from Example project",
     "author": "Elijah Kerry",
-    "date": "2026-06-21T09:22:42-05:00",
-    "vi_count": 54
+    "date": "2026-06-21T10:00:06-05:00",
+    "vi_count": 60
   }
 ]
