@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "platform": "linux-beta",
+  "version": "linux-beta-1fb755b8d592",
+  "labview_version": "2026",
+  "base_image": "nationalinstruments/labview:latest-linux",
+  "base_digest": "ghcr.io/elijah286/labview-ci-with-containers-labview@sha256:069096314f2522b7b6ed59f4ec62fd8bcdef5777e09d1406813cae818e02f1ea",
+  "image_ref": "ghcr.io/elijah286/labview-ci-with-containers-labview:linux-beta-1fb755b8d592",
+  "build_date": "2026-06-22T22:55:26Z",
+  "git_sha": "c95c5c573a72c5b7d34715eebbeab3124c294403",
+  "run_url": "https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/27989154862",
+  "vipc": [
+    {
+      "file": "Dependencies.vipc",
+      "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
+        "ni_lib_junit_results_api-1.0.1.6",
+        "ni_lib_simple_xml-1.0.0.4",
+        "ni_lib_utf_junit_report-1.0.1.43",
+        "oglib_appcontrol-4.1.0.7",
+        "oglib_array-4.1.0.13",
+        "oglib_error-4.2.0.23",
+        "oglib_file-4.0.0.20",
+        "oglib_lvdata-4.2.0.21",
+        "oglib_string-4.1.0.12"
+      ],
+      "present": true
+    }
+  ],
+  "nipkg_raw": "",
+  "nipkg_packages": []
+}
