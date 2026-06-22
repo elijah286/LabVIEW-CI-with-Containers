@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e",
+  "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
   "revisions": [
+    {
+      "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
+      "short": "00839e4",
+      "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T23:57:47Z"
+    },
     {
       "sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e",
       "short": "87482e2",
@@ -697,13 +704,6 @@
       "date": "2026-06-20T05:54:17Z"
     },
     {
-      "sha": "867967122ad4855ada1a39165b3459626246693c",
-      "short": "8679671",
-      "message": "header: Settings + Help nav on every page, with the current section highlighted (v3.23.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T05:32:06Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -830,6 +830,7 @@
       "capability": "",
       "configured": true,
       "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
         "ni_lib_junit_results_api-1.0.1.6",
         "ni_lib_simple_xml-1.0.0.4",
         "ni_lib_utf_junit_report-1.0.1.43",
