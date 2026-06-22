@@ -25,6 +25,7 @@ param(
     [string] $CacheDir      = 'C:\lvctl-cache',           # where lvctl extracts its embedded VIs
     [string] $RenderTimeout = '5m',                       # per-VI lvctl timeout
     [string] $LabVIEWPath   = '',                         # optional explicit LabVIEW.exe
+    [int]    $BatchTimeoutSeconds = 0,                    # total runner timeout; 0 derives from worklist and RenderTimeout
     [int]    $ComReadySeconds = 600                       # how long to wait for COM-ready LabVIEW
 )
 $ErrorActionPreference = 'Stop'
@@ -69,6 +70,23 @@ function Kill-LabVIEW {
     Start-Sleep -Seconds 3
 }
 
+function Convert-DurationToSeconds([string]$Value) {
+    if ($Value -match '^\s*(\d+)\s*ms\s*$') { return [Math]::Max(1, [int][Math]::Ceiling([double]$matches[1] / 1000.0)) }
+    if ($Value -match '^\s*(\d+)\s*s\s*$')  { return [int]$matches[1] }
+    if ($Value -match '^\s*(\d+)\s*m\s*$')  { return [int]$matches[1] * 60 }
+    if ($Value -match '^\s*(\d+)\s*h\s*$')  { return [int]$matches[1] * 3600 }
+    try { return [int][Math]::Ceiling(([TimeSpan]::Parse($Value)).TotalSeconds) }
+    catch { return 300 }
+}
+
+function Write-LogFile([string]$Label, [string]$Path) {
+    if (Test-Path $Path) {
+        Write-Host "--- $Label ---"
+        Get-Content $Path -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+        Write-Host "--- end $Label ---"
+    }
+}
+
 Write-Host "=== VI Browser 2.0 Windows render ==="
 $lvExe = Resolve-LabVIEWPath $LabVIEWPath
 Write-Host "  LabVIEW.exe : $lvExe"
@@ -94,8 +112,28 @@ $env:LVCTL           = $Lvctl
 $env:LVCTL_CACHE_DIR = $CacheDir
 $env:RENDER_TIMEOUT  = $RenderTimeout
 
-& $Runner
-$runnerExit = $LASTEXITCODE
+$worklistCount = @(Get-Content $Worklist -ErrorAction SilentlyContinue | Where-Object { $_.Trim() -ne '' }).Count
+$perRenderSeconds = Convert-DurationToSeconds $RenderTimeout
+if ($BatchTimeoutSeconds -le 0) {
+    $BatchTimeoutSeconds = [Math]::Max(300, ($worklistCount * $perRenderSeconds) + 180)
+}
+Write-Host "Runner timeout: $BatchTimeoutSeconds second(s) for $worklistCount worklist item(s)"
+
+$runnerOut = Join-Path $env:TEMP 'lvci-toimages-runner.stdout.log'
+$runnerErr = Join-Path $env:TEMP 'lvci-toimages-runner.stderr.log'
+Remove-Item $runnerOut, $runnerErr -Force -ErrorAction SilentlyContinue
+$runnerProcess = Start-Process -FilePath $Runner -NoNewWindow -PassThru -RedirectStandardOutput $runnerOut -RedirectStandardError $runnerErr
+if (-not $runnerProcess.WaitForExit($BatchTimeoutSeconds * 1000)) {
+    Write-Error "Go toimages batch runner timed out after $BatchTimeoutSeconds second(s)"
+    Stop-Process -Id $runnerProcess.Id -Force -ErrorAction SilentlyContinue
+    Kill-LabVIEW
+    Write-LogFile 'runner stdout' $runnerOut
+    Write-LogFile 'runner stderr' $runnerErr
+    exit 124
+}
+$runnerExit = $runnerProcess.ExitCode
+Write-LogFile 'runner stdout' $runnerOut
+Write-LogFile 'runner stderr' $runnerErr
 Write-Host "Runner exit code: $runnerExit"
 
 # Best-effort: leave LabVIEW closed so the container can stop cleanly.
