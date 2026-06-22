@@ -131,7 +131,12 @@ if (-not $runnerProcess.WaitForExit($BatchTimeoutSeconds * 1000)) {
     Write-LogFile 'runner stderr' $runnerErr
     exit 124
 }
+$runnerProcess.Refresh()
 $runnerExit = $runnerProcess.ExitCode
+if ($null -eq $runnerExit) {
+    Write-Host 'Go toimages batch runner exited but did not report an exit code; treating as failed.'
+    $runnerExit = 1
+}
 Write-LogFile 'runner stdout' $runnerOut
 Write-LogFile 'runner stderr' $runnerErr
 Write-Host "Runner exit code: $runnerExit"
@@ -141,5 +146,9 @@ Kill-LabVIEW
 
 $produced = @(Get-ChildItem -Path $OutByBlob -Recurse -Filter '*.json' -ErrorAction SilentlyContinue).Count
 Write-Host "=== done: $produced frame JSON file(s) under $OutByBlob ==="
+if (($runnerExit -eq 0) -and ($worklistCount -gt 0) -and ($produced -eq 0)) {
+    Write-Host 'Non-empty worklist produced zero frame JSON files; treating as failed.'
+    $runnerExit = 1
+}
 # Mirror the runner's contract: exit non-zero only if the runner itself failed.
 exit $runnerExit

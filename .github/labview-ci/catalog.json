@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.17",
+  "version": "3.34.18",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.18",
+        "date": "2026-06-22",
+        "title": "Windows VI Browser 2.0 zero-frame runs fail visibly",
+        "summary": "Windows VI Browser 2.0 render runs now propagate the Go runner process exit code reliably from the PowerShell container entrypoint. If the Go runner fails or a non-empty worklist produces zero frame JSON files, the workflow fails instead of finishing green with no Windows 2.0 output.",
+        "highlights": [
+          "Refreshes the runner process before reading ExitCode so failed Go render batches return non-zero from the container entrypoint.",
+          "Treats a missing runner exit code as a failed render instead of allowing PowerShell to exit 0.",
+          "Adds a final non-empty worklist / zero-output guard so Windows 2.0 runs cannot report success without published frames."
+        ]
+      },
       {
         "version": "3.34.17",
         "date": "2026-06-22",
