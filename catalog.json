@@ -1,66 +1,64 @@
 {
   "schemaVersion": 1,
-  "version": "3.33.1",
+  "version": "3.34.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
       {
-        "version": "3.33.1",
-        "date": "2026-06-21",
-        "title": "Unit-test dashboard badges show failed-test percentage with configurable gates",
-        "summary": "The dashboard's Unit Tests column now reports the percentage of tests that failed instead of a generic tests badge. Its colour is driven by repository-owned pass-rate thresholds in the Unit Testing configuration: green at 100% passed by default, yellow at 80% or better, and red below 80%. The Unit Testing page can edit those gates alongside framework locations, and the Reconfigure workflow writes them into the unitTests block without touching unrelated settings.",
+        "version": "3.34.2",
+        "date": "2026-06-22",
+        "title": "VI Browser 2.0 renders can be generated from the Windows container",
+        "summary": "The Windows VI Browser 2.0 path now uses the same cross-platform Go toimages renderer as the Linux path, built as Windows binaries and run inside the stock NI LabVIEW Windows container. Windows renders are published to Pages as <blob>.windows.json with a json-blobs.windows.json index, so the VI Browser's Windows tab can show the same in-place presentation as Linux once frames are generated. The Windows workflow skips only existing Windows JSON, so Linux <blob>.json files no longer hide missing Windows renders, and the catalog now installs the workflow plus its shared renderer assets.",
         "highlights": [
-          "Unit-test result badges now show the failed-test percentage, so a revision with partial failures is visible at a glance.",
-          "The Unit Testing configurator adds Green, Yellow, and Red threshold settings based on pass percentage; defaults are 100%, 80%, and below 80%.",
-          "Reconfigure preserves and writes the threshold policy under unitTests.thresholds.passedPercent, keeping test tools and quality gates separate."
+          "Adds the Windows VI Browser 2.0 workflow and shared toimages renderer assets to the snapshots capability, so consumers receive the Windows render path when they update.",
+          "Publishes <blob>.windows.json files and json-blobs.windows.json to Pages beside existing snapshot HTML and Linux <blob>.json frames.",
+          "Fixes Windows worklist seeding so existing Linux 2.0 frames never mask missing Windows 2.0 frames."
+        ]
+      },
+      {
+        "version": "3.34.1",
+        "date": "2026-06-22",
+        "title": "Header menus are unified into Settings and Tools",
+        "summary": "The desktop header now uses one consistent secondary menu model across dashboard, settings, report, and informational pages: Settings holds configuration sections, and Tools holds page-specific actions plus Clients, About, What's New / update status, and Appearance. The old Help plus three-dot split is removed, so the menus no longer duplicate each other or stack into overlapping popovers.",
+        "highlights": [
+          "Replaces the Help + three-dot split with a single Tools menu for shared utilities and page-specific actions.",
+          "Keeps Settings as the only configuration menu and makes the same Settings / Tools structure available across pages.",
+          "Opening Settings or Tools closes the other menu, eliminating the visible overlap state."
+        ]
+      },
+      {
+        "version": "3.34.0",
+        "date": "2026-06-22",
+        "title": "Dependency-aware worker image gating and dashboard inventory",
+        "summary": "Repo VIPC dependency changes now block downstream LabVIEW pipeline tasks until the matching worker image build has finished and the rebuilt GHCR image is available. The shared header shows a repo-wide banner while the worker image is updating, and the dashboard adds a top-level Dependencies page that lists every VIPC file, the packages inside it, and which runner/container columns currently include those packages.",
+        "highlights": [
+          "Adds a shared worker-image wait helper used by LabVIEW container workflows so VIPC changes do not run against stale containers.",
+          "Shows a global dashboard banner while Build LabVIEW CI Image is queued or running, explaining that pipeline tasks are waiting for the rebuilt GHCR image.",
+          "Adds the Dependencies tab with a VIPC/package tree and per-runner coverage columns backed by the generated dashboard dependency index."
+        ]
+      },
+      {
+        "version": "3.33.1",
+        "date": "2026-06-22",
+        "title": "Dashboard and VI Browser fit mobile screens",
+        "summary": "The dashboard revision table now switches to stacked cards at mobile and narrow-tablet widths, with filter controls and result badges wrapping inside the viewport instead of forcing horizontal overflow. The VI Browser now stacks its file tree above the viewer on phone-sized screens, so the sidebar no longer consumes nearly the whole width or pushes the viewer off the right edge.",
+        "highlights": [
+          "Dashboard revision rows collapse into width-safe cards earlier and wrap their controls cleanly on small screens.",
+          "VI Browser uses a stacked mobile layout with a bounded file tree and a full-width viewer below it.",
+          "A mobile audit at 390px and 320px confirmed the dashboard, VI Browser, and the rest of the dashboard pages avoid page-level horizontal overflow."
         ]
       },
       {
         "version": "3.33.0",
         "date": "2026-06-21",
-        "title": "Reliable VIPM dependency baking: layered worker image, headless UTF JUnit support, and a dependency gate",
-        "summary": "The Windows worker image is now built in two layers - a reusable LabVIEW+VIPM base image and a thin per-repo dependency layer - so changing a repo's .vipc no longer reinstalls VIPM. Project .vipc files are discovered recursively and baked headlessly without a VIPM Pro licence, via a public-index fallback that downloads and installs package files directly when the container's VIPM resolver is empty. The UTF JUnit reporter (ni_lib_utf_junit_report) and its dependencies now install reliably, so the built-in 'LabVIEWCLI -OperationName RunUnitTests' operation executes the tests and emits a JUnit report instead of failing with error -350053. Container activities (VI Analyzer, Mass Compile, Unit Tests, Antidoc, VIDiff) wait for the worker image rebuild before they run, so they never execute against a worker missing a dependency. Heavy add-ons that can wedge the headless VIPM engine (e.g. Antidoc) install best-effort so they can never fail an otherwise-good image build.",
+        "title": "Help and the three-dot menu are consolidated",
+        "summary": "The top navigation now keeps shared utilities in one Help menu: Clients, About, What's New / update status, and Appearance. The three-dot menu is no longer a second utility menu; it only appears on pages that have extra context-specific commands, such as Populate history or VI Browser renders on the dashboard. This keeps settings and informational pages cleaner while preserving every existing action.",
         "highlights": [
-          "Two-layer Windows image: a reusable LabVIEW+VIPM base plus a thin per-repo VIPC layer, so dependency changes no longer reinstall VIPM.",
-          "Headless VIPC baking with no VIPM Pro licence, including a public-index fallback for an empty container resolver.",
-          "UTF JUnit reporter installs reliably - RunUnitTests now runs the tests and writes a JUnit report (no more -350053).",
-          "Recursive .vipc discovery; required UTF essentials and project dependencies install first, tooling add-ons (Antidoc/Caraya/VI Tester) are best-effort.",
-          "Dependency gate: container activities wait for the worker image rebuild for a revision before running."
-        ]
-      },
-      {
-        "version": "3.32.3",
-        "date": "2026-06-21",
-        "title": "VI Browser 2.0 dispatches the selected platform workflow",
-        "summary": "Fixes the Run button shown when a Windows VI Browser 2.0 render is missing. The empty-state panel now keeps the selected platform, checks the matching workflow, and dispatches Windows renders through vi-snapshots.yml instead of the retired vi-snapshots-json-windows.yml workflow. Linux 2.0 renders continue to use vi-snapshots-json.yml. The dispatch also targets the repository's default branch instead of assuming main, and the installer no longer lists the removed Windows JSON workflow file.",
-        "highlights": [
-          "Missing Windows 2.0 frames dispatch vi-snapshots.yml, the workflow that now emits Windows frames JSON.",
-          "Missing Linux 2.0 frames continue to dispatch vi-snapshots-json.yml.",
-          "Removed the stale vi-snapshots-json-windows.yml catalog file entry and default-branch dispatch assumption."
-        ]
-      },
-      {
-        "version": "3.32.2",
-        "date": "2026-06-21",
-        "title": "VI Browser 2.0 always shows a generate prompt when frames are missing",
-        "summary": "Fixes a blank VI Browser 2.0 panel that could appear when the selected Windows or Linux frames JSON was missing or contained no drawable diagram. The empty-state prompt now resolves the current revision safely and appears reliably, so the Run button can dispatch the matching 2.0 snapshot workflow instead of leaving an empty viewer.",
-        "highlights": [
-          "Missing Windows/Linux 2.0 frames now reliably show the generate prompt instead of a blank panel.",
-          "The prompt reads the selected revision safely from the page, avoiding a ReferenceError in the empty-state path.",
-          "Non-drawable 2.0 frame JSON is treated as missing frames and routes to the same generate prompt."
-        ]
-      },
-      {
-        "version": "3.32.1",
-        "date": "2026-06-20",
-        "title": "VI Browser 2.0 missing platform renders now stay actionable",
-        "summary": "When Windows or Linux 2.0 frames are missing for the selected VI, the VI Browser now keeps that platform selected and shows the empty render panel instead of disabling the platform or falling back to the other renderer. The panel offers the matching platform snapshot run for the current revision, so a missing Windows render prompts the Windows 2.0 workflow and a missing Linux render prompts the Linux 2.0 workflow.",
-        "highlights": [
-          "Windows and Linux 2.0 platform buttons stay clickable even when that platform has no frames yet.",
-          "Missing platform frames show an empty panel that names the selected platform and workflow.",
-          "The run button dispatches the selected platform workflow for the current revision and VI context."
+          "Help now owns Clients, About, What's New / update status, and Appearance in one predictable place.",
+          "The three-dot menu hides on pages with no extra context actions instead of duplicating the Help menu.",
+          "Dashboard-specific commands still live in the three-dot menu, so Populate history and VI Browser renders remain available."
         ]
       },
       {
@@ -2197,7 +2195,8 @@
       ".github/labview-ci/install.py",
       ".github/labview-ci/install.sh",
       ".github/labview-ci/install.ps1",
-      ".github/labview-ci/README.md"
+      ".github/labview-ci/README.md",
+      ".github/labview/wait-for-worker-image.sh"
     ]
   },
   "capabilities": [
@@ -2224,6 +2223,7 @@
           ".github/pages/report-viewer.html",
           ".github/pages/integrate.html",
           ".github/pages/configure.html",
+          ".github/pages/dependencies.html",
           ".github/pages/whats-new.html",
           ".github/pages/unit-tests.html"
         ],
@@ -2358,13 +2358,16 @@
         ],
         "windows": [
           ".github/workflows/vi-snapshots.yml",
+          ".github/workflows/vi-snapshots-json-windows.yml",
           ".github/labview/build-snapshots.ps1",
           ".github/labview/render-snapshots.ps1",
+          ".github/labview/build-json-worklist.sh",
+          ".github/labview/toimages/",
           ".github/labview/export-vi-snapshots.ps1"
         ],
         "linux": []
       },
-      "notes": "Snapshot rendering currently runs on the Windows container."
+      "notes": "Snapshot rendering runs on the Windows container. VI Browser 2.0 can also publish Windows frames JSON beside the Linux 2.0 frames."
     },
     {
       "id": "custom-image",
@@ -2381,14 +2384,11 @@
       "statusContext": null,
       "files": {
         "any": [
-          ".github/labview/build-worker-manifest.py",
-          ".github/labview/wait-for-worker-images.sh"
+          ".github/labview/build-worker-manifest.py"
         ],
         "windows": [
           ".github/workflows/build-labview-image.yml",
           ".github/docker/labview-ci.Dockerfile",
-          ".github/docker/labview-vipm-base.Dockerfile",
-          ".github/docker/labview-vipc-layer.Dockerfile",
           ".github/labview/vipm/"
         ],
         "linux": [
@@ -2396,7 +2396,7 @@
           ".github/docker/labview-ci-linux.Dockerfile"
         ]
       },
-      "notes": "Only required if you want the full VI Analyzer test set or to bake .vipc dependencies into the worker. Any repo .vipc is detected and baked automatically. Non-2026 LabVIEW versions need a matching nipkg feed URL (build-arg)."
+      "notes": "Only required if you want the full VI Analyzer test set or to bake .vipc dependencies into the worker. Any repo-root *.vipc is detected and baked automatically. Non-2026 LabVIEW versions need a matching nipkg feed URL (build-arg)."
     },
     {
       "id": "unit-tests",
