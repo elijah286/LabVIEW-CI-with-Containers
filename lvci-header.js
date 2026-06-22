@@ -547,8 +547,6 @@
   // ── Primary navigation (the durable site sections). Data-driven so future
   //    capabilities — Builds, Documentation, Unit Tests — are a one-line add. ─
   var NAV = [
-    { key: 'dashboard',   label: 'Dashboard',    href: navBase + '/' },
-    { key: 'vi-browser',  label: 'VI Browser',   href: navBase + '/vi-snapshots/' },
     { key: 'dependencies', label: 'Dependencies', href: navBase + '/dependencies.html' },
     // Developer documentation. `doc: true` resolves the href/target at render
     // time from docUrl() / docExternal() (the canonical source site's
@@ -561,7 +559,7 @@
   // Which nav item is "current" for each context (drives the active pill).
   var NAV_ACTIVE = {
     'dashboard': 'dashboard',
-    'vi-browser': 'vi-browser',
+    'vi-browser': 'dashboard',
     'dependencies': 'dependencies',
     'vi-analyzer-report': 'dashboard',
     'masscompile-report': 'dashboard',
@@ -618,6 +616,69 @@
   // Order the per-revision activities appear in the context-bar Activity picker
   // (the report half of the unified Activity switcher; per-VI lenses join later).
   var LENS_ORDER = ['snapshots', 'masscompile-report', 'vi-analyzer-report', 'unit-tests-report', 'antidoc-report'];
+
+  var SHA_RE = /^[0-9a-f]{7,40}$/i;
+  var revisionListCache = {};
+  function jget(u) { return fetch(u, { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function currentRevisionSha() {
+    if (cfg.sha && SHA_RE.test(cfg.sha)) return cfg.sha;
+    try {
+      var q = new URLSearchParams(location.search).get('sha');
+      if (q && SHA_RE.test(q)) return q;
+    } catch (e) {}
+    try {
+      var sel = document.getElementById('commit-select');
+      var v = sel && sel.value;
+      if (v && SHA_RE.test(v)) return v;
+    } catch (e2) {}
+    return '';
+  }
+  function loadRevisionList(root) {
+    root = trimSlash(root || base);
+    if (revisionListCache[root]) return revisionListCache[root];
+    revisionListCache[root] = Promise.all([jget(root + '/vi-snapshots/files.json'), jget(root + '/vi-snapshots/commits.json')]).then(function (res) {
+      var filesDoc = res[0], snap = res[1];
+      var fileCommits = (filesDoc && Array.isArray(filesDoc.commits)) ? filesDoc.commits : [];
+      var fileShas = {}; fileCommits.forEach(function (c) { if (c && c.sha) fileShas[c.sha] = 1; });
+      var order = [], bySha = {};
+      var put = function (c) { if (!c || !c.sha) return; var p = bySha[c.sha] || {}; for (var k in c) if (c[k] != null) p[k] = c[k]; bySha[c.sha] = p; if (order.indexOf(c.sha) < 0) order.push(c.sha); };
+      (Array.isArray(snap) ? snap : []).forEach(function (c) { if (!fileShas[c.sha]) put(c); });
+      fileCommits.forEach(function (c) { put({ sha: c.sha, short: c.short, message: c.message, author: c.author, date: c.date }); });
+      var list = order.map(function (s) { return bySha[s]; }).filter(function (c) { return c && c.sha; });
+      var cur = currentRevisionSha();
+      if (cur && !bySha[cur]) list.unshift({ sha: cur, short: cur.slice(0, 7), message: '' });
+      return list;
+    }).catch(function () { return []; });
+    return revisionListCache[root];
+  }
+  function resolveRevisionSha(root) {
+    var cur = currentRevisionSha();
+    if (cur) return Promise.resolve(cur);
+    return loadRevisionList(root).then(function (list) { return (list[0] && list[0].sha) || ''; });
+  }
+  function activityDest(key, sha, root) {
+    root = trimSlash(root || base);
+    if (key === 'snapshots') return root + '/vi-snapshots/' + (sha ? '?sha=' + encodeURIComponent(sha) : '');
+    var d = DOCTYPES[key]; if (!d || !sha) return root + '/';
+    var bare = root + '/' + d.prefix + '/' + sha + '/index.html';
+    var title = d.label + ' \u00b7 ' + sha.slice(0, 7);
+    return root + '/report/index.html?type=' + encodeURIComponent(key)
+         + '&sha=' + encodeURIComponent(sha)
+         + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
+         + '&src=' + encodeURIComponent(bare)
+         + '&title=' + encodeURIComponent(title);
+  }
+  function wireActivityLink(el, key, root, close) {
+    root = trimSlash(root || base);
+    el.href = activityDest(key, currentRevisionSha(), root);
+    resolveRevisionSha(root).then(function (sha) { if (sha) el.href = activityDest(key, sha, root); });
+    el.addEventListener('click', function (e) {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      if (close) close();
+      resolveRevisionSha(root).then(function (sha) { window.location.href = activityDest(key, sha, root); });
+    });
+  }
 
   // ── Context actions (surfaced on the right; collapse into the mobile menu).
   //    Each action: {label, kind|href, primary|accent, newTab}. `kind` triggers
@@ -696,6 +757,16 @@
       'documentation': cfgMenu
     };
     return (A[ctx] || cfgMenu).filter(Boolean);
+  }
+  function buildDashboardNavItems() {
+    return [
+      { label: 'Overview', href: navBase + '/' },
+      { label: 'VI Browser', svg: ICON.vibrowser, activity: 'snapshots' },
+      { label: 'Mass Compile', svg: ICON.configure, activity: 'masscompile-report' },
+      { label: 'VI Analyzer', svg: ICON.vianalyzer, activity: 'vi-analyzer-report' },
+      { label: 'Unit Tests', svg: ICON.tests, activity: 'unit-tests-report' },
+      { label: 'Antidoc', svg: ICON.docs, activity: 'antidoc-report' }
+    ];
   }
 
   // ── The canonical tooling site's Pages URL, derived from owner/repo the same
@@ -958,7 +1029,10 @@
     popoverCloses.push(close);
     items.forEach(function (a) {
       var el;
-      if (a.href) {
+      if (a.activity) {
+        el = document.createElement('a');
+        wireActivityLink(el, a.activity, navBase, close);
+      } else if (a.href) {
         el = document.createElement('a'); el.href = a.href;
         if (a.newTab) { el.target = '_blank'; el.rel = 'noopener'; }
         el.addEventListener('click', close);
@@ -1054,18 +1128,7 @@
   // in the context bar) and reuses its summary.json availability probe, so a report
   // that was not produced for this revision is shown disabled rather than 404ing.
   function lensDest(key, sha) {
-    sha = sha || cfg.sha || '';
-    if (key === 'snapshots') return base + '/vi-snapshots/' + (sha ? '?sha=' + encodeURIComponent(sha) : '');
-    var d = DOCTYPES[key]; if (!d || !sha) return base + '/';
-    // Always open a report through the framed viewer (shared chrome + this picker),
-    // whether we came from another report or from the VI Browser.
-    var bare = base + '/' + d.prefix + '/' + sha + '/index.html';
-    var title = d.label + ' \u00b7 ' + sha.slice(0, 7);
-    return base + '/report/index.html?type=' + encodeURIComponent(key)
-         + '&sha=' + encodeURIComponent(sha)
-         + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
-         + '&src=' + encodeURIComponent(bare)
-         + '&title=' + encodeURIComponent(title);
+    return activityDest(key, sha || cfg.sha || '', base);
   }
   function reportExists(d, sha) {
     if (!d || !sha) return Promise.resolve(false);
@@ -1170,17 +1233,7 @@
   }
   function loadRevisions(selects) {
     if (!DOC || !selects.length) return;
-    var jget = function (u) { return fetch(u, { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
-    Promise.all([jget(base + '/vi-snapshots/files.json'), jget(base + '/vi-snapshots/commits.json')]).then(function (res) {
-      var filesDoc = res[0], snap = res[1];
-      var fileCommits = (filesDoc && Array.isArray(filesDoc.commits)) ? filesDoc.commits : [];
-      var fileShas = {}; fileCommits.forEach(function (c) { fileShas[c.sha] = 1; });
-      var order = [], bySha = {};
-      var put = function (c) { if (!c || !c.sha) return; var p = bySha[c.sha] || {}; for (var k in c) if (c[k] != null) p[k] = c[k]; bySha[c.sha] = p; if (order.indexOf(c.sha) < 0) order.push(c.sha); };
-      (Array.isArray(snap) ? snap : []).forEach(function (c) { if (!fileShas[c.sha]) put(c); });
-      fileCommits.forEach(function (c) { put({ sha: c.sha, short: c.short, message: c.message, author: c.author, date: c.date }); });
-      var list = order.map(function (s) { return bySha[s]; });
-      if (cfg.sha && !bySha[cfg.sha]) list.unshift({ sha: cfg.sha, short: cfg.short || cfg.sha.slice(0, 7), message: '' });
+    loadRevisionList(base).then(function (list) {
 
       // Probe which revisions actually have a report of THIS type; the current
       // revision is known-present (it's the page we're on).
@@ -1204,8 +1257,8 @@
       function next() {
         if (idx >= total) return;
         var c = toCheck[idx++];
-        fetch(base + '/' + DOC.prefix + '/' + c.sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
-          .then(function (r) { avail[c.sha] = r.ok; }).catch(function () { avail[c.sha] = false; })
+        reportExists(DOC, c.sha)
+          .then(function (ok) { avail[c.sha] = ok; })
           .then(function () { done++; if (done === total) fill(); else next(); });
       }
       for (var k = 0; k < Math.min(CAP, total); k++) next();
@@ -1402,6 +1455,8 @@
     var nav = document.createElement('nav');
     nav.className = 'lvci-nav';
     var activeKey = NAV_ACTIVE[ctx] || '';
+    var dashboardItems = buildDashboardNavItems();
+    nav.appendChild(makeNavDropdown('Dashboard', dashboardItems, activeKey === 'dashboard'));
     NAV.forEach(function (n) {
       var a = document.createElement('a');
       a.href = n.doc ? docUrl() : n.href;
@@ -1459,6 +1514,13 @@
     // Mobile menu
     var menu = document.createElement('div');
     menu.className = 'lvci-menu';
+    dashboardItems.forEach(function (n) {
+      var a = document.createElement('a');
+      if (n.activity) wireActivityLink(a, n.activity, navBase, function () { menu.classList.remove('open'); });
+      else a.href = n.href;
+      a.innerHTML = iconHtml(n) + esc(n.label);
+      menu.appendChild(a);
+    });
     NAV.forEach(function (n) {
       var a = document.createElement('a');
       a.href = n.doc ? docUrl() : n.href;
