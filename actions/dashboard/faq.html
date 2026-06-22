@@ -183,6 +183,29 @@
 
     <div class="faq-item">
       <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+        <span>When does the worker container get rebuilt, and how long does it take?</span>
+        <span class="faq-icon">▼</span>
+      </div>
+      <div class="faq-a">
+        <p>Rebuilding the worker image is a <strong>heavy step — usually 15+ minutes</strong> — because it installs LabVIEW, your VI Package dependencies, and any baked tooling from scratch. It is intentionally <em>not</em> run on every commit. A rebuild happens only when something that changes the container's contents changes:</p>
+        <ul>
+          <li><strong>Your dependencies change</strong> — you edit or add a project <code>.vipc</code> (VI Package Configuration) that is monitored.</li>
+          <li><strong>The build inputs change</strong> — the worker Dockerfile or the VIPM assets under <code>.github/labview/vipm/</code>.</li>
+          <li><strong>A reconfigure that affects the image</strong> — for example changing the LabVIEW version or toggling baked tooling such as Antidoc.</li>
+          <li><strong>On a schedule or on demand</strong> — a monthly rebuild for base-image security updates, or when you click <strong>Build / Rebuild now</strong>.</li>
+        </ul>
+        <p><strong>You are told up front.</strong> When you start an action that requires a rebuild, the dashboard asks you to acknowledge it first, so a 15-minute wait is never a surprise. While the rebuild runs, a banner across the top of the dashboard links to the live <em>Build LabVIEW CI Image</em> run, and any pipeline task that needs the container <strong>waits</strong> for the new image to be published before it starts — so CI never runs against a half-updated container. The previous image stays available in GHCR until the new one is pushed.</p>
+        <p><strong>In-flight work is coordinated, not clobbered.</strong> Before the rebuild, LabVIEW CI handles jobs that are already running against the container according to your <strong>rebuild policy</strong>:</p>
+        <ul>
+          <li><strong>Drain</strong> (default) — let already-running jobs finish, then rebuild. Nothing in progress is lost.</li>
+          <li><strong>Cancel</strong> — stop already-running jobs immediately, then rebuild, for the fastest possible turnaround.</li>
+        </ul>
+        <p>Either way, brand-new jobs queued during the rebuild simply wait and pick up the fresh image automatically. Set the policy in <code>.github/labview-ci.yml</code> under <code>container.rebuildPolicy</code>, or choose it when you trigger a manual rebuild.</p>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
         <span>How do I update LabVIEW CI to a new version?</span>
         <span class="faq-icon">▼</span>
       </div>

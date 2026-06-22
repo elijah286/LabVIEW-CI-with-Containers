@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.25",
+  "version": "3.35.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.35.0",
+        "date": "2026-06-22",
+        "title": "Transparent worker-container rebuilds with in-flight coordination",
+        "summary": "Rebuilding the worker container is a lengthy (15+ minute) step, so it is now coordinated and transparent. Before a rebuild starts, LabVIEW CI handles CI that is already running against the container according to a configurable policy -- drain (let running jobs finish first, the default) or cancel (stop them now) -- and only ever touches jobs that started before the rebuild, so there is no wait deadlock with the tasks that already wait for the new image. The FAQ now explains exactly when a rebuild happens, how long it takes, and how in-flight work is handled.",
+        "highlights": [
+          "Adds a coordinate step to Build LabVIEW CI Image that drains or cancels in-flight worker-container CI before the rebuild, per container.rebuildPolicy in .github/labview-ci.yml (default drain) or a rebuild_policy dispatch input.",
+          "Skips jobs newer than the rebuild (already gated by wait-for-worker-image) so draining never deadlocks, and is best-effort so it never blocks the actual rebuild.",
+          "Documents the worker-container rebuild lifecycle -- triggers, the 15+ minute duration, the queue-and-wait behavior, and drain vs cancel -- in the FAQ."
+        ]
+      },
       {
         "version": "3.34.25",
         "date": "2026-06-22",
