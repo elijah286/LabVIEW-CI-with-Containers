@@ -310,7 +310,7 @@ func parseExePath(raw string) string {
 // This is a fallback for when COM CreateObject cannot cold-launch LabVIEW
 // (e.g. from a service context with restricted COM activation).
 func launchLabVIEWProcess(exePath string) error {
-	cmd := exec.Command(exePath)
+	cmd := exec.Command(exePath, "/Automation")
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}

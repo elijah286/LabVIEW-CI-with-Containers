@@ -1,14 +1,14 @@
 <#
   windows-render.ps1 - in-container entrypoint for VI Browser 2.0 rendering on
   Windows. This is the Windows counterpart of docker-entrypoint.sh (Linux): it
-  prepares a COM-ready headless LabVIEW inside the stock NI LabVIEW Windows
-  container, then runs the SAME portable batch runner (runner.exe, built from
-  .github/labview/toimages/main.go) which shells out to lvctl.exe per VI.
+    prepares the stock NI LabVIEW Windows container, then runs the SAME portable
+    batch runner (runner.exe, built from .github/labview/toimages/main.go) which
+    shells out to lvctl.exe per VI.
 
   Linux drives LabVIEW over VI Server TCP under Xvfb; Windows drives the very same
   lvctl engine over COM/ActiveX (viserver_windows.go) - no Xvfb, no TCP. The
-  COM-ready-headless launch below is the approach proven by toimages-probe.ps1
-  (LabVIEW.ini scripting tokens + "LabVIEW.exe -Headless /Automation").
+    Windows uses the Go lvctl transport to attach to or launch LabVIEW; this script
+    does not gate rendering on a separate PowerShell COM probe.
 
   The runner writes <blob[:2]>/<blob>.json into -OutByBlob exactly like Linux;
   the calling workflow renames those to <blob>.windows.json on publish so the
@@ -64,14 +64,6 @@ function Enable-Scripting([string]$ExePath) {
     Write-Host "  [ini] scripting tokens ensured in $ini"
 }
 
-function Attach-Com {
-    try {
-        $app = [System.Runtime.InteropServices.Marshal]::GetActiveObject('LabVIEW.Application')
-        if ([string]$app.Version -ne '') { return $app }
-    } catch { }
-    return $null
-}
-
 function Kill-LabVIEW {
     Get-Process LabVIEW -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 3
@@ -85,36 +77,16 @@ Write-Host "  Worklist    : $Worklist  (exists: $(Test-Path $Worklist))"
 Write-Host "  OutByBlob   : $OutByBlob"
 Write-Host "  lvctl.exe   : $Lvctl  (exists: $(Test-Path $Lvctl))"
 Write-Host "  runner.exe  : $Runner (exists: $(Test-Path $Runner))"
-Write-Host "  COM wait    : ${ComReadySeconds}s"
 
 New-Item -ItemType Directory -Force -Path $OutByBlob | Out-Null
 New-Item -ItemType Directory -Force -Path $CacheDir  | Out-Null
 Enable-Scripting $lvExe
 
-# Pre-launch ONE headless, automation-enabled LabVIEW and wait until it is
-# COM-ready, so every per-VI lvctl invocation ATTACHES (GetActiveObject) to this
-# instance instead of cold-launching its own. Mirrors the Linux entrypoint, which
-# pre-launches LabVIEW and lets the runner attach.
-Write-Host "Launching headless LabVIEW (-Headless /Automation)..."
+# Match the Linux ownership boundary: the Go runner shells out to lvctl, and
+# lvctl owns LabVIEW attach/launch/readiness using its Windows transport. A
+# separate PowerShell COM readiness probe can block a valid Go fallback path.
+Write-Host "Starting Go toimages batch runner..."
 Kill-LabVIEW
-Start-Process -FilePath $lvExe -ArgumentList '-Headless /Automation'
-$app = $null
-for ($i = 1; $i -le [math]::Ceiling($ComReadySeconds / 4); $i++) {
-    if (@(Get-Process LabVIEW -ErrorAction SilentlyContinue).Count -eq 0) {
-        Write-Host "  LabVIEW.exe exited unexpectedly at poll $i"; break
-    }
-    $app = Attach-Com
-    if ($app) { Write-Host "  COM-ready after ~$($i*4)s - LabVIEW $([string]$app.Version)"; break }
-    Start-Sleep -Seconds 4
-}
-if (-not $app) {
-    Write-Error "LabVIEW never became COM-ready within ${ComReadySeconds}s; cannot render."
-    exit 1
-}
-
-# Hand off to the SAME portable batch runner used on Linux. It reads the worklist
-# and shells `lvctl toimages <vi>` per VI; lvctl (Windows build) attaches to the
-# LabVIEW above over COM, captures images, and prints frames JSON to stdout.
 $env:WORKSPACE       = $Workspace
 $env:WORKLIST        = $Worklist
 $env:OUT_BY_BLOB     = $OutByBlob
@@ -122,13 +94,11 @@ $env:LVCTL           = $Lvctl
 $env:LVCTL_CACHE_DIR = $CacheDir
 $env:RENDER_TIMEOUT  = $RenderTimeout
 
-Write-Host "Starting batch runner..."
 & $Runner
 $runnerExit = $LASTEXITCODE
 Write-Host "Runner exit code: $runnerExit"
 
 # Best-effort: leave LabVIEW closed so the container can stop cleanly.
-try { if ($app) { $app.Quit() } } catch { }
 Kill-LabVIEW
 
 $produced = @(Get-ChildItem -Path $OutByBlob -Recurse -Filter '*.json' -ErrorAction SilentlyContinue).Count
