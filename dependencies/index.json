@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "83be87b0ab8d8bb167076b77a251cd73c1ff9964",
+  "sha": "ffd7c07bbd35e23ade119e6163b24b7265ec2ef0",
   "revisions": [
+    {
+      "sha": "ffd7c07bbd35e23ade119e6163b24b7265ec2ef0",
+      "short": "ffd7c07",
+      "message": "Release v3.34.23 dashboard API timeout",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T12:55:28Z"
+    },
     {
       "sha": "83be87b0ab8d8bb167076b77a251cd73c1ff9964",
       "short": "83be87b",
@@ -695,13 +702,6 @@
       "message": "worker: install UTF from its dedicated NI Package Manager feed (v3.11.2)",
       "author": "Elijah Kerry",
       "date": "2026-06-19T16:30:38Z"
-    },
-    {
-      "sha": "213a1f88bb583413dcd71cb889c5293835ced63a",
-      "short": "213a1f8",
-      "message": "unit-test report: banner when the container is missing required tooling (v3.11.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T16:16:09Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
