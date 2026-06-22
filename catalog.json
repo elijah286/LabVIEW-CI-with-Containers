@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.35.6",
+  "version": "3.36.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.36.0",
+        "date": "2026-06-22",
+        "title": "Fresh installs build the worker container image automatically and CI waits for it",
+        "summary": "Installing into a new repository now makes the container CI work end to end without a manual step. When the custom-image capability is installed, Apply to New Repo dispatches the Build LabVIEW CI Image workflow the moment the install merges, so the worker container image (ghcr.io/<owner>/<repo>-labview, built with your baked dependency VIPC) exists for the first run. Container activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) now wait for an in-progress image build instead of failing with a confusing manifest unknown / Failed to start container error. The README dashboard badge is also added correctly when the repository has a non-markdown README (e.g. ReadMe.txt): a proper README.md is created so the badge and link render instead of showing raw markdown.",
+        "highlights": [
+          "Apply to New Repo builds the worker container image right after the install merges, so container CI is ready without a separate manual build",
+          "Container CI activities wait for an in-progress worker-image build (with clear guidance on timeout) instead of failing on a missing image",
+          "Non-markdown READMEs (ReadMe.txt, etc.) get a real README.md with the dashboard badge so the link renders, leaving the original file untouched"
+        ]
+      },
       {
         "version": "3.35.6",
         "date": "2026-06-22",
