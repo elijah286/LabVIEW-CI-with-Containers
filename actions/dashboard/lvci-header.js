@@ -1067,6 +1067,13 @@
          + '&src=' + encodeURIComponent(bare)
          + '&title=' + encodeURIComponent(title);
   }
+  function reportExists(d, sha) {
+    if (!d || !sha) return Promise.resolve(false);
+    var root = base + '/' + d.prefix + '/' + sha + '/';
+    return fetch(root + 'summary.json', { method: 'HEAD', cache: 'no-cache' })
+      .then(function (r) { return r.ok ? true : fetch(root + 'index.html', { method: 'HEAD', cache: 'no-cache' }).then(function (rr) { return rr.ok; }); })
+      .catch(function () { return fetch(root + 'index.html', { method: 'HEAD', cache: 'no-cache' }).then(function (r) { return r.ok; }).catch(function () { return false; }); });
+  }
   function makeLensPicker(opts) {
     opts = opts || {};
     var current = opts.current || ctx;
@@ -1128,8 +1135,8 @@
       var d = DOCTYPES[key];
       if (!d || !sha) { go(key, sha); return; }
       note.textContent = '';
-      fetch(base + '/' + d.prefix + '/' + sha + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
-        .then(function (r) { if (r.ok) go(key, sha); else noReport(d); })
+      reportExists(d, sha)
+        .then(function (ok) { if (ok) go(key, sha); else noReport(d); })
         .catch(function () { noReport(d); });
       function noReport(dd) {
         sel.value = current;
@@ -1144,8 +1151,8 @@
       LENS_ORDER.forEach(function (key) {
         if (key === current || key === 'snapshots') return;
         var d = DOCTYPES[key]; if (!d) return;
-        fetch(base + '/' + d.prefix + '/' + getSha() + '/summary.json', { method: 'HEAD', cache: 'no-cache' })
-          .then(function (r) { if (!r.ok) disableOpt(key, d); })
+        reportExists(d, getSha())
+          .then(function (ok) { if (!ok) disableOpt(key, d); })
           .catch(function () { disableOpt(key, d); });
       });
     }

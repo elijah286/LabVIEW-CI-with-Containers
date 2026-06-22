@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.3",
+  "version": "3.34.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.4",
+        "date": "2026-06-22",
+        "title": "Activity switcher opens reports when the page exists",
+        "summary": "The VI Browser Activity switcher now treats a report as available when either its summary.json or its index.html exists for the selected revision. Previously it only trusted summary.json, so choosing Mass Compile, VI Analyzer, Unit Tests, or Antidoc could appear to do nothing even when the report page itself had been generated. The switcher still avoids missing reports, but now falls back to the real report page before showing the 'none yet' message.",
+        "highlights": [
+          "Activity report probes now fall back from summary.json to index.html for the selected revision.",
+          "Existing report pages open from the VI Browser Activity switcher even if their summary metadata is missing.",
+          "Missing reports still stay guarded, so the switcher does not intentionally navigate to a 404."
+        ]
+      },
       {
         "version": "3.34.3",
         "date": "2026-06-22",
