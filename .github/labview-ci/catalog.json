@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.35.3",
+  "version": "3.35.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.35.4",
+        "date": "2026-06-22",
+        "title": "Dependencies page surfaces the Linux note as a column info popover",
+        "summary": "The standalone \"Linux VIPC support is coming\" banner on the Dependencies page is gone. The Linux column header now carries the same info (i) marker the Win Beta column uses, and clicking it opens a popover explaining that the Linux container does not yet apply repository VIPC configurations, so Linux package coverage shows as missing for now. The Win Beta popover, which previously rendered far too narrow near the right edge of the table, now opens at a stable readable width.",
+        "highlights": [
+          "Replaces the page-wide Linux VIPC banner with a compact info popover on the Linux column header, matching the Win Beta treatment.",
+          "Gives the column info popover a fixed 320px width so it no longer collapses to one word per line near the right edge.",
+          "Keeps the same explanation text; only its presentation moved from a banner to an on-demand popover."
+        ]
+      },
       {
         "version": "3.35.3",
         "date": "2026-06-22",

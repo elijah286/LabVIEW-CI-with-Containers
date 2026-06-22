@@ -12,7 +12,7 @@
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5}a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 64px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.hero h1{margin:0 0 4px;font-size:1.55em}.sub{margin:0;color:var(--fg-muted);font-size:.9em}.controls{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:12px;align-items:end;margin:18px 0}.field label{display:block;color:var(--fg-muted);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}select,button{font:inherit}select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg)}button{border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--fg);padding:9px 12px;cursor:pointer}button:hover{border-color:var(--link)}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px}.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px}.card .k{color:var(--fg-muted);font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.card .v{margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.note{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:11px 13px;color:var(--fg-muted);font-size:.88em;margin-bottom:16px}.note.warn{border-color:rgba(210,153,34,.55);background:rgba(210,153,34,.10);color:var(--fg)}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)}table{width:100%;border-collapse:collapse;min-width:980px}th,td{border-bottom:1px solid var(--border);padding:8px 9px;text-align:left;vertical-align:top}th{position:sticky;top:0;background:var(--surface);color:var(--fg-muted);font-size:.75em;text-transform:uppercase;letter-spacing:.04em;z-index:1}td.pkg{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em}.vipc-row{background:color-mix(in srgb,var(--surface) 80%,var(--chip));font-weight:700}.vipc-row td{padding-top:10px;padding-bottom:10px}.twisty{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:5px;border:1px solid var(--border);border-radius:4px;color:var(--fg-muted);font-size:.8em}.vipc-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:.75em;color:var(--fg-muted);font-weight:600}.yes{color:var(--ok)}.no{color:var(--bad)}.maybe{color:var(--warn)}.cell{white-space:nowrap;text-align:center}.cell .mark{font-weight:800;font-size:1em}.cell .why{display:block;color:var(--fg-muted);font-size:.68em;margin-top:1px}.empty{padding:28px;text-align:center;color:var(--fg-muted)}.hidden{display:none}@media(max-width:760px){.hero{display:block}.controls{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.wrap{padding-inline:14px}}
   </style>
   <style>
-    .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}.dep-panel table{table-layout:fixed}.dep-panel th:first-child{width:auto}.dep-panel th.dep-col,.dep-panel td.cell{width:112px;min-width:112px;max-width:112px;text-align:center;vertical-align:middle}.dep-panel th.dep-col{padding-left:6px;padding-right:6px}.dep-check{width:16px;height:16px;margin:0;accent-color:var(--ok);opacity:1;vertical-align:middle}.dep-check:disabled{opacity:1}.dep-empty{display:inline-block;width:16px;height:16px}.exp-head{background:none;border:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}.exp-head .exp-name{border-bottom:1px dotted currentColor}.exp-head .exp-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-style:normal;line-height:1;font-weight:700}.exp-head:hover{color:var(--link)}.exp-pop{position:fixed;max-width:330px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:60;font-size:.84em;font-weight:400;line-height:1.5;color:var(--fg);text-transform:none;letter-spacing:normal}.exp-pop .exp-pop-h{display:block;margin-bottom:5px;font-size:1.02em}
+    .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}.dep-panel table{table-layout:fixed}.dep-panel th:first-child{width:auto}.dep-panel th.dep-col,.dep-panel td.cell{width:112px;min-width:112px;max-width:112px;text-align:center;vertical-align:middle}.dep-panel th.dep-col{padding-left:6px;padding-right:6px}.dep-check{width:16px;height:16px;margin:0;accent-color:var(--ok);opacity:1;vertical-align:middle}.dep-check:disabled{opacity:1}.dep-empty{display:inline-block;width:16px;height:16px}.exp-head{background:none;border:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}.exp-head .exp-name{border-bottom:1px dotted currentColor}.exp-head .exp-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-style:normal;line-height:1;font-weight:700}.exp-head:hover{color:var(--link)}.exp-pop{position:fixed;width:320px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:60;font-size:.84em;font-weight:400;line-height:1.5;color:var(--fg);text-transform:none;letter-spacing:normal}.exp-pop .exp-pop-h{display:block;margin-bottom:5px;font-size:1.02em}
   </style>
 </head>
 <body>
@@ -30,7 +30,6 @@
       </div>
       <button id="reload" type="button">Reload</button>
     </div>
-    <div class="note warn" id="linuxVipcBanner" style="font-size:1em;padding:14px 16px;border-width:2px"><strong>Linux VIPC support is coming.</strong> The Linux container does not currently apply repository VIPC configurations automatically, so all Linux package coverage is shown as missing for now.</div>
     <div class="cards">
       <div class="card"><div class="k">Repository</div><div class="v" id="repoCard">-</div></div>
       <div class="card"><div class="k">Worker</div><div class="v" id="workerCard">-</div></div>
@@ -308,21 +307,22 @@
       return found ? simpleCell(true, found.version || found.name) : simpleCell(false, 'missing');
     }
     function headCell(c){
-      if (c.experimental) return '<th class="dep-col"><button type="button" class="exp-head" aria-expanded="false" title="What is this?"><span class="exp-name">' + esc(c.label) + '</span><span class="exp-i" aria-hidden="true">i</span></button></th>';
+      if (COL_INFO[c.key]) return '<th class="dep-col"><button type="button" class="exp-head" aria-expanded="false" title="What is this?" data-info="' + esc(c.key) + '"><span class="exp-name">' + esc(c.label) + '</span><span class="exp-i" aria-hidden="true">i</span></button></th>';
       return '<th class="dep-col">' + esc(c.label) + '</th>';
     }
     var __expPop = null;
-    function expInfoHtml(){
-      return '<span class="exp-pop-h"><strong>Win Beta &mdash; in-development Windows container</strong></span>' +
-        'A separate, isolated Windows container where new capabilities and new action runners are built and proven &mdash; such as getting VI Browser 2.0 snapshots to render on Windows. Keeping it apart means this in-progress work never disrupts the containers your production actions rely on. When it is ready, it graduates to replace the main Windows container. Until its image is published, this column reads experimental / pending.';
-    }
+    var COL_INFO = {
+      linux: '<span class="exp-pop-h"><strong>Linux &mdash; VIPC support is coming</strong></span>' +
+        'The Linux container does not currently apply repository VIPC configurations automatically, so all Linux package coverage is shown as missing for now.',
+      winExp: '<span class="exp-pop-h"><strong>Win Beta &mdash; in-development Windows container</strong></span>' +
+        'A separate, isolated Windows container where new capabilities and new action runners are built and proven &mdash; such as getting VI Browser 2.0 snapshots to render on Windows. Keeping it apart means this in-progress work never disrupts the containers your production actions rely on. When it is ready, it graduates to replace the main Windows container. Until its image is published, this column reads experimental / pending.'
+    };
     function ensureExpPop(){
       if (__expPop) return __expPop;
       __expPop = document.createElement('div');
       __expPop.className = 'exp-pop';
       __expPop.setAttribute('role', 'note');
       __expPop.hidden = true;
-      __expPop.innerHTML = expInfoHtml();
       document.body.appendChild(__expPop);
       return __expPop;
     }
@@ -335,9 +335,11 @@
     function toggleExpPop(btn){
       var pop = ensureExpPop();
       if (!pop.hidden && pop._anchor === btn){ closeExpPop(); return; }
+      pop.innerHTML = COL_INFO[btn.getAttribute('data-info')] || '';
       pop.hidden = false;
       pop._anchor = btn;
       btn.setAttribute('aria-expanded', 'true');
+      pop.style.left = '0px';
       var r = btn.getBoundingClientRect();
       pop.style.top = (r.bottom + 6) + 'px';
       pop.style.left = r.left + 'px';
