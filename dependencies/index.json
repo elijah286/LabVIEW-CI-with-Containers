@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "28b0168340bf9353e98e7efb1d0390057dc36d0d",
+  "sha": "ef19a2650ed701376267b7eaf8ae5e38db085283",
   "revisions": [
+    {
+      "sha": "ef19a2650ed701376267b7eaf8ae5e38db085283",
+      "short": "ef19a26",
+      "message": "Dashboard: don't reload (and destroy an open dialog) mid-install (v3.35.6)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T16:00:19Z"
+    },
     {
       "sha": "28b0168340bf9353e98e7efb1d0390057dc36d0d",
       "short": "28b0168",
@@ -695,13 +702,6 @@
       "message": "dashboard: add search + status filter to the revision table (v3.13.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-20T00:03:41Z"
-    },
-    {
-      "sha": "0a39bab17531c8f1ea5b3dd7ef2b92fb7403f9d6",
-      "short": "0a39bab",
-      "message": "dashboard: replace emoji status badges with clean status chips (v3.12.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T22:27:49Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",

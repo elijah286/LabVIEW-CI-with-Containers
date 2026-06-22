@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="refresh" content="900">
+  <!-- Auto-refresh is driven by a guarded JS timer (lvciAutoRefresh, below) instead
+       of an HTML meta refresh: a meta refresh can't be cancelled once parsed, so it
+       would reload the page mid-install and destroy an open dialog (the "dialog
+       vanished" bug). The JS timer reloads on the same cadence but waits while a
+       dialog is open. -->
   <title>CI Dashboard — LabVIEW-CI-with-Containers</title>
   <style>
     :root{
@@ -171,6 +175,27 @@
       document.body.style.overflow = '';
     }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lvciClose(); });
+    // Is the Apply / Configure / VI Analyzer / Unit-tests / What's-New iframe dialog
+    // open? The auto-refresh timer and the queued-run fast reload both check this so a
+    // page reload never blows away an in-progress install or its iframe (the
+    // "dialog disappeared on its own" bug).
+    function lvciModalOpen() {
+      var m = document.getElementById('lvci-modal');
+      return !!(m && m.style.display === 'block');
+    }
+    // Auto-refresh on the cadence the server picked (60 s while CI is live, else
+    // 15 min) -- but NEVER while a dialog is open, because reloading the page destroys
+    // the install/Configure iframe and its in-flight work. When a refresh comes due
+    // with a dialog open, keep re-checking and reload only once it is closed.
+    (function () {
+      var REFRESH_MS = 900 * 1000;
+      if (!(REFRESH_MS > 0)) return;
+      function tick() {
+        if (lvciModalOpen()) { setTimeout(tick, 5000); return; }
+        location.reload();
+      }
+      setTimeout(tick, REFRESH_MS);
+    })();
   </script>
 
   <div id="cidash-run-modal" onclick="if(event.target===this)cidashRunClose()" style="display:none;position:fixed;inset:0;z-index:310;background:rgba(0,0,0,.55)">
@@ -305,10 +330,16 @@
     }
     function qArmReload(){
       // While a queued run is still unconfirmed, reload sooner than the lazy
-      // meta-refresh so the real status surfaces promptly (mirrors the server's
-      // own faster cadence while CI is live).
+      // auto-refresh so the real status surfaces promptly (mirrors the server's
+      // own faster cadence while CI is live). Never reload while a dialog (Apply to
+      // New Repo / Configure / ...) is open -- that would destroy the in-progress
+      // iframe; defer and reload once it is closed.
       if(qReloadArmed) return; qReloadArmed = true;
-      setTimeout(function(){ location.reload(); }, QFAST);
+      function fire(){
+        if(typeof lvciModalOpen==='function' && lvciModalOpen()){ setTimeout(fire, 4000); return; }
+        location.reload();
+      }
+      setTimeout(fire, QFAST);
     }
     function qLiveEntries(o){
       // The still-queued entries, oldest first - this IS the queue order. A failed
@@ -1342,7 +1373,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-22 15:59 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-22 16:03 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -1382,6 +1413,24 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ef19a2650ed701376267b7eaf8ae5e38db085283" class="cidash-rev-msg" title="Dashboard: don&#x27;t reload (and destroy an open dialog) mid-install (v3.35.6)">Dashboard: don&#x27;t reload (and destroy an open dialog) mid-install (v3.35.6)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ef19a2650ed701376267b7eaf8ae5e38db085283" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">ef19a26</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-22</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -3153,24 +3202,6 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=fe9ab462a4e02f9feb261e297358e923fe6b1ff3" class="cidash-rev-msg" title="dashboard: add search + status filter to the revision table (v3.13.0)">dashboard: add search + status filter to the revision table (v3.13.0)</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=fe9ab462a4e02f9feb261e297358e923fe6b1ff3" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">fe9ab46</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-20</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=0a39bab17531c8f1ea5b3dd7ef2b92fb7403f9d6" class="cidash-rev-msg" title="dashboard: replace emoji status badges with clean status chips (v3.12.4)">dashboard: replace emoji status badges with clean status chips (v3.12.4)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=0a39bab17531c8f1ea5b3dd7ef2b92fb7403f9d6" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">0a39bab</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-19</div>
           </div>
         </div>
       </td>
