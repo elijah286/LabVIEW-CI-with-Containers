@@ -128,12 +128,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # VIDiff renders before/after images of changed VIs and the bare NI base image
-      # is sufficient for that. But when the Configure dialog selects a container
-      # (config.container.use in head/.github/labview-ci.yml), use that tag of the
-      # project's custom worker image so VIs that depend on add-ons still load and
-      # render. When unset it stays on the bare base (the original behavior). The
-      # head checkout lives under head/, so read the config from there.
+      # VIDiff uses the shared Windows repo worker by default so changed VIs load
+      # with the same baked dependencies as the rest of the Windows action runners.
+      # config.container.use or config.container.actions.vidiff can select a tag;
+      # "base" explicitly opts this action back to the bare NI image. The head
+      # checkout lives under head/, so read the config from there.
       - name: Resolve container image name
         shell: bash
         env:
@@ -145,10 +144,9 @@ jobs:
           name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
           custom="ghcr.io/${owner}/${name}"
           # Per-action container selection. config.container.actions.<id> wins, then
-          # the project-wide config.container.use, then the bare NI base image. A
-          # value of "base" forces the NI base image for this action even when a
-          # project default is set; "latest"/"<tag>" select that tag of the custom
-          # worker image. The head checkout lives under head/, so read config there.
+          # the project-wide config.container.use, then the shared custom worker
+          # image. A value of "base" forces the NI base image for this action;
+          # "latest"/"<tag>" select that tag of the custom worker image.
           ACTION_ID="vidiff"
           CFG=head/.github/labview-ci.yml
           sel=""
@@ -173,7 +171,9 @@ jobs:
               ' "$CFG" | tr -d '[:space:]')
             fi
           fi
-          if [ -z "$sel" ] || [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+          if [ -z "$sel" ]; then
+            img="${custom}:latest"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
             img="${BASE_IMAGE}"
           elif [ "$sel" = "latest" ]; then
             img="${custom}:latest"

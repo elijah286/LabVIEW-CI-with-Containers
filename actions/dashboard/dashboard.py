@@ -2797,18 +2797,13 @@ def _build_dependencies_index():
     packages, error = _parse_vipc_packages(path)
     vipcs.append({'path': path, 'configured': path in configured, 'packages': packages, 'error': error})
   columns = [
-    {'key': 'snap1w', 'label': '1.0 Snap Win', 'platform': 'windows', 'action': 'snapshots', 'tag': 'base'},
-    {'key': 'snap2w', 'label': '2.0 Snap Win', 'platform': 'windows', 'action': 'snapshots', 'tag': 'base'},
-    {'key': 'snap2l', 'label': '2.0 Snap Linux', 'platform': 'linux', 'action': 'snapshots', 'tag': 'base'},
-    {'key': 'via', 'label': 'VIA', 'platform': 'windows', 'action': 'vi-analyzer', 'defaultTag': 'latest'},
-    {'key': 'diff', 'label': 'Diff', 'platform': 'windows', 'action': 'vidiff'},
-    {'key': 'mc', 'label': 'Compile', 'platform': 'windows', 'action': 'masscompile'},
-    {'key': 'utf', 'label': 'UTF', 'platform': 'windows', 'action': 'unit-tests', 'defaultTag': 'latest'},
-    {'key': 'docs', 'label': 'Antidoc', 'platform': 'windows', 'action': 'antidoc', 'defaultTag': 'latest'},
+    {'key': 'windows', 'label': 'Windows', 'platform': 'windows', 'defaultTag': 'latest'},
+    {'key': 'linux', 'label': 'Linux', 'platform': 'linux', 'tag': 'base'},
   ]
   manifest_cache = {}
   for col in columns:
-    tag = col.get('tag') or config.get('actions', {}).get(col['action']) or config.get('use') or col.get('defaultTag') or 'base'
+    action_tag = config.get('actions', {}).get(col.get('action')) if col.get('action') else ''
+    tag = col.get('tag') or action_tag or config.get('use') or col.get('defaultTag') or 'base'
     col['tag'] = tag
     if col.get('platform') == 'linux':
       col['ready'] = True

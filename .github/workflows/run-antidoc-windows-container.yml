@@ -92,14 +92,13 @@ jobs:
 
       # GHCR rejects upper-case repository names. config.container.actions.antidoc
       # wins, then the project-wide config.container.use; with neither set Antidoc
-      # defaults to the custom worker image at the version tag (it needs the baked
-      # Antidoc VIPC). "base" forces the bare NI image; "latest"/"<tag>" select that
+      # defaults to the shared custom worker image at :latest. "base" forces the bare
+      # NI image; "latest"/"<tag>" select that
       # tag of the custom worker image.
       - name: Resolve container image name
         shell: bash
         env:
           IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
-          IMAGE_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
           BASE_IMAGE: nationalinstruments/labview:latest-windows
         run: |
           owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
@@ -131,7 +130,7 @@ jobs:
             fi
           fi
           if [ -z "$sel" ]; then
-            img="${custom}:${IMAGE_TAG}"
+            img="${custom}:latest"
           elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
             img="${BASE_IMAGE}"
           elif [ "$sel" = "latest" ]; then

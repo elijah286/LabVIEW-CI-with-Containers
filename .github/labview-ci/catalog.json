@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.18",
+  "version": "3.34.19",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.19",
+        "date": "2026-06-22",
+        "title": "Windows runners share the repo worker by default",
+        "summary": "Windows LabVIEW action runners now default to the repository's shared worker image instead of mixing base-image and worker-image defaults by action. Mass Compile, VIDiff, VI Snapshots, and Windows VI Browser 2.0 join VIA, Unit Tests, and Antidoc on the shared Windows dependency container unless a repo explicitly opts an action back to base. The Dependencies page now collapses package coverage to Windows and Linux columns, with Linux still marked pending until Linux dependency application is implemented.",
+        "highlights": [
+          "Makes Mass Compile, VIDiff, VI Snapshots, and Windows VI Browser 2.0 default to ghcr.io/<owner>/<repo>-labview:latest.",
+          "Keeps config.container.use and per-action config.container.actions overrides, including base, as explicit escape hatches.",
+          "Collapses the Dependencies table to Windows and Linux OS-level coverage columns."
+        ]
+      },
       {
         "version": "3.34.18",
         "date": "2026-06-22",

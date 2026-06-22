@@ -108,14 +108,13 @@ jobs:
       # selected container tag to config.container.use in .github/labview-ci.yml
       # (default "latest"); when present, this revision is analyzed inside that tag
       # of the project's custom worker image, so the project's baked VIPC
-      # dependencies are available. When absent we fall back to the version tag
-      # (the original behavior). Runs after checkout so it can read the revision's
-      # own config.
+      # dependencies are available. When absent we use the shared repo worker's
+      # latest tag so Windows action runners default to the same container. Runs
+      # after checkout so it can read the revision's own config.
       - name: Resolve container image name
         shell: bash
         env:
           IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
-          IMAGE_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
           BASE_IMAGE: nationalinstruments/labview:latest-windows
         run: |
           owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
@@ -123,9 +122,8 @@ jobs:
           name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
           custom="ghcr.io/${owner}/${name}"
           # Per-action container selection. config.container.actions.<id> wins, then
-          # the project-wide config.container.use. With neither set VI Analyzer keeps
-          # its default (the custom image at the version tag) since the full test set
-          # needs the custom image. "base" forces the bare NI image for this action;
+          # the project-wide config.container.use. With neither set VI Analyzer uses
+          # the shared custom worker image at :latest. "base" forces the bare NI image;
           # "latest"/"<tag>" select that tag of the custom worker image.
           ACTION_ID="vi-analyzer"
           CFG=.github/labview-ci.yml
@@ -152,7 +150,7 @@ jobs:
             fi
           fi
           if [ -z "$sel" ]; then
-            img="${custom}:${IMAGE_TAG}"
+            img="${custom}:latest"
           elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
             img="${BASE_IMAGE}"
           elif [ "$sel" = "latest" ]; then

@@ -92,11 +92,10 @@ jobs:
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
       # The Configure dialog writes the selected container tag to
-      # config.container.use in .github/labview-ci.yml. When set, Mass Compile runs
-      # inside that tag of the project's custom worker image (with its baked VIPC
-      # dependencies) so VIs that depend on add-ons still compile. When unset it
-      # stays on the bare NI base image (the original behavior). GHCR names must be
-      # lowercase.
+      # config.container.use in .github/labview-ci.yml selects the shared Windows
+      # worker image tag. With no config, Mass Compile defaults to the project's
+      # current custom worker image so all Windows action runners use the same
+      # repo dependency container. GHCR names must be lowercase.
       - name: Resolve container image name
         shell: bash
         env:
@@ -108,10 +107,9 @@ jobs:
           name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
           custom="ghcr.io/${owner}/${name}"
           # Per-action container selection. config.container.actions.<id> wins, then
-          # the project-wide config.container.use, then the bare NI base image. A
-          # value of "base" forces the NI base image for this action even when a
-          # project default is set; "latest"/"<tag>" select that tag of the custom
-          # worker image (ghcr.io/<owner>/<repo>-labview).
+          # the project-wide config.container.use, then the shared custom worker
+          # image. A value of "base" forces the NI base image for this action;
+          # "latest"/"<tag>" select that tag of the custom worker image.
           ACTION_ID="masscompile"
           CFG=.github/labview-ci.yml
           sel=""
@@ -136,7 +134,9 @@ jobs:
               ' "$CFG" | tr -d '[:space:]')
             fi
           fi
-          if [ -z "$sel" ] || [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+          if [ -z "$sel" ]; then
+            img="${custom}:latest"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
             img="${BASE_IMAGE}"
           elif [ "$sel" = "latest" ]; then
             img="${custom}:latest"

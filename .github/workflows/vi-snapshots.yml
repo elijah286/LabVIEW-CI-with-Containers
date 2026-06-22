@@ -38,7 +38,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-windows
+  LABVIEW_CONTAINER_IMAGE: ''
   PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
 
 permissions:
@@ -70,6 +70,52 @@ jobs:
           sparse-checkout: vi-snapshots/by-blob
           sparse-checkout-cone-mode: false
 
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          ACTION_ID="snapshots"
+          CFG=.github/labview-ci.yml
+          sel=""
+          if [ -f "$CFG" ]; then
+            sel=$(awk -v act="$ACTION_ID" '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; ina=0; next}
+              inc && /^    actions:[[:space:]]*$/ {ina=1; next}
+              ina && /^      [A-Za-z0-9_.-]+:/ {
+                k=$1; sub(/:.*/,"",k);
+                v=$0; sub(/^[[:space:]]*[A-Za-z0-9_.-]+:[[:space:]]*/,"",v); gsub(/"/,"",v); gsub(/[[:space:]]/,"",v);
+                if (k==act) {print v; exit}
+                next
+              }
+              ina && /^    [A-Za-z]/ {ina=0}
+              inc && /^[^[:space:]]/ {inc=0; ina=0}
+            ' "$CFG" | tr -d '[:space:]')
+            if [ -z "$sel" ]; then
+              sel=$(awk '
+                /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+                inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+                inc && /^[^[:space:]]/ {inc=0}
+              ' "$CFG" | tr -d '[:space:]')
+            fi
+          fi
+          if [ -z "$sel" ]; then
+            img="${custom}:latest"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+            img="${BASE_IMAGE}"
+          elif [ "$sel" = "latest" ]; then
+            img="${custom}:latest"
+          else
+            img="${custom}:${sel}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
+
       - name: Ensure Docker daemon is running
         shell: powershell
         run: |
@@ -83,6 +129,13 @@ jobs:
             Start-Sleep -Seconds 5
           }
           docker version
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Post pending status
         shell: bash

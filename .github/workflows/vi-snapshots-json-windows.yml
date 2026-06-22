@@ -38,9 +38,10 @@ on:
 
 permissions:
   contents: write
+  packages: read
 
 env:
-  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-windows
+  LABVIEW_CONTAINER_IMAGE: ''
 
 concurrency:
   group: vi-snapshots-json-windows
@@ -55,6 +56,59 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          ACTION_ID="snapshots"
+          CFG=.github/labview-ci.yml
+          sel=""
+          if [ -f "$CFG" ]; then
+            sel=$(awk -v act="$ACTION_ID" '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; ina=0; next}
+              inc && /^    actions:[[:space:]]*$/ {ina=1; next}
+              ina && /^      [A-Za-z0-9_.-]+:/ {
+                k=$1; sub(/:.*/,"",k);
+                v=$0; sub(/^[[:space:]]*[A-Za-z0-9_.-]+:[[:space:]]*/,"",v); gsub(/"/,"",v); gsub(/[[:space:]]/,"",v);
+                if (k==act) {print v; exit}
+                next
+              }
+              ina && /^    [A-Za-z]/ {ina=0}
+              inc && /^[^[:space:]]/ {inc=0; ina=0}
+            ' "$CFG" | tr -d '[:space:]')
+            if [ -z "$sel" ]; then
+              sel=$(awk '
+                /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+                inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+                inc && /^[^[:space:]]/ {inc=0}
+              ' "$CFG" | tr -d '[:space:]')
+            fi
+          fi
+          if [ -z "$sel" ]; then
+            img="${custom}:latest"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+            img="${BASE_IMAGE}"
+          elif [ "$sel" = "latest" ]; then
+            img="${custom}:latest"
+          else
+            img="${custom}:${sel}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
+
+      - name: Wait for worker image build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ github.sha }}" "${{ github.event.before }}"
 
       - name: Checkout deployed gallery (gh-pages) for incremental seed + live publish
         uses: actions/checkout@v5
@@ -146,6 +200,13 @@ jobs:
           if (-not $svc) { Write-Error 'Docker service not found on runner'; exit 1 }
           if ($svc.Status -ne 'Running') { Start-Service docker; Start-Sleep -Seconds 5 }
           docker version
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Render VI Browser 2.0 frames in the LabVIEW Windows container
         shell: pwsh
