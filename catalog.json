@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.38.1",
+  "version": "3.38.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.38.2",
+        "date": "2026-06-22",
+        "title": "Linux Beta image build computes its VIPC content tag correctly",
+        "summary": "Fixes the Linux Beta image workflow's worker-version calculation after the first experimental push proved the repository VIPC staging path works but stopped before Docker ran because of an indentation typo in the Python hash step.",
+        "highlights": [
+          "The Linux Beta workflow now reaches the Docker build after staging repo VIPC files such as example/Dependencies.vipc",
+          "The worker hash includes only the staged Linux Beta VIPC input directory, keeping tooling VIPC files out of the test image",
+          "Stable Linux actions remain on the NI base image unless the experimental Linux Beta worker is explicitly selected"
+        ]
+      },
       {
         "version": "3.38.1",
         "date": "2026-06-22",
