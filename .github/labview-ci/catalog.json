@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.5",
+  "version": "3.34.6",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.6",
+        "date": "2026-06-22",
+        "title": "Dependencies selector shows revision container config",
+        "summary": "The Dependencies page revision dropdown now stays active when a generated dependency inventory is available. It lists repository revisions, switches the table to the selected revision, and shows that revision's config.container routing so users can see which VIPC files and action-specific container tags were configured at that point in history.",
+        "highlights": [
+          "Keeps the revision dropdown enabled instead of locking the page to the dashboard build inventory.",
+          "Loads each selected revision's .github/labview-ci.yml and displays its container.use, container.vipc, and per-action routing.",
+          "Caches repository revision metadata in dependencies/index.json so the selector still has revisions when the live commits API is unavailable."
+        ]
+      },
       {
         "version": "3.34.5",
         "date": "2026-06-22",

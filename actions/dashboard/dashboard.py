@@ -2804,15 +2804,15 @@ def _build_dependencies_index():
     {'key': 'snap1w', 'label': '1.0 Snap Win', 'platform': 'windows', 'action': 'snapshots', 'tag': 'base'},
     {'key': 'snap2w', 'label': '2.0 Snap Win', 'platform': 'windows', 'action': 'snapshots', 'tag': 'base'},
     {'key': 'snap2l', 'label': '2.0 Snap Linux', 'platform': 'linux', 'action': 'snapshots', 'tag': 'base'},
-    {'key': 'via', 'label': 'VIA', 'platform': 'windows', 'action': 'vi-analyzer'},
+    {'key': 'via', 'label': 'VIA', 'platform': 'windows', 'action': 'vi-analyzer', 'defaultTag': 'latest'},
     {'key': 'diff', 'label': 'Diff', 'platform': 'windows', 'action': 'vidiff'},
     {'key': 'mc', 'label': 'Compile', 'platform': 'windows', 'action': 'masscompile'},
-    {'key': 'utf', 'label': 'UTF', 'platform': 'windows', 'action': 'unit-tests'},
-    {'key': 'docs', 'label': 'Antidoc', 'platform': 'windows', 'action': 'antidoc'},
+    {'key': 'utf', 'label': 'UTF', 'platform': 'windows', 'action': 'unit-tests', 'defaultTag': 'latest'},
+    {'key': 'docs', 'label': 'Antidoc', 'platform': 'windows', 'action': 'antidoc', 'defaultTag': 'latest'},
   ]
   manifest_cache = {}
   for col in columns:
-    tag = col.get('tag') or config.get('actions', {}).get(col['action']) or config.get('use') or 'base'
+    tag = col.get('tag') or config.get('actions', {}).get(col['action']) or config.get('use') or col.get('defaultTag') or 'base'
     col['tag'] = tag
     if tag not in ('base', 'none'):
       cache_key = f"{col['platform']}:{tag}"
@@ -2830,6 +2830,13 @@ def _build_dependencies_index():
     'schema': 1,
     'repo': repo,
     'sha': os.environ.get('GITHUB_SHA', ''),
+    'revisions': [{
+      'sha': c.get('sha', ''),
+      'short': (c.get('sha') or '')[:7],
+      'message': ((c.get('commit') or {}).get('message') or c.get('sha', '')).split('\n')[0],
+      'author': ((c.get('commit') or {}).get('author') or {}).get('name', ''),
+      'date': ((c.get('commit') or {}).get('author') or {}).get('date', ''),
+    } for c in commits_data if c.get('sha')],
     'config': config,
     'vipc': vipcs,
     'columns': columns,
