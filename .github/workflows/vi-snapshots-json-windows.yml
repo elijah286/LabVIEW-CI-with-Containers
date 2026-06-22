@@ -62,6 +62,7 @@ jobs:
         env:
           IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
           BASE_IMAGE: nationalinstruments/labview:latest-windows
+          EXPERIMENTAL_WINDOWS_IMAGE: ${{ vars.EXPERIMENTAL_WINDOWS_IMAGE }}
         run: |
           owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
           name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
@@ -100,10 +101,21 @@ jobs:
           else
             img="${custom}:${sel}"
           fi
+          # Opt-in experimental Windows container lane: when the repository
+          # variable EXPERIMENTAL_WINDOWS_IMAGE is set, this render uses that
+          # isolated image instead of the production worker so experimental
+          # container work can be proven here before it replaces the main
+          # Windows container. Unset -> behaviour is identical to before.
+          if [ -n "${EXPERIMENTAL_WINDOWS_IMAGE}" ]; then
+            echo "Experimental Windows container lane active (EXPERIMENTAL_WINDOWS_IMAGE set)."
+            img="${EXPERIMENTAL_WINDOWS_IMAGE}"
+            echo "WINDOWS_RENDER_EXPERIMENTAL=true" >> "$GITHUB_ENV"
+          fi
           echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
           echo "Resolved container image: ${img}"
 
       - name: Wait for worker image build
+        if: env.WINDOWS_RENDER_EXPERIMENTAL != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
