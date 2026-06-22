@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "cb9467f1d1b7c832070efd223b93aa672600c37d",
+  "sha": "be23282470cef49ec12b21cf75cb4ec5784b875b",
   "revisions": [
+    {
+      "sha": "be23282470cef49ec12b21cf75cb4ec5784b875b",
+      "short": "be23282",
+      "message": "Dependencies: rename experimental column to \"Win Beta\" + click-to-explain note (v3.35.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T13:43:03Z"
+    },
     {
       "sha": "cb9467f1d1b7c832070efd223b93aa672600c37d",
       "short": "cb9467f",
@@ -695,13 +702,6 @@
       "message": "Merge branch 'main' of https://github.com/elijah286/LabVIEW-CI-with-Containers",
       "author": "Elijah Kerry",
       "date": "2026-06-19T16:53:28Z"
-    },
-    {
-      "sha": "ea47512d58b68b8a401cf5acd589eccab48d86de",
-      "short": "ea47512",
-      "message": "added a custom vi analyzer test",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T16:53:15Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
