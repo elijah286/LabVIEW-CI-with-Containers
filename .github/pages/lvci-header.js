@@ -660,12 +660,12 @@
     root = trimSlash(root || base);
     if (key === 'snapshots') return root + '/vi-snapshots/' + (sha ? '?sha=' + encodeURIComponent(sha) : '');
     var d = DOCTYPES[key]; if (!d || !sha) return root + '/';
-    var bare = root + '/' + d.prefix + '/' + sha + '/index.html';
+        var rel = '../' + d.prefix + '/' + sha + '/index.html';
     var title = d.label + ' \u00b7 ' + sha.slice(0, 7);
     return root + '/report/index.html?type=' + encodeURIComponent(key)
          + '&sha=' + encodeURIComponent(sha)
          + (cfg.platform ? '&platform=' + encodeURIComponent(cfg.platform) : '')
-         + '&src=' + encodeURIComponent(bare)
+          + '&src=' + encodeURIComponent(rel)
          + '&title=' + encodeURIComponent(title);
   }
   function wireActivityLink(el, key, root, close) {
@@ -1626,7 +1626,7 @@
     // On config pages it instead holds the Settings sub-nav (section tabs).
     var ctxbar = null;
     var isSettings = (NAV_ACTIVE[ctx] === 'settings');
-    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard' || isSettings) { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (DOC) ctxbar.appendChild(makeLensPicker().wrap); if (isSettings) ctxbar.appendChild(makeSettingsNav()); }
+    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard' || isSettings) { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (isSettings) ctxbar.appendChild(makeSettingsNav()); }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
@@ -1671,19 +1671,9 @@
     // so a page can move its own revision selector / controls into the shared bar.
     try { window.lvciHeaderReady = true; document.dispatchEvent(new CustomEvent('lvci:ready')); } catch (e) {}
 
-    // VI Browser: it owns #commit-select and moves it into the context bar on the
-    // lvci:ready we just fired (dispatchEvent is synchronous, so it is in place now).
-    // Add the Activity picker beside it -> jump from the VI Browser to any of this
-    // revision's reports. The VI Browser changes revision in place, so the picker
-    // reads the live sha (commit selector / URL) and checks availability at click time.
-    if (ctx === 'vi-browser' && ctxbar) {
-      var viSha = function () {
-        var cs = document.getElementById('commit-select');
-        if (cs && cs.value) return cs.value;
-        try { return new URLSearchParams(location.search).get('sha') || ''; } catch (e) { return ''; }
-      };
-      try { ctxbar.appendChild(makeLensPicker({ current: 'snapshots', getSha: viSha, deferProbe: true }).wrap); } catch (e) {}
-    }
+    // VI Browser owns #commit-select and moves it into this context bar on the
+    // lvci:ready event above. Document switching now lives in the Dashboard menu,
+    // which resolves that live selected revision before navigating.
   }
 
   // ── Badge state ───────────────────────────────────────────────────────────
