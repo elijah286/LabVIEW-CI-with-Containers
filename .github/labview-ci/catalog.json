@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.35.4",
+  "version": "3.35.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.35.5",
+        "date": "2026-06-22",
+        "title": "VI Browser 2.0: paging through cases no longer zooms the diagram",
+        "summary": "In the position-aware VI Browser (Snapshot 2.0) renderer, clicking through a Case/Event/Sequence structure's cases no longer randomly zooms the block diagram. Double-clicking a case selector arrow (or the Fit button) is now ignored by the zoom handler, so the diagram size stays fixed while you navigate cases.",
+        "highlights": [
+          "Double-clicking the case selector arrows or the Fit button no longer triggers the double-click-to-zoom action.",
+          "Background double-click-to-zoom on the diagram itself is unchanged.",
+          "Case navigation and the diagram fit/size are unaffected otherwise."
+        ]
+      },
       {
         "version": "3.35.4",
         "date": "2026-06-22",

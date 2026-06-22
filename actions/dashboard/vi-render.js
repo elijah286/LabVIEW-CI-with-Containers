@@ -221,7 +221,15 @@
     const end = () => { dragging = false; viewport.classList.remove('lvr-grabbing'); };
     viewport.addEventListener('pointerup', end);
     viewport.addEventListener('pointercancel', end);
-    viewport.addEventListener('dblclick', (e) => zoomAt(zoom > 1 ? 1 : 2, e.clientX, e.clientY));
+    viewport.addEventListener('dblclick', (e) => {
+      // Double-clicking a case selector ('lvr-sel') or the Fit button ('lvr-reset')
+      // must NOT zoom: paging quickly through a structure's cases lands two clicks
+      // on the same arrow, which the browser reports as a dblclick that bubbles
+      // here. The click handlers stopPropagation, but dblclick is a separate event,
+      // so guard it the same way pointerdown does or the diagram randomly zooms in.
+      if (e.target.closest('.lvr-sel') || e.target.closest('.lvr-reset')) return;
+      zoomAt(zoom > 1 ? 1 : 2, e.clientX, e.clientY);
+    });
     stageState.zoomAt = zoomAt;
     stageState.reset = () => { zoom = 1; panX = 0; panY = 0; apply(); };
     stageState.fit = (w, h) => {
