@@ -1909,6 +1909,9 @@ else document.addEventListener('lvci:ready', lvciPlaceRevInContextBar);
     return "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI dispatch") + "&description=" + encodeURIComponent("Dispatch CI runs for " + repo) + "&target_name=" + encodeURIComponent(repo.split("/")[0]) + "&actions=write";
   }
   function buildWfUrl() { return "https://github.com/" + esc(repo) + "/actions/workflows/build-toimages-image.yml"; }
+  function defaultBranch(token) {
+    return gh("/repos/" + repo, token).then(ghJson).then(function (d) { return (d && d.default_branch) || "main"; }).catch(function () { return "main"; });
+  }
 
   // ---- VI Browser 2.0 viewer state ----------------------------------------
   // The viewer calls vb2Resolve() when 2.0 is selected but a VI has no frames JSON.
@@ -1970,15 +1973,15 @@ else document.addEventListener('lvci:ready', lvciPlaceRevInContextBar);
     var sEl = $("nt-state-status"), dt = lsGet(DISPATCH_KEY);
     if (!dt) { needToken(DISPATCH_KEY, "Running the snapshot needs a token with <strong>Actions: write</strong> on <code>" + esc(repo) + "</code>. <a href='" + dispatchTokenUrl() + "' target='_blank' rel='noopener' style='color:var(--link)'>Create one \u2197</a>, paste it below, and Save.", vb2Rerun); return; }
     var b = $("nt-state-rerun"); if (b) b.disabled = true;
-    var wf = vb2Workflow(_vb2Ctx.platform), plat = platformLabel(_vb2Ctx.platform);
-    var inputs = _vb2Ctx.platform === "windows" ? { vi: _vb2Ctx.vi || "" } : { mode: "head" };
+    var wf = vb2Workflow(_vb2Ctx.platform), plat = platformLabel(_vb2Ctx.platform), targetSha = _vb2Ctx.sha || "";
+    var inputs = _vb2Ctx.platform === "windows" ? { vi: _vb2Ctx.vi || "", target_sha: targetSha } : { mode: "head", target_sha: targetSha };
     setStatus(sEl, "Queuing the " + esc(plat) + " 2.0 snapshot run\u2026", null);
-    gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(wf) + "/dispatches", dt, { method: "POST", body: { ref: _vb2Ctx.sha || "main", inputs: inputs } })
+    defaultBranch(dt).then(function (ref) { return gh("/repos/" + repo + "/actions/workflows/" + encodeURIComponent(wf) + "/dispatches", dt, { method: "POST", body: { ref: ref, inputs: inputs } }); })
       .then(function (r) {
         if (b) b.disabled = false;
         if (r.status === 204) { vb2State("<span class='spinner'></span>", "Rendering the " + esc(plat) + " 2.0 snapshot\u2026", "Queued the current revision. When it finishes, reload this page to load the new frames.", _vb2ViewLink); vb2Timer = setTimeout(function () { vb2Resolve(_vb2Title, _vb2Ctx); }, 12000); return; }
         if (r.status === 401 || r.status === 403) { try { localStorage.removeItem(DISPATCH_KEY); } catch (ig) {} setStatus(sEl, "Dispatch token " + (r.status === 401 ? "rejected (401)" : "lacks Actions: write") + " \u2014 click Re-run to enter a new one.", "err"); return; }
-        setStatus(sEl, r.status === 404 ? "Token cannot see <code>" + esc(repo) + "</code>, or the workflow is not on the default branch." : "Dispatch failed (HTTP " + r.status + ").", "err");
+        return r.json().catch(function () { return {}; }).then(function (j) { setStatus(sEl, r.status === 404 ? "Token cannot see <code>" + esc(repo) + "</code>, or the workflow is not on the default branch." : "Dispatch failed (HTTP " + r.status + "): " + esc(j.message || "GitHub rejected the dispatch."), "err"); });
       })
       .catch(function (e) { if (b) b.disabled = false; setStatus(sEl, "Network error: " + esc(e && e.message || String(e)), "err"); });
   }

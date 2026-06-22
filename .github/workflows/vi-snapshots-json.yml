@@ -32,6 +32,10 @@ on:
         type: choice
         options: [head, backfill]
         default: head
+      target_sha:
+        description: "Commit SHA whose VIs should be rendered in head mode; blank = the dispatched ref's HEAD"
+        required: false
+        default: ""
   workflow_run:
     workflows: ["VI Snapshots and VI Browser"]
     types: [completed]
@@ -129,9 +133,9 @@ jobs:
         if: steps.pull.outputs.ok == 'true'
         env:
           WS: ${{ github.workspace }}
-          # workflow_dispatch passes mode (head|backfill); workflow_run has none -> head.
+          # workflow_dispatch passes mode and target_sha; workflow_run has none -> dispatched ref HEAD.
           MODE: ${{ github.event.inputs.mode || 'head' }}
-          TARGET_SHA: ${{ github.sha }}
+          TARGET_SHA: ${{ github.event.inputs.target_sha || github.sha }}
           IMAGE: ${{ steps.img.outputs.image }}
           OUT: ${{ github.workspace }}/ci-out/vi-snapshots
           GHP: ${{ github.workspace }}/_ghp

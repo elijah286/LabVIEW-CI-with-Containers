@@ -24,7 +24,11 @@ on:
   workflow_dispatch:
     inputs:
       vi:
-        description: "Render a single VI (repo-relative path) as a quick smoke test; blank = every VI at HEAD"
+        description: "Render a single VI (repo-relative path) as a quick smoke test; blank = every VI at target_sha"
+        required: false
+        default: ""
+      target_sha:
+        description: "Commit SHA whose VIs should be rendered; blank = the dispatched ref's HEAD"
         required: false
         default: ""
       render_timeout:
@@ -104,6 +108,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _winout/by-blob
+          target_sha="${{ github.event.inputs.target_sha || github.sha }}"
+          git cat-file -e "$target_sha^{commit}"
+          rm -rf _target
+          mkdir -p _target
+          git archive "$target_sha" | tar -x -C _target
           if [ -d _ghp/vi-snapshots/by-blob ]; then
             while IFS= read -r -d '' f; do
               rel=${f#_ghp/vi-snapshots/by-blob/}
@@ -114,7 +123,7 @@ jobs:
           vi_input="${{ github.event.inputs.vi }}"
           if [ -n "$vi_input" ]; then
             # Single-VI smoke test: one "<blob>\t<relpath>" line.
-            blob=$(git rev-parse "HEAD:$vi_input")
+            blob=$(git rev-parse "$target_sha:$vi_input")
             if [ -f "_winout/by-blob/${blob:0:2}/$blob.windows.json" ]; then
               : > _winout/worklist.tsv
               echo "single-VI worklist: $vi_input ($blob) already has Windows JSON"
@@ -126,7 +135,7 @@ jobs:
             # Reuse the same content-addressing worklist builder the Linux path uses,
             # but skip only Windows renders so Linux <blob>.json never masks missing
             # Windows <blob>.windows.json output.
-            bash .github/labview/build-json-worklist.sh "$PWD" HEAD _winout/by-blob _winout/worklist.tsv .windows.json
+            bash .github/labview/build-json-worklist.sh "$PWD" "$target_sha" _winout/by-blob _winout/worklist.tsv .windows.json
           fi
           echo "worklist lines: $(wc -l < _winout/worklist.tsv | tr -d ' ')"
 
@@ -163,7 +172,7 @@ jobs:
             # written container-local to C:\out\by-blob and copied back below.
             docker exec $name powershell -NoProfile -ExecutionPolicy Bypass `
               -File 'C:\repo\.github\labview\toimages\windows-render.ps1' `
-              -Workspace 'C:\repo' `
+              -Workspace 'C:\repo\_target' `
               -Worklist  'C:\repo\_winout\worklist.tsv' `
               -OutByBlob 'C:\out\by-blob' `
               -Lvctl     'C:\repo\_winbin\lvctl.exe' `
