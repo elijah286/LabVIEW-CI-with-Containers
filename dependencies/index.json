@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5",
+  "sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e",
   "revisions": [
+    {
+      "sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e",
+      "short": "87482e2",
+      "message": "G Image moves into the core CI tooling VIPC (v3.39.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T23:49:40Z"
+    },
     {
       "sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5",
       "short": "d56ded4",
@@ -697,13 +704,6 @@
       "date": "2026-06-20T05:32:06Z"
     },
     {
-      "sha": "c53462ffae15744abbf54a7f9654b27c4c1f8e1c",
-      "short": "c53462f",
-      "message": "catalog: restore the v3.21.1 release-notes entry dropped by a mid-commit race",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T05:10:36Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -817,6 +817,7 @@
       "capability": "",
       "configured": true,
       "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
         "jki_lib_caraya-1.4.4.148",
         "jki_vi_tester",
         "ni_lib_utf_junit_report-1.0.1.43"
@@ -829,7 +830,6 @@
       "capability": "",
       "configured": true,
       "packages": [
-        "dataflow_g_lib_g_image-0.5.0.1",
         "ni_lib_junit_results_api-1.0.1.6",
         "ni_lib_simple_xml-1.0.0.4",
         "ni_lib_utf_junit_report-1.0.1.43",
