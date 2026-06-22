@@ -10,20 +10,8 @@
   },
 
   "vipmPackages": {
-    "comment": "Top-level packages only. Each is emitted as a <Package Included=false> entry, so `vipm apply_vipc` downloads it (and its dependencies, listed here for reference only) from the configured VIPM repository at build time. Pin `version` for reproducible images; set it to null to resolve to the latest available. `include:false` documents a package without baking it in.",
+    "comment": "Top-level packages only - the CORE dependency set every CI action runner needs. Each is emitted as a <Package Included=false> entry, so `vipm apply_vipc` downloads it (and its dependencies, listed here for reference only) from the configured VIPM repository at build time. Pin `version` for reproducible images; set it to null to resolve to the latest available. `include:false` documents a package without baking it in. Capability-specific dependencies (e.g. Antidoc) do NOT live here - they live in their own opt-in VIPC under .github/labview/<capability>/<capability>.vipc and are baked into the worker image only when that capability is installed (see alreadyBakedElsewhere).",
     "packages": [
-      {
-        "name": "wovalab_lib_antidoc_cli",
-        "version": "3.3.0.117",
-        "include": true,
-        "summary": "Antidoc CLI by Wovalab - generate LabVIEW project documentation headlessly (the supported CI/CD path).",
-        "dependenciesAutoResolved": [
-          "wovalab_lib_antidoc",
-          "wovalab_lib_asciidoc_for_labview",
-          "wiresmith_technology_lib_g_cli"
-        ],
-        "note": "Doc generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default); only the doc-gen step needs that network, not the install."
-      },
       {
         "name": "jki_lib_caraya",
         "version": "1.4.4.148",
@@ -71,7 +59,13 @@
         "what": "OpenG libraries (oglib_*) + G Image",
         "package": "oglib_file, oglib_array, oglib_error, oglib_lvdata, oglib_string, oglib_appcontrol, dataflow_g_lib_g_image",
         "kind": "vipc",
-        "via": "COTC Dependencies.vipc (repo root) is staged + applied by the image build; OpenG is also pulled automatically as a Caraya dependency."
+        "via": "Project-owned dependencies live in the project's own VIPC (example/Dependencies.vipc), staged + applied by the image build; OpenG is also pulled automatically as a Caraya dependency."
+      },
+      {
+        "what": "Antidoc CLI (Wovalab doc generation)",
+        "package": "wovalab_lib_antidoc_cli (+ wovalab_lib_antidoc, wovalab_lib_asciidoc_for_labview, wiresmith_technology_lib_g_cli)",
+        "kind": "vipc",
+        "via": "Capability-specific - lives in .github/labview/antidoc/antidoc.vipc (its own opt-in VIPC), NOT in ci-tooling.vipc. The image build stages and bakes it ONLY when the Antidoc capability is installed (its run-antidoc workflow is present), so repos that do not generate docs never carry the dependency."
       }
     ]
   },

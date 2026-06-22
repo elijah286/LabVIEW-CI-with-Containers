@@ -161,7 +161,7 @@
     <header class="top">
       <div>
         <h1>Configure Workers</h1>
-        <p class="sub">Tune this repository's automated CI &mdash; LabVIEW version, platforms, the worker container and its baked VIPC dependencies, and which container each action runs in.</p>
+        <p class="sub">Tune this repository's automated CI &mdash; LabVIEW version, platforms, activities, and which container each action runs in. Worker dependencies are defined by the VIPC files committed to your repository.</p>
       </div>
     </header>
 
@@ -175,7 +175,6 @@
 
     <nav class="tabs" id="tabs" role="tablist">
       <button class="tab active" id="tab-pipeline" role="tab" data-pane="pane-pipeline">Pipeline</button>
-      <button class="tab" id="tab-container" role="tab" data-pane="pane-container">Container &amp; Dependencies</button>
       <button class="tab" id="tab-routing" role="tab" data-pane="pane-routing">Action Routing</button>
       <button class="tab" id="tab-vibrowser" role="tab" data-pane="pane-vibrowser">VI Browser</button>
       <button class="tab" id="tab-review" role="tab" data-pane="pane-review">Save &amp; Apply</button>
@@ -230,61 +229,14 @@
     </div><!-- /pane-pipeline -->
 
     <!-- ===================== CONTAINER & DEPENDENCIES ==================== -->
-    <div class="tabpane" id="pane-container" role="tabpanel" aria-labelledby="tab-container" hidden>
-      <section>
-        <h2>Worker container</h2>
-        <p class="hint">The default prebuilt image your CI activities run in, and the VIPC dependency files baked into it. Stored in <code class="inl">.github/labview-ci.yml</code> under <code class="inl">config.container</code>; built and pushed to GHCR by the <code class="inl">Build LabVIEW CI Image</code> workflow. Individual actions can override this default in <strong>Action Routing</strong>.</p>
-
-        <div class="field" style="max-width:560px">
-          <label class="fl" for="containerUse">Default container for all actions</label>
-          <select id="containerUse"></select>
-          <input type="text" id="containerUseCustom" placeholder="image tag, e.g. win-ab12cd34ef56 or 2026-20260616" style="margin-top:8px" hidden>
-          <div class="hint" style="margin-top:4px"><strong>Latest</strong> always uses the most recently built image, so your dependencies stay current. Pin to a specific build to freeze the container for reproducibility.</div>
-        </div>
-
-        <div class="subhead">VIPC dependencies baked into the container</div>
-        <p class="hint">VIPC files found in your repository are listed below, <strong>de-selected by default</strong>. Tick the ones you want baked into the worker image so their add-on dependencies are available in CI. Turn on <strong>Monitor</strong> for an included file to rebuild and re-push the container automatically whenever it changes on a submission &mdash; so the container always matches the dependencies the project needs.</p>
-        <div class="pkgs" id="vipcs"></div>
-        <div class="addpkg">
-          <input type="text" id="newVipcPath" placeholder="path to a .vipc file (e.g. COTC Dependencies.vipc)">
-          <button class="ghost" id="addVipcBtn">Add VIPC</button>
-        </div>
-        <div class="hint" id="vipcNote" style="margin-top:8px"></div>
-      </section>
-
-      <section>
-        <h2>Container dependencies (VIPM packages)</h2>
-        <p class="hint">VIPM packages baked into the CI worker image alongside your VIPC files. Written to <code class="inl">.github/labview/vipm/ci-tooling.packages.json</code>; the image rebuilds when this changes.</p>
-        <label class="toggle" style="margin-bottom:10px;display:inline-flex">
-          <input type="checkbox" id="antidoc"> Use Antidoc (Wovalab doc generation)
-        </label>
-        <div class="pkgs" id="pkgs"></div>
-        <div class="addpkg">
-          <input type="text" id="newPkgName" placeholder="vipm package name (e.g. oglib_array)">
-          <input type="text" id="newPkgVer" placeholder="version (blank = latest)" style="flex:0 1 180px">
-          <button class="ghost" id="addPkgBtn">Add package</button>
-        </div>
-      </section>
-
-      <section>
-        <h2>Build / update the container now</h2>
-        <p class="hint">Create a new image version or update the existing one and push it to your GHCR, on demand &mdash; without waiting for a file change. The build always publishes a moving <code class="inl">:latest</code> tag plus an immutable per-content tag (e.g. <code class="inl">win-ab12cd34ef56</code>) you can pin to. Monitored VIPC files also trigger this automatically when they change.</p>
-        <div class="codebox">
-          <button class="copy" id="copyBuild">Copy</button>
-          <pre id="buildCmd"></pre>
-        </div>
-        <div class="hint" style="margin-top:8px">Tip: after it finishes, the new build appears as a pinnable tag in <strong>Default container</strong> above and in <strong>Action Routing</strong>.</div>
-      </section>
-    </div><!-- /pane-container -->
-
     <!-- ========================= ACTION ROUTING ========================= -->
     <div class="tabpane" id="pane-routing" role="tabpanel" aria-labelledby="tab-routing" hidden>
       <section>
         <h2>Which container each action runs in</h2>
-        <p class="hint">By default every action uses the <strong>Default container</strong> from the Container tab. Override it per action here &mdash; for example pin VIDiff to a frozen build for stable rendering while Mass Compile tracks <em>Latest</em>. Saved to <code class="inl">config.container.actions</code> in <code class="inl">.github/labview-ci.yml</code>; the matching Windows workflow reads it at run time.</p>
+        <p class="hint">By default every action uses the project's <strong>default worker container</strong>. Override it per action here &mdash; for example pin VIDiff to a frozen build for stable rendering while Mass Compile tracks <em>Latest</em>. Saved to <code class="inl">config.container.actions</code> in <code class="inl">.github/labview-ci.yml</code>; the matching Windows workflow reads it at run time.</p>
         <div id="routeNote" class="hint" style="margin:0 0 14px"></div>
         <div id="routeList"></div>
-        <div class="note hint" style="margin-top:8px">Choices: <strong>Project default</strong> (inherit the Container tab), <strong>Latest build</strong>, a <strong>pinned build</strong>, the <strong>bare NI base image</strong> (no baked dependencies), or a <strong>custom tag</strong>. Linux jobs always use the NI base image.</div>
+        <div class="note hint" style="margin-top:8px">Choices: <strong>Project default</strong> (inherit the project default container), <strong>Latest build</strong>, a <strong>pinned build</strong>, the <strong>bare NI base image</strong> (no baked dependencies), or a <strong>custom tag</strong>. Linux jobs always use the NI base image.</div>
       </section>
     </div><!-- /pane-routing -->
 
@@ -310,7 +262,7 @@
         <p class="hint">With a valid dashboard token, save these settings by queuing a reviewable <code class="inl">Reconfigure</code> workflow run. It opens a pull request before anything changes on your default branch.</p>
 
         <div class="subhead">Use the stored dashboard token</div>
-        <p class="hint">This writes these settings (including the worker container, baked VIPC files, and per-action routing) through the repository's installed workflow and opens a PR.</p>
+        <p class="hint">This writes these settings (activities, triggers, VI Browser, VI Analyzer, and per-action routing) through the repository's installed workflow and opens a PR. Worker dependencies are not edited here &mdash; they come from the VIPC files in your repository.</p>
         <div class="actions">
           <button class="primary" id="applyCfg" type="button">Save and apply</button>
           <a id="wfLink" href="https://github.com/actions/workflows/reconfigure.yml" target="_blank" rel="noopener">View workflow</a>
@@ -333,7 +285,6 @@
         <p class="hint">Use these files for a fully manual change when workflow dispatch is not available.</p>
         <div class="actions">
           <button class="primary" id="dlYaml">Download labview-ci.yml</button>
-          <button class="primary" id="dlJson">Download ci-tooling.packages.json</button>
           <span class="status" id="dlStatus"></span>
         </div>
 
@@ -341,8 +292,6 @@
           <summary>Preview generated files</summary>
           <div class="subhead">.github/labview-ci.yml</div>
           <div class="codebox"><button class="copy" id="copyYaml">Copy</button><pre id="yamlPreview"></pre></div>
-          <div class="subhead">.github/labview/vipm/ci-tooling.packages.json</div>
-          <div class="codebox"><button class="copy" id="copyJson">Copy</button><pre id="jsonPreview"></pre></div>
         </details>
       </section>
     </div><!-- /pane-review -->
@@ -536,7 +485,7 @@
     function pkgList() { return ((pkgObj && pkgObj.vipmPackages && pkgObj.vipmPackages.packages) || []); }
 
     function renderPackages() {
-      const host = $("pkgs"); host.innerHTML = "";
+      const host = $("pkgs"); if (!host) return; host.innerHTML = "";
       pkgList().forEach((p, i) => {
         const row = document.createElement("div"); row.className = "pkg";
         const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = p.include !== false;
@@ -551,9 +500,10 @@
     }
 
     function syncAntidoc() {
+      const a = $("antidoc"); if (!a) return;
       const p = pkgList().find(x => x.name === ANTIDOC_PKG);
-      $("antidoc").checked = !!(p && p.include !== false);
-      $("antidoc").disabled = !p;
+      a.checked = !!(p && p.include !== false);
+      a.disabled = !p;
     }
 
     // ---- worker container --------------------------------------------------
@@ -686,7 +636,7 @@
         host.appendChild(row);
       });
       const note = $("routeNote");
-      if (note) note.innerHTML = "Project default currently resolves to <code class=\"inl\">" + escapeHtml(containerUseValue() || "latest") + "</code> (set in the Container tab).";
+      if (note) note.innerHTML = "Project default currently resolves to <code class=\"inl\">" + escapeHtml(containerUseValue() || "latest") + "</code> (the worker container built from your repository's VIPC files).";
     }
     // Entries that actually override the default (stable, sorted output).
     function containerActionEntries() {
@@ -1055,14 +1005,14 @@
     function genGhCmd() {
       const repo = $("repo").value.trim();
       const r = repo.includes("/") ? ` -R ${repo}` : "";
-      const antidoc = $("antidoc").checked ? "true" : "false";
-      const cVipc = vipcList.filter(v => v.include === true).map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
       const cActs = containerActionEntries().map(([id, t]) => `${id}::${t}`).join(";");
       const cTrig = triggerInputEnc();
       const cVB = viBrowserInputEnc();
       const cVia = viAnalyzerInputEnc();
-      const cLine = ` \\\n  -f container_use=${containerUseValue() || "latest"}` +
-        (cVipc ? ` \\\n  -f container_vipc="${cVipc}"` : "") +
+      // Worker dependencies (the container image + baked VIPC files) are no longer
+      // edited here - they are defined by the repo's VIPC files - so this command
+      // preserves them: antidoc=keep, and no container_use / container_vipc flags.
+      const cLine =
         (cActs ? ` \\\n  -f container_actions="${cActs}"` : "") +
         (cVB ? ` \\\n  -f vi_browser="${cVB}"` : "") +
         (cVia.def ? ` \\\n  -f via_default="${cVia.def}"` : "") +
@@ -1071,23 +1021,25 @@
       return `gh workflow run reconfigure.yml${r} \\\n` +
         `  -f labview_version=${$("version").value} \\\n` +
         `  -f operating_systems=${osChoice()} \\\n` +
-        `  -f antidoc=${antidoc} \\\n` +
+        `  -f antidoc=keep \\\n` +
         `  -f concurrent_runners=${parseInt($("runners").value, 10) || 1} \\\n` +
         `  -f activities=${csv(actSel) || "dashboard"}` + cLine;
     }
 
     function reconfigureInputs() {
-      const cVipc = vipcList.filter(v => v.include === true).map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
       const cActs = containerActionEntries().map(([id, t]) => `${id}::${t}`).join(";");
       const cVia = viAnalyzerInputEnc();
+      // Worker dependencies are defined by the repo's VIPC files, not this dialog:
+      // preserve the container image, baked VIPC, and Antidoc settings (blank / keep
+      // = "leave unchanged" in reconfigure.yml).
       return {
         labview_version: $("version").value,
         operating_systems: osChoice(),
-        antidoc: $("antidoc").checked ? "true" : "false",
+        antidoc: "keep",
         concurrent_runners: String(parseInt($("runners").value, 10) || 1),
         activities: csv(actSel) || "dashboard",
-        container_use: containerUseValue() || "latest",
-        container_vipc: cVipc,
+        container_use: "",
+        container_vipc: "",
         container_actions: cActs,
         action_triggers: triggerInputEnc(),
         vi_browser: viBrowserInputEnc(),
@@ -1161,12 +1113,10 @@
 
     function update() {
       $("yamlPreview").textContent = genYaml();
-      $("jsonPreview").textContent = genJson();
       $("ghCmd").textContent = genGhCmd();
       const wf = $("wfLink"); if (wf) wf.href = workflowUrl();
-      const bc = $("buildCmd"); if (bc) bc.textContent = genBuildCmd();
       const note = $("routeNote");
-      if (note) note.innerHTML = "Project default currently resolves to <code class=\"inl\">" + escapeHtml(containerUseValue() || "latest") + "</code> (set in the Container tab).";
+      if (note) note.innerHTML = "Project default currently resolves to <code class=\"inl\">" + escapeHtml(containerUseValue() || "latest") + "</code> (the worker container built from your repository's VIPC files).";
     }
 
     function download(name, text) {
@@ -1188,7 +1138,7 @@
       // Deep-link: open a specific tab from the URL hash (e.g. the header's
       // "VI Browser" menu links to configure.html#vi-browser).
       const hashTab = { "#vi-browser": "tab-vibrowser", "#vibrowser": "tab-vibrowser",
-        "#routing": "tab-routing", "#container": "tab-container",
+        "#routing": "tab-routing",
         "#pipeline": "tab-pipeline", "#review": "tab-review" };
       const want = hashTab[String(location.hash || "").toLowerCase()];
       if (want) { const el = document.getElementById(want); if (el) el.click(); }
@@ -1303,22 +1253,7 @@
         cb.addEventListener("change", () => { cb.checked ? osSel.add(cb.value) : osSel.delete(cb.value); update(); }));
       $("version").addEventListener("change", update);
       $("runners").addEventListener("input", update);
-      $("antidoc").addEventListener("change", () => {
-        const p = pkgList().find(x => x.name === ANTIDOC_PKG);
-        if (p) { p.include = $("antidoc").checked; renderPackages(); update(); }
-      });
-      $("addPkgBtn").addEventListener("click", () => {
-        const name = $("newPkgName").value.trim(); if (!name) return;
-        const ver = $("newPkgVer").value.trim();
-        if (!pkgObj) pkgObj = { vipmPackages: { packages: [] } };
-        if (!pkgObj.vipmPackages) pkgObj.vipmPackages = { packages: [] };
-        if (!pkgObj.vipmPackages.packages) pkgObj.vipmPackages.packages = [];
-        pkgObj.vipmPackages.packages.push({ name, version: ver || null, include: true, summary: "(added via Configure)" });
-        $("newPkgName").value = ""; $("newPkgVer").value = "";
-        renderPackages(); update();
-      });
       $("dlYaml").addEventListener("click", () => { download("labview-ci.yml", genYaml()); flash("labview-ci.yml downloaded — place at .github/labview-ci.yml"); });
-      $("dlJson").addEventListener("click", () => { download("ci-tooling.packages.json", genJson()); flash("ci-tooling.packages.json downloaded — place at .github/labview/vipm/"); });
       $("applyCfg").addEventListener("click", dispatchReconfigure);
       $("tokSave").addEventListener("click", () => {
         const inp = $("tokInput"); const v = (inp && inp.value || "").trim();
@@ -1330,19 +1265,7 @@
       const copy = (btn, src) => { const b = $(btn); if (!b) return; b.addEventListener("click", async () => {
         try { await navigator.clipboard.writeText($(src).textContent); b.textContent = "Copied!"; setTimeout(() => b.textContent = "Copy", 1400); } catch (_) {}
       }); };
-      copy("copyGh", "ghCmd"); copy("copyYaml", "yamlPreview"); copy("copyJson", "jsonPreview"); copy("copyBuild", "buildCmd");
-      $("containerUse").addEventListener("change", () => {
-        const sel = $("containerUse"); const custom = $("containerUseCustom");
-        if (custom) custom.hidden = (sel.value !== "__custom__");
-        containerUse = containerUseValue(); update();
-      });
-      $("containerUseCustom").addEventListener("input", () => { containerUse = containerUseValue(); update(); });
-      $("addVipcBtn").addEventListener("click", () => {
-        const p = $("newVipcPath").value.trim(); if (!p) return;
-        // Manually added paths are an explicit choice, so include them by default.
-        if (!vipcList.some(v => v.path === p)) vipcList.push({ path: p, monitor: true, include: true });
-        $("newVipcPath").value = ""; renderVipcs(); update();
-      });
+      copy("copyGh", "ghCmd"); copy("copyYaml", "yamlPreview");
     }
     function flash(msg) { const st = $("dlStatus"); st.className = "status ok"; st.textContent = msg; }
 

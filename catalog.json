@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.38.9",
+  "version": "3.39.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.39.0",
+        "date": "2026-06-22",
+        "title": "Dependency management cleaned up around VIPC files as the source of truth",
+        "summary": "Worker dependencies are now driven entirely by the VIPC files committed to a repository. ci-tooling.vipc is the core set every action runner needs (unit-test frameworks plus UTF/JUnit reporting); each project keeps its own dependencies in its project VIPC (the example keeps its OpenG and G Image libraries); and a new VIPM capability such as Antidoc gets its own opt-in VIPC under .github/labview/<capability>/ that is baked into the worker only when that capability is installed. The Dependencies page now finds ci-tooling.vipc correctly, labels each VIPC core / capability / project, says 'this file does not specify any packaged dependencies' for an empty VIPC, and shows each package as installed (green check), N/A (not applied on that platform), or an install error (red marker). The Configure dialog drops its Container & Dependencies tab -- the VIPC files in the repo are the single source of truth for what is installed.",
+        "highlights": [
+          "ci-tooling.vipc is the core action-runner dependency set; Antidoc moves to its own opt-in .github/labview/antidoc/antidoc.vipc, baked only when the Antidoc capability is installed",
+          "The example project keeps only its own OpenG and G Image libraries in example/Dependencies.vipc; the shared UTF/JUnit reporting packages are owned by the CI tooling",
+          "Dependencies page: fixes ci-tooling.vipc detection, adds core/capability/project labels and an empty-file message, and shows installed / N/A / error per package",
+          "Configure dialog removes the Container & Dependencies tab; worker dependencies are changed only by editing the repository's VIPC files"
+        ]
+      },
       {
         "version": "3.38.9",
         "date": "2026-06-22",
@@ -2962,7 +2974,9 @@
       "statusContext": "CI / Antidoc",
       "files": {
         "any": [
-          ".github/labview/build-antidoc-report.py"
+          ".github/labview/build-antidoc-report.py",
+          ".github/labview/antidoc/antidoc.vipc",
+          ".github/labview/antidoc/antidoc.packages.json"
         ],
         "windows": [
           ".github/workflows/run-antidoc-windows-container.yml",
@@ -2970,7 +2984,7 @@
         ],
         "linux": []
       },
-      "notes": "Antidoc is a VIPM package (wovalab_lib_antidoc_cli) baked into the custom worker image, so enable the Shared LabVIEW image and turn on 'Use Antidoc' in Configure. Documentation generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default), so the doc-gen step needs network access."
+      "notes": "Antidoc's VIPM dependencies (wovalab_lib_antidoc_cli + its chain) live in their own opt-in VIPC, .github/labview/antidoc/antidoc.vipc, NOT in the core ci-tooling.vipc. The image build bakes that VIPC into the worker only when the Antidoc capability is installed (its run-antidoc workflow is present), so repos that do not generate docs never carry the dependency. Enable the Shared LabVIEW image so the worker is rebuilt with Antidoc. Documentation generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default), so the doc-gen step needs network access."
     }
   ]
 }
