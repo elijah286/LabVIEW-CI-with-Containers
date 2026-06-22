@@ -192,6 +192,11 @@ jobs:
         run: |
           bash .github/labview/wait-for-worker-image.sh "${{ steps.shas.outputs.head }}" "${{ github.event.before }}"
 
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        working-directory: head
+        run: ./.github/labview/ensure-docker.ps1
+
       - name: Pull LabVIEW container image
         shell: powershell
         run: |

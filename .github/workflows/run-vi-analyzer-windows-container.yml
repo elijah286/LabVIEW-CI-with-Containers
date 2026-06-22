@@ -164,15 +164,7 @@ jobs:
 
       - name: Ensure Docker daemon is running
         shell: powershell
-        run: |
-          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
-          if ($null -eq $svc) {
-            throw 'Docker service not found on this runner.'
-          }
-          if ($svc.Status -ne 'Running') {
-            Start-Service docker
-          }
-          docker version
+        run: ./.github/labview/ensure-docker.ps1
 
       - name: Log in to GHCR
         uses: docker/login-action@v4

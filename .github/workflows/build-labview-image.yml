@@ -376,6 +376,10 @@ jobs:
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Worker version: $version"
 
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: ./.github/labview/ensure-docker.ps1
+
       - name: Pull or build LabVIEW VIPM base image
         shell: powershell
         run: |
