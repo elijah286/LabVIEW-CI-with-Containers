@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "5dc779355d8583a5f3cec2663a53158319d5368c",
+  "sha": "49dea7c04f2057d282740582cd8c97a76b164b91",
   "revisions": [
+    {
+      "sha": "49dea7c04f2057d282740582cd8c97a76b164b91",
+      "short": "49dea7c",
+      "message": "Dependencies: add an experimental Windows container column + opt-in render lane (v3.34.25)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T13:22:11Z"
+    },
     {
       "sha": "5dc779355d8583a5f3cec2663a53158319d5368c",
       "short": "5dc7793",
@@ -695,13 +702,6 @@
       "message": "VI Analyzer: move pipeline configuration to its own dedicated page; it only maps committed .viancfg files to code (v3.12.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-19T16:48:56Z"
-    },
-    {
-      "sha": "873cb98db00880c060792bd2bb6215e51fd3f7ce",
-      "short": "873cb98",
-      "message": "unit-test runner: log the version-independent add-ons folder + LabVIEW registry (v3.11.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T16:46:35Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",

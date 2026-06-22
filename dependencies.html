@@ -31,6 +31,7 @@
       <button id="reload" type="button">Reload</button>
     </div>
     <div class="note warn" id="linuxVipcBanner" style="font-size:1em;padding:14px 16px;border-width:2px"><strong>Linux VIPC support is coming.</strong> The Linux container does not currently apply repository VIPC configurations automatically, so all Linux package coverage is shown as missing for now.</div>
+    <div class="note" id="experimentalBanner" style="font-size:1em;padding:14px 16px"><strong>Windows (experimental) is an isolated container lane.</strong> Production actions keep running on the standard Windows worker; the experimental Windows container is opt-in (set the <code>EXPERIMENTAL_WINDOWS_IMAGE</code> repository variable) so new work can be proven there before it replaces the main Windows container. Until that image is published, its column shows <strong>experimental / pending</strong>.</div>
     <div class="cards">
       <div class="card"><div class="k">Repository</div><div class="v" id="repoCard">-</div></div>
       <div class="card"><div class="k">Worker</div><div class="v" id="workerCard">-</div></div>
@@ -66,7 +67,8 @@
     "use strict";
     const COLS = [
       { key:"windows", label:"Windows", platform:"windows", image:"worker", defaultTag:"latest" },
-      { key:"linux", label:"Linux", platform:"linux", image:"base" }
+      { key:"linux", label:"Linux", platform:"linux", image:"base" },
+      { key:"winExp", label:"Windows (experimental)", platform:"windows", image:"experimental", manifestPlatform:"windows-experimental", defaultTag:"latest", experimental:true }
     ];
     const NIPM_DEPS = [
       { key:"labview", name:"LabVIEW", source:"NI Package Manager", labview:true, platforms:["windows","linux"] },
@@ -221,6 +223,7 @@
     }
     function resolveColumn(col, manifest){
       if (col.image === "base") return { tag:"base", packages:new Set(), label:"base" };
+      if (col.image === "experimental") return { tag:"experimental", packages:new Set(), label:"experimental", experimental:true };
       const actTag = col.action ? manifest.actions[col.action] : "";
       const tag = actTag || manifest.use || col.defaultTag || "base";
       return { tag, packages:new Set(), label:tag || "base" };
@@ -231,6 +234,15 @@
         const st = resolveColumn(c, manifest);
         if (c.platform === "linux" && st.tag === "base") st.tag = "latest";
         states[c.key] = st;
+        if (c.image === "experimental") {
+          // Opt-in experimental Windows container lane. Its worker manifest lives
+          // under workers/<manifestPlatform>/ and only exists once the experimental
+          // image has been built and published. Until then, show a clear
+          // "experimental / pending" state instead of an unknown marker.
+          try { enrichPlatformState(st, await loadManifestFor(c.defaultTag || "latest", c.manifestPlatform || "windows-experimental")); st.experimental = true; }
+          catch (_) { markExperimentalPending(st); }
+          return;
+        }
         if (st.tag !== "base" && st.tag !== "none") {
           try { enrichPlatformState(st, await loadManifestFor(st.tag, c.platform)); }
           catch (_) { st.ready = false; st.packages = new Set(); st.nipkg = []; st.nipkgNames = new Set(); st.labview = ""; }
@@ -239,6 +251,12 @@
         }
       }));
       return states;
+    }
+    function markExperimentalPending(st){
+      st.experimental = true; st.experimentalPending = true; st.ready = false;
+      st.tag = "experimental"; st.label = "experimental";
+      st.packages = new Set(); st.nipkg = []; st.nipkgNames = new Set(); st.labview = "";
+      return st;
     }
     function markLinuxVipcPending(col, st){
       if (col.platform !== "linux") return st;
@@ -264,8 +282,10 @@
       if (actions.length) bits.push('actions ' + actions.map(([k,v]) => '<span class="pill">' + esc(k) + ': ' + esc(v) + '</span>').join(' '));
       $("configCard").innerHTML = bits.join(' &nbsp; ');
     }
+    function experimentalCell(){ return '<td class="cell"><span class="mark maybe">exp</span><span class="why">experimental</span></td>'; }
     function statusCell(pkg, colState){
       if (!pkg) return "";
+      if (colState.experimentalPending) return experimentalCell();
       if (colState.unsupported) return '<td class="cell"><span class="mark no">-</span><span class="why">coming</span></td>';
       if (colState.label === "base" || colState.label === "none") return '<td class="cell"><span class="mark no">-</span><span class="why">base</span></td>';
       if (!colState.ready) return '<td class="cell"><span class="mark maybe">?</span><span class="why">unknown</span></td>';
@@ -279,6 +299,7 @@
     }
     function nipmCell(dep, col, st){
       if (dep.platforms && !dep.platforms.includes(col.platform)) return simpleCell(undefined, '', 'not used');
+      if (st && st.experimentalPending) return experimentalCell();
       if (!st || !st.ready) return simpleCell(null);
       if (dep.labview) return st.labview ? simpleCell(true, 'LabVIEW ' + st.labview) : simpleCell(null);
       const wanted = ((dep.packages || {})[col.platform] || []).map(p => p.toLowerCase());
@@ -310,10 +331,11 @@
       const p = comp.platforms && comp.platforms[key];
       return p && p.present ? (p.label || 'present') : '';
     }
-    function renderSystem(components){
+    function renderSystem(components, colStates){
+      colStates = colStates || {};
       const heads = COLS.map(c => '<th>' + esc(c.label) + '</th>').join('');
       if (!components.length) { $("systemWrap").innerHTML = '<div class="empty">No system components were detected for this revision.</div>'; return; }
-      const rows = components.map(comp => '<tr><td class="pkg"><strong>' + esc(comp.name) + '</strong><br><span class="why">' + esc(comp.source || '') + '</span></td>' + COLS.map(c => { const label = systemLabel(comp, c.key); return simpleCell(label ? true : undefined, label, 'not used'); }).join('') + '</tr>');
+      const rows = components.map(comp => '<tr><td class="pkg"><strong>' + esc(comp.name) + '</strong><br><span class="why">' + esc(comp.source || '') + '</span></td>' + COLS.map(c => { const st = colStates[c.key]; if (st && st.experimentalPending) return experimentalCell(); const label = systemLabel(comp, c.key); return simpleCell(label ? true : undefined, label, 'not used'); }).join('') + '</tr>');
       $("systemWrap").innerHTML = '<table><thead><tr><th>Component</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
     }
     function systemFromTreePaths(paths, goVersion){
@@ -350,7 +372,8 @@
         return item;
       }));
       const platformStates = await loadPlatformStates(manifest);
-      const colStates = { windows: platformStates.windows, linux: markLinuxVipcPending(COLS[1], Object.assign({}, platformStates.linux)) };
+      const colStates = {};
+      COLS.forEach(c => { const src = platformStates[c.key] || {}; colStates[c.key] = (c.platform === "linux") ? markLinuxVipcPending(c, Object.assign({}, src)) : src; });
       const system = await systemForRevision(sha);
       const workerTags = Array.from(new Set(Object.values(platformStates).filter(s => s.tag && s.tag !== "base").map(s => s.label || s.tag))).join(", ") || "base images only";
       $("workerCard").textContent = workerTags;
@@ -365,7 +388,7 @@
       if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as missing: " + unsupportedCols.join(", ") + ".";
       renderVipc(vipcs, colStates);
       renderNipm(platformStates);
-      renderSystem(system);
+      renderSystem(system, colStates);
     }
 
     function renderGenerated(data){
@@ -386,8 +409,8 @@
           packages: new Set(col.packages || [])
         });
       });
-      COLS.forEach(c => { if (!platformStates[c.key]) platformStates[c.key] = colStates[c.key] || { tag:'base', label:'base', ready:true, packages:new Set(), nipkg:[], nipkgNames:new Set(), labview:'' }; });
-      COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = markLinuxVipcPending(c, { tag:"base", label:"base", ready:true, packages:new Set() }); });
+      COLS.forEach(c => { if (!platformStates[c.key]) platformStates[c.key] = colStates[c.key] || (c.image === "experimental" ? markExperimentalPending({}) : { tag:'base', label:'base', ready:true, packages:new Set(), nipkg:[], nipkgNames:new Set(), labview:'' }); });
+      COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = (c.image === "experimental") ? markExperimentalPending({}) : markLinuxVipcPending(c, { tag:"base", label:"base", ready:true, packages:new Set() }); });
       const workerTags = Array.from(new Set(Object.values(platformStates).filter(s => s.tag && s.tag !== "base").map(s => s.label))).join(", ") || "base images only";
       $("workerCard").textContent = workerTags;
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
@@ -400,7 +423,7 @@
       if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as missing: " + unsupportedCols.join(", ") + ".";
       renderVipc((data.vipc || []).map(v => ({ path:v.path, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates);
       renderNipm(platformStates);
-      renderSystem(data.system || []);
+      renderSystem(data.system || [], colStates);
     }
 
     async function init(){
