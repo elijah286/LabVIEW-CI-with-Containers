@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.7",
+  "version": "3.34.8",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.8",
+        "date": "2026-06-22",
+        "title": "Dashboard document switching opens the selected revision directly",
+        "summary": "Removes the redundant Activity selector from VI Browser and report contexts now that Dashboard owns document switching. Dashboard report links now pass the report viewer a first-party relative source path, so changing from one document type to another opens the current revision immediately instead of landing on an empty viewer until the revision is reselected.",
+        "highlights": [
+          "Removes the old context-bar Activity selector so Dashboard is the single document-switching menu.",
+          "Report links now use the current revision when present, or the newest known revision otherwise.",
+          "Report viewer links pass relative iframe sources, so Mass Compile, VI Analyzer, Unit Tests, and Antidoc open content immediately."
+        ]
+      },
       {
         "version": "3.34.7",
         "date": "2026-06-21",
