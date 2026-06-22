@@ -1,11 +1,33 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.10",
+  "version": "3.34.12",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.12",
+        "date": "2026-06-22",
+        "title": "Windows VI Browser 2.0 uses the Go render path directly",
+        "summary": "The Windows VI Browser 2.0 container no longer blocks rendering on a separate PowerShell COM-readiness probe. It now prepares the LabVIEW container and immediately hands off to the same Go batch runner used by the Linux 2.0 path, letting lvctl own LabVIEW attach, launch, readiness, and per-VI rendering.",
+        "highlights": [
+          "Removes the PowerShell GetActiveObject gate that prevented the Go renderer from running in the Windows container.",
+          "Keeps the existing Go runner/lvctl toolchain as the owner of LabVIEW startup and rendering on Windows.",
+          "Leaves workflow failure propagation in place so real Windows render failures remain visible."
+        ]
+      },
+      {
+        "version": "3.34.11",
+        "date": "2026-06-22",
+        "title": "Windows VI Browser 2.0 render failures are reported correctly",
+        "summary": "Windows VI Browser 2.0 runs now fail the workflow when the LabVIEW Windows container cannot start the COM-backed renderer, instead of reporting success with zero published frames. The renderer also waits longer for LabVIEW to become COM-ready in the stock Windows container so slow first launches have a chance to render before the run is marked failed.",
+        "highlights": [
+          "Propagates non-zero Windows render exit codes out of the workflow so failed LabVIEW startup is visible in the VI Browser.",
+          "Extends the COM-ready wait for the in-container LabVIEW startup from four minutes to ten minutes.",
+          "Keeps zero-frame renderer failures from being mistaken for successful runs that simply skipped a VI."
+        ]
+      },
       {
         "version": "3.34.10",
         "date": "2026-06-22",
