@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.38.8",
+  "version": "3.38.9",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.38.9",
+        "date": "2026-06-22",
+        "title": "Main Linux worker now installs VIPM and applies VIPC files",
+        "summary": "The native VIPM/VIPC flow proven in the Linux Beta lane is now the main Linux worker path. Linux Mass Compile, VI Analyzer, and VIDiff default to the shared GHCR Linux worker, the stable Linux image build publishes linux-* tags and workers/linux manifests, and the Dependencies page no longer describes Linux VIPC support as pending.",
+        "highlights": [
+          "Promotes the VIPM-enabled Linux image to the standard linux-latest worker used by Linux container jobs",
+          "Generates workers/linux manifests from the VIPM-applied Linux build so the Dependencies page reports stable Linux VIPC coverage",
+          "Removes active Apply to New Repo and Dependencies page wording that described Linux VIPC support as coming or experimental"
+        ]
+      },
       {
         "version": "3.38.8",
         "date": "2026-06-22",
@@ -2850,7 +2861,7 @@
     {
       "id": "custom-image",
       "name": "Shared LabVIEW container image",
-      "summary": "Builds a LabVIEW CI container image (NI base + VI Analyzer support + any repo .vipc dependencies) and publishes it to GHCR, named after the repo. Built once, pulled by the other jobs.",
+      "summary": "Builds LabVIEW CI container images (NI base + any repo .vipc dependencies) and publishes them to GHCR, named after the repo. Built once, pulled by the other jobs.",
       "status": "advanced",
       "recommended": false,
       "supportsOs": [
@@ -2874,59 +2885,11 @@
         ],
         "linux": [
           ".github/workflows/build-labview-linux-image.yml",
-          ".github/docker/labview-ci-linux.Dockerfile"
-        ]
-      },
-      "notes": "Only required if you want the full VI Analyzer test set or to bake .vipc dependencies into the worker. Any repo-root *.vipc is detected and baked automatically. Non-2026 LabVIEW versions need a matching nipkg feed URL (build-arg)."
-    },
-    {
-      "id": "linux-vipm",
-      "name": "Linux VIPM/VIPC support",
-      "summary": "Installs the Linux-side VIPM/VIPC helper used by the Linux Beta worker image to apply repository VIPC dependency files during the image build.",
-      "status": "experimental",
-      "recommended": false,
-      "supportsOs": [
-        "linux"
-      ],
-      "requires": [],
-      "recommends": [
-        "linux-beta-container"
-      ],
-      "statusContext": null,
-      "files": {
-        "any": [],
-        "windows": [],
-        "linux": [
+          ".github/docker/labview-ci-linux.Dockerfile",
           ".github/labview/vipm/install-vipc-linux.sh"
         ]
       },
-      "notes": "Experimental Linux VIPM execution is only used by the Linux Beta container lane. Stable Linux actions continue to run on the NI base image unless that Beta image is selected in Configure Workers."
-    },
-    {
-      "id": "linux-beta-container",
-      "name": "Linux Beta container image",
-      "summary": "Builds an isolated Linux Beta worker image that includes VI Analyzer support, VIPM, repository VIPC dependencies, and a workers/linux-beta manifest without changing the stable Linux base-image path.",
-      "status": "experimental",
-      "recommended": false,
-      "supportsOs": [
-        "linux"
-      ],
-      "requires": [
-        "linux-vipm"
-      ],
-      "recommends": [],
-      "statusContext": null,
-      "files": {
-        "any": [
-          ".github/labview/build-worker-manifest.py"
-        ],
-        "windows": [],
-        "linux": [
-          ".github/workflows/build-labview-linux-beta-image.yml",
-          ".github/docker/labview-ci-linux-beta.Dockerfile"
-        ]
-      },
-      "notes": "This publishes linux-beta-* and linux-beta-latest tags. Linux Mass Compile, VI Analyzer, and VIDiff use the stable NI base image until a Linux Beta tag is selected in Configure Workers."
+      "notes": "Required when you want to bake .vipc dependencies into the worker. Any configured VIPC file is detected and baked automatically; if no config is present, repository VIPC files outside .github are staged."
     },
     {
       "id": "snapshots-windows-2",
