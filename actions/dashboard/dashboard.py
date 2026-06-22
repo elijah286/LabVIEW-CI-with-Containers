@@ -2789,6 +2789,75 @@ def _manifest_packages(man):
         packages.add(pkg)
   return sorted(packages, key=str.lower)
 
+def _manifest_nipkg_packages(man):
+  packages = []
+  if isinstance(man, dict):
+    for pkg in man.get('nipkg_packages') or []:
+      if isinstance(pkg, dict) and pkg.get('name'):
+        packages.append({'name': str(pkg.get('name') or ''), 'version': str(pkg.get('version') or '')})
+  return sorted(packages, key=lambda p: p['name'].lower())
+
+def _known_nipm_dependencies():
+  return [
+    {
+      'name': 'LabVIEW',
+      'source': 'NI Package Manager',
+      'labview': True,
+      'platforms': ['windows', 'linux'],
+      'details': 'LabVIEW runtime and development packages from the NI feeds.',
+    },
+    {
+      'name': 'VI Analyzer support',
+      'source': 'NI Package Manager',
+      'packages': {'windows': ['ni-viawin-labview-support'], 'linux': ['ni-vialin-labview-support']},
+      'platforms': ['windows', 'linux'],
+      'details': 'NI VI Analyzer support package used by the analyzer runners.',
+    },
+    {
+      'name': 'NI Unit Test Framework',
+      'source': 'NI Package Manager',
+      'packages': {'windows': ['ni-utf-labview-support']},
+      'platforms': ['windows'],
+      'details': 'NI UTF support package used by the Windows unit-test runner.',
+    },
+    {
+      'name': 'VI Package Manager',
+      'source': 'NI Package Manager',
+      'packages': {'windows': ['ni-vipm']},
+      'platforms': ['windows'],
+      'details': 'NI-published VIPM package that enables VIPC application during Windows worker builds.',
+    },
+  ]
+
+def _system_dependencies():
+  has_toimages = os.path.isdir('.github/labview/toimages')
+  if not has_toimages:
+    return []
+  has_windows = os.path.isfile('.github/workflows/vi-snapshots-json-windows.yml')
+  has_linux = os.path.isfile('.github/workflows/vi-snapshots-json.yml') and os.path.isfile('.github/workflows/build-toimages-image.yml')
+  return [
+    {
+      'name': 'VI Browser 2.0 toimages runner',
+      'source': 'Repository Go code',
+      'path': '.github/labview/toimages/main.go',
+      'details': 'Batch runner compiled from repo Go source; Linux uses the toimages GHCR image and Windows builds runner.exe in the workflow.',
+      'platforms': {
+        'windows': {'present': has_windows, 'label': 'workflow-built' if has_windows else ''},
+        'linux': {'present': has_linux, 'label': 'toimages image' if has_linux else ''},
+      },
+    },
+    {
+      'name': 'lvctl render engine',
+      'source': 'Repository Go code + embedded VIs',
+      'path': '.github/labview/toimages/_ni/labview/lvctl',
+      'details': 'Renderer used by VI Browser 2.0 to drive LabVIEW and emit position-aware frame JSON.',
+      'platforms': {
+        'windows': {'present': has_windows, 'label': 'workflow-built' if has_windows else ''},
+        'linux': {'present': has_linux, 'label': 'toimages image' if has_linux else ''},
+      },
+    },
+  ]
+
 def _build_dependencies_index():
   config = _parse_container_config()
   configured = {v.get('path', '') for v in config.get('vipc') or []}
@@ -2806,10 +2875,15 @@ def _build_dependencies_index():
     tag = col.get('tag') or action_tag or config.get('use') or col.get('defaultTag') or 'base'
     col['tag'] = tag
     if col.get('platform') == 'linux':
+      man = _worker_manifest('linux', 'latest')
       col['ready'] = True
       col['packages'] = []
       col['version'] = 'pending'
       col['unsupported'] = True
+      col['nipkg_ready'] = isinstance(man, dict)
+      col['nipkg_packages'] = _manifest_nipkg_packages(man)
+      col['nipkg_version'] = man.get('version', 'latest') if isinstance(man, dict) else 'latest'
+      col['labview_version'] = man.get('labview_version', '') if isinstance(man, dict) else ''
       continue
     if tag not in ('base', 'none'):
       cache_key = f"{col['platform']}:{tag}"
@@ -2818,10 +2892,16 @@ def _build_dependencies_index():
       man = manifest_cache[cache_key]
       col['ready'] = isinstance(man, dict)
       col['packages'] = _manifest_packages(man)
+      col['nipkg_ready'] = isinstance(man, dict)
+      col['nipkg_packages'] = _manifest_nipkg_packages(man)
+      col['labview_version'] = man.get('labview_version', '') if isinstance(man, dict) else ''
       col['version'] = man.get('version', tag) if isinstance(man, dict) else tag
     else:
       col['ready'] = True
       col['packages'] = []
+      col['nipkg_ready'] = True
+      col['nipkg_packages'] = []
+      col['labview_version'] = ''
       col['version'] = tag
   data = {
     'schema': 1,
@@ -2836,6 +2916,8 @@ def _build_dependencies_index():
     } for c in commits_data if c.get('sha')],
     'config': config,
     'vipc': vipcs,
+    'nipm': _known_nipm_dependencies(),
+    'system': _system_dependencies(),
     'columns': columns,
   }
   with open('ci-out/dashboard/dependencies/index.json', 'w', encoding='utf-8') as fh:

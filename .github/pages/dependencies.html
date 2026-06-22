@@ -11,13 +11,16 @@
     @media(prefers-color-scheme:light){:root{--bg:#ffffff;--surface:#f6f8fa;--surface2:#fff;--border:#d0d7de;--fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--accent:#1f883d;--accent-fg:#fff;--chip:#eaeef2;--code:#f6f8fa;--warn:#9a6700;--ok:#1a7f37;--bad:#cf222e}}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5}a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 64px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.hero h1{margin:0 0 4px;font-size:1.55em}.sub{margin:0;color:var(--fg-muted);font-size:.9em}.controls{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:12px;align-items:end;margin:18px 0}.field label{display:block;color:var(--fg-muted);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}select,button{font:inherit}select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg)}button{border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--fg);padding:9px 12px;cursor:pointer}button:hover{border-color:var(--link)}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px}.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px}.card .k{color:var(--fg-muted);font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.card .v{margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.note{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:11px 13px;color:var(--fg-muted);font-size:.88em;margin-bottom:16px}.note.warn{border-color:rgba(210,153,34,.55);background:rgba(210,153,34,.10);color:var(--fg)}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)}table{width:100%;border-collapse:collapse;min-width:980px}th,td{border-bottom:1px solid var(--border);padding:8px 9px;text-align:left;vertical-align:top}th{position:sticky;top:0;background:var(--surface);color:var(--fg-muted);font-size:.75em;text-transform:uppercase;letter-spacing:.04em;z-index:1}td.pkg{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em}.vipc-row{background:color-mix(in srgb,var(--surface) 80%,var(--chip));font-weight:700}.vipc-row td{padding-top:10px;padding-bottom:10px}.twisty{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:5px;border:1px solid var(--border);border-radius:4px;color:var(--fg-muted);font-size:.8em}.vipc-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:.75em;color:var(--fg-muted);font-weight:600}.yes{color:var(--ok)}.no{color:var(--bad)}.maybe{color:var(--warn)}.cell{white-space:nowrap;text-align:center}.cell .mark{font-weight:800;font-size:1em}.cell .why{display:block;color:var(--fg-muted);font-size:.68em;margin-top:1px}.empty{padding:28px;text-align:center;color:var(--fg-muted)}.hidden{display:none}@media(max-width:760px){.hero{display:block}.controls{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.wrap{padding-inline:14px}}
   </style>
+  <style>
+    .dep-section{margin-top:22px}.dep-section h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}
+  </style>
 </head>
 <body>
   <main class="wrap">
     <div class="hero">
       <div>
         <h1>Dependencies</h1>
-        <p class="sub">VIPC package coverage by revision and runner container.</p>
+        <p class="sub">Dependency coverage by revision, package source, and runner platform.</p>
       </div>
     </div>
     <div class="controls">
@@ -35,7 +38,21 @@
     </div>
     <div class="note" id="configCard">Loading container configuration...</div>
     <div class="note" id="status">Loading dependency inventory...</div>
-    <div class="table-wrap" id="tableWrap"><div class="empty">Loading...</div></div>
+    <section class="dep-section">
+      <h2>VIPM / VIPC Packages</h2>
+      <p class="dep-caption">Repository VIPC files and the VIPM packages they request.</p>
+      <div class="table-wrap" id="vipcWrap"><div class="empty">Loading...</div></div>
+    </section>
+    <section class="dep-section">
+      <h2>NI Package Manager Dependencies</h2>
+      <p class="dep-caption">NI software installed or expected through NI Package Manager, including LabVIEW and UTF.</p>
+      <div class="table-wrap" id="nipmWrap"><div class="empty">Loading...</div></div>
+    </section>
+    <section class="dep-section">
+      <h2>System Components</h2>
+      <p class="dep-caption">CI runtime components that are not installed by VIPM or NI Package Manager.</p>
+      <div class="table-wrap" id="systemWrap"><div class="empty">Loading...</div></div>
+    </section>
   </main>
   <script>
   (() => {
@@ -43,6 +60,12 @@
     const COLS = [
       { key:"windows", label:"Windows", platform:"windows", image:"worker", defaultTag:"latest" },
       { key:"linux", label:"Linux", platform:"linux", image:"base" }
+    ];
+    const NIPM_DEPS = [
+      { key:"labview", name:"LabVIEW", source:"NI Package Manager", labview:true, platforms:["windows","linux"] },
+      { key:"via", name:"VI Analyzer support", source:"NI Package Manager", packages:{ windows:["ni-viawin-labview-support"], linux:["ni-vialin-labview-support"] }, platforms:["windows","linux"] },
+      { key:"utf", name:"NI Unit Test Framework", source:"NI Package Manager", packages:{ windows:["ni-utf-labview-support"] }, platforms:["windows"] },
+      { key:"vipm", name:"VI Package Manager", source:"NI Package Manager", packages:{ windows:["ni-vipm"] }, platforms:["windows"] }
     ];
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
@@ -167,11 +190,37 @@
       (man && man.vipc || []).forEach(v => (v.packages || []).forEach(p => set.add(p)));
       return set;
     }
+    function nipkgInManifest(man){ return Array.isArray(man && man.nipkg_packages) ? man.nipkg_packages : []; }
+    function enrichPlatformState(st, man){
+      st.manifest = man || null;
+      st.ready = !!man;
+      st.packages = packagesInManifest(man);
+      st.nipkg = nipkgInManifest(man);
+      st.nipkgNames = new Set(st.nipkg.map(p => String(p.name || "").toLowerCase()).filter(Boolean));
+      st.labview = man && man.labview_version ? String(man.labview_version) : "";
+      if (man && man.version) st.label = man.version;
+      return st;
+    }
     function resolveColumn(col, manifest){
       if (col.image === "base") return { tag:"base", packages:new Set(), label:"base" };
       const actTag = col.action ? manifest.actions[col.action] : "";
       const tag = actTag || manifest.use || col.defaultTag || "base";
       return { tag, packages:new Set(), label:tag || "base" };
+    }
+    async function loadPlatformStates(manifest){
+      const states = {};
+      await Promise.all(COLS.map(async c => {
+        const st = resolveColumn(c, manifest);
+        if (c.platform === "linux" && st.tag === "base") st.tag = "latest";
+        states[c.key] = st;
+        if (st.tag !== "base" && st.tag !== "none") {
+          try { enrichPlatformState(st, await loadManifestFor(st.tag, c.platform)); }
+          catch (_) { st.ready = false; st.packages = new Set(); st.nipkg = []; st.nipkgNames = new Set(); st.labview = ""; }
+        } else {
+          st.ready = true; st.nipkg = []; st.nipkgNames = new Set(); st.labview = "";
+        }
+      }));
+      return states;
     }
     function markLinuxVipcPending(col, st){
       if (col.platform !== "linux") return st;
@@ -205,8 +254,21 @@
       const ok = colState.packages.has(pkg);
       return '<td class="cell"><span class="mark ' + (ok ? 'yes">yes' : 'no">-') + '</span><span class="why">' + esc(colState.label) + '</span></td>';
     }
-    function render(vipcs, colStates){
-      if (!vipcs.length) { $("tableWrap").innerHTML = '<div class="empty">No VIPC files were found in this revision.</div>'; return; }
+    function simpleCell(ok, label, emptyLabel){
+      if (ok === null) return '<td class="cell"><span class="mark maybe">?</span><span class="why">unknown</span></td>';
+      if (ok === undefined) return '<td class="cell"><span class="mark maybe">n/a</span><span class="why">' + esc(emptyLabel || 'not used') + '</span></td>';
+      return '<td class="cell"><span class="mark ' + (ok ? 'yes">yes' : 'no">-') + '</span><span class="why">' + esc(label || (ok ? 'present' : 'missing')) + '</span></td>';
+    }
+    function nipmCell(dep, col, st){
+      if (dep.platforms && !dep.platforms.includes(col.platform)) return simpleCell(undefined, '', 'not used');
+      if (!st || !st.ready) return simpleCell(null);
+      if (dep.labview) return st.labview ? simpleCell(true, 'LabVIEW ' + st.labview) : simpleCell(null);
+      const wanted = ((dep.packages || {})[col.platform] || []).map(p => p.toLowerCase());
+      const found = (st.nipkg || []).find(p => wanted.includes(String(p.name || '').toLowerCase()));
+      return found ? simpleCell(true, found.version || found.name) : simpleCell(false, 'missing');
+    }
+    function renderVipc(vipcs, colStates){
+      if (!vipcs.length) { $("vipcWrap").innerHTML = '<div class="empty">No VIPC files were found in this revision.</div>'; return; }
       const heads = COLS.map(c => '<th>' + esc(c.label) + '</th>').join('');
       const rows = [];
       vipcs.forEach((v, idx) => {
@@ -216,8 +278,43 @@
           (v.packages || []).forEach(pkg => rows.push('<tr><td class="pkg">' + esc(pkg) + '</td>' + COLS.map(c => statusCell(pkg, colStates[c.key])).join('') + '</tr>'));
         }
       });
-      $("tableWrap").innerHTML = '<table><thead><tr><th>VIPC / Package</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
-      Array.from(document.querySelectorAll('.vipc-row')).forEach((row, i) => row.addEventListener('click', () => { vipcs[i].open = !vipcs[i].open; render(vipcs, colStates); }));
+      $("vipcWrap").innerHTML = '<table><thead><tr><th>VIPC / Package</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+      Array.from(document.querySelectorAll('.vipc-row')).forEach((row, i) => row.addEventListener('click', () => { vipcs[i].open = !vipcs[i].open; renderVipc(vipcs, colStates); }));
+    }
+    function renderNipm(platformStates){
+      const heads = COLS.map(c => '<th>' + esc(c.label) + '</th>').join('');
+      const deps = (platformStates.nipmDeps && platformStates.nipmDeps.length) ? platformStates.nipmDeps : NIPM_DEPS;
+      const rows = deps.map(dep => '<tr><td class="pkg"><strong>' + esc(dep.name) + '</strong><br><span class="why">' + esc(dep.source) + '</span></td>' + COLS.map(c => nipmCell(dep, c, platformStates[c.key])).join('') + '</tr>');
+      $("nipmWrap").innerHTML = '<table><thead><tr><th>NI Package</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    }
+    function systemLabel(comp, key){
+      if (comp[key]) return comp[key];
+      const p = comp.platforms && comp.platforms[key];
+      return p && p.present ? (p.label || 'present') : '';
+    }
+    function renderSystem(components){
+      const heads = COLS.map(c => '<th>' + esc(c.label) + '</th>').join('');
+      if (!components.length) { $("systemWrap").innerHTML = '<div class="empty">No system components were detected for this revision.</div>'; return; }
+      const rows = components.map(comp => '<tr><td class="pkg"><strong>' + esc(comp.name) + '</strong><br><span class="why">' + esc(comp.source || '') + '</span></td>' + COLS.map(c => { const label = systemLabel(comp, c.key); return simpleCell(label ? true : undefined, label, 'not used'); }).join('') + '</tr>');
+      $("systemWrap").innerHTML = '<table><thead><tr><th>Component</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    }
+    function systemFromTreePaths(paths, goVersion){
+      const has = p => paths.has(p);
+      const hasToimages = Array.from(paths).some(p => p.startsWith('.github/labview/toimages/'));
+      const version = goVersion ? 'Go ' + goVersion : 'Go toolchain';
+      const out = [];
+      if (hasToimages) out.push({ key:'toimages', name:'VI Browser 2.0 toimages renderer', source:'.github/labview/toimages', windows:has('.github/workflows/vi-snapshots-json-windows.yml') ? 'built in workflow' : '', linux:has('.github/workflows/vi-snapshots-json.yml') && has('.github/workflows/build-toimages-image.yml') ? 'toimages image' : '' });
+      if (hasToimages) out.push({ key:'go', name:version, source:'Go build/runtime for toimages', windows:has('.github/workflows/vi-snapshots-json-windows.yml') ? 'actions/setup-go' : '', linux:has('.github/labview/toimages/Dockerfile') ? 'Docker build stage' : '' });
+      return out;
+    }
+    async function systemForRevision(sha){
+      try {
+        const tree = await fetchJson(api('/git/trees/' + sha + '?recursive=1'));
+        const paths = new Set((tree.tree || []).map(x => x.path));
+        let goVersion = '';
+        try { const gm = await fetchText(raw('.github/labview/toimages/go.mod', sha)); const m = gm.match(/^go\s+([^\s]+)/m); if (m) goVersion = m[1]; } catch (_) {}
+        return systemFromTreePaths(paths, goVersion);
+      } catch (_) { return []; }
     }
 
     async function loadRevision(sha){
@@ -234,17 +331,10 @@
         catch (e) { item.error = "Could not parse " + path + ": " + e.message; }
         return item;
       }));
-      const colStates = {};
-      await Promise.all(COLS.map(async c => {
-        const st = markLinuxVipcPending(c, resolveColumn(c, manifest));
-        colStates[c.key] = st;
-        if (st.unsupported) return;
-        if (st.tag !== "base" && st.tag !== "none") {
-          try { st.packages = packagesInManifest(await loadManifestFor(st.tag, c.platform)); st.ready = true; }
-          catch (_) { st.ready = false; }
-        } else st.ready = true;
-      }));
-      const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base" && !s.unsupported).map(s => s.tag))).join(", ") || "base images only";
+      const platformStates = await loadPlatformStates(manifest);
+      const colStates = { windows: platformStates.windows, linux: markLinuxVipcPending(COLS[1], Object.assign({}, platformStates.linux)) };
+      const system = await systemForRevision(sha);
+      const workerTags = Array.from(new Set(Object.values(platformStates).filter(s => s.tag && s.tag !== "base").map(s => s.label || s.tag))).join(", ") || "base images only";
       $("workerCard").textContent = workerTags;
       $("vipcCard").textContent = String(vipcs.length);
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
@@ -255,16 +345,22 @@
         ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
         : "The Windows column resolves to a worker manifest for this revision/configuration.");
       if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as missing: " + unsupportedCols.join(", ") + ".";
-      render(vipcs, colStates);
+      renderVipc(vipcs, colStates);
+      renderNipm(platformStates);
+      renderSystem(system);
     }
 
     function renderGenerated(data){
       renderConfigSummary(data.config || {});
       $("repoCard").textContent = data.repo || repo || "unknown";
       $("vipcCard").textContent = String((data.vipc || []).length);
+      const platformStates = {};
+      (data.platforms || []).forEach(p => { platformStates[p.key] = { tag:p.tag || 'base', label:p.version || p.tag || 'base', ready:p.ready !== false, packages:new Set(p.packages || []), nipkg:p.nipkg_packages || [], nipkgNames:new Set((p.nipkg_packages || []).map(x => String(x.name || '').toLowerCase())), labview:p.labview_version || '' }; });
+      platformStates.nipmDeps = data.nipm || [];
       const colStates = {};
       (data.columns || []).forEach(col => {
         const known = COLS.find(c => c.key === col.key) || {};
+        if (!platformStates[col.key]) platformStates[col.key] = { tag:col.tag || 'base', label:col.nipkg_version || col.version || col.tag || 'base', ready:col.nipkg_ready !== false, packages:new Set(col.packages || []), nipkg:col.nipkg_packages || [], nipkgNames:new Set((col.nipkg_packages || []).map(x => String(x.name || '').toLowerCase())), labview:col.labview_version || '' };
         colStates[col.key] = markLinuxVipcPending(known, {
           tag: col.tag || "base",
           label: col.version || col.tag || "base",
@@ -272,8 +368,9 @@
           packages: new Set(col.packages || [])
         });
       });
+      COLS.forEach(c => { if (!platformStates[c.key]) platformStates[c.key] = colStates[c.key] || { tag:'base', label:'base', ready:true, packages:new Set(), nipkg:[], nipkgNames:new Set(), labview:'' }; });
       COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = markLinuxVipcPending(c, { tag:"base", label:"base", ready:true, packages:new Set() }); });
-      const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base" && !s.unsupported).map(s => s.label))).join(", ") || "base images only";
+      const workerTags = Array.from(new Set(Object.values(platformStates).filter(s => s.tag && s.tag !== "base").map(s => s.label))).join(", ") || "base images only";
       $("workerCard").textContent = workerTags;
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
       const unsupportedCols = COLS.filter(c => colStates[c.key].unsupported).map(c => c.label);
@@ -283,7 +380,9 @@
         ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
         : "The Windows column resolves to a worker manifest for this dashboard build.");
       if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as missing: " + unsupportedCols.join(", ") + ".";
-      render((data.vipc || []).map(v => ({ path:v.path, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates);
+      renderVipc((data.vipc || []).map(v => ({ path:v.path, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates);
+      renderNipm(platformStates);
+      renderSystem(data.system || []);
     }
 
     async function init(){

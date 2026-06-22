@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.19",
+  "version": "3.34.20",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.20",
+        "date": "2026-06-22",
+        "title": "Dependencies page separates VIPM, NI packages, and system components",
+        "summary": "The Dependencies page now groups dependency coverage by source instead of putting everything into a single VIPC table. VIPM/VIPC packages remain in their own table, NI Package Manager-installed dependencies such as LabVIEW, VI Analyzer support, Unit Test Framework, and VIPM are listed separately from worker manifests, and repository-provided system components such as the VI Browser 2.0 toimages Go renderer are called out in a third table.",
+        "highlights": [
+          "Adds a dedicated NI Package Manager Dependencies table that surfaces LabVIEW and NI Unit Test Framework alongside other NI-installed tooling from worker manifests.",
+          "Adds a System Components table for CI runtime pieces that do not come from VIPM or NIPM, including the VI Browser 2.0 toimages Go renderer.",
+          "Keeps the existing VIPM/VIPC package table and Linux VIPC pending banner intact while still showing Linux NI package and system-component context."
+        ]
+      },
       {
         "version": "3.34.19",
         "date": "2026-06-22",
