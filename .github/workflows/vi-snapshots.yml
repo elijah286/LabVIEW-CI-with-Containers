@@ -114,6 +114,13 @@ jobs:
           echo "emit_frames_json=$emit" >> "$GITHUB_OUTPUT"
           echo "VI Browser 2.0 frames JSON on Windows: $emit"
 
+      - name: Wait for worker image build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ github.sha }}" "${{ github.event.before }}"
+
       - name: Build VI snapshots (incremental, content-addressed)
         id: snapshots
         shell: powershell

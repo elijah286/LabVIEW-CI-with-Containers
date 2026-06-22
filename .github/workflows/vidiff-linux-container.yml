@@ -1,11 +1,5 @@
 name: VIDiff Report — Linux Container
 
-# Title each run with the base..head it diffs and how it was requested, so the
-# Actions list isn't a wall of identical entries. A dashboard / VI Browser run or a
-# manual dispatch arrives as workflow_dispatch with base_sha/head_sha; push/PR fall back
-# to github.sha. Only github/inputs contexts are used (no dispatch input changes).
-run-name: "VIDiff (Linux): ${{ inputs.base_sha != '' && inputs.base_sha || 'parent' }}..${{ inputs.head_sha != '' && inputs.head_sha || github.sha }} by @${{ github.actor }} (${{ github.event_name }})"
-
 on:
   pull_request:
     paths:
@@ -98,6 +92,13 @@ jobs:
         run: |
           git fetch --no-tags origin main
           git checkout FETCH_HEAD -- .github/labview .github/workflows
+
+      - name: Wait for worker image build
+        working-directory: head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.shas.outputs.head }}" "${{ github.event.before }}"
 
       - name: Get list of changed VI/CTL files
         id: changed

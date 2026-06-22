@@ -446,6 +446,83 @@ func (s *Session) RunVI(timeout time.Duration, viPath string, controls map[strin
 	return result, nil
 }
 
+func (s *Session) RunVIRaw(timeout time.Duration, viPath string, controls map[string]any, indicatorNames []string, searchDirs ...string) (map[string][]byte, error) {
+	result, err := s.RunVI(timeout, viPath, controls, indicatorNames, searchDirs...)
+	if err != nil {
+		return nil, err
+	}
+	raw := make(map[string][]byte, len(result))
+	for name, value := range result {
+		switch v := value.(type) {
+		case []byte:
+			raw[name] = v
+		case string:
+			raw[name] = []byte(v)
+		default:
+			raw[name] = []byte(fmt.Sprint(v))
+		}
+	}
+	return raw, nil
+}
+
+func (s *Session) OpenVIFrontPanel(viPath string) error {
+	if _, err := s.CallVIMethod(viPath, "OpenFrontPanel", true, 0); err == nil {
+		return nil
+	}
+	if err := s.SetVIProperty(viPath, "FPWinOpen", true); err == nil {
+		return nil
+	}
+	return fmt.Errorf("open front panel for %s: method OpenFrontPanel and property FPWinOpen failed", viPath)
+}
+
+func (s *Session) GetVICalleesPaths(viPath string) ([]string, error) {
+	value, err := s.GetVIProperty(viPath, "Callees")
+	if err != nil {
+		return nil, err
+	}
+	paths := stringsFromVariantValue(value)
+	if len(paths) == 0 {
+		return nil, fmt.Errorf("Callees returned no paths for %s", viPath)
+	}
+	return paths, nil
+}
+
+func stringsFromVariantValue(value any) []string {
+	switch v := value.(type) {
+	case nil:
+		return nil
+	case string:
+		if strings.TrimSpace(v) == "" {
+			return nil
+		}
+		return []string{v}
+	case []string:
+		return v
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			out = append(out, stringsFromVariantValue(item)...)
+		}
+		return out
+	case []*ole.VARIANT:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			if item != nil {
+				out = append(out, stringsFromVariantValue(item.Value())...)
+			}
+		}
+		return out
+	case []ole.VARIANT:
+		out := make([]string, 0, len(v))
+		for i := range v {
+			out = append(out, stringsFromVariantValue(v[i].Value())...)
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
 func (s *Session) addSearchPath(dir string) error {
 	for _, prop := range []string{"VISearchPath", "LibraryPaths", "ViSearchPaths"} {
 		pathsVar, err := oleutil.GetProperty(s.app, prop)

@@ -1,0 +1,239 @@
+name: VI Browser 2.0 render (Windows container)
+
+# Generates the position-aware VI Browser 2.0 "frames" JSON on WINDOWS, using the
+# stock NI LabVIEW Windows container and the SAME cross-platform render engine the
+# Linux workflow already uses (.github/labview/toimages: the `lvctl` engine + the
+# `runner` batch driver). The only difference from Linux is the transport the
+# engine picks at build time:
+#
+#   * Linux  (vi-snapshots-json.yml): lvctl talks to LabVIEW over VI Server TCP,
+#     under Xvfb, inside a custom-built image.
+#   * Windows (this workflow):        the very same lvctl, built for Windows, talks
+#     to LabVIEW over COM/ActiveX (viserver_windows.go) inside the STOCK NI image -
+#     no custom image, no Xvfb. COM-ready-headless LabVIEW is the approach proven by
+#     the toimages COM probe (toimages-probe.yml / toimages-probe.ps1).
+#
+# This workflow is purely ADDITIVE. It does not touch the Linux path in any way.
+# Renders are written as <blob>.windows.json so they coexist with the Linux
+# <blob>.json (content-addressed by git blob SHA), which also sets up a future
+# Windows/Linux toggle in the VI Browser viewer. The workflow publishes the
+# renders and json-blobs.windows.json index to gh-pages alongside the Linux
+# <blob>.json files, preserving existing snapshot HTML and Linux JSON.
+
+on:
+  workflow_dispatch:
+    inputs:
+      vi:
+        description: "Render a single VI (repo-relative path) as a quick smoke test; blank = every VI at HEAD"
+        required: false
+        default: ""
+      render_timeout:
+        description: "Per-VI render timeout (Go duration, e.g. 5m)"
+        required: false
+        default: "5m"
+
+permissions:
+  contents: write
+
+env:
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-windows
+
+concurrency:
+  group: vi-snapshots-json-windows
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository (full history for content-addressed blobs)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Checkout deployed gallery (gh-pages) for incremental seed + live publish
+        uses: actions/checkout@v5
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: _ghp
+          sparse-checkout: vi-snapshots
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: .github/labview/toimages/go.mod
+
+      - name: Build the render engine (lvctl.exe) and batch runner (runner.exe) for Windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = "${{ github.workspace }}"
+          $bin  = Join-Path $repo '_winbin'
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+
+          # lvctl embeds the render VIs from vis/toimages.zip - regenerate it here
+          # exactly as the Linux Dockerfile does (`zip -r toimages.zip toimages`).
+          $vis = Join-Path $repo '.github\labview\toimages\_ni\labview\lvctl\vis'
+          Push-Location $vis
+          if (Test-Path 'toimages.zip') { Remove-Item 'toimages.zip' -Force }
+          & 7z a -tzip 'toimages.zip' 'toimages' | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw '7z failed to build toimages.zip' }
+          Pop-Location
+
+          $env:CGO_ENABLED = '0'   # static, no external DLLs (go-ole/gopsutil are CGO-free)
+
+          # lvctl - the render engine (COM transport on Windows via viserver_windows.go).
+          Push-Location (Join-Path $repo '.github\labview\toimages\_ni\labview\lvctl')
+          & go build -trimpath -o (Join-Path $bin 'lvctl.exe') .
+          if ($LASTEXITCODE -ne 0) { throw 'go build lvctl failed' }
+          Pop-Location
+
+          # runner - the portable, pure-stdlib batch driver (same source as Linux).
+          Push-Location (Join-Path $repo '.github\labview\toimages')
+          & go build -trimpath -o (Join-Path $bin 'runner.exe') .
+          if ($LASTEXITCODE -ne 0) { throw 'go build runner failed' }
+          Pop-Location
+
+          Get-ChildItem $bin | ForEach-Object { Write-Host ("  built {0} ({1:N0} bytes)" -f $_.Name, $_.Length) }
+
+      - name: Build the render worklist (which VI blobs need a JSON)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _winout/by-blob
+          if [ -d _ghp/vi-snapshots/by-blob ]; then
+            while IFS= read -r -d '' f; do
+              rel=${f#_ghp/vi-snapshots/by-blob/}
+              mkdir -p "_winout/by-blob/$(dirname "$rel")"
+              cp -n "$f" "_winout/by-blob/$rel" 2>/dev/null || true
+            done < <(find _ghp/vi-snapshots/by-blob -type f -name '*.windows.json' -print0)
+          fi
+          vi_input="${{ github.event.inputs.vi }}"
+          if [ -n "$vi_input" ]; then
+            # Single-VI smoke test: one "<blob>\t<relpath>" line.
+            blob=$(git rev-parse "HEAD:$vi_input")
+            if [ -f "_winout/by-blob/${blob:0:2}/$blob.windows.json" ]; then
+              : > _winout/worklist.tsv
+              echo "single-VI worklist: $vi_input ($blob) already has Windows JSON"
+            else
+              printf '%s\t%s\n' "$blob" "$vi_input" > _winout/worklist.tsv
+              echo "single-VI worklist: $vi_input ($blob)"
+            fi
+          else
+            # Reuse the same content-addressing worklist builder the Linux path uses,
+            # but skip only Windows renders so Linux <blob>.json never masks missing
+            # Windows <blob>.windows.json output.
+            bash .github/labview/build-json-worklist.sh "$PWD" HEAD _winout/by-blob _winout/worklist.tsv .windows.json
+          fi
+          echo "worklist lines: $(wc -l < _winout/worklist.tsv | tr -d ' ')"
+
+      - name: Ensure Docker is running
+        shell: pwsh
+        run: |
+          $svc = Get-Service docker -ErrorAction SilentlyContinue
+          if (-not $svc) { Write-Error 'Docker service not found on runner'; exit 1 }
+          if ($svc.Status -ne 'Running') { Start-Service docker; Start-Sleep -Seconds 5 }
+          docker version
+
+      - name: Render VI Browser 2.0 frames in the LabVIEW Windows container
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo  = "${{ github.workspace }}"
+          $image = $Env:LABVIEW_CONTAINER_IMAGE
+          if (-not (Test-Path "$repo\_winout\worklist.tsv") -or (Get-Content "$repo\_winout\worklist.tsv" | Where-Object { $_.Trim() -ne '' }).Count -eq 0) {
+            Write-Host 'No Windows 2.0 renders are missing for this selection.'
+            exit 0
+          }
+          Write-Host "Pulling $image ..."
+          docker pull $image | Out-Null
+
+          $name = "lvci-toimages-win-$([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
+          Write-Host "Starting container $name ..."
+          docker run -d --name $name -v "${repo}:C:\repo" $image `
+            powershell -NoProfile -Command "while (`$true) { Start-Sleep -Seconds 3600 }" | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Error 'container start failed'; exit 1 }
+
+          try {
+            # The in-container entrypoint enables LabVIEW scripting, brings up a
+            # COM-ready headless LabVIEW, then runs the batch runner. Output is
+            # written container-local to C:\out\by-blob and copied back below.
+            docker exec $name powershell -NoProfile -ExecutionPolicy Bypass `
+              -File 'C:\repo\.github\labview\toimages\windows-render.ps1' `
+              -Workspace 'C:\repo' `
+              -Worklist  'C:\repo\_winout\worklist.tsv' `
+              -OutByBlob 'C:\out\by-blob' `
+              -Lvctl     'C:\repo\_winbin\lvctl.exe' `
+              -Runner    'C:\repo\_winbin\runner.exe' `
+              -RenderTimeout '${{ github.event.inputs.render_timeout }}'
+            Write-Host "render exit code: $LASTEXITCODE"
+
+            New-Item -ItemType Directory -Force -Path "$repo\_winout\by-blob" | Out-Null
+            docker cp "${name}:C:\out\by-blob\." "$repo\_winout\by-blob" 2>$null
+          }
+          finally {
+            docker rm -f $name | Out-Null
+          }
+
+      - name: Name the renders as <blob>.windows.json (coexist with Linux <blob>.json)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          n=0
+          if [ -d _winout/by-blob ]; then
+            while IFS= read -r -d '' f; do
+              mv "$f" "${f%.json}.windows.json"
+              n=$((n+1))
+            done < <(find _winout/by-blob -type f -name '*.json' ! -name '*.windows.json' -print0)
+          fi
+          echo "renamed $n render(s) to .windows.json"
+          {
+            echo "### VI Browser 2.0 - Windows render"
+            echo ""
+            echo "Rendered **$n** new VI(s) to \`<blob>.windows.json\` in the stock NI LabVIEW Windows container."
+            echo "The deploy step publishes these frames beside the existing snapshot HTML and Linux \`<blob>.json\` frames."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write Windows render index
+        id: index
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _winout
+          python3 - _winout/by-blob _winout/json-blobs.windows.json <<'PY'
+          import os, sys
+          byblob, out = sys.argv[1], sys.argv[2]
+          suffix = '.windows.json'
+          blobs = sorted({fn[:-len(suffix)] for _r, _d, fs in os.walk(byblob) for fn in fs if fn.endswith(suffix)})
+          with open(out, 'w', encoding='utf-8') as fh:
+              fh.write('[' + ','.join('"%s"' % b for b in blobs) + ']')
+          print(f'Windows JSON blobs indexed: {len(blobs)}')
+          PY
+          count=$(python3 -c "import json;print(len(json.load(open('_winout/json-blobs.windows.json'))))")
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          rm -rf _winpublish
+          mkdir -p _winpublish
+          cp _winout/json-blobs.windows.json _winpublish/json-blobs.windows.json
+          if [ -d _winout/by-blob ]; then cp -R _winout/by-blob _winpublish/by-blob; fi
+
+      - name: Deploy Windows JSON to GitHub Pages
+        if: steps.index.outputs.count != '0'
+        uses: peaceiris/actions-gh-pages@v4.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _winpublish
+          destination_dir: vi-snapshots
+          keep_files: true
+
+      - name: Upload rendered frames JSON
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vi-snapshots-2.0-windows
+          path: _winout/by-blob/
+          if-no-files-found: warn

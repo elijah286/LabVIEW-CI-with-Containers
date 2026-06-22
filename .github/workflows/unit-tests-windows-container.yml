@@ -1,11 +1,5 @@
 name: Run Unit Tests — Windows Container
 
-# Title each run with the revision it targets and how it was requested, so the
-# Actions list isn't a wall of identical entries. A dashboard Run/Re-run or a manual
-# dispatch arrives as workflow_dispatch with commit_sha = the chosen commit; push/PR
-# fall back to github.sha. Only github/inputs contexts are used (no dispatch input changes).
-run-name: "Unit Tests (Windows): rev ${{ inputs.commit_sha != '' && inputs.commit_sha || github.sha }} by @${{ github.actor }} (${{ github.event_name }})"
-
 # Runs the configured LabVIEW unit-test frameworks (Caraya / VI Tester / UTF)
 # headlessly inside the project's CI worker image, normalises their JUnit XML into
 # one friendly report (build-unittest-report.py), deploys it under
@@ -106,25 +100,6 @@ jobs:
           git fetch --no-tags origin main
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
-      # Dependency gate: if this revision changed a monitored .vipc (or any other
-      # worker input), block until the worker image rebuild for this SHA finishes,
-      # so Unit Tests never run against a container missing project dependencies.
-      # No worker-affecting change => the helper exits immediately. No helper present
-      # (repo without the custom-image capability) => skip.
-      - name: Wait for worker image rebuild (dependency gate)
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ -f .github/labview/wait-for-worker-images.sh ]; then
-            bash .github/labview/wait-for-worker-images.sh \
-              --sha "${{ steps.sha.outputs.sha }}" \
-              --before "${{ github.event.before }}" \
-              --repo "${{ github.repository }}"
-          else
-            echo "wait-for-worker-images.sh not present; skipping container dependency gate."
-          fi
-
       # Per-action container selection: config.container.actions.unit-tests wins,
       # then config.container.use. With neither set, default to the custom worker
       # image at the version tag (its baked Caraya/VI Tester/UTF are required to
@@ -200,37 +175,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          SHA="${{ steps.sha.outputs.sha }}"
-          WF="Build LabVIEW CI Image"
-          BEFORE="${{ github.event.before }}"
-          changed=false
-          if [ -n "${BEFORE:-}" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
-            if git diff --name-only "$BEFORE" "$SHA" \
-                 | grep -Eq '(\.vipc$|^\.github/docker/labview-ci\.Dockerfile$|^\.github/labview/vipm/)'; then
-              changed=true
-            fi
-          fi
-          if [ "$changed" != "true" ]; then
-            echo "No worker-affecting change in this push; not waiting."
-            exit 0
-          fi
-          echo "Worker inputs changed - waiting for '$WF' to finish for $SHA."
-          appear_deadline=$(( $(date +%s) + 300 ))
-          overall_deadline=$(( $(date +%s) + 1800 ))
-          seen=false
-          api="repos/${{ github.repository }}/actions/runs?head_sha=$SHA&per_page=50"
-          while :; do
-            total=$(gh api "$api" --jq "[.workflow_runs[]|select(.name==\"$WF\")]|length" 2>/dev/null || echo 0)
-            pending=$(gh api "$api" --jq "[.workflow_runs[]|select(.name==\"$WF\")|select(.status!=\"completed\")]|length" 2>/dev/null || echo 0)
-            now=$(date +%s)
-            if [ "${total:-0}" -gt 0 ]; then seen=true; fi
-            if [ "$seen" = "true" ] && [ "${pending:-0}" -eq 0 ]; then echo "Worker image build complete."; break; fi
-            if [ "$seen" != "true" ] && [ "$now" -ge "$appear_deadline" ]; then echo "Build did not appear in time; proceeding."; break; fi
-            if [ "$now" -ge "$overall_deadline" ]; then echo "Timed out waiting; proceeding."; break; fi
-            echo "  ... still waiting (total=$total pending=$pending)"
-            sleep 20
-          done
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}"
 
       - name: Pull LabVIEW container image
         id: pull

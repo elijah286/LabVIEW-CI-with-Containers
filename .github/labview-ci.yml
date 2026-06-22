@@ -25,9 +25,10 @@ activities:
 # Unit-test frameworks to run in CI, plus the pass-rate thresholds that color the
 # dashboard's failed-test percentage badge. Read by run-unit-tests.ps1 (per-tool
 # enabled + locations) and written by the Unit Testing configurator page. The example
-# project ships NI Unit Test Framework (UTF) .lvtest files in Example.lvproj, so UTF
-# is enabled and pointed directly at that project; the runner executes its .lvtest
-# cases headlessly, publishing one merged Unit Tests report.
+# project ships NI Unit Test Framework (UTF) .lvtest files under
+# "example/User-Defined Test/", so UTF is enabled and pointed at that folder; the
+# runner finds the .lvproj there and executes its .lvtest cases headlessly,
+# publishing one merged Unit Tests report.
 unitTests:
   thresholds:
     passedPercent:
@@ -44,4 +45,4 @@ unitTests:
     utf:
       enabled: true
       locations:
-        - "example/Example.lvproj"
+        - "example/User-Defined Test/"

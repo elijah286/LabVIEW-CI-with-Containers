@@ -1,11 +1,5 @@
 name: Mass Compile — Windows Container
 
-# Title each run with the revision it targets and how it was requested, so the
-# Actions list isn't a wall of identical entries. A dashboard Run/Re-run or a manual
-# dispatch arrives as workflow_dispatch with commit_sha = the chosen commit; push/PR
-# fall back to github.sha. Only github/inputs contexts are used (no dispatch input changes).
-run-name: "Mass Compile (Windows): rev ${{ inputs.commit_sha != '' && inputs.commit_sha || github.sha }} by @${{ github.actor }} (${{ github.event_name }})"
-
 on:
   pull_request:
     paths:
@@ -97,25 +91,6 @@ jobs:
           git fetch --no-tags origin main
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
-      # Dependency gate: if this revision changed a monitored .vipc (or any other
-      # worker input), block until the worker image rebuild for this SHA finishes,
-      # so Mass Compile never runs against a container missing project dependencies.
-      # No worker-affecting change => the helper exits immediately. No helper present
-      # (repo without the custom-image capability) => skip.
-      - name: Wait for worker image rebuild (dependency gate)
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ -f .github/labview/wait-for-worker-images.sh ]; then
-            bash .github/labview/wait-for-worker-images.sh \
-              --sha "${{ steps.sha.outputs.sha }}" \
-              --before "${{ github.event.before }}" \
-              --repo "${{ github.repository }}"
-          else
-            echo "wait-for-worker-images.sh not present; skipping container dependency gate."
-          fi
-
       # The Configure dialog writes the selected container tag to
       # config.container.use in .github/labview-ci.yml. When set, Mass Compile runs
       # inside that tag of the project's custom worker image (with its baked VIPC
@@ -189,6 +164,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for worker image build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}"
 
       - name: Pull LabVIEW container image
         id: pull

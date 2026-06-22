@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-import html, json, os, re, sys, urllib.request, urllib.error
+import html, json, os, re, sys, urllib.request, urllib.error, zipfile
 from urllib.parse import quote
+from xml.etree import ElementTree as ET
 
 token    = os.environ['GH_TOKEN']
 repo     = os.environ['REPO']
@@ -330,49 +331,18 @@ for _cap, _d in RUN_TARGETS.items():
             _WF_TO_CAP[_p['wf']] = _cap
 _CAP_RUN_LABEL = {'masscompile': 'compile', 'vi-analyzer': 'analyze', 'vidiff': 'diff',
                   'snapshots': 'snapshots', 'unit-tests': 'tests', 'antidoc': 'docs'}
-# Activities whose workflows share ONE GitHub Actions concurrency group queue behind
-# each other (only one runs at a time, by design, so their gh-pages report deploys
-# never race). Used to tell a queued cell its place in that shared line.
-_CAP_CONCURRENCY = {'masscompile': 'report-pages-deploy', 'vi-analyzer': 'report-pages-deploy',
-                    'unit-tests': 'report-pages-deploy', 'antidoc': 'report-pages-deploy'}
 
 def fetch_active_runs():
     by_sha = {}
-    all_active = []
     for _st in ('in_progress', 'queued'):   # in_progress first so it wins over a stale 'queued'
         data = gh_get(f'actions/runs?status={_st}&per_page=100')
         for run in ((data or {}).get('workflow_runs') or []):
             wf = (run.get('path') or '').rsplit('/', 1)[-1]
             cap = _WF_TO_CAP.get(wf)
-            if not cap:
+            sha_ = run.get('head_sha')
+            if not cap or not sha_:
                 continue
-            # A manual re-run targets a specific commit via the commit_sha input,
-            # recorded in the run name as "rev <sha>"; the run's head_sha is the
-            # dispatch ref (often the default branch), NOT the targeted commit. Key
-            # by the targeted commit when present so the cell lands on the right row.
-            title = run.get('display_title') or run.get('name') or ''
-            m = re.search(r'\brev\s+([0-9a-f]{7,40})\b', title)
-            sha_ = m.group(1) if m else run.get('head_sha')
-            if not sha_:
-                continue
-            run['_cap'] = cap
             by_sha.setdefault(sha_, {}).setdefault(cap, run)
-            all_active.append(run)
-    # For each QUEUED run in a shared concurrency group, count how many runs are
-    # ahead of it in that group: every in-progress run, plus queued runs created
-    # earlier. That count is its place in the shared line (0 = next to run).
-    for run in all_active:
-        grp = _CAP_CONCURRENCY.get(run.get('_cap'))
-        ahead = 0
-        if grp and run.get('status') == 'queued':
-            for other in all_active:
-                if other is run or _CAP_CONCURRENCY.get(other.get('_cap')) != grp:
-                    continue
-                if other.get('status') == 'in_progress':
-                    ahead += 1
-                elif other.get('status') == 'queued' and other.get('created_at', '') < run.get('created_at', ''):
-                    ahead += 1
-        run['_queue_ahead'] = ahead
     return by_sha
 
 active_runs = fetch_active_runs()
@@ -576,7 +546,7 @@ for c in commits_data:
         if ar is not None:
             caps_ran.add(cap)
             if ar.get('status') == 'queued':
-                return queued_cell(ar.get('html_url', ''), ar.get('_queue_ahead', 0))
+                return queued_cell(ar.get('html_url', ''))
             return running_cell(_CAP_RUN_LABEL.get(cap, cap), ar.get('html_url', ''))
         run_count['n'] += 1
         return ('<td style="text-align:center">'
@@ -613,23 +583,17 @@ for c in commits_data:
                 '<span class="run-badge" title="Running — click to view progress">'
                 f'{body}</span></td>')
 
-    def queued_cell(url, ahead=0):
+    def queued_cell(url):
         # A run that is QUEUED on GitHub Actions but has not started yet, so it has
-        # posted no commit status. Mirrors running_cell but reads "Queued". When the
-        # activity is waiting behind others in a shared concurrency group, show how
-        # many jobs are ahead of it in that shared line.
+        # posted no commit status. Mirrors running_cell but reads "Queued", so a
+        # brand-new revision shows its activities are already on their way rather
+        # than an idle run arrow.
         running_flag['on'] = True
-        if ahead and ahead > 0:
-            label = f'Queued &middot; {ahead} ahead'
-            ttl = f'Queued on GitHub Actions - {ahead} job{"s" if ahead != 1 else ""} ahead in the shared report queue'
-        else:
-            label = 'Queued'
-            ttl = 'Queued on GitHub Actions - next to run'
-        inner = f'<span class="run-spin"></span>{label}'
+        inner = '<span class="run-spin"></span>Queued'
         body  = (f'<a href="{url}" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">{inner}</a>'
                  if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
         return ('<td style="text-align:center">'
-                f'<span class="run-badge" title="{ttl}">'
+                '<span class="run-badge" title="Queued on GitHub Actions - waiting for a runner">'
                 f'{body}</span></td>')
 
     def badge(label, *contexts, url_override=None, cap=None, doc=None):
@@ -746,34 +710,34 @@ for c in commits_data:
     # the deployed report model. Colour is controlled by configurable pass-rate
     # thresholds (green/yellow/red), while the label stays failure-focused.
     if not is_project:
-      unit_badge = EMPTY_CELL
+        unit_badge = EMPTY_CELL
     else:
-      _ut_run = fresh_pending('CI / Unit Tests')
-      _ut = unit_tests_summary(sha)
-      if _ut_run is not None:
-        caps_ran.add('unit-tests')
-        unit_badge = running_cell('tests', _ut_run.get('target_url', ''))
-      elif _ut and 'tests' in _ut:
-        any_output['on'] = True
-        caps_ran.add('unit-tests')
-        _total = max(0, int(_ut.get('tests') or 0))
-        _passed = max(0, int(_ut.get('passed') or 0))
-        _failed = max(0, int(_ut.get('failed') or 0) + int(_ut.get('errored') or 0))
-        _failed_pct = round(100 * _failed / _total) if _total else 0
-        _pass_pct = round(100 * _passed / _total) if _total else 100
-        _kind = unit_test_badge_kind(_pass_pct)
-        _url = viewer_url(f'{pages_url}/unit-tests/{sha}/index.html', 'unit-tests-report', sha, short)
-        _ut_ts = (pick_status('CI / Unit Tests') or {}).get('created_at', '')
-        _tip = (f'{_failed} of {_total} unit tests failed; pass rate {_pass_pct}%. '
-            f'Green >= {UNIT_TEST_THRESHOLDS["greenAtLeast"]}% passed, '
-            f'yellow >= {UNIT_TEST_THRESHOLDS["yellowAtLeast"]}%, '
-            f'red < {UNIT_TEST_THRESHOLDS["redBelow"]}%.') if _total else 'No unit tests found; 0% failed.'
-        unit_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="unit-tests" '
-                f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_ut_ts}">'
-                f'{_chip(_kind, f"{_failed_pct}% failed", _url, _tip)}</td>')
-      else:
-        unit_badge = badge('tests', 'CI / Unit Tests', cap='unit-tests',
-                   doc=('unit-tests-report', 'unit-tests'))
+        _ut_run = fresh_pending('CI / Unit Tests')
+        _ut = unit_tests_summary(sha)
+        if _ut_run is not None:
+            caps_ran.add('unit-tests')
+            unit_badge = running_cell('tests', _ut_run.get('target_url', ''))
+        elif _ut and 'tests' in _ut:
+            any_output['on'] = True
+            caps_ran.add('unit-tests')
+            _total = max(0, int(_ut.get('tests') or 0))
+            _passed = max(0, int(_ut.get('passed') or 0))
+            _failed = max(0, int(_ut.get('failed') or 0) + int(_ut.get('errored') or 0))
+            _failed_pct = round(100 * _failed / _total) if _total else 0
+            _pass_pct = round(100 * _passed / _total) if _total else 100
+            _kind = unit_test_badge_kind(_pass_pct)
+            _url = viewer_url(f'{pages_url}/unit-tests/{sha}/index.html', 'unit-tests-report', sha, short)
+            _ut_ts = (pick_status('CI / Unit Tests') or {}).get('created_at', '')
+            _tip = (f'{_failed} of {_total} unit tests failed; pass rate {_pass_pct}%. '
+                    f'Green >= {UNIT_TEST_THRESHOLDS["greenAtLeast"]}% passed, '
+                    f'yellow >= {UNIT_TEST_THRESHOLDS["yellowAtLeast"]}%, '
+                    f'red < {UNIT_TEST_THRESHOLDS["redBelow"]}%.') if _total else 'No unit tests found; 0% failed.'
+            unit_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="unit-tests" '
+                          f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_ut_ts}">'
+                          f'{_chip(_kind, f"{_failed_pct}% failed", _url, _tip)}</td>')
+        else:
+            unit_badge = badge('tests', 'CI / Unit Tests', cap='unit-tests',
+                               doc=('unit-tests-report', 'unit-tests'))
     # Antidoc column: links to the generated documentation, framed in the
     # dashboard chrome via report-viewer. An empty project cell offers a
     # one-click run (cap='antidoc' dispatches run-antidoc-windows-container.yml).
@@ -2378,19 +2342,35 @@ html = f"""<!DOCTYPE html>
     .lvci-tablewrap{{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}}
     h1{{font-size:1.4em;margin:0 0 4px}}
     .sub{{color:var(--fg-muted);font-size:.85em;margin-bottom:20px}}
-    @media(max-width:820px){{
+    @media(max-width:980px){{
       .lvci-main{{padding:14px}}
       h1{{font-size:1.2em}}
+      .controls{{align-items:stretch}}
+      .cidash-search{{flex:1 1 260px;min-width:0}}
+      .cidash-search input{{width:100%;max-width:none}}
+      .cidash-segfilter{{flex:1 1 260px;min-width:0}}
+      .cidash-segfilter button{{flex:1 1 auto;padding-left:8px;padding-right:8px}}
       /* The revision table collapses to stacked cards (no horizontal scroll). */
       .lvci-tablewrap{{overflow:visible}}
-      #cidash-table{{border:0}}
+      #cidash-table{{display:block;width:100%;border:0;background:transparent}}
       #cidash-table thead{{display:none}}
       #cidash-table tbody,#cidash-table tr,#cidash-table td{{display:block;width:auto}}
       #cidash-table tr{{border:1px solid var(--border);border-radius:10px;margin:0 0 12px;padding:8px 12px;background:var(--surface)}}
       #cidash-table td{{border:0;padding:6px 0}}
       #cidash-table td.cidash-rev{{max-width:none;padding:2px 0 8px;border-bottom:1px solid var(--border);margin-bottom:4px}}
-      #cidash-table td:not(.cidash-rev){{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left}}
-      #cidash-table td:not(.cidash-rev)::before{{content:attr(data-label);color:var(--fg-muted);font-size:.82em;font-weight:600}}
+      #cidash-table td:not(.cidash-rev){{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;text-align:left;min-width:0}}
+      #cidash-table td:not(.cidash-rev)::before{{content:attr(data-label);color:var(--fg-muted);font-size:.82em;font-weight:600;min-width:0}}
+      #cidash-table td:not(.cidash-rev)>*{{max-width:100%}}
+      .cidash-chip,.run-badge{{white-space:normal;text-align:right;justify-content:flex-end}}
+    }}
+    @media(max-width:520px){{
+      .lvci-main{{padding:10px}}
+      .controls{{gap:8px}}
+      .cidash-search,.cidash-segfilter,.cidash-colmenu,.cidash-colbtn{{width:100%}}
+      .cidash-segfilter button{{font-size:.92em}}
+      #cidash-table tr{{padding:8px 10px;border-radius:8px}}
+      #cidash-table td:not(.cidash-rev){{flex-wrap:wrap}}
+      #cidash-table td:not(.cidash-rev)::before{{flex:1 1 120px}}
     }}
     table{{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}}
     th{{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);color:var(--fg-muted);font-size:.8em;white-space:nowrap}}
@@ -2697,6 +2677,7 @@ with open('ci-out/dashboard/index.html', 'w', encoding='utf-8') as f:
 os.makedirs('ci-out/dashboard/vi-snapshots', exist_ok=True)
 # Framed report viewer (chrome + back-nav) that the Mass Compile badge links to.
 os.makedirs('ci-out/dashboard/report', exist_ok=True)
+os.makedirs('ci-out/dashboard/dependencies', exist_ok=True)
 # Tooling pages come from PAGES_SRC (a composite action passes its own bundled
 # dir so thin consumers need no copy); default to the in-repo location.
 _pages_src = os.environ.get('PAGES_SRC', '.github/pages')
@@ -2714,21 +2695,152 @@ for _name, _dst in [
     # and vi-interactive.html load; stage it beside them so the in-place view works.
     ('vi-render.js', 'ci-out/dashboard/vi-snapshots/vi-render.js'),
     ('report-viewer.html', 'ci-out/dashboard/report/index.html'),
+    ('dependencies.html', 'ci-out/dashboard/dependencies.html'),
     ('whats-new.html', 'ci-out/dashboard/whats-new.html'),
     ('configure.html', 'ci-out/dashboard/configure.html'),
     ('vi-analyzer.html', 'ci-out/dashboard/vi-analyzer.html'),
     ('integrate.html', 'ci-out/dashboard/integrate.html'),
     ('unit-tests.html', 'ci-out/dashboard/unit-tests.html'),
-    # Long-form developer documentation (sibling of faq.html) — the canonical
-    # "how it works" reference, linked from the FAQ and the Help menu.
-    ('documentation.html', 'ci-out/dashboard/documentation.html'),
-    # FAQ / About page — the Help menu's About entry links here.
-    ('faq.html', 'ci-out/dashboard/faq.html'),
     # Clients registry page (the header only surfaces it on the root repo, where
     # the discovery workflow publishes clients.json beside it).
     ('clients.html', 'ci-out/dashboard/clients.html'),
 ]:
     _stage(os.path.join(_pages_src, _name), _dst)
+
+def _parse_vipc_packages(vipc_path):
+  names = []
+  try:
+    with zipfile.ZipFile(vipc_path) as zf:
+      with zf.open('config.xml') as cfg_xml:
+        root = ET.parse(cfg_xml).getroot()
+    for pkg in root.iter('Package'):
+      name_el = pkg.find('Name')
+      if name_el is not None and (name_el.text or '').strip():
+        names.append(name_el.text.strip())
+  except Exception as exc:
+    return [], str(exc)
+  return sorted(set(names)), ''
+
+def _parse_container_config(path='.github/labview-ci.yml'):
+  cfg = {'use': '', 'actions': {}, 'vipc': []}
+  if not os.path.isfile(path):
+    return cfg
+  section = ''
+  current = None
+  try:
+    with open(path, encoding='utf-8') as fh:
+      for raw in fh:
+        line = raw.replace('\t', '    ').rstrip('\n')
+        if re.match(r'^\s*container:\s*$', line):
+          section = 'container'; current = None; continue
+        if re.match(r'^\S', line):
+          section = ''; current = None
+        if section == 'container':
+          m = re.match(r'^\s{4}use:\s*"?([^"#]+)"?', line)
+          if m:
+            cfg['use'] = m.group(1).strip()
+          if re.match(r'^\s{4}vipc:\s*$', line):
+            section = 'vipc'; continue
+          if re.match(r'^\s{4}actions:\s*$', line):
+            section = 'actions'; continue
+        elif section == 'vipc':
+          m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
+          if m:
+            current = {'path': m.group(1).strip(), 'monitor': True}
+            cfg['vipc'].append(current)
+            continue
+          m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
+          if m and current:
+            current['monitor'] = m.group(1).lower() == 'true'
+          if re.match(r'^\s{0,4}\S', line):
+            section = 'container'; current = None
+        elif section == 'actions':
+          m = re.match(r'^\s{6}([A-Za-z0-9_.-]+):\s*"?([^"#]+)"?', line)
+          if m:
+            cfg['actions'][m.group(1)] = m.group(2).strip()
+          if re.match(r'^\s{0,4}\S', line):
+            section = 'container'
+  except Exception:
+    pass
+  return cfg
+
+def _repo_vipcs():
+  skip = {'.git', 'ci-out', 'build', '_lvci', '__pycache__'}
+  out = []
+  for root, dirs, files in os.walk('.'):
+    dirs[:] = [d for d in dirs if d not in skip]
+    for name in files:
+      if name.lower().endswith('.vipc'):
+        out.append(os.path.join(root, name).replace('\\', '/').lstrip('./'))
+  return sorted(out, key=str.lower)
+
+def _worker_manifest(platform, tag):
+  if not tag or tag in ('base', 'none'):
+    return None
+  resolved = tag
+  if tag == 'latest':
+    latest = http_json(f"{pages_url}/workers/{platform}/latest.json")
+    resolved = latest.get('version') if isinstance(latest, dict) else ''
+  if not resolved:
+    return None
+  return http_json(f"{pages_url}/workers/{platform}/{resolved}/manifest.json")
+
+def _manifest_packages(man):
+  packages = set()
+  if isinstance(man, dict):
+    for vipc in man.get('vipc') or []:
+      for pkg in vipc.get('packages') or []:
+        packages.add(pkg)
+  return sorted(packages, key=str.lower)
+
+def _build_dependencies_index():
+  config = _parse_container_config()
+  configured = {v.get('path', '') for v in config.get('vipc') or []}
+  vipcs = []
+  for path in _repo_vipcs():
+    packages, error = _parse_vipc_packages(path)
+    vipcs.append({'path': path, 'configured': path in configured, 'packages': packages, 'error': error})
+  columns = [
+    {'key': 'snap1w', 'label': '1.0 Snap Win', 'platform': 'windows', 'action': 'snapshots', 'tag': 'base'},
+    {'key': 'snap2w', 'label': '2.0 Snap Win', 'platform': 'windows', 'action': 'snapshots', 'tag': 'base'},
+    {'key': 'snap2l', 'label': '2.0 Snap Linux', 'platform': 'linux', 'action': 'snapshots', 'tag': 'base'},
+    {'key': 'via', 'label': 'VIA', 'platform': 'windows', 'action': 'vi-analyzer'},
+    {'key': 'diff', 'label': 'Diff', 'platform': 'windows', 'action': 'vidiff'},
+    {'key': 'mc', 'label': 'Compile', 'platform': 'windows', 'action': 'masscompile'},
+    {'key': 'utf', 'label': 'UTF', 'platform': 'windows', 'action': 'unit-tests'},
+    {'key': 'docs', 'label': 'Antidoc', 'platform': 'windows', 'action': 'antidoc'},
+  ]
+  manifest_cache = {}
+  for col in columns:
+    tag = col.get('tag') or config.get('actions', {}).get(col['action']) or config.get('use') or 'base'
+    col['tag'] = tag
+    if tag not in ('base', 'none'):
+      cache_key = f"{col['platform']}:{tag}"
+      if cache_key not in manifest_cache:
+        manifest_cache[cache_key] = _worker_manifest(col['platform'], tag)
+      man = manifest_cache[cache_key]
+      col['ready'] = isinstance(man, dict)
+      col['packages'] = _manifest_packages(man)
+      col['version'] = man.get('version', tag) if isinstance(man, dict) else tag
+    else:
+      col['ready'] = True
+      col['packages'] = []
+      col['version'] = tag
+  data = {
+    'schema': 1,
+    'repo': repo,
+    'sha': os.environ.get('GITHUB_SHA', ''),
+    'config': config,
+    'vipc': vipcs,
+    'columns': columns,
+  }
+  with open('ci-out/dashboard/dependencies/index.json', 'w', encoding='utf-8') as fh:
+    json.dump(data, fh, indent=2, ensure_ascii=True)
+
+try:
+  _build_dependencies_index()
+except Exception as exc:
+  print(f"WARN: could not build dependencies index: {exc}", file=sys.stderr)
 # Deploy a catalog.json at the Pages root so the version badge + What's New can
 # read the installed version. Prefer the consumer's own catalog; else synthesize
 # one from the manifest values resolved above.

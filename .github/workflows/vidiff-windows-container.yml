@@ -1,11 +1,5 @@
 name: VIDiff Report — Windows Container
 
-# Title each run with the base..head it diffs and how it was requested, so the
-# Actions list isn't a wall of identical entries. A dashboard / VI Browser run or a
-# manual dispatch arrives as workflow_dispatch with base_sha/head_sha; push/PR fall back
-# to github.sha. Only github/inputs contexts are used (no dispatch input changes).
-run-name: "VIDiff (Windows): ${{ inputs.base_sha != '' && inputs.base_sha || 'parent' }}..${{ inputs.head_sha != '' && inputs.head_sha || github.sha }} by @${{ github.actor }} (${{ github.event_name }})"
-
 on:
   pull_request:
     paths:
@@ -106,26 +100,6 @@ jobs:
           git fetch --no-tags origin main
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
-      # Dependency gate: if the head revision changed a monitored .vipc (or any other
-      # worker input), block until the worker image rebuild for that SHA finishes,
-      # so VIDiff never renders against a container missing project dependencies.
-      # No worker-affecting change => the helper exits immediately. No helper present
-      # (repo without the custom-image capability) => skip.
-      - name: Wait for worker image rebuild (dependency gate)
-        shell: bash
-        working-directory: head
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ -f .github/labview/wait-for-worker-images.sh ]; then
-            bash .github/labview/wait-for-worker-images.sh \
-              --sha "${{ steps.shas.outputs.head }}" \
-              --before "${{ steps.shas.outputs.base }}" \
-              --repo "${{ github.repository }}"
-          else
-            echo "wait-for-worker-images.sh not present; skipping container dependency gate."
-          fi
-
       - name: Get list of changed VI/CTL files
         id: changed
         shell: bash
@@ -208,6 +182,14 @@ jobs:
           fi
           echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
           echo "Resolved container image: ${img}"
+
+      - name: Wait for worker image build
+        shell: bash
+        working-directory: head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.shas.outputs.head }}" "${{ github.event.before }}"
 
       - name: Pull LabVIEW container image
         shell: powershell

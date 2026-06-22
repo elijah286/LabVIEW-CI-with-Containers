@@ -6,11 +6,9 @@
   (LabVIEW version, OS, activities, concurrent runners, container dependencies /
   Antidoc, the worker container + its baked VIPC files, and which container each
   action runs in), and produces the updated config files. Organised into tabs so
-  each concern is found quickly. Because a static Pages site can't write to a
-  repo, it offers two apply paths:
-    1. Download the edited files and commit them.
-    2. A `gh workflow run reconfigure.yml ...` command (the Reconfigure workflow
-       writes the files and opens a PR).
+  each concern is found quickly. The page applies changes by dispatching the
+  Reconfigure workflow with the dashboard's stored token; the workflow writes the
+  files and opens a PR. Download and CLI fallbacks remain available.
   It can also dispatch the image build directly (`gh workflow run
   build-labview-image.yml`) to create/update the container in GHCR on demand.
   Pure static page, no backend.
@@ -81,8 +79,12 @@
     .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
     button.primary{padding:9px 16px;font-size:.9em;font-weight:600;border:1px solid transparent;border-radius:6px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
     button.ghost{padding:9px 16px;font-size:.9em;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
     .status{font-size:.82em;color:var(--fg-muted);margin-top:8px;min-height:1.2em}
     .status.err{color:#cf222e}.status.ok{color:var(--accent)}
+    .tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface2);margin:10px 0 12px;font-size:.84em}
+    .tokpanel[hidden]{display:none}
+    .tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .subhead{font-weight:600;font-size:.9em;margin:14px 0 6px}
     code.inl{background:var(--chip);padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
     details{margin-top:10px}summary{cursor:pointer;font-size:.85em;color:var(--link)}
@@ -176,7 +178,7 @@
       <button class="tab" id="tab-container" role="tab" data-pane="pane-container">Container &amp; Dependencies</button>
       <button class="tab" id="tab-routing" role="tab" data-pane="pane-routing">Action Routing</button>
       <button class="tab" id="tab-vibrowser" role="tab" data-pane="pane-vibrowser">VI Browser</button>
-      <button class="tab" id="tab-review" role="tab" data-pane="pane-review">Review &amp; Apply</button>
+      <button class="tab" id="tab-review" role="tab" data-pane="pane-review">Save &amp; Apply</button>
     </nav>
 
     <!-- ============================ PIPELINE ============================ -->
@@ -241,7 +243,7 @@
         </div>
 
         <div class="subhead">VIPC dependencies baked into the container</div>
-        <p class="hint">VIPC files found in your repository are listed below, <strong>selected and monitored by default</strong> &mdash; VIPC files are the source of truth for project dependencies, so every one is baked into the worker image unless you un-tick it. <strong>Monitor</strong> rebuilds and re-pushes the container automatically whenever an included file changes on a submission, and the other CI actions wait for that rebuild before they run &mdash; so they never run against missing dependencies.</p>
+        <p class="hint">VIPC files found in your repository are listed below, <strong>de-selected by default</strong>. Tick the ones you want baked into the worker image so their add-on dependencies are available in CI. Turn on <strong>Monitor</strong> for an included file to rebuild and re-push the container automatically whenever it changes on a submission &mdash; so the container always matches the dependencies the project needs.</p>
         <div class="pkgs" id="vipcs"></div>
         <div class="addpkg">
           <input type="text" id="newVipcPath" placeholder="path to a .vipc file (e.g. COTC Dependencies.vipc)">
@@ -304,17 +306,31 @@
     <!-- ========================= REVIEW & APPLY ========================= -->
     <div class="tabpane" id="pane-review" role="tabpanel" aria-labelledby="tab-review" hidden>
       <section>
-        <h2>Review &amp; apply</h2>
-        <p class="hint">Two apply paths. Both are reviewable before anything runs.</p>
+        <h2>Save and apply</h2>
+        <p class="hint">With a valid dashboard token, save these settings by queuing a reviewable <code class="inl">Reconfigure</code> workflow run. It opens a pull request before anything changes on your default branch.</p>
 
-        <div class="subhead">Option A &mdash; open a pull request (recommended)</div>
-        <p class="hint">Runs the <code class="inl">Reconfigure</code> workflow, which writes these settings (including the worker container, baked VIPC files, and per-action routing) and opens a PR.</p>
+        <div class="subhead">Use the stored dashboard token</div>
+        <p class="hint">This writes these settings (including the worker container, baked VIPC files, and per-action routing) through the repository's installed workflow and opens a PR.</p>
+        <div class="actions">
+          <button class="primary" id="applyCfg" type="button">Save and apply</button>
+          <a id="wfLink" href="https://github.com/actions/workflows/reconfigure.yml" target="_blank" rel="noopener">View workflow</a>
+          <span class="status" id="applyStatus"></span>
+        </div>
+        <div class="tokpanel" id="tokPanel" hidden>
+          <div id="tokMsg">Saving needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.</div>
+          <a id="tokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a token</a>
+          <input id="tokInput" type="password" placeholder="github_pat_..." autocomplete="off" spellcheck="false">
+          <button class="primary" id="tokSave" type="button">Save and apply</button>
+        </div>
+        <div class="subhead">Command fallback</div>
+        <p class="hint">Use this backup path if the browser has no valid token, or if you prefer to dispatch the workflow from GitHub's CLI.</p>
         <div class="codebox">
           <button class="copy" id="copyGh">Copy</button>
           <pre id="ghCmd"></pre>
         </div>
 
-        <div class="subhead">Option B &mdash; download &amp; commit</div>
+        <div class="subhead">Download &amp; commit fallback</div>
+        <p class="hint">Use these files for a fully manual change when workflow dispatch is not available.</p>
         <div class="actions">
           <button class="primary" id="dlYaml">Download labview-ci.yml</button>
           <button class="primary" id="dlJson">Download ci-tooling.packages.json</button>
@@ -336,6 +352,7 @@
   (() => {
     "use strict";
     const SOURCE_FALLBACK = { repo: "elijah286/LabVIEW-CI-with-Containers", ref: "main" };
+    const TOK_KEY = "lvci_dispatch_token";
     const ANTIDOC_PKG = "wovalab_lib_antidoc_cli";
 
     let catalog = null;
@@ -576,7 +593,7 @@
       vipcList.forEach((v, i) => {
         const included = v.include === true;
         const row = document.createElement("div"); row.className = "pkg";
-        // Primary control: include this VIPC in the worker container (selected by default).
+        // Primary control: include this VIPC in the worker container (de-selected by default).
         const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = included;
         cb.title = "Include this VIPC file in the worker container";
         cb.addEventListener("change", () => { v.include = cb.checked; renderVipcs(); update(); });
@@ -612,7 +629,7 @@
         const sel = vipcList.filter(v => v.include === true).length;
         parts.push(sel
           ? (sel + " selected to bake into the container.")
-          : "None selected \u2014 no VIPC files will be baked into the container.");
+          : "None selected \u2014 files are de-selected by default; tick the ones you want baked in.");
       }
       el.textContent = parts.join(" ");
     }
@@ -973,8 +990,8 @@
         vipcFoundCount = found.length;
         const have = new Set(vipcList.map(v => v.path));
         let added = false;
-        // Pre-populate every discovered file, selected and monitored by default — the user can un-tick any to exclude.
-        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true, include: true }); added = true; } });
+        // Pre-populate every discovered file, de-selected by default — the user picks which to bake.
+        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true, include: false }); added = true; } });
         renderVipcs();
         if (added) update();
         // VI Analyzer: discover .viancfg configs + folder/VI path suggestions from
@@ -1059,6 +1076,83 @@
         `  -f activities=${csv(actSel) || "dashboard"}` + cLine;
     }
 
+    function reconfigureInputs() {
+      const cVipc = vipcList.filter(v => v.include === true).map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
+      const cActs = containerActionEntries().map(([id, t]) => `${id}::${t}`).join(";");
+      const cVia = viAnalyzerInputEnc();
+      return {
+        labview_version: $("version").value,
+        operating_systems: osChoice(),
+        antidoc: $("antidoc").checked ? "true" : "false",
+        concurrent_runners: String(parseInt($("runners").value, 10) || 1),
+        activities: csv(actSel) || "dashboard",
+        container_use: containerUseValue() || "latest",
+        container_vipc: cVipc,
+        container_actions: cActs,
+        action_triggers: triggerInputEnc(),
+        vi_browser: viBrowserInputEnc(),
+        via_default: cVia.def || "",
+        via_rules: cVia.rules || ""
+      };
+    }
+
+    function workflowUrl() {
+      const repo = $("repo").value.trim();
+      return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/reconfigure.yml" : "https://github.com/actions/workflows/reconfigure.yml";
+    }
+    function token() { try { return localStorage.getItem(TOK_KEY) || ""; } catch (_) { return ""; } }
+    function tokenUrl() {
+      const repo = $("repo").value.trim();
+      const owner = (repo.split("/")[0]) || "";
+      const qp = new URLSearchParams();
+      qp.set("name", "LabVIEW CI dispatch");
+      qp.set("description", "Dispatch LabVIEW CI configuration changes for " + repo);
+      if (owner) qp.set("target_name", owner);
+      qp.set("actions", "write");
+      return "https://github.com/settings/personal-access-tokens/new?" + qp.toString();
+    }
+    function setApplyStatus(html, kind) {
+      const st = $("applyStatus"); if (!st) return;
+      st.innerHTML = html || "";
+      st.className = "status" + (kind ? " " + kind : "");
+    }
+    function showTokenPanel(msg) {
+      const p = $("tokPanel"); if (!p) return;
+      const m = $("tokMsg"); if (m) m.innerHTML = msg || "Saving needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.";
+      const a = $("tokCreate"); if (a) a.href = tokenUrl();
+      p.hidden = false;
+      const inp = $("tokInput"); if (inp) inp.focus();
+    }
+    function hideTokenPanel() { const p = $("tokPanel"); if (p) p.hidden = true; }
+    async function dispatchReconfigure() {
+      const repo = $("repo").value.trim();
+      if (!repo.includes("/")) { setApplyStatus("Choose a repository before applying.", "err"); return; }
+      if (!token()) { showTokenPanel(); setApplyStatus("Paste a token to queue the Reconfigure workflow."); return; }
+      const btn = $("applyCfg");
+      if (btn) { btn.disabled = true; btn.textContent = "Queuing..."; }
+      setApplyStatus("Queuing the Reconfigure workflow...");
+      try {
+        const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/reconfigure.yml/dispatches", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token(), "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+          body: JSON.stringify({ ref: $("branch").value || "main", inputs: reconfigureInputs() })
+        });
+        if (btn) { btn.disabled = false; btn.textContent = "Save and apply"; }
+        if (r.status === 204) {
+          hideTokenPanel();
+          setApplyStatus("Queued Reconfigure. It will open a pull request when the settings files are updated. <a href=\"" + workflowUrl() + "\" target=\"_blank\" rel=\"noopener\">View runs</a>.", "ok");
+          return;
+        }
+        if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setApplyStatus("Token rejected (401).", "err"); return; }
+        if (r.status === 403) { showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code class=\"inl\">" + escapeHtml(repo) + "</code>."); setApplyStatus("Dispatch forbidden (403).", "err"); return; }
+        if (r.status === 404) { showTokenPanel("The saved token cannot see <code class=\"inl\">" + escapeHtml(repo) + "</code>, or this repo does not have <code class=\"inl\">reconfigure.yml</code> installed."); setApplyStatus("Workflow not found or repo not accessible (404).", "err"); return; }
+        setApplyStatus("Dispatch failed (HTTP " + r.status + ").", "err");
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = "Save and apply"; }
+        setApplyStatus("Network error: " + escapeHtml(String(e && e.message || e)), "err");
+      }
+    }
+
     function genBuildCmd() {
       const repo = $("repo").value.trim();
       const r = repo.includes("/") ? ` -R ${repo}` : "";
@@ -1069,6 +1163,7 @@
       $("yamlPreview").textContent = genYaml();
       $("jsonPreview").textContent = genJson();
       $("ghCmd").textContent = genGhCmd();
+      const wf = $("wfLink"); if (wf) wf.href = workflowUrl();
       const bc = $("buildCmd"); if (bc) bc.textContent = genBuildCmd();
       const note = $("routeNote");
       if (note) note.innerHTML = "Project default currently resolves to <code class=\"inl\">" + escapeHtml(containerUseValue() || "latest") + "</code> (set in the Container tab).";
@@ -1224,6 +1319,14 @@
       });
       $("dlYaml").addEventListener("click", () => { download("labview-ci.yml", genYaml()); flash("labview-ci.yml downloaded — place at .github/labview-ci.yml"); });
       $("dlJson").addEventListener("click", () => { download("ci-tooling.packages.json", genJson()); flash("ci-tooling.packages.json downloaded — place at .github/labview/vipm/"); });
+      $("applyCfg").addEventListener("click", dispatchReconfigure);
+      $("tokSave").addEventListener("click", () => {
+        const inp = $("tokInput"); const v = (inp && inp.value || "").trim();
+        if (!v) { if (inp) inp.focus(); return; }
+        try { localStorage.setItem(TOK_KEY, v); } catch (_) {}
+        dispatchReconfigure();
+      });
+      $("tokInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("tokSave").click(); } });
       const copy = (btn, src) => { const b = $(btn); if (!b) return; b.addEventListener("click", async () => {
         try { await navigator.clipboard.writeText($(src).textContent); b.textContent = "Copied!"; setTimeout(() => b.textContent = "Copy", 1400); } catch (_) {}
       }); };

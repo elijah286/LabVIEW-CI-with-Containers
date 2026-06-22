@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dependencies - LabVIEW CI</title>
+  <script>window.LVCI={context:'dependencies'};</script>
+  <script src="lvci-header.js" defer></script>
+  <style>
+    :root{--bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;--chip:#21262d;--code:#010409;--warn:#9a6700;--ok:#2ea043;--bad:#f85149}
+    @media(prefers-color-scheme:light){:root{--bg:#ffffff;--surface:#f6f8fa;--surface2:#fff;--border:#d0d7de;--fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--accent:#1f883d;--accent-fg:#fff;--chip:#eaeef2;--code:#f6f8fa;--warn:#9a6700;--ok:#1a7f37;--bad:#cf222e}}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5}a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 64px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.hero h1{margin:0 0 4px;font-size:1.55em}.sub{margin:0;color:var(--fg-muted);font-size:.9em}.controls{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:12px;align-items:end;margin:18px 0}.field label{display:block;color:var(--fg-muted);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}select,button{font:inherit}select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg)}button{border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--fg);padding:9px 12px;cursor:pointer}button:hover{border-color:var(--link)}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px}.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px}.card .k{color:var(--fg-muted);font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.card .v{margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.note{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:11px 13px;color:var(--fg-muted);font-size:.88em;margin-bottom:16px}.note.warn{border-color:rgba(210,153,34,.55);background:rgba(210,153,34,.10);color:var(--fg)}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)}table{width:100%;border-collapse:collapse;min-width:980px}th,td{border-bottom:1px solid var(--border);padding:8px 9px;text-align:left;vertical-align:top}th{position:sticky;top:0;background:var(--surface);color:var(--fg-muted);font-size:.75em;text-transform:uppercase;letter-spacing:.04em;z-index:1}td.pkg{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em}.vipc-row{background:color-mix(in srgb,var(--surface) 80%,var(--chip));font-weight:700}.vipc-row td{padding-top:10px;padding-bottom:10px}.twisty{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:5px;border:1px solid var(--border);border-radius:4px;color:var(--fg-muted);font-size:.8em}.vipc-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:.75em;color:var(--fg-muted);font-weight:600}.yes{color:var(--ok)}.no{color:var(--bad)}.maybe{color:var(--warn)}.cell{white-space:nowrap;text-align:center}.cell .mark{font-weight:800;font-size:1em}.cell .why{display:block;color:var(--fg-muted);font-size:.68em;margin-top:1px}.empty{padding:28px;text-align:center;color:var(--fg-muted)}.hidden{display:none}@media(max-width:760px){.hero{display:block}.controls{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.wrap{padding-inline:14px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Dependencies</h1>
+        <p class="sub">VIPC package coverage by revision and runner container.</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="field">
+        <label for="rev">Revision</label>
+        <select id="rev"></select>
+      </div>
+      <button id="reload" type="button">Reload</button>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="k">Repository</div><div class="v" id="repoCard">-</div></div>
+      <div class="card"><div class="k">Worker</div><div class="v" id="workerCard">-</div></div>
+      <div class="card"><div class="k">VIPC Files</div><div class="v" id="vipcCard">-</div></div>
+    </div>
+    <div class="note" id="status">Loading dependency inventory...</div>
+    <div class="table-wrap" id="tableWrap"><div class="empty">Loading...</div></div>
+  </main>
+  <script>
+  (() => {
+    "use strict";
+    const COLS = [
+      { key:"snap1w", label:"1.0 Snap Win", platform:"windows", action:"snapshots", image:"base" },
+      { key:"snap2w", label:"2.0 Snap Win", platform:"windows", action:"snapshots", image:"base" },
+      { key:"snap2l", label:"2.0 Snap Linux", platform:"linux", action:"snapshots", image:"base" },
+      { key:"via", label:"VIA", platform:"windows", action:"vi-analyzer", image:"worker" },
+      { key:"diff", label:"Diff", platform:"windows", action:"vidiff", image:"worker" },
+      { key:"mc", label:"Compile", platform:"windows", action:"masscompile", image:"worker" },
+      { key:"utf", label:"UTF", platform:"windows", action:"unit-tests", image:"worker" },
+      { key:"docs", label:"Antidoc", platform:"windows", action:"antidoc", image:"worker" }
+    ];
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+    const short = s => String(s || "").slice(0, 7);
+    const cfg = window.LVCI || {};
+
+    function repoFromUrl(){
+      if (cfg.repo) return cfg.repo;
+      const host = location.hostname;
+      if (!host.endsWith(".github.io")) return "";
+      const owner = host.slice(0, -".github.io".length);
+      const repo = location.pathname.split("/").filter(Boolean)[0];
+      return owner && repo ? owner + "/" + repo : "";
+    }
+    const repo = repoFromUrl();
+    const base = location.pathname.replace(/[^/]*$/, "");
+    const raw = (path, ref) => "https://raw.githubusercontent.com/" + repo + "/" + encodeURIComponent(ref || "HEAD") + "/" + path.split("/").map(encodeURIComponent).join("/");
+    const api = path => "https://api.github.com/repos/" + repo + path;
+    async function fetchJson(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.json(); }
+    async function fetchText(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.text(); }
+
+    function parseManifestYaml(text){
+      const out = { use:"", vipc:[], actions:{}, viBrowser:{} };
+      let sec = "", cur = null;
+      text.split(/\r?\n/).forEach(line => {
+        if (/^\s*container:\s*$/.test(line)) { sec = "container"; return; }
+        if (/^\s*viBrowser:\s*$/.test(line)) { sec = "viBrowser"; return; }
+        if (/^\S/.test(line)) { sec = ""; cur = null; }
+        if (sec === "container") {
+          let m = line.match(/^\s{4}use:\s*"?([^"#]+)"?/); if (m) out.use = m[1].trim();
+          if (/^\s{4}vipc:\s*$/.test(line)) { sec = "vipc"; return; }
+          if (/^\s{4}actions:\s*$/.test(line)) { sec = "actions"; return; }
+        } else if (sec === "vipc") {
+          let m = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/); if (m) { cur = { path:m[1].trim(), monitor:true, include:true }; out.vipc.push(cur); return; }
+          m = line.match(/^\s{8}monitor:\s*(\S+)/); if (m && cur) cur.monitor = m[1].toLowerCase() === "true";
+          if (/^\s{0,4}\S/.test(line)) sec = "container";
+        } else if (sec === "actions") {
+          let m = line.match(/^\s{6}([A-Za-z0-9_.-]+):\s*"?([^"#]+)"?/); if (m) out.actions[m[1]] = m[2].trim();
+          if (/^\s{0,4}\S/.test(line)) sec = "container";
+        } else if (sec === "viBrowser") {
+          let m = line.match(/^\s{4}(classic|positionAware):\s*"?([^"#]+)"?/); if (m) out.viBrowser[m[1]] = m[2].trim();
+        }
+      });
+      return out;
+    }
+
+    async function listCommits(){
+      try {
+        const d = await fetchJson(base + "vi-snapshots/files.json");
+        const commits = (d.commits || []).filter(c => c.sha);
+        if (commits.length) return commits.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha }));
+      } catch (_) {}
+      const runs = await fetchJson(api("/commits?per_page=30"));
+      return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
+    }
+
+    async function listVipcs(sha){
+      const tree = await fetchJson(api("/git/trees/" + sha + "?recursive=1"));
+      return (tree.tree || []).filter(x => x.type === "blob" && /\.vipc$/i.test(x.path)).map(x => x.path).sort((a,b) => a.localeCompare(b));
+    }
+
+    function readU16(dv, off){ return dv.getUint16(off, true); }
+    function readU32(dv, off){ return dv.getUint32(off, true); }
+    async function inflateRaw(bytes){
+      if (!window.DecompressionStream) throw new Error("No DecompressionStream");
+      const ds = new DecompressionStream("deflate-raw");
+      const stream = new Blob([bytes]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+    async function vipcPackages(path, sha){
+      const r = await fetch(raw(path, sha), { cache:"no-cache" });
+      if (!r.ok) throw new Error(path + " -> " + r.status);
+      const bytes = new Uint8Array(await r.arrayBuffer());
+      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      let eocd = -1;
+      for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 66000); i--) if (readU32(dv, i) === 0x06054b50) { eocd = i; break; }
+      if (eocd < 0) throw new Error("Not a ZIP VIPC");
+      const total = readU16(dv, eocd + 10), cdOff = readU32(dv, eocd + 16);
+      let off = cdOff, entry = null;
+      const dec = new TextDecoder();
+      for (let i = 0; i < total && off < bytes.length; i++) {
+        if (readU32(dv, off) !== 0x02014b50) break;
+        const method = readU16(dv, off + 10), csize = readU32(dv, off + 20);
+        const nlen = readU16(dv, off + 28), xlen = readU16(dv, off + 30), clen = readU16(dv, off + 32);
+        const loc = readU32(dv, off + 42);
+        const name = dec.decode(bytes.slice(off + 46, off + 46 + nlen));
+        if (name.toLowerCase() === "config.xml") { entry = { method, csize, loc }; break; }
+        off += 46 + nlen + xlen + clen;
+      }
+      if (!entry) throw new Error("config.xml missing");
+      const nlen = readU16(dv, entry.loc + 26), xlen = readU16(dv, entry.loc + 28);
+      const start = entry.loc + 30 + nlen + xlen;
+      let payload = bytes.slice(start, start + entry.csize);
+      if (entry.method === 8) payload = await inflateRaw(payload);
+      else if (entry.method !== 0) throw new Error("Unsupported ZIP compression " + entry.method);
+      const xml = new DOMParser().parseFromString(dec.decode(payload), "application/xml");
+      const names = Array.from(xml.getElementsByTagName("Package")).map(p => {
+        const name = p.getElementsByTagName("Name")[0];
+        return name && name.textContent ? name.textContent.trim() : "";
+      }).filter(Boolean);
+      return Array.from(new Set(names)).sort((a,b) => a.localeCompare(b));
+    }
+
+    async function loadManifestFor(tag, platform){
+      if (!tag || tag === "base" || tag === "none") return null;
+      if (tag === "latest") {
+        const latest = await fetchJson(base + "workers/" + platform + "/latest.json");
+        tag = latest.version;
+      }
+      return fetchJson(base + "workers/" + platform + "/" + encodeURIComponent(tag) + "/manifest.json");
+    }
+    function packagesInManifest(man){
+      const set = new Set();
+      (man && man.vipc || []).forEach(v => (v.packages || []).forEach(p => set.add(p)));
+      return set;
+    }
+    function resolveColumn(col, manifest){
+      if (col.image === "base") return { tag:"base", packages:new Set(), label:"base" };
+      const actTag = manifest.actions[col.action] || manifest.use || "base";
+      return { tag:actTag, packages:new Set(), label:actTag || "base" };
+    }
+    function statusCell(pkg, colState){
+      if (!pkg) return "";
+      if (colState.label === "base" || colState.label === "none") return '<td class="cell"><span class="mark no">-</span><span class="why">base</span></td>';
+      if (!colState.ready) return '<td class="cell"><span class="mark maybe">?</span><span class="why">unknown</span></td>';
+      const ok = colState.packages.has(pkg);
+      return '<td class="cell"><span class="mark ' + (ok ? 'yes">yes' : 'no">-') + '</span><span class="why">' + esc(colState.label) + '</span></td>';
+    }
+    function render(vipcs, colStates){
+      if (!vipcs.length) { $("tableWrap").innerHTML = '<div class="empty">No VIPC files were found in this revision.</div>'; return; }
+      const heads = COLS.map(c => '<th>' + esc(c.label) + '</th>').join('');
+      const rows = [];
+      vipcs.forEach((v, idx) => {
+        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span> <span class="pill">' + (v.packages.length || 0) + ' packages</span></td></tr>');
+        if (v.open) {
+          if (v.error) rows.push('<tr><td class="pkg">' + esc(v.error) + '</td>' + COLS.map(() => '<td></td>').join('') + '</tr>');
+          (v.packages || []).forEach(pkg => rows.push('<tr><td class="pkg">' + esc(pkg) + '</td>' + COLS.map(c => statusCell(pkg, colStates[c.key])).join('') + '</tr>'));
+        }
+      });
+      $("tableWrap").innerHTML = '<table><thead><tr><th>VIPC / Package</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+      Array.from(document.querySelectorAll('.vipc-row')).forEach((row, i) => row.addEventListener('click', () => { vipcs[i].open = !vipcs[i].open; render(vipcs, colStates); }));
+    }
+
+    async function loadRevision(sha){
+      $("status").textContent = "Loading dependency inventory...";
+      $("repoCard").textContent = repo || "unknown";
+      const yaml = await fetchText(raw(".github/labview-ci.yml", sha)).catch(() => "");
+      const manifest = parseManifestYaml(yaml);
+      const discovered = await listVipcs(sha).catch(() => manifest.vipc.map(v => v.path));
+      const configured = new Set(manifest.vipc.map(v => v.path));
+      const vipcs = await Promise.all(discovered.map(async path => {
+        const item = { path, configured:configured.has(path), packages:[], open:true, error:"" };
+        try { item.packages = await vipcPackages(path, sha); }
+        catch (e) { item.error = "Could not parse " + path + ": " + e.message; }
+        return item;
+      }));
+      const colStates = {};
+      await Promise.all(COLS.map(async c => {
+        const st = resolveColumn(c, manifest);
+        colStates[c.key] = st;
+        if (st.tag !== "base" && st.tag !== "none") {
+          try { st.packages = packagesInManifest(await loadManifestFor(st.tag, c.platform)); st.ready = true; }
+          catch (_) { st.ready = false; }
+        } else st.ready = true;
+      }));
+      const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base").map(s => s.tag))).join(", ") || "base images only";
+      $("workerCard").textContent = workerTags;
+      $("vipcCard").textContent = String(vipcs.length);
+      const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
+      $("status").className = baseCols.length ? "note warn" : "note";
+      $("status").textContent = baseCols.length
+        ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + "."
+        : "Every listed runner column resolves to a worker manifest for this revision/configuration.";
+      render(vipcs, colStates);
+    }
+
+    function renderGenerated(data){
+      const sel = $("rev");
+      const label = data.sha ? short(data.sha) + " - generated dashboard inventory" : "generated dashboard inventory";
+      sel.innerHTML = '<option value="' + esc(data.sha || '') + '">' + esc(label) + '</option>';
+      sel.disabled = true;
+      $("reload").addEventListener("click", () => location.reload());
+      $("repoCard").textContent = data.repo || repo || "unknown";
+      $("vipcCard").textContent = String((data.vipc || []).length);
+      const colStates = {};
+      (data.columns || []).forEach(col => {
+        colStates[col.key] = {
+          tag: col.tag || "base",
+          label: col.version || col.tag || "base",
+          ready: col.ready !== false,
+          packages: new Set(col.packages || [])
+        };
+      });
+      COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = { tag:"base", label:"base", ready:true, packages:new Set() }; });
+      const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base").map(s => s.label))).join(", ") || "base images only";
+      $("workerCard").textContent = workerTags;
+      const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
+      $("status").className = baseCols.length ? "note warn" : "note";
+      $("status").textContent = baseCols.length
+        ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + "."
+        : "Every listed runner column resolves to a worker manifest for this dashboard build.";
+      render((data.vipc || []).map(v => ({ path:v.path, packages:v.packages || [], error:v.error || "", open:true })), colStates);
+    }
+
+    async function init(){
+      if (!repo) { $("status").textContent = "Could not determine repository from this Pages URL."; return; }
+      try {
+        const generated = await fetchJson(base + "dependencies/index.json");
+        if (generated && Array.isArray(generated.vipc)) { renderGenerated(generated); return; }
+      } catch (_) {}
+      const commits = await listCommits().catch(e => { $("status").textContent = e.message; return []; });
+      const sel = $("rev");
+      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '">' + esc((c.short || short(c.sha)) + ' - ' + (c.message || '')) + '</option>').join('');
+      const params = new URLSearchParams(location.search);
+      if (params.get("sha") && commits.some(c => c.sha === params.get("sha"))) sel.value = params.get("sha");
+      sel.addEventListener("change", () => { const u = new URL(location.href); u.searchParams.set("sha", sel.value); history.replaceState(null, "", u); loadRevision(sel.value); });
+      $("reload").addEventListener("click", () => loadRevision(sel.value));
+      if (sel.value) loadRevision(sel.value);
+      else $("status").textContent = "No revisions found.";
+    }
+    init();
+  })();
+  </script>
+</body>
+</html>
