@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.9",
+  "version": "3.34.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.10",
+        "date": "2026-06-22",
+        "title": "Mass Compile dashboard clears completed runs",
+        "summary": "Mass Compile cells now prefer the deployed summary report over a still-visible pending status, so a completed manual run immediately renders its percentage result instead of a stale running badge.",
+        "highlights": [
+          "Fixed a dashboard row state where a Mass Compile action could be done and successful in GitHub Actions while the dashboard still showed the compile spinner.",
+          "When masscompile/<sha>/summary.json exists, the dashboard now renders the report chip first; pending status remains only for runs whose report has not landed yet."
+        ]
+      },
       {
         "version": "3.34.9",
         "date": "2026-06-22",
