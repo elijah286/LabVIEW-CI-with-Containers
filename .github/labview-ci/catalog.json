@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.35.5",
+  "version": "3.35.6",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.35.6",
+        "date": "2026-06-22",
+        "title": "Dashboard dialogs no longer vanish mid-install when the page auto-refreshes",
+        "summary": "The dashboard auto-refresh that keeps the page live while CI runs no longer reloads the page while a dialog is open, so Apply to New Repo (and Configure, VI Analyzer, Unit Testing, and What\u0027s New) can finish without the dialog disappearing on its own. Previously a busy dashboard reloaded about once a minute via an HTML meta refresh and a queued-run fast reload, which destroyed the open install iframe before it could show the result -- even though the install itself had completed.",
+        "highlights": [
+          "Auto-refresh is now a guarded JavaScript timer instead of an uncancellable HTML meta refresh; it reloads on the same cadence but waits while a dialog is open and reloads once it is closed",
+          "The queued-run fast reload defers the same way, so neither refresh path can blow away an in-progress install",
+          "Apply to New Repo now reliably shows its Done summary with the pull request and dashboard links instead of the dialog closing unexpectedly"
+        ]
+      },
       {
         "version": "3.35.5",
         "date": "2026-06-22",

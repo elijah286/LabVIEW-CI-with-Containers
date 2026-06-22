@@ -1221,10 +1221,16 @@ run_dialog = (r"""
     }
     function qArmReload(){
       // While a queued run is still unconfirmed, reload sooner than the lazy
-      // meta-refresh so the real status surfaces promptly (mirrors the server's
-      // own faster cadence while CI is live).
+      // auto-refresh so the real status surfaces promptly (mirrors the server's
+      // own faster cadence while CI is live). Never reload while a dialog (Apply to
+      // New Repo / Configure / ...) is open -- that would destroy the in-progress
+      // iframe; defer and reload once it is closed.
       if(qReloadArmed) return; qReloadArmed = true;
-      setTimeout(function(){ location.reload(); }, QFAST);
+      function fire(){
+        if(typeof lvciModalOpen==='function' && lvciModalOpen()){ setTimeout(fire, 4000); return; }
+        location.reload();
+      }
+      setTimeout(fire, QFAST);
     }
     function qLiveEntries(o){
       // The still-queued entries, oldest first - this IS the queue order. A failed
@@ -2317,7 +2323,11 @@ html = f"""<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="refresh" content="{refresh_secs}">
+  <!-- Auto-refresh is driven by a guarded JS timer (lvciAutoRefresh, below) instead
+       of an HTML meta refresh: a meta refresh can't be cancelled once parsed, so it
+       would reload the page mid-install and destroy an open dialog (the "dialog
+       vanished" bug). The JS timer reloads on the same cadence but waits while a
+       dialog is open. -->
   <title>CI Dashboard — {repo_name}</title>
   <style>
     :root{{
@@ -2485,6 +2495,27 @@ html = f"""<!DOCTYPE html>
       document.body.style.overflow = '';
     }}
     document.addEventListener('keydown', function (e) {{ if (e.key === 'Escape') lvciClose(); }});
+    // Is the Apply / Configure / VI Analyzer / Unit-tests / What's-New iframe dialog
+    // open? The auto-refresh timer and the queued-run fast reload both check this so a
+    // page reload never blows away an in-progress install or its iframe (the
+    // "dialog disappeared on its own" bug).
+    function lvciModalOpen() {{
+      var m = document.getElementById('lvci-modal');
+      return !!(m && m.style.display === 'block');
+    }}
+    // Auto-refresh on the cadence the server picked (60 s while CI is live, else
+    // 15 min) -- but NEVER while a dialog is open, because reloading the page destroys
+    // the install/Configure iframe and its in-flight work. When a refresh comes due
+    // with a dialog open, keep re-checking and reload only once it is closed.
+    (function () {{
+      var REFRESH_MS = {refresh_secs} * 1000;
+      if (!(REFRESH_MS > 0)) return;
+      function tick() {{
+        if (lvciModalOpen()) {{ setTimeout(tick, 5000); return; }}
+        location.reload();
+      }}
+      setTimeout(tick, REFRESH_MS);
+    }})();
   </script>
   {run_dialog}
   <main class="lvci-main">
