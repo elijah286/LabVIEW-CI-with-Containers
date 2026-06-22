@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.38.3",
+  "version": "3.38.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.38.4",
+        "date": "2026-06-22",
+        "title": "VIDiff report deploy no longer races itself on GitHub Pages",
+        "summary": "Adds the shared report-pages-deploy concurrency group to the VIDiff deploy workflow so the Windows and Linux report deploys queue instead of pushing the gh-pages branch at the same instant, which previously made one run fail with a non-fast-forward \"fetch first\" rejection while a fresh install ran every check at once.",
+        "highlights": [
+          "The VIDiff deploy workflow now serializes its GitHub Pages push with the mass-compile, VI Analyzer, unit-test, and Antidoc report deploys",
+          "Windows and Linux VIDiff reports completing together no longer make one deploy run fail on a rejected gh-pages push",
+          "cancel-in-progress is false so a queued VIDiff deploy still publishes its report rather than being dropped"
+        ]
+      },
       {
         "version": "3.38.3",
         "date": "2026-06-22",
