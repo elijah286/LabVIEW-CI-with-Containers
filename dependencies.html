@@ -41,14 +41,8 @@
   (() => {
     "use strict";
     const COLS = [
-      { key:"snap1w", label:"1.0 Snap Win", platform:"windows", action:"snapshots", image:"base" },
-      { key:"snap2w", label:"2.0 Snap Win", platform:"windows", action:"snapshots", image:"base" },
-      { key:"snap2l", label:"2.0 Snap Linux", platform:"linux", action:"snapshots", image:"base" },
-      { key:"via", label:"VIA", platform:"windows", action:"vi-analyzer", image:"worker", defaultTag:"latest" },
-      { key:"diff", label:"Diff", platform:"windows", action:"vidiff", image:"worker" },
-      { key:"mc", label:"Compile", platform:"windows", action:"masscompile", image:"worker" },
-      { key:"utf", label:"UTF", platform:"windows", action:"unit-tests", image:"worker", defaultTag:"latest" },
-      { key:"docs", label:"Antidoc", platform:"windows", action:"antidoc", image:"worker", defaultTag:"latest" }
+      { key:"windows", label:"Windows", platform:"windows", image:"worker", defaultTag:"latest" },
+      { key:"linux", label:"Linux", platform:"linux", image:"base" }
     ];
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
@@ -175,8 +169,9 @@
     }
     function resolveColumn(col, manifest){
       if (col.image === "base") return { tag:"base", packages:new Set(), label:"base" };
-      const actTag = manifest.actions[col.action] || manifest.use || col.defaultTag || "base";
-      return { tag:actTag, packages:new Set(), label:actTag || "base" };
+      const actTag = col.action ? manifest.actions[col.action] : "";
+      const tag = actTag || manifest.use || col.defaultTag || "base";
+      return { tag, packages:new Set(), label:tag || "base" };
     }
     function markLinuxVipcPending(col, st){
       if (col.platform !== "linux") return st;
@@ -192,7 +187,7 @@
       const actions = manifest && manifest.actions ? Object.entries(manifest.actions) : [];
       const use = manifest && manifest.use ? manifest.use : "";
       if (!use && !vipc.length && !actions.length) {
-        $("configCard").innerHTML = 'This revision has no <code>config.container</code> block. Worker-backed defaults use <span class="pill">latest</span> for VIA, UTF, and Antidoc; base-image runners stay <span class="pill">base</span>.';
+        $("configCard").innerHTML = 'This revision has no <code>config.container</code> block. Windows runners default to the shared repo worker <span class="pill">latest</span>; Linux VIPC application is pending.';
         return;
       }
       const bits = [];
@@ -257,8 +252,8 @@
       const unconfigured = vipcs.filter(v => v.configured === false).length;
       $("status").className = (baseCols.length || unsupportedCols.length) ? "note warn" : "note";
       $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not included in config.container.vipc, so its packages are not expected in any worker. ") : "") + (baseCols.length
-        ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
-        : "Every listed runner column resolves to a worker manifest for this revision/configuration.");
+        ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
+        : "The Windows column resolves to a worker manifest for this revision/configuration.");
       if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as missing: " + unsupportedCols.join(", ") + ".";
       render(vipcs, colStates);
     }
@@ -285,8 +280,8 @@
       const unconfigured = (data.vipc || []).filter(v => v.configured === false).length;
       $("status").className = (baseCols.length || unsupportedCols.length) ? "note warn" : "note";
       $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not included in config.container.vipc, so its packages are not expected in any worker. ") : "") + (baseCols.length
-        ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
-        : "Every listed runner column resolves to a worker manifest for this dashboard build.");
+        ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
+        : "The Windows column resolves to a worker manifest for this dashboard build.");
       if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as missing: " + unsupportedCols.join(", ") + ".";
       render((data.vipc || []).map(v => ({ path:v.path, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates);
     }

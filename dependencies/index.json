@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "fdb4bc7aa258c1b322f9ab0e12a51a9d93e85c18",
+  "sha": "2baab78f0fb728def4e72ca6448d22b8c7418d85",
   "revisions": [
+    {
+      "sha": "2baab78f0fb728def4e72ca6448d22b8c7418d85",
+      "short": "2baab78",
+      "message": "Make Windows runners use shared worker by default",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T12:30:41Z"
+    },
+    {
+      "sha": "4d6ac8dcd5d5fb2a1b25016f9449917dc1dc0f53",
+      "short": "4d6ac8d",
+      "message": "Release v3.34.18: fail Windows zero-frame renders",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T12:22:56Z"
+    },
     {
       "sha": "fdb4bc7aa258c1b322f9ab0e12a51a9d93e85c18",
       "short": "fdb4bc7",
@@ -690,20 +704,6 @@
       "date": "2026-06-19T14:56:36Z"
     },
     {
-      "sha": "c1b6efffb83bf3765580279b0b95de100cd25a8e",
-      "short": "c1b6eff",
-      "message": "unit tests: install VIPM from the NI feed (ni-vipm) so the UTF JUnit Report library bakes into the worker; the external VIPM installer URL now 404s (v3.10.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T14:32:20Z"
-    },
-    {
-      "sha": "27fef3c764a61306d1f9667e0895ac484b98887b",
-      "short": "27fef3c",
-      "message": "unit tests: bake NI 'UTF JUnit Report' library into the worker so RunUnitTests emits JUnit; fix Windows report-builder print crash (v3.10.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T14:06:13Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -827,130 +827,38 @@
   ],
   "columns": [
     {
-      "key": "snap1w",
-      "label": "1.0 Snap Win",
+      "key": "windows",
+      "label": "Windows",
       "platform": "windows",
-      "action": "snapshots",
-      "tag": "base",
+      "defaultTag": "latest",
+      "tag": "latest",
       "ready": true,
-      "packages": [],
-      "version": "base"
+      "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
+        "jki_lib_caraya-1.4.4.148",
+        "jki_vi_tester",
+        "ni_lib_junit_results_api-1.0.1.6",
+        "ni_lib_simple_xml-1.0.0.4",
+        "ni_lib_utf_junit_report-1.0.1.43",
+        "oglib_appcontrol-4.1.0.7",
+        "oglib_array-4.1.0.13",
+        "oglib_error-4.2.0.23",
+        "oglib_file-4.0.0.20",
+        "oglib_lvdata-4.2.0.21",
+        "oglib_string-4.1.0.12",
+        "wovalab_lib_antidoc_cli-3.3.0.117"
+      ],
+      "version": "win-8913c01f4cc4"
     },
     {
-      "key": "snap2w",
-      "label": "2.0 Snap Win",
-      "platform": "windows",
-      "action": "snapshots",
-      "tag": "base",
-      "ready": true,
-      "packages": [],
-      "version": "base"
-    },
-    {
-      "key": "snap2l",
-      "label": "2.0 Snap Linux",
+      "key": "linux",
+      "label": "Linux",
       "platform": "linux",
-      "action": "snapshots",
       "tag": "base",
       "ready": true,
       "packages": [],
       "version": "pending",
       "unsupported": true
-    },
-    {
-      "key": "via",
-      "label": "VIA",
-      "platform": "windows",
-      "action": "vi-analyzer",
-      "defaultTag": "latest",
-      "tag": "latest",
-      "ready": true,
-      "packages": [
-        "dataflow_g_lib_g_image-0.5.0.1",
-        "jki_lib_caraya-1.4.4.148",
-        "jki_vi_tester",
-        "ni_lib_junit_results_api-1.0.1.6",
-        "ni_lib_simple_xml-1.0.0.4",
-        "ni_lib_utf_junit_report-1.0.1.43",
-        "oglib_appcontrol-4.1.0.7",
-        "oglib_array-4.1.0.13",
-        "oglib_error-4.2.0.23",
-        "oglib_file-4.0.0.20",
-        "oglib_lvdata-4.2.0.21",
-        "oglib_string-4.1.0.12",
-        "wovalab_lib_antidoc_cli-3.3.0.117"
-      ],
-      "version": "win-8913c01f4cc4"
-    },
-    {
-      "key": "diff",
-      "label": "Diff",
-      "platform": "windows",
-      "action": "vidiff",
-      "tag": "base",
-      "ready": true,
-      "packages": [],
-      "version": "base"
-    },
-    {
-      "key": "mc",
-      "label": "Compile",
-      "platform": "windows",
-      "action": "masscompile",
-      "tag": "base",
-      "ready": true,
-      "packages": [],
-      "version": "base"
-    },
-    {
-      "key": "utf",
-      "label": "UTF",
-      "platform": "windows",
-      "action": "unit-tests",
-      "defaultTag": "latest",
-      "tag": "latest",
-      "ready": true,
-      "packages": [
-        "dataflow_g_lib_g_image-0.5.0.1",
-        "jki_lib_caraya-1.4.4.148",
-        "jki_vi_tester",
-        "ni_lib_junit_results_api-1.0.1.6",
-        "ni_lib_simple_xml-1.0.0.4",
-        "ni_lib_utf_junit_report-1.0.1.43",
-        "oglib_appcontrol-4.1.0.7",
-        "oglib_array-4.1.0.13",
-        "oglib_error-4.2.0.23",
-        "oglib_file-4.0.0.20",
-        "oglib_lvdata-4.2.0.21",
-        "oglib_string-4.1.0.12",
-        "wovalab_lib_antidoc_cli-3.3.0.117"
-      ],
-      "version": "win-8913c01f4cc4"
-    },
-    {
-      "key": "docs",
-      "label": "Antidoc",
-      "platform": "windows",
-      "action": "antidoc",
-      "defaultTag": "latest",
-      "tag": "latest",
-      "ready": true,
-      "packages": [
-        "dataflow_g_lib_g_image-0.5.0.1",
-        "jki_lib_caraya-1.4.4.148",
-        "jki_vi_tester",
-        "ni_lib_junit_results_api-1.0.1.6",
-        "ni_lib_simple_xml-1.0.0.4",
-        "ni_lib_utf_junit_report-1.0.1.43",
-        "oglib_appcontrol-4.1.0.7",
-        "oglib_array-4.1.0.13",
-        "oglib_error-4.2.0.23",
-        "oglib_file-4.0.0.20",
-        "oglib_lvdata-4.2.0.21",
-        "oglib_string-4.1.0.12",
-        "wovalab_lib_antidoc_cli-3.3.0.117"
-      ],
-      "version": "win-8913c01f4cc4"
     }
   ]
 }
