@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.4",
+  "version": "3.34.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.5",
+        "date": "2026-06-22",
+        "title": "Dashboard activity links use the current or latest revision",
+        "summary": "The top-level Dashboard navigation now groups Overview, VI Browser, Mass Compile, VI Analyzer, Unit Tests, and Antidoc together. Revision-specific entries resolve the same way across the header: they use the revision already selected or shown by the current page, and fall back to the latest known VI snapshot revision when no current revision is available. The report revision picker also uses the same report availability fallback as Activity, checking index.html when summary metadata is missing.",
+        "highlights": [
+          "Dashboard is now a dropdown that exposes the revision-specific dashboard activities in one place.",
+          "VI Browser and report links use the current selected revision when one is available, otherwise the latest known revision.",
+          "The report revision picker now shares the Activity fallback from summary.json to index.html."
+        ]
+      },
       {
         "version": "3.34.4",
         "date": "2026-06-22",
