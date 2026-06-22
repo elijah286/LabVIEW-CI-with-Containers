@@ -1,8 +1,71 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "0af6b39219efd3ff72613e2289872af3e25bcb20",
+  "sha": "c4e815ef45d2cecdd6b579e1a87b45e8da7d70da",
   "revisions": [
+    {
+      "sha": "c4e815ef45d2cecdd6b579e1a87b45e8da7d70da",
+      "short": "c4e815e",
+      "message": "Promote VIPM-enabled Linux worker",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T23:10:31Z"
+    },
+    {
+      "sha": "c95c5c573a72c5b7d34715eebbeab3124c294403",
+      "short": "c95c5c5",
+      "message": "Install native VIPM in Linux Beta image (v3.38.8)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T22:45:52Z"
+    },
+    {
+      "sha": "06a30133ab62739e8113fb8b83f6f6b842ea7f51",
+      "short": "06a3013",
+      "message": "Diagnose Linux Beta VIPM package sources (v3.38.7)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T21:56:16Z"
+    },
+    {
+      "sha": "e5cde8fef03a055d3787a4e63d605f4665617181",
+      "short": "e5cde8f",
+      "message": "Render VI Browser Windows snapshots with the cross-platform Go VI Server engine (v3.38.6)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T21:47:11Z"
+    },
+    {
+      "sha": "8e3974c4c2e370f6b0135eb0df1c4a3e36a39df4",
+      "short": "8e3974c",
+      "message": "Use apt for Linux Beta worker packages (v3.38.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T21:25:05Z"
+    },
+    {
+      "sha": "485c948ed6dbf20c52ace1356b59fcaf6be53db7",
+      "short": "485c948",
+      "message": "VIDiff deploy: serialize the gh-pages push so it stops racing itself (v3.38.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T21:19:47Z"
+    },
+    {
+      "sha": "c4a41cb34fda0846fbce63a6a96964cdeb403a01",
+      "short": "c4a41cb",
+      "message": "Find nipkg in Linux Beta image build (v3.38.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T21:17:57Z"
+    },
+    {
+      "sha": "0ea9069aaf58c43968ff9867bfb5af8797d6cce7",
+      "short": "0ea9069",
+      "message": "Fix Linux Beta image hash step (v3.38.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T21:06:23Z"
+    },
+    {
+      "sha": "20112324d5a261974268b66b2e85fad271070737",
+      "short": "2011232",
+      "message": "Wait for the in-progress worker image build after a fresh install instead of timing out (v3.38.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T21:00:05Z"
+    },
     {
       "sha": "0af6b39219efd3ff72613e2289872af3e25bcb20",
       "short": "0af6b39",
@@ -641,69 +704,6 @@
       "date": "2026-06-20T05:06:06Z"
     },
     {
-      "sha": "35fd075d2de1b515855715fe8516e7113c3bfa8f",
-      "short": "35fd075",
-      "message": "CI runs now show which revision they check and who requested them (v3.21.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T05:01:39Z"
-    },
-    {
-      "sha": "8a5d7a489fd9f7b1db8f1dd6024f4708d2edf1e3",
-      "short": "8a5d7a4",
-      "message": "UX overhaul (2c-2b): VI Browser revision bar gains previous / next steppers (v3.20.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T04:48:35Z"
-    },
-    {
-      "sha": "e90840ecf73c3710c2e576dd2091fa566f790fab",
-      "short": "e90840e",
-      "message": "worker: install VIPM tooling by package name so headless UTF works (v3.19.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T04:49:19Z"
-    },
-    {
-      "sha": "c861b357a207c8fb28f14a3dd1b5670e4eb80a1c",
-      "short": "c861b35",
-      "message": "UX overhaul (2c-2): VI Browser revision picker joins the shared context bar (v3.19.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T04:40:54Z"
-    },
-    {
-      "sha": "fd7a319f38a55c63cce4fa3219dc116eefe798db",
-      "short": "fd7a319",
-      "message": "header: persistent revision context bar for reports (v3.18.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T04:29:50Z"
-    },
-    {
-      "sha": "e8856619a3cebb6229575df987da36b02171a01b",
-      "short": "e885661",
-      "message": "header: grouped Settings / Help top-nav menus (v3.17.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T04:19:37Z"
-    },
-    {
-      "sha": "24f0606bb8e66f3ffab099e27558603a0c260418",
-      "short": "24f0606",
-      "message": "header: run / queue / fail activity pill (v3.16.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T04:03:16Z"
-    },
-    {
-      "sha": "286fe11e3c9fbcbb71e77a8fc0e616d226b37d21",
-      "short": "286fe11",
-      "message": "header: global failure attention banner (v3.15.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T03:07:59Z"
-    },
-    {
-      "sha": "84f511ebe63f41e1366580d386c67ad73758c7e7",
-      "short": "84f511e",
-      "message": "vi-browser: always show the 2.0 Linux/Windows switch (v3.14.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T02:47:50Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -872,16 +872,12 @@
       "packages": {
         "windows": [
           "ni-vipm"
-        ],
-        "linux": [
-          "ni-vipm"
         ]
       },
       "platforms": [
-        "windows",
-        "linux"
+        "windows"
       ],
-      "details": "NI-published VIPM package that enables VIPC application during worker builds."
+      "details": "NI-published Windows VIPM package that enables VIPC application during worker builds. Linux installs VIPM from the native Debian package during its worker build."
     }
   ],
   "system": [
@@ -1063,28 +1059,14 @@
       "key": "linux",
       "label": "Linux",
       "platform": "linux",
-      "tag": "base",
+      "defaultTag": "latest",
+      "tag": "latest",
       "ready": true,
       "packages": [],
-      "version": "pending",
-      "unsupported": true,
       "nipkg_ready": true,
       "nipkg_packages": [],
-      "nipkg_version": "linux-c6484cf4d66a",
-      "labview_version": "2026"
-    },
-    {
-      "key": "linuxBeta",
-      "label": "Linux Beta",
-      "platform": "linux-beta",
-      "tag": "latest",
-      "defaultTag": "latest",
-      "ready": false,
-      "packages": [],
-      "nipkg_ready": false,
-      "nipkg_packages": [],
-      "labview_version": "",
-      "version": "latest"
+      "labview_version": "2026",
+      "version": "linux-c6484cf4d66a"
     }
   ]
 }
