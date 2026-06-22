@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.23",
+  "version": "3.34.24",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.24",
+        "date": "2026-06-22",
+        "title": "Dependencies source tables move into tabs",
+        "summary": "The Dependencies page now keeps VIPM/VIPC packages, NI Package Manager installed dependencies, and System Components in one shared table area with tabs. This keeps the dependency-source breakdown from the previous release while making the page easier to scan vertically.",
+        "highlights": [
+          "Adds tabs for VIPM / VIPC, NI Packages, and System Components on the Dependencies page.",
+          "Shows only the selected dependency-source table at a time, so the page no longer stacks all three tables vertically.",
+          "Keeps the same generated dependency inventory and Linux VIPC pending behavior."
+        ]
+      },
       {
         "version": "3.34.23",
         "date": "2026-06-22",
