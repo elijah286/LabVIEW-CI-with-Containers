@@ -1,8 +1,29 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ebd57b4a25dce2e72a161b79923e4322f847eb4f",
+  "sha": "0af6b39219efd3ff72613e2289872af3e25bcb20",
   "revisions": [
+    {
+      "sha": "0af6b39219efd3ff72613e2289872af3e25bcb20",
+      "short": "0af6b39",
+      "message": "Add experimental Linux Beta VIPM worker (v3.38.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T20:53:50Z"
+    },
+    {
+      "sha": "b7b72c42b56dc9b8fd02ae46c5fb5382af445e19",
+      "short": "b7b72c4",
+      "message": "Wait reliably for an in-progress worker-image build, even through a transient Actions-API hiccup (v3.37.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T19:20:00Z"
+    },
+    {
+      "sha": "d0d2f0f28079db300eb8cb6ae092286b0f41b280",
+      "short": "d0d2f0f",
+      "message": "Windows container jobs wait for the Docker engine instead of failing when a hosted runner starts without it (v3.37.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T18:48:03Z"
+    },
     {
       "sha": "ebd57b4a25dce2e72a161b79923e4322f847eb4f",
       "short": "ebd57b4",
@@ -683,27 +704,6 @@
       "date": "2026-06-20T02:47:50Z"
     },
     {
-      "sha": "83ac9d04e630fa31233dc1287ba3f68e812babbd",
-      "short": "83ac9d0",
-      "message": "vi-browser: add a Linux/Windows toggle to the 2.0 view (v3.14.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T02:34:33Z"
-    },
-    {
-      "sha": "8d9b4c469d58672747ec6387d80f72f20da8eff7",
-      "short": "8d9b4c4",
-      "message": "FAQ: explain how the Clients page discovers and tracks repositories + link it from Clients (v3.13.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T01:22:29Z"
-    },
-    {
-      "sha": "2b8483b9328a6b23c0ed3156fbb067465aff2e72",
-      "short": "2b8483b",
-      "message": "dashboard: collapse revision table to cards on narrow screens (v3.13.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T01:17:47Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -872,12 +872,16 @@
       "packages": {
         "windows": [
           "ni-vipm"
+        ],
+        "linux": [
+          "ni-vipm"
         ]
       },
       "platforms": [
-        "windows"
+        "windows",
+        "linux"
       ],
-      "details": "NI-published VIPM package that enables VIPC application during Windows worker builds."
+      "details": "NI-published VIPM package that enables VIPC application during worker builds."
     }
   ],
   "system": [
@@ -1068,6 +1072,19 @@
       "nipkg_packages": [],
       "nipkg_version": "linux-c6484cf4d66a",
       "labview_version": "2026"
+    },
+    {
+      "key": "linuxBeta",
+      "label": "Linux Beta",
+      "platform": "linux-beta",
+      "tag": "latest",
+      "defaultTag": "latest",
+      "ready": false,
+      "packages": [],
+      "nipkg_ready": false,
+      "nipkg_packages": [],
+      "labview_version": "",
+      "version": "latest"
     }
   ]
 }
