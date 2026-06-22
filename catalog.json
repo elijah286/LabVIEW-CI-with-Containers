@@ -1,11 +1,24 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.15",
+  "version": "3.34.16",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.16",
+        "date": "2026-06-22",
+        "title": "Windows VI Browser 2.0 uses the Go render path directly",
+        "summary": "The Windows VI Browser 2.0 container no longer blocks rendering on a separate PowerShell COM-readiness probe. It now prepares the LabVIEW container and immediately hands off to the same Go batch runner used by the Linux 2.0 path, letting lvctl own LabVIEW attach, launch, readiness, and per-VI rendering. The shared runner now fails when a non-empty batch produces zero frames, the Windows entrypoint times out a stuck Go runner while printing its captured logs, and newer manual Windows render runs replace stuck superseded runs.",
+        "highlights": [
+          "Removes the PowerShell GetActiveObject gate that prevented the Go renderer from running in the Windows container.",
+          "Keeps the existing Go runner/lvctl toolchain as the owner of LabVIEW startup and rendering on Windows.",
+          "Fails a non-empty Go render batch when every VI fails, while still allowing partial successes to publish.",
+          "Adds a Windows runner timeout that terminates stuck LabVIEW/lvctl runs and prints runner stdout/stderr before exiting.",
+          "Lets newer Windows 2.0 render dispatches cancel older in-progress runs in the same workflow."
+        ]
+      },
       {
         "version": "3.34.15",
         "date": "2026-06-22",
