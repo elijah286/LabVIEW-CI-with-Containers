@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.24",
+  "version": "3.34.25",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.25",
+        "date": "2026-06-22",
+        "title": "Experimental Windows container lane on the Dependencies page",
+        "summary": "The Dependencies tables gain a third Windows (experimental) column so an isolated experimental Windows container can be tracked alongside the production Windows worker and Linux. Production actions keep running on the standard Windows worker; the VI Browser 2.0 Windows render opts into the experimental image only when the repository variable EXPERIMENTAL_WINDOWS_IMAGE is set, so new container work can be proven before it replaces the main Windows container. Until that image is published the experimental column is shown as experimental / pending.",
+        "highlights": [
+          "Adds a Windows (experimental) column to the VIPM/VIPC, NI Packages, and System Components tabs.",
+          "Wires an opt-in EXPERIMENTAL_WINDOWS_IMAGE repository variable into the Windows VI Browser 2.0 render so experimental runs use an isolated container and skip the production worker-build wait; unset leaves behaviour unchanged.",
+          "Shows the experimental column as experimental / pending until its image manifest is published, without affecting the existing Windows and Linux columns."
+        ]
+      },
       {
         "version": "3.34.24",
         "date": "2026-06-22",
