@@ -1,10 +1,10 @@
-LabVIEWCLI started logging in file:  /tmp/lvtemporary_932199.log
+LabVIEWCLI started logging in file:  /tmp/lvtemporary_287383.log
 Using LabVIEW: "/usr/local/natinst/LabVIEW-2026-64/labviewprofull"
 LabVIEW launched successfully.
 Connection established with LabVIEW at port number 3363.
 
 Operation output: 
-#### Starting Mass Compile: Sun, Jun 21, 2026 07:28:21 PM
+#### Starting Mass Compile: Mon, Jun 22, 2026 04:10:44 AM
   Directory: "/workspace"
 /workspace/.github/labview/PrintToSingleFileHtml/PrintToSingleFileHtml.lvclass (PrintToSingleFileHtml.lvclass)
     - The class expected to be at "/workspace/.github/labview/CoreOperation/CoreOperation.lvclass" was loaded from "/usr/local/natinst/share/nilvcli/Operations/CoreOperation/CoreOperation.lvclass".
@@ -34,7 +34,7 @@ Search failed to find "NI_UnitTestFramework.lvlib:utf_test_result.ctl" previousl
   ### Bad VI:    "User-Defined Test Advanced.vi"	Path="/workspace/example/User-Defined Test/User-Defined Test Advanced.vi" 
   ### Bad VI:    "User-Defined Test Basic.vi"	Path="/workspace/example/User-Defined Test/User-Defined Test Basic.vi" 
 Search failed to find "Trim Whitespace (string).vi" previously from "/<vilib>/Utility/error.llb/Trim Whitespace (string).vi"  +=+   Caller: "main.vi"
-#### Finished Mass Compile: Sun, Jun 21, 2026 07:28:33 PM
+#### Finished Mass Compile: Mon, Jun 22, 2026 04:10:56 AM
 
 MassCompile operation failed.
 
