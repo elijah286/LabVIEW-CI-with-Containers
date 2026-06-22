@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.39.0",
+  "version": "3.39.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.39.1",
+        "date": "2026-06-22",
+        "title": "Restore Linux-applicable example VIPC artifact",
+        "summary": "The Linux and Linux Beta worker image builds now stage a known-good example/Dependencies.vipc artifact again. The dependency cleanup in 3.39.0 reduced that VIPC to project-only packages, but native Linux VIPM rejected the reduced file as an invalid VI package configuration during image build. This patch restores the previously proven VIPC blob so VIPM can apply the repository dependencies while the source-of-truth cleanup remains in place for the dedicated tooling and capability VIPCs.",
+        "highlights": [
+          "Restores example/Dependencies.vipc to the exact artifact previously applied successfully by the VIPM-enabled Linux worker build",
+          "Unblocks Build LabVIEW CI Image - Linux and Build LabVIEW CI Image - Linux Beta after VIPM rejected the reduced VIPC file",
+          "Keeps the 3.39.0 dependency model for core tooling and opt-in capability VIPCs while avoiding a broken Linux image build"
+        ]
+      },
       {
         "version": "3.39.0",
         "date": "2026-06-22",
