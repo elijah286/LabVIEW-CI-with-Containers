@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "78a128abe0af0cd5d67f61ecb6fe6a481bcd6db6",
+  "sha": "fd42f788102e077390a21c78f94f0406b3843a75",
   "revisions": [
+    {
+      "sha": "fd42f788102e077390a21c78f94f0406b3843a75",
+      "short": "fd42f78",
+      "message": "Release v3.34.10: fix completed Mass Compile dashboard cells",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T04:28:43Z"
+    },
     {
       "sha": "78a128abe0af0cd5d67f61ecb6fe6a481bcd6db6",
       "short": "78a128a",
@@ -695,13 +702,6 @@
       "message": "VI Browser: configurable render OS (1.0/2.0 x Windows/Linux) + a VI Browser menu (v3.7.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-19T12:51:41Z"
-    },
-    {
-      "sha": "eb6fe7424d8c525fc425c7e42cd616c47a0c4a4c",
-      "short": "eb6fe74",
-      "message": "unit tests: mass-compile the vendored UTF runner so LabVIEW 2026 can load it (v3.6.7)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T12:46:50Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
