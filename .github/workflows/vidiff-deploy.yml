@@ -16,6 +16,17 @@ permissions:
   pages: write
   statuses: write
 
+# Serialize the gh-pages push with the other report deployers. The Windows and
+# Linux VIDiff reports complete near-simultaneously, and each completion fires its
+# own vidiff-deploy run; without a shared group the two push gh-pages at the same
+# instant and the loser bounces with "! [rejected] (fetch first)" (its report never
+# deploys). Sharing report-pages-deploy queues them — and queues vidiff alongside
+# the mass-compile / VI Analyzer / unit-test / Antidoc deploys — instead of racing.
+# cancel-in-progress:false so a queued run still publishes rather than being dropped.
+concurrency:
+  group: report-pages-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
