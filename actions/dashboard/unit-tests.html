@@ -58,6 +58,12 @@
     .status{font-size:.82em;color:var(--muted);margin-top:8px;min-height:1.2em}
     .status.ok{color:var(--accent)}.status.err{color:#cf222e}
     .subhead{font-weight:600;font-size:.9em;margin:14px 0 6px}
+    .thresholds{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:10px;margin-top:10px}
+    .threshold{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    .threshold strong{display:block;font-size:.84em;margin-bottom:4px}
+    .threshold small{display:block;color:var(--muted);font-size:.74em;min-height:2.8em}
+    .threshold input{width:100%;margin-top:8px;padding:8px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.9em}
+    @media(max-width:700px){.thresholds{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -86,7 +92,17 @@
     </section>
 
     <section>
-      <h2>3. Review &amp; apply</h2>
+      <h2>3. Badge thresholds</h2>
+      <p class="hint">The dashboard badge shows the percentage of tests that failed. Colours use pass-rate thresholds, which is the usual way to define test-health gates.</p>
+      <div class="thresholds">
+        <label class="threshold"><strong>Green</strong><small>Pass rate at or above this value.</small><input id="thrGreen" type="number" min="0" max="100" step="1" value="100"></label>
+        <label class="threshold"><strong>Yellow</strong><small>Pass rate at or above this value, but below Green.</small><input id="thrYellow" type="number" min="0" max="100" step="1" value="80"></label>
+        <label class="threshold"><strong>Red</strong><small>Pass rate below this value.</small><input id="thrRed" type="number" min="0" max="100" step="1" value="80"></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. Review &amp; apply</h2>
       <p class="hint">Download the updated config and commit it, or copy the <code class="inl">unitTests</code> block into your existing <code class="inl">.github/labview-ci.yml</code>.</p>
       <div class="actions">
         <button class="primary" id="dlYaml">Download labview-ci.yml</button>
@@ -115,8 +131,10 @@
         ph: "e.g. tests/  or  source/Tests/MyTests.lvproj" },
     ];
     const DEFAULTS = () => TOOLS.reduce((o,t)=>(o[t.id]={enabled:false,locations:[]},o),{});
+    const DEFAULT_THRESHOLDS = () => ({ passedPercent: { greenAtLeast: 100, yellowAtLeast: 80, redBelow: 80 } });
 
     let state = DEFAULTS();
+    let thresholds = DEFAULT_THRESHOLDS();
     let activeTab = "caraya";
 
     const $ = (id) => document.getElementById(id);
@@ -124,37 +142,73 @@
     async function fetchText(u){ const r=await fetch(u,{cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); }
 
     // ---- minimal labview-ci.yml unitTests parser (our own simple format) -----
-    // Reads the `unitTests:` block: per-tool `enabled:` + `locations:` list.
+    // Reads the `unitTests:` block: per-tool `enabled:` + `locations:` list, plus
+    // the optional pass-rate threshold policy that colours the failed-% badge.
     function parseUnitTests(text){
-      const out = DEFAULTS();
+      const tools = DEFAULTS();
+      const parsedThresholds = DEFAULT_THRESHOLDS();
       const lines = text.split(/\r?\n/);
       let i = 0;
       // find top-level "unitTests:"
       while (i < lines.length && !/^unitTests:\s*$/.test(lines[i])) i++;
-      if (i >= lines.length) return out;
+      if (i >= lines.length) return { tools, thresholds: parsedThresholds };
       i++;
-      let tool = null, inLocs = false;
+      let tool = null, inLocs = false, inTools = false, inThresholds = false, inPassed = false;
       for (; i < lines.length; i++){
         const line = lines[i];
         if (/^\S/.test(line)) break;                       // dedent to top level → done
         let m;
-        if ((m = line.match(/^\s{4,6}([A-Za-z0-9_\-]+):\s*$/)) && /^\s{4}\S/.test(line)){
-          tool = out[m[1]] ? m[1] : null; inLocs = false; continue;
+        if (/^\s{2}tools:\s*$/.test(line)){ inTools = true; inThresholds = false; tool = null; inLocs = false; continue; }
+        if (/^\s{2}thresholds:\s*$/.test(line)){ inThresholds = true; inTools = false; tool = null; inLocs = false; continue; }
+        if (inThresholds){
+          if (/^\s{4}(passedPercent|passPercent|passRate):\s*$/.test(line)){ inPassed = true; continue; }
+          if (inPassed && (m = line.match(/^\s{6}(greenAtLeast|yellowAtLeast|redBelow):\s*([^#\s]+)/))){
+            parsedThresholds.passedPercent[m[1]] = clampPct(m[2], parsedThresholds.passedPercent[m[1]]); continue;
+          }
+          if (/^\s{0,5}\S/.test(line)) inPassed = false;
+        }
+        if (inTools && (m = line.match(/^\s{4}([A-Za-z0-9_\-]+):\s*$/))){
+          tool = tools[m[1]] ? m[1] : null; inLocs = false; continue;
         }
         if (tool){
-          if ((m = line.match(/^\s{6,}enabled:\s*(true|false)/))){ out[tool].enabled = m[1]==="true"; inLocs=false; continue; }
-          if (/^\s{6,}locations:\s*\[\s*\]/.test(line)){ out[tool].locations=[]; inLocs=false; continue; }
-          if (/^\s{6,}locations:\s*$/.test(line)){ inLocs=true; out[tool].locations=[]; continue; }
-          if (inLocs && (m = line.match(/^\s{8,}-\s*["']?([^"'\n]+?)["']?\s*$/))){ out[tool].locations.push(m[1]); continue; }
+          if ((m = line.match(/^\s{6,}enabled:\s*(true|false)/))){ tools[tool].enabled = m[1]==="true"; inLocs=false; continue; }
+          if (/^\s{6,}locations:\s*\[\s*\]/.test(line)){ tools[tool].locations=[]; inLocs=false; continue; }
+          if (/^\s{6,}locations:\s*$/.test(line)){ inLocs=true; tools[tool].locations=[]; continue; }
+          if (inLocs && (m = line.match(/^\s{8,}-\s*["']?([^"'\n]+?)["']?\s*$/))){ tools[tool].locations.push(m[1]); continue; }
           if (inLocs && /^\s{6}\S/.test(line)) inLocs=false;
         }
       }
+      return { tools, thresholds: normalizeThresholds(parsedThresholds) };
+    }
+
+    function clampPct(value, fallback){
+      const n = Math.round(Number(value));
+      return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : fallback;
+    }
+    function normalizeThresholds(src){
+      const cur = src && src.passedPercent || {};
+      const out = DEFAULT_THRESHOLDS();
+      out.passedPercent.greenAtLeast = clampPct(cur.greenAtLeast, out.passedPercent.greenAtLeast);
+      out.passedPercent.yellowAtLeast = clampPct(cur.yellowAtLeast, out.passedPercent.yellowAtLeast);
+      out.passedPercent.redBelow = clampPct(cur.redBelow, out.passedPercent.redBelow);
+      out.passedPercent.greenAtLeast = Math.max(out.passedPercent.greenAtLeast, out.passedPercent.yellowAtLeast);
+      out.passedPercent.redBelow = Math.min(out.passedPercent.redBelow, out.passedPercent.yellowAtLeast);
       return out;
     }
 
     // ---- YAML generation -----------------------------------------------------
     function genBlock(){
-      const lines = ["unitTests:", "  tools:"];
+      thresholds = normalizeThresholds(thresholds);
+      const p = thresholds.passedPercent;
+      const lines = [
+        "unitTests:",
+        "  thresholds:",
+        "    passedPercent:",
+        `      greenAtLeast: ${p.greenAtLeast}`,
+        `      yellowAtLeast: ${p.yellowAtLeast}`,
+        `      redBelow: ${p.redBelow}`,
+        "  tools:"
+      ];
       for (const t of TOOLS){
         const s = state[t.id];
         lines.push(`    ${t.id}:`);
@@ -238,6 +292,14 @@
 
     function update(){ $("blockPreview").textContent = genBlock(); }
 
+    function renderThresholds(){
+      thresholds = normalizeThresholds(thresholds);
+      const p = thresholds.passedPercent;
+      $("thrGreen").value = p.greenAtLeast;
+      $("thrYellow").value = p.yellowAtLeast;
+      $("thrRed").value = p.redBelow;
+    }
+
     function download(name, text){
       const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"}));
       a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
@@ -259,7 +321,8 @@
       try{
         loadedYaml = await fetchText(rawUrl(repo, ref, ".github/labview-ci.yml"));
         const parsed = parseUnitTests(loadedYaml);
-        for (const t of TOOLS) if (parsed[t.id]) state[t.id] = parsed[t.id];
+        for (const t of TOOLS) if (parsed.tools[t.id]) state[t.id] = parsed.tools[t.id];
+        thresholds = parsed.thresholds;
         st.className="status ok"; st.textContent = `Loaded current settings from ${repo}@${ref}.`;
       }catch(_){
         st.className="status"; st.textContent = "No existing config found — showing defaults to download & commit.";
@@ -271,7 +334,13 @@
       const t = detectTarget();
       $("repo").value=t.repo; $("branch").value=t.ref;
       $("repoLabel").textContent=t.repo; $("branchLabel").textContent=t.ref;
-      renderTabs(); renderPanels(); update();
+      renderTabs(); renderPanels(); renderThresholds(); update();
+      ["thrGreen", "thrYellow", "thrRed"].forEach(id => $(id).addEventListener("change", () => {
+        thresholds.passedPercent.greenAtLeast = clampPct($("thrGreen").value, thresholds.passedPercent.greenAtLeast);
+        thresholds.passedPercent.yellowAtLeast = clampPct($("thrYellow").value, thresholds.passedPercent.yellowAtLeast);
+        thresholds.passedPercent.redBelow = clampPct($("thrRed").value, thresholds.passedPercent.redBelow);
+        renderThresholds(); update();
+      }));
       $("dlYaml").addEventListener("click", ()=>{ download("labview-ci.yml", genFullYaml()); const s=$("dlStatus"); s.className="status ok"; s.textContent="labview-ci.yml downloaded — place at .github/labview-ci.yml"; });
       $("copyBlock").addEventListener("click", async ()=>{ try{ await navigator.clipboard.writeText(genBlock()); $("copyBlock").textContent="Copied!"; setTimeout(()=>$("copyBlock").textContent="Copy",1400);}catch(_){} });
       loadCurrent(t.repo, t.ref).catch(()=>{});

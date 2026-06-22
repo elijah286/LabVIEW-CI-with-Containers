@@ -58,6 +58,10 @@ on:
         description: 'VI Analyzer per-path configs as <config>::<paths> pairs separated by ; (paths joined by |; config "none" excludes; blank = keep current)'
         required: false
         default: ''
+      unit_tests:
+        description: 'Unit-test tool config as JSON; blank = keep current'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -93,6 +97,7 @@ jobs:
           IN_VI_BROWSER: ${{ inputs.vi_browser }}
           IN_VIA_DEFAULT: ${{ inputs.via_default }}
           IN_VIA_RULES: ${{ inputs.via_rules }}
+          IN_UNIT_TESTS: ${{ inputs.unit_tests }}
         run: |
           python3 - <<'PY'
           import os, re, json, datetime, pathlib
@@ -109,6 +114,7 @@ jobs:
           vi_browser_in = os.environ.get('IN_VI_BROWSER', '').strip()
           via_default_in = os.environ.get('IN_VIA_DEFAULT', '').strip()
           via_rules_in = os.environ.get('IN_VIA_RULES', '').strip()
+          unit_tests_in = os.environ.get('IN_UNIT_TESTS', '').strip()
 
           # Preserve provenance fields from any existing manifest.
           mpath = pathlib.Path('.github/labview-ci.yml')
@@ -341,10 +347,57 @@ jobs:
               for _id in sorted(triggers):
                   lines.append(f'    {_id}: {triggers[_id]}')
           lines += ['activities:'] + [f'  - {a}' for a in acts] + ['']
-          # Preserve the unit-test tool config (written by the Unit Testing page);
-          # reconfigure manages activities/container only, so keep it verbatim.
-          if prev.get('unitTests_block'):
-              lines += prev['unitTests_block'] + ['']
+          def _unit_tests_block_from_json(s):
+              data = json.loads(s)
+              tools = data.get('tools', data) if isinstance(data, dict) else {}
+              if not isinstance(tools, dict):
+                  raise ValueError('unit_tests must be a JSON object')
+              def _pct(value, default):
+                  try:
+                      return max(0, min(100, int(float(str(value).strip()))))
+                  except Exception:
+                      return default
+              raw_thresholds = data.get('thresholds', {}) if isinstance(data, dict) else {}
+              raw_passed = raw_thresholds.get('passedPercent', {}) if isinstance(raw_thresholds, dict) else {}
+              passed = {
+                  'greenAtLeast': _pct(raw_passed.get('greenAtLeast'), 100),
+                  'yellowAtLeast': _pct(raw_passed.get('yellowAtLeast'), 80),
+                  'redBelow': _pct(raw_passed.get('redBelow'), 80),
+              }
+              passed['greenAtLeast'] = max(passed['greenAtLeast'], passed['yellowAtLeast'])
+              passed['redBelow'] = min(passed['redBelow'], passed['yellowAtLeast'])
+              ordered = [k for k in ('caraya', 'vi-tester', 'utf') if k in tools]
+              ordered += sorted(k for k in tools if k not in ordered)
+              out = [
+                  'unitTests:',
+                  '  thresholds:',
+                  '    passedPercent:',
+                  f"      greenAtLeast: {passed['greenAtLeast']}",
+                  f"      yellowAtLeast: {passed['yellowAtLeast']}",
+                  f"      redBelow: {passed['redBelow']}",
+                  '  tools:',
+              ]
+              for key in ordered:
+                  if not re.match(r'^[A-Za-z0-9_.-]+$', key):
+                      raise ValueError(f'invalid unit-test tool id: {key!r}')
+                  cfg = tools.get(key) or {}
+                  enabled = bool(cfg.get('enabled'))
+                  raw_locs = cfg.get('locations') or []
+                  if not isinstance(raw_locs, list):
+                      raise ValueError(f'locations for {key} must be a list')
+                  locs = [str(x).strip() for x in raw_locs if str(x).strip()]
+                  out.append(f'    {key}:')
+                  out.append(f"      enabled: {'true' if enabled else 'false'}")
+                  if locs:
+                      out.append('      locations:')
+                      for loc in locs:
+                          out.append('        - "' + loc.replace('"', '\\"') + '"')
+                  else:
+                      out.append('      locations: []')
+              return out
+          unit_tests_block = _unit_tests_block_from_json(unit_tests_in) if unit_tests_in else prev.get('unitTests_block')
+          if unit_tests_block:
+              lines += unit_tests_block + ['']
           mpath.parent.mkdir(parents=True, exist_ok=True)
           mpath.write_text('\n'.join(lines), encoding='utf-8')
           print('Wrote', mpath)
@@ -423,6 +476,7 @@ jobs:
           | VI Browser renders | ${{ inputs.vi_browser }} |
           | VI Analyzer default | ${{ inputs.via_default }} |
           | VI Analyzer rules | ${{ inputs.via_rules }} |
+          | Unit tests | ${{ inputs.unit_tests }} |
 
           Review and merge to apply. Container-dependency and LabVIEW-version changes
           take effect on the next image build; OS/runner settings apply where the

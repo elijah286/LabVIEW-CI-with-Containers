@@ -117,6 +117,65 @@ def masscompile_summary(sha):
     _mc_cache[sha] = data if isinstance(data, dict) else None
     return _mc_cache[sha]
 
+_ut_cache = {}
+def unit_tests_summary(sha):
+    # build-unittest-report.py deploys the same model that renders the friendly
+    # report. Reading it lets the dashboard show the actual failure percentage
+    # instead of a binary pass/fail status.
+    if sha in _ut_cache:
+        return _ut_cache[sha]
+    data = http_json(f"{pages_url}/unit-tests/{sha}/results.json")
+    summary = (data or {}).get('summary') if isinstance(data, dict) else None
+    _ut_cache[sha] = summary if isinstance(summary, dict) else None
+    return _ut_cache[sha]
+
+def _pct_threshold(value, default):
+    try:
+        return max(0, min(100, int(float(str(value).strip()))))
+    except Exception:
+        return default
+
+def unit_test_thresholds():
+    # Quality gates are pass-rate thresholds, which is the common way to express
+    # test health even though the badge text itself reports the failed-test rate.
+    # Defaults: green at 100% passed, yellow at >=80%, red below 80%.
+    vals = {'greenAtLeast': 100, 'yellowAtLeast': 80, 'redBelow': 80}
+    try:
+        in_ut = in_thresholds = in_passed = False
+        for raw in open('.github/labview-ci.yml', encoding='utf-8'):
+            line = raw.replace('\t', '    ').rstrip('\n')
+            if re.match(r'^unitTests:\s*$', line):
+                in_ut = True; in_thresholds = False; in_passed = False; continue
+            if in_ut and re.match(r'^\S', line):
+                break
+            if not in_ut:
+                continue
+            if re.match(r'^\s{2}thresholds:\s*$', line):
+                in_thresholds = True; in_passed = False; continue
+            if in_thresholds and re.match(r'^\s{4}(passedPercent|passPercent|passRate):\s*$', line):
+                in_passed = True; continue
+            if in_passed:
+                m = re.match(r'^\s{6}(greenAtLeast|yellowAtLeast|redBelow):\s*([^#\s]+)', line)
+                if m:
+                    vals[m.group(1)] = _pct_threshold(m.group(2), vals[m.group(1)])
+                    continue
+                if re.match(r'^\s{0,5}\S', line):
+                    in_passed = False
+    except Exception:
+        pass
+    vals['greenAtLeast'] = max(vals['greenAtLeast'], vals['yellowAtLeast'])
+    vals['redBelow'] = min(vals['redBelow'], vals['yellowAtLeast'])
+    return vals
+
+UNIT_TEST_THRESHOLDS = unit_test_thresholds()
+
+def unit_test_badge_kind(pass_pct):
+    if pass_pct >= UNIT_TEST_THRESHOLDS['greenAtLeast']:
+        return 'pass'
+    if pass_pct < UNIT_TEST_THRESHOLDS['redBelow']:
+        return 'fail'
+    return 'warn'
+
 # LabVIEW / NI source-file extensions. A revision that touches one of
 # these (outside the CI tooling — see below) is a change to the actual
 # project, as opposed to a CI/docs/tooling revision.
@@ -358,7 +417,7 @@ def _chip(kind, label, url='', title=''):
 # is opened, and reports that predate the header (or carry none of their own)
 # still appear inside the chrome. Diff/Snapshots already open the VI Browser (its
 # own headered page), so only these two doctypes are wrapped here.
-DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile', 'antidoc-report': 'Antidoc'}
+DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile', 'unit-tests-report': 'Unit Tests', 'antidoc-report': 'Antidoc'}
 
 def viewer_url(report_url, doctype, sha, short, platform=''):
     """Wrap a deployed report's absolute Pages URL so it opens framed under the
@@ -683,16 +742,38 @@ for c in commits_data:
             snap_badge = (f'<td style="text-align:center">'
                           f'{_chip(_kind, _txt, _href, _tip)}</td>')
 
-    # Unit Tests column: pass/fail from a LabVIEW unit-test framework (UTF / JKI
-    # VI Tester / Caraya) once a runner posts the "CI / Unit Tests" status. The
-    # capability is currently "planned" (no runner workflow yet), so this shows a
-    # neutral placeholder until results exist; WHICH framework ran belongs in the
-    # test report as metadata, not as separate per-framework columns. Now that
-    # the runner exists, cap='unit-tests' makes an empty cell a Run-now glyph
-    # (dispatches unit-tests-windows-container.yml) and doc= frames the report
-    # in the shared chrome (report-viewer), like the other per-revision reports.
-    unit_badge = badge('tests', 'CI / Unit Tests', cap='unit-tests',
-                       doc=('unit-tests-report', 'unit-tests'))
+    # Unit Tests column: show the percentage of tests that failed, sourced from
+    # the deployed report model. Colour is controlled by configurable pass-rate
+    # thresholds (green/yellow/red), while the label stays failure-focused.
+    if not is_project:
+      unit_badge = EMPTY_CELL
+    else:
+      _ut_run = fresh_pending('CI / Unit Tests')
+      _ut = unit_tests_summary(sha)
+      if _ut_run is not None:
+        caps_ran.add('unit-tests')
+        unit_badge = running_cell('tests', _ut_run.get('target_url', ''))
+      elif _ut and 'tests' in _ut:
+        any_output['on'] = True
+        caps_ran.add('unit-tests')
+        _total = max(0, int(_ut.get('tests') or 0))
+        _passed = max(0, int(_ut.get('passed') or 0))
+        _failed = max(0, int(_ut.get('failed') or 0) + int(_ut.get('errored') or 0))
+        _failed_pct = round(100 * _failed / _total) if _total else 0
+        _pass_pct = round(100 * _passed / _total) if _total else 100
+        _kind = unit_test_badge_kind(_pass_pct)
+        _url = viewer_url(f'{pages_url}/unit-tests/{sha}/index.html', 'unit-tests-report', sha, short)
+        _ut_ts = (pick_status('CI / Unit Tests') or {}).get('created_at', '')
+        _tip = (f'{_failed} of {_total} unit tests failed; pass rate {_pass_pct}%. '
+            f'Green >= {UNIT_TEST_THRESHOLDS["greenAtLeast"]}% passed, '
+            f'yellow >= {UNIT_TEST_THRESHOLDS["yellowAtLeast"]}%, '
+            f'red < {UNIT_TEST_THRESHOLDS["redBelow"]}%.') if _total else 'No unit tests found; 0% failed.'
+        unit_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="unit-tests" '
+                f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_ut_ts}">'
+                f'{_chip(_kind, f"{_failed_pct}% failed", _url, _tip)}</td>')
+      else:
+        unit_badge = badge('tests', 'CI / Unit Tests', cap='unit-tests',
+                   doc=('unit-tests-report', 'unit-tests'))
     # Antidoc column: links to the generated documentation, framed in the
     # dashboard chrome via report-viewer. An empty project cell offers a
     # one-click run (cap='antidoc' dispatches run-antidoc-windows-container.yml).
