@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.6",
+  "version": "3.34.7",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.7",
+        "date": "2026-06-21",
+        "title": "Linux VI Browser 2.0 renders fall back from stale image overrides",
+        "summary": "Fixes manual Linux VI Browser 2.0 snapshot runs that appeared successful while rendering nothing because the TOIMAGES_IMAGE variable pointed at an old private image. The workflow now tries the requested override first, falls back to the repository-owned render image when the override cannot be pulled, and fails a manual run loudly if no render image is available at all.",
+        "highlights": [
+          "A stale or unauthorized TOIMAGES_IMAGE value no longer blocks Linux 2.0 rendering when the repo-owned image exists.",
+          "The renderer passes the actually pulled image into run-toimages.sh, so fallback runs render and publish frames normally.",
+          "Manual runs now fail visibly if no render image is pullable instead of ending green without producing frames."
+        ]
+      },
       {
         "version": "3.34.6",
         "date": "2026-06-22",
