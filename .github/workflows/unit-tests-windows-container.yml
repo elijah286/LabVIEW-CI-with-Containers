@@ -49,6 +49,7 @@ permissions:
   pages: write
   statuses: write
   packages: read
+  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
 # Share the report-deploy concurrency group with the other report workflows so
 # gh-pages pushes queue instead of racing (a loser's push bounces with

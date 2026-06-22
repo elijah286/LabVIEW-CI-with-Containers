@@ -39,6 +39,7 @@ permissions:
   pages: write
   statuses: write
   packages: read
+  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
 # Serialize report deploys to gh-pages with the other report-deploy workflows
 # (mass compile + VI Analyzer) so concurrent pushes queue instead of racing and

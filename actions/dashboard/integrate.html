@@ -1027,7 +1027,17 @@
       else if (r.status !== 404) await ghJson(r);
       if (existing != null) {
         if (/labview-ci:dashboard/.test(existing)) return null;
-        return { path, content: insertReadmeSection(existing, repo), isText: true };
+        // Markdown badges/links only render in a MARKDOWN README. If the repo's
+        // README is plain text (e.g. ReadMe.txt) or another non-markdown format,
+        // editing it in place would show the raw "[![badge](...)](...)" source
+        // instead of a link, so create a proper README.md (GitHub ranks it ABOVE
+        // README.txt for rendering) with the dashboard section on top and the
+        // original prose kept below, and leave the existing file untouched.
+        if (/\.(md|markdown|mdown|mkdn?)$/i.test(path)) {
+          return { path, content: insertReadmeSection(existing, repo), isText: true };
+        }
+        const body = `# ${repo.split("/")[1]}\n\n` + readmeSection(repo) + "\n" + existing.replace(/^\s+/, "");
+        return { path: "README.md", content: body, isText: true };
       }
       return { path: "README.md", content: `# ${repo.split("/")[1]}\n\n` + readmeSection(repo), isText: true };
     }
@@ -1202,6 +1212,29 @@
       return false;
     }
 
+    // Kick off the worker container IMAGE build the moment the install merges, when
+    // the custom-image capability is installed. Every Windows container activity (mass
+    // compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) runs inside
+    // ghcr.io/<owner>/<repo>-labview, which is built with the baked dependency VIPC and
+    // does NOT exist until this build runs — so a fresh install must build it once.
+    // build-labview-image.yml never auto-runs on the install merge (it only adds
+    // .github/** files, which its push trigger excludes), so we dispatch it here.
+    // Best-effort: a 404 means the workflow isn't on the default branch yet (rare), so
+    // we briefly retry, then fall back silently (the dashboard's Build worker image
+    // button and the first CI run's wait-for-image both cover it).
+    async function buildWorkerImageNow(repo, branch) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await gh(`/repos/${repo}/actions/workflows/build-labview-image.yml/dispatches`,
+            { method: "POST", body: { ref: branch } });
+          if (r.ok || r.status === 204) return true;
+          if (r.status !== 404) return false;   // real error (e.g. perms) — stop retrying
+        } catch (_) { /* transient network — retry */ }
+        await sleep(3000);                       // workflow not on the default branch yet
+      }
+      return false;
+    }
+
     // Semver-ish compare (major.minor.patch). Returns >0 when a>b, <0 when a<b.
     function cmpVerStr(a, b) {
       const pa = String(a || "").split(".").map(Number), pb = String(b || "").split(".").map(Number);
@@ -1315,6 +1348,7 @@
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
       if (setup.toolingToken === "done") done.push(`Saved a one-time <strong>update token</strong> &mdash; future <em>Update now</em> clicks open their pull request automatically.`);
+      if (setup.buildImage && autoMerge) done.push(`Started building your <strong>worker container image</strong> &mdash; the container CI activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) become available once it finishes (a few minutes). Running one before then waits for the build rather than failing.`);
       // Show the dashboard URL as PLAIN TEXT until Pages is confirmed serving it
       // (revealLiveLink upgrades #insLiveUrl to a real link) so we never present a
       // link that 404s. When Pages already existed it's almost certainly live, so
@@ -1330,6 +1364,7 @@
       if (setup.workflowPerms !== "done") steps.push(`Set <strong>Workflow permissions</strong> to <em>Read and write</em> (<a href="https://github.com/${esc(repo)}/settings/actions" target="_blank" rel="noopener">Settings &rsaquo; Actions &rsaquo; General</a>).`);
       if (setup.hasDashboard && setup.pages !== "done" && setup.pages !== "exists")
         steps.push(`After you merge, the dashboard build publishes the <code class="inl">gh-pages</code> branch \u2014 then enable <strong>GitHub Pages</strong> from it (<a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a>). No CI run is required.`);
+      if (setup.buildImage && !autoMerge) steps.push(`After you merge, build the <strong>worker container image</strong> once \u2014 run <strong>Build LabVIEW CI Image</strong> (<a href="https://github.com/${esc(repo)}/actions" target="_blank" rel="noopener">Actions</a>) or use <strong>&#9881; Configure Workers</strong>. The container CI activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) run inside it.`);
       const nextEl = $("insNext");
       if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
 
@@ -1365,6 +1400,10 @@
           return;
         }
         const nx = $("insNext"); if (nx) nx.style.display = "none";
+
+        // Build the worker container image now so the container CI activities have an
+        // image to run in (it never builds itself on the install merge). Best-effort.
+        if (setup.buildImage) buildWorkerImageNow(repo, setup.branch);
 
         const mergedDashboard = setup.hasDashboard && !!setup.branch;
         if (!mergedDashboard) {
@@ -1676,6 +1715,11 @@
         // The dashboard link + auto-Pages only make sense when the dashboard is
         // part of this install (its publish workflow is in the resolved set).
         setup.hasDashboard = [...paths].some(p => p.endsWith("dashboard-pages.yml"));
+
+        // The custom worker container image (ghcr.io/<owner>/<repo>-labview) is what
+        // every Windows container activity runs in, and it does NOT exist until it is
+        // built — so a fresh install must build it once. Remember whether to do that.
+        setup.buildImage = activities.includes("custom-image") && osList.includes("windows");
 
         if ($("optReadme") && $("optReadme").checked && setup.hasDashboard) {
           setInsStatus("Preparing the README link&hellip;", null);

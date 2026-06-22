@@ -36,6 +36,7 @@ permissions:
   contents: read
   statuses: write
   packages: read
+  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
 jobs:
   vidiff:
