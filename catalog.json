@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.2",
+  "version": "3.34.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.3",
+        "date": "2026-06-22",
+        "title": "Windows VI Browser 2.0 dispatches render the selected revision",
+        "summary": "Running a Windows VI Browser 2.0 render from the browser no longer dispatches the workflow at a raw commit SHA, which GitHub can reject with HTTP 422. The page now dispatches the workflow on the repository's default branch and passes the selected revision as a target_sha input. The Windows workflow then materializes that target revision before building the worklist and rendering, so the generated <blob>.windows.json frames match the VI Browser revision the user selected.",
+        "highlights": [
+          "Fixes the HTTP 422 error when clicking Run the Windows 2.0 snapshot from the VI Browser.",
+          "Passes the selected revision as target_sha instead of using it as the workflow_dispatch ref.",
+          "Renders from a checked-out copy of target_sha so Windows 2.0 frames match the selected revision."
+        ]
+      },
       {
         "version": "3.34.2",
         "date": "2026-06-22",
