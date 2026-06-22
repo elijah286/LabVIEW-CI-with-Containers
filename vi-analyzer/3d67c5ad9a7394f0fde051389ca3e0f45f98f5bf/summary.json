@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf",
+    "short": "3d67c5a",
+    "platform": "windows",
+    "repo": "elijah286/LabVIEW-CI-with-Containers",
+    "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers",
+    "pages_base": "../..",
+    "commit": {
+      "message": "Add VIPC-baked Windows base image workflow",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T09:19:51-05:00"
+    },
+    "generated_utc": "2026-06-22 03:57 UTC",
+    "analysis_date": "Monday, June 22, 2026 3:57:08 AM",
+    "duration": "00:00:40.22",
+    "configs": [
+      {
+        "label": "actions/vi-analyzer/via-config-default.viancfg",
+        "scope": "all other VIs"
+      }
+    ]
+  },
+  "summary": {
+    "vis_analyzed": 1,
+    "tests_run": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "findings": 0,
+    "vis_with_findings": 0
+  },
+  "errors": {
+    "vi_not_loadable": 0,
+    "test_not_loadable": 0,
+    "test_not_runnable": 0,
+    "test_error_out": 0
+  },
+  "rule_counts": []
+}
