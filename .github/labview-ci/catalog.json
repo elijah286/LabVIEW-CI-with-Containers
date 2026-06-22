@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.34.21",
+  "version": "3.34.22",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.34.22",
+        "date": "2026-06-22",
+        "title": "Dependencies page publishes separate dependency-source tables",
+        "summary": "Publishes the dependency-source table update with the dashboard and catalog in sync. The page now separates VIPM/VIPC packages, NI Package Manager installed dependencies such as LabVIEW and NI Unit Test Framework, and repo-provided system components such as the VI Browser 2.0 toimages Go renderer.",
+        "highlights": [
+          "Renames the NI section to NI Package Manager Installed Dependencies to make its source explicit.",
+          "Keeps the generated dashboard dependency inventory and published catalog on the same release.",
+          "Preserves the VIPM/VIPC table and Linux VIPC pending state while showing NIPM and system-component context separately."
+        ]
+      },
       {
         "version": "3.34.21",
         "date": "2026-06-22",
