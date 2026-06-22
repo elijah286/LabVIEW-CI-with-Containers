@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "c4e815ef45d2cecdd6b579e1a87b45e8da7d70da",
+  "sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a",
   "revisions": [
+    {
+      "sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a",
+      "short": "197c1be",
+      "message": "Clean up dependency management around VIPC files as the source of truth (v3.39.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T23:35:39Z"
+    },
     {
       "sha": "c4e815ef45d2cecdd6b579e1a87b45e8da7d70da",
       "short": "c4e815e",
@@ -697,13 +704,6 @@
       "date": "2026-06-20T05:07:06Z"
     },
     {
-      "sha": "c542069d037fb2a5c83e0f766b270df0421a699f",
-      "short": "c542069",
-      "message": "FAQ: add \"where worker containers are stored / run\" and \"what is an Actions runner\" (v3.21.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T05:06:06Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -802,13 +802,34 @@
   },
   "vipc": [
     {
+      "path": ".github/labview/antidoc/antidoc.vipc",
+      "role": "capability",
+      "capability": "antidoc",
+      "configured": true,
+      "packages": [
+        "wovalab_lib_antidoc_cli-3.3.0.117"
+      ],
+      "error": ""
+    },
+    {
+      "path": ".github/labview/vipm/ci-tooling.vipc",
+      "role": "core",
+      "capability": "",
+      "configured": true,
+      "packages": [
+        "jki_lib_caraya-1.4.4.148",
+        "jki_vi_tester",
+        "ni_lib_utf_junit_report-1.0.1.43"
+      ],
+      "error": ""
+    },
+    {
       "path": "example/Dependencies.vipc",
-      "configured": false,
+      "role": "project",
+      "capability": "",
+      "configured": true,
       "packages": [
         "dataflow_g_lib_g_image-0.5.0.1",
-        "ni_lib_junit_results_api-1.0.1.6",
-        "ni_lib_simple_xml-1.0.0.4",
-        "ni_lib_utf_junit_report-1.0.1.43",
         "oglib_appcontrol-4.1.0.7",
         "oglib_array-4.1.0.13",
         "oglib_error-4.2.0.23",
@@ -817,12 +838,6 @@
         "oglib_string-4.1.0.12"
       ],
       "error": ""
-    },
-    {
-      "path": "github/labview/vipm/ci-tooling.vipc",
-      "configured": false,
-      "packages": [],
-      "error": "[Errno 2] No such file or directory: 'github/labview/vipm/ci-tooling.vipc'"
     }
   ],
   "nipm": [
@@ -937,6 +952,7 @@
         "oglib_string-4.1.0.12",
         "wovalab_lib_antidoc_cli-3.3.0.117"
       ],
+      "failed_packages": [],
       "nipkg_ready": true,
       "nipkg_packages": [
         {
@@ -1074,6 +1090,7 @@
         "oglib_lvdata-4.2.0.21",
         "oglib_string-4.1.0.12"
       ],
+      "failed_packages": [],
       "nipkg_ready": true,
       "nipkg_packages": [],
       "labview_version": "2026",

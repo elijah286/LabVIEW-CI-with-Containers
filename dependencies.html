@@ -12,7 +12,7 @@
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5}a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 64px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.hero h1{margin:0 0 4px;font-size:1.55em}.sub{margin:0;color:var(--fg-muted);font-size:.9em}.controls{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:12px;align-items:end;margin:18px 0}.field label{display:block;color:var(--fg-muted);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}select,button{font:inherit}select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg)}button{border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--fg);padding:9px 12px;cursor:pointer}button:hover{border-color:var(--link)}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px}.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px}.card .k{color:var(--fg-muted);font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.card .v{margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.note{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:11px 13px;color:var(--fg-muted);font-size:.88em;margin-bottom:16px}.note.warn{border-color:rgba(210,153,34,.55);background:rgba(210,153,34,.10);color:var(--fg)}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)}table{width:100%;border-collapse:collapse;min-width:980px}th,td{border-bottom:1px solid var(--border);padding:8px 9px;text-align:left;vertical-align:top}th{position:sticky;top:0;background:var(--surface);color:var(--fg-muted);font-size:.75em;text-transform:uppercase;letter-spacing:.04em;z-index:1}td.pkg{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em}.vipc-row{background:color-mix(in srgb,var(--surface) 80%,var(--chip));font-weight:700}.vipc-row td{padding-top:10px;padding-bottom:10px}.twisty{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:5px;border:1px solid var(--border);border-radius:4px;color:var(--fg-muted);font-size:.8em}.vipc-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:.75em;color:var(--fg-muted);font-weight:600}.yes{color:var(--ok)}.no{color:var(--bad)}.maybe{color:var(--warn)}.cell{white-space:nowrap;text-align:center}.cell .mark{font-weight:800;font-size:1em}.cell .why{display:block;color:var(--fg-muted);font-size:.68em;margin-top:1px}.empty{padding:28px;text-align:center;color:var(--fg-muted)}.hidden{display:none}@media(max-width:760px){.hero{display:block}.controls{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.wrap{padding-inline:14px}}
   </style>
   <style>
-    .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}.dep-panel table{table-layout:fixed}.dep-panel th:first-child{width:auto}.dep-panel th.dep-col,.dep-panel td.cell{width:112px;min-width:112px;max-width:112px;text-align:center;vertical-align:middle}.dep-panel th.dep-col{padding-left:6px;padding-right:6px}.dep-check{width:16px;height:16px;margin:0;accent-color:var(--ok);opacity:1;vertical-align:middle}.dep-check:disabled{opacity:1}.dep-empty{display:inline-block;width:16px;height:16px}.exp-head{background:none;border:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}.exp-head .exp-name{border-bottom:1px dotted currentColor}.exp-head .exp-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-style:normal;line-height:1;font-weight:700}.exp-head:hover{color:var(--link)}.exp-pop{position:fixed;width:320px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:60;font-size:.84em;font-weight:400;line-height:1.5;color:var(--fg);text-transform:none;letter-spacing:normal}.exp-pop .exp-pop-h{display:block;margin-bottom:5px;font-size:1.02em}
+    .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}.dep-panel table{table-layout:fixed}.dep-panel th:first-child{width:auto}.dep-panel th.dep-col,.dep-panel td.cell{width:112px;min-width:112px;max-width:112px;text-align:center;vertical-align:middle}.dep-panel th.dep-col{padding-left:6px;padding-right:6px}.dep-check{width:16px;height:16px;margin:0;accent-color:var(--ok);opacity:1;vertical-align:middle}.dep-check:disabled{opacity:1}.dep-empty{display:inline-block;width:16px;height:16px}.dep-na{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;font-size:.72em;font-weight:700;color:var(--fg-muted);letter-spacing:.02em}.dep-bang{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--bad);color:#fff;font-weight:800;font-size:11px;line-height:1}.exp-head{background:none;border:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}.exp-head .exp-name{border-bottom:1px dotted currentColor}.exp-head .exp-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-style:normal;line-height:1;font-weight:700}.exp-head:hover{color:var(--link)}.exp-pop{position:fixed;width:320px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:60;font-size:.84em;font-weight:400;line-height:1.5;color:var(--fg);text-transform:none;letter-spacing:normal}.exp-pop .exp-pop-h{display:block;margin-bottom:5px;font-size:1.02em}
   </style>
 </head>
 <body>
@@ -74,6 +74,21 @@
       { key:"utf", name:"NI Unit Test Framework", source:"NI Package Manager", packages:{ windows:["ni-utf-labview-support"] }, platforms:["windows"] },
       { key:"vipm", name:"VI Package Manager", source:"NI Package Manager", packages:{ windows:["ni-vipm"] }, platforms:["windows"] }
     ];
+    // VIPC classification (mirrors dashboard.py): core tooling is always baked;
+    // a capability VIPC under .github/labview/<cap>/ is applied only when that
+    // capability's workflow is installed; everything else is a project VIPC.
+    const CORE_VIPC = ".github/labview/vipm/ci-tooling.vipc";
+    const CAP_WORKFLOW = { antidoc: ".github/workflows/run-antidoc-windows-container.yml" };
+    function capForVipc(path){
+      const m = /^\.github\/labview\/([^/]+)\/[^/]+\.vipc$/.exec(path || "");
+      return (m && CAP_WORKFLOW[m[1]]) ? m[1] : "";
+    }
+    function classifyVipc(path, configuredSet, hasList, treePaths){
+      if (path === CORE_VIPC) return { role:"core", capability:"", configured:true };
+      const cap = capForVipc(path);
+      if (cap) return { role:"capability", capability:cap, configured: treePaths ? treePaths.has(CAP_WORKFLOW[cap]) : true };
+      return { role:"project", capability:"", configured: hasList ? configuredSet.has(path) : true };
+    }
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
     const short = s => String(s || "").slice(0, 7);
@@ -208,11 +223,18 @@
       (man && man.vipc || []).forEach(v => (v.packages || []).forEach(p => set.add(p)));
       return set;
     }
+    function failedInManifest(man){
+      const set = new Set();
+      (man && man.failed_packages || []).forEach(p => { if (typeof p === "string" && p) set.add(p); });
+      (man && man.vipc || []).forEach(v => (v.failed || []).forEach(p => { if (typeof p === "string" && p) set.add(p); }));
+      return set;
+    }
     function nipkgInManifest(man){ return Array.isArray(man && man.nipkg_packages) ? man.nipkg_packages : []; }
     function enrichPlatformState(st, man){
       st.manifest = man || null;
       st.ready = !!man;
       st.packages = packagesInManifest(man);
+      st.failed = failedInManifest(man);
       st.nipkg = nipkgInManifest(man);
       st.nipkgNames = new Set(st.nipkg.map(p => String(p.name || "").toLowerCase()).filter(Boolean));
       st.labview = man && man.labview_version ? String(man.labview_version) : "";
@@ -270,30 +292,36 @@
       if (actions.length) bits.push('actions ' + actions.map(([k,v]) => '<span class="pill">' + esc(k) + ': ' + esc(v) + '</span>').join(' '));
       $("configCard").innerHTML = bits.join(' &nbsp; ');
     }
-    function presentCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><input class="dep-check" type="checkbox" checked disabled aria-label="Present"></td>'; }
+    function presentCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><input class="dep-check" type="checkbox" checked disabled aria-label="Installed"></td>'; }
     function emptyCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><span class="dep-empty" aria-hidden="true"></span></td>'; }
-    function experimentalCell(){ return emptyCell('Beta image pending'); }
+    // Three explicit cell states for the dependency tables:
+    //   green check = the package is installed in that worker container
+    //   N/A         = the package is not available for / not applied to that platform
+    //   red !       = the worker recorded an error installing the package
+    function naCell(label){ return '<td class="cell"><span class="dep-na" title="' + esc(label || 'Not available on this platform') + '" aria-label="Not available">N/A</span></td>'; }
+    function errorCell(label){ return '<td class="cell"><span class="dep-bang" title="' + esc(label || 'Error installing this package') + '" aria-label="Install error">!</span></td>'; }
+    function experimentalCell(){ return naCell('Beta image pending'); }
     function statusCell(pkg, colState){
       if (!pkg) return "";
-      if (colState.experimentalPending) return experimentalCell();
-      if (colState.label === "base" || colState.label === "none") return emptyCell('base');
-      if (!colState.ready) return emptyCell('unknown');
-      const ok = colState.packages.has(pkg);
-      return ok ? presentCell(colState.label) : emptyCell('missing');
+      if (colState.experimentalPending) return naCell('Beta image pending');
+      if (colState.label === "base" || colState.label === "none") return naCell('NI base image - no VIPC applied');
+      if (!colState.ready) return naCell('Worker manifest not available');
+      if (colState.failed && colState.failed.has(pkg)) return errorCell('Error installing this package in the worker');
+      return colState.packages.has(pkg) ? presentCell('Installed in this worker') : naCell('Not applied to this worker');
     }
-    function simpleCell(ok, label, emptyLabel){
-      if (ok === null) return emptyCell('unknown');
-      if (ok === undefined) return emptyCell(emptyLabel || 'not used');
-      return ok ? presentCell(label || 'present') : emptyCell(label || 'missing');
+    function simpleCell(ok, label, naLabel){
+      if (ok === null) return naCell('Worker manifest not available');
+      if (ok === undefined) return naCell(naLabel || 'Not used on this platform');
+      return ok ? presentCell(label || 'present') : naCell(label || 'Not found in this worker');
     }
     function nipmCell(dep, col, st){
-      if (dep.platforms && !dep.platforms.includes(col.platform)) return simpleCell(undefined, '', 'not used');
-      if (st && st.experimentalPending) return experimentalCell();
-      if (!st || !st.ready) return simpleCell(null);
-      if (dep.labview) return st.labview ? simpleCell(true, 'LabVIEW ' + st.labview) : simpleCell(null);
+      if (dep.platforms && !dep.platforms.includes(col.platform)) return naCell('Not used on this platform');
+      if (st && st.experimentalPending) return naCell('Beta image pending');
+      if (!st || !st.ready) return naCell('Worker manifest not available');
+      if (dep.labview) return st.labview ? presentCell('LabVIEW ' + st.labview) : naCell('LabVIEW version unknown');
       const wanted = ((dep.packages || {})[col.platform] || []).map(p => p.toLowerCase());
       const found = (st.nipkg || []).find(p => wanted.includes(String(p.name || '').toLowerCase()));
-      return found ? simpleCell(true, found.version || found.name) : simpleCell(false, 'missing');
+      return found ? presentCell(found.version || found.name) : naCell('Not found in this worker');
     }
     function headCell(c){
       if (COL_INFO[c.key]) return '<th class="dep-col"><button type="button" class="exp-head" aria-expanded="false" title="What is this?" data-info="' + esc(c.key) + '"><span class="exp-name">' + esc(c.label) + '</span><span class="exp-i" aria-hidden="true">i</span></button></th>';
@@ -346,15 +374,27 @@
       window.addEventListener('scroll', closeExpPop, true);
       document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeExpPop(); });
     }
+    function vipcRolePill(v){
+      if (v.role === 'core') return ' <span class="pill" title="Core CI tooling - always baked into every worker image">core</span>';
+      if (v.role === 'capability') {
+        const cap = esc(v.capability || 'optional');
+        return ' <span class="pill" title="Capability dependency - baked into the worker only when the ' + cap + ' capability is installed">' + cap + '</span>' +
+          (v.configured === false
+            ? ' <span class="pill" title="The ' + cap + ' capability is not installed in this repository, so this VIPC is not applied">not applied</span>'
+            : ' <span class="pill">applied</span>');
+      }
+      return (v.configured === false ? ' <span class="pill" title="Not listed in config.container.vipc, so its packages are not baked into the worker">not included</span>' : '');
+    }
     function renderVipc(vipcs, colStates){
       if (!vipcs.length) { $("vipcWrap").innerHTML = '<div class="empty">No VIPC files were found in this revision.</div>'; return; }
       const heads = COLS.map(headCell).join('');
       const rows = [];
       vipcs.forEach((v, idx) => {
-        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span> <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + (v.configured === false ? ' <span class="pill">not included</span>' : '') + '</td></tr>');
+        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span> <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + vipcRolePill(v) + '</td></tr>');
         if (v.open) {
-          if (v.error) rows.push('<tr><td class="pkg">' + esc(v.error) + '</td>' + COLS.map(() => '<td></td>').join('') + '</tr>');
-          (v.packages || []).forEach(pkg => rows.push('<tr><td class="pkg">' + esc(pkg) + '</td>' + COLS.map(c => statusCell(pkg, colStates[c.key])).join('') + '</tr>'));
+          if (v.error) rows.push('<tr><td class="pkg" colspan="' + (COLS.length + 1) + '"><span class="why">' + esc(v.error) + '</span></td></tr>');
+          else if (!(v.packages || []).length) rows.push('<tr><td class="pkg" colspan="' + (COLS.length + 1) + '"><span class="why">This file does not specify any packaged dependencies.</span></td></tr>');
+          else (v.packages || []).forEach(pkg => rows.push('<tr><td class="pkg">' + esc(pkg) + '</td>' + COLS.map(c => statusCell(pkg, colStates[c.key])).join('') + '</tr>'));
         }
       });
       $("vipcWrap").innerHTML = '<table><thead><tr><th>VIPC / Package</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
@@ -403,10 +443,19 @@
       const yaml = await fetchText(raw(".github/labview-ci.yml", sha)).catch(() => "");
       const manifest = parseManifestYaml(yaml);
       renderConfigSummary(manifest);
-      const discovered = await listVipcs(sha).catch(() => manifest.vipc.map(v => v.path));
-      const configured = new Set(manifest.vipc.map(v => v.path));
+      let treePaths = null, discovered;
+      try {
+        const tree = await fetchJson(api('/git/trees/' + sha + '?recursive=1'));
+        treePaths = new Set((tree.tree || []).map(x => x.path));
+        discovered = Array.from(treePaths).filter(p => /\.vipc$/i.test(p)).sort((a, b) => a.localeCompare(b));
+      } catch (_) {
+        discovered = await listVipcs(sha).catch(() => manifest.vipc.map(v => v.path));
+      }
+      const configuredSet = new Set(manifest.vipc.map(v => v.path));
+      const hasList = manifest.vipc.length > 0;
       const vipcs = await Promise.all(discovered.map(async path => {
-        const item = { path, configured:configured.has(path), packages:[], open:true, error:"" };
+        const meta = classifyVipc(path, configuredSet, hasList, treePaths);
+        const item = { path, role:meta.role, capability:meta.capability, configured:meta.configured, packages:[], open:true, error:"" };
         try { item.packages = await vipcPackages(path, sha); }
         catch (e) { item.error = "Could not parse " + path + ": " + e.message; }
         return item;
@@ -444,11 +493,12 @@
           tag: col.tag || "base",
           label: col.version || col.tag || "base",
           ready: col.ready !== false,
-          packages: new Set(col.packages || [])
+          packages: new Set(col.packages || []),
+          failed: new Set(col.failed_packages || [])
         };
       });
       COLS.forEach(c => { if (!platformStates[c.key]) platformStates[c.key] = colStates[c.key] || (c.image === "experimental" ? markExperimentalPending({}) : { tag:'base', label:'base', ready:true, packages:new Set(), nipkg:[], nipkgNames:new Set(), labview:'' }); });
-      COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = (c.image === "experimental") ? markExperimentalPending({}) : { tag:"base", label:"base", ready:true, packages:new Set() }; });
+      COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = (c.image === "experimental") ? markExperimentalPending({}) : { tag:"base", label:"base", ready:true, packages:new Set(), failed:new Set() }; });
       const workerTags = Array.from(new Set(Object.values(platformStates).filter(s => s.tag && s.tag !== "base").map(s => s.label))).join(", ") || "base images only";
       $("workerCard").textContent = workerTags;
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
@@ -457,7 +507,7 @@
       $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not included in config.container.vipc, so its packages are not expected in any worker. ") : "") + (baseCols.length
         ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
         : "The Windows and Linux columns resolve to worker manifests for this dashboard build.");
-      renderVipc((data.vipc || []).map(v => ({ path:v.path, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates);
+      renderVipc((data.vipc || []).map(v => ({ path:v.path, role:v.role, capability:v.capability, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates);
       renderNipm(platformStates);
       renderSystem(data.system || [], colStates);
     }
