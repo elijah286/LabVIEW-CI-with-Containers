@@ -89,14 +89,16 @@ jobs:
       - name: Resolve the render image (this repo's own GHCR; override with the TOIMAGES_IMAGE variable)
         id: img
         run: |
+          owner=$(printf '%s' "${{ github.repository_owner }}" | tr 'A-Z' 'a-z')
+          repo=$(printf '%s' "${{ github.event.repository.name }}" | tr 'A-Z' 'a-z')
+          fallback="ghcr.io/${owner}/${repo}-toimages:latest"
           override="${{ vars.TOIMAGES_IMAGE }}"
           if [ -n "$override" ]; then
             echo "image=$override" >> "$GITHUB_OUTPUT"
           else
-            owner=$(printf '%s' "${{ github.repository_owner }}" | tr 'A-Z' 'a-z')
-            repo=$(printf '%s' "${{ github.event.repository.name }}" | tr 'A-Z' 'a-z')
-            echo "image=ghcr.io/${owner}/${repo}-toimages:latest" >> "$GITHUB_OUTPUT"
+            echo "image=$fallback" >> "$GITHUB_OUTPUT"
           fi
+          echo "fallback=$fallback" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR (built-in token - no setup required)
         run: echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
@@ -105,12 +107,25 @@ jobs:
         id: pull
         run: |
           IMG='${{ steps.img.outputs.image }}'
+          FALLBACK='${{ steps.img.outputs.fallback }}'
           if docker pull "$IMG"; then
             echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "image=$IMG" >> "$GITHUB_OUTPUT"
             echo "Using $IMG"
           else
-            echo "ok=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Render image $IMG is not available yet - run 'Build VI Browser 2.0 render image' first. The VI Browser uses the 1.0 view until then."
+            echo "::warning::Render image $IMG could not be pulled. Falling back to $FALLBACK."
+            if [ "$IMG" != "$FALLBACK" ] && docker pull "$FALLBACK"; then
+              echo "ok=true" >> "$GITHUB_OUTPUT"
+              echo "image=$FALLBACK" >> "$GITHUB_OUTPUT"
+              echo "Using fallback $FALLBACK"
+            else
+              echo "ok=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::Render image $FALLBACK is not available yet - run 'Build VI Browser 2.0 render image' first. The VI Browser uses the 1.0 view until then."
+              if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                echo "::error::No pullable VI Browser 2.0 render image was available for this manual run."
+                exit 1
+              fi
+            fi
           fi
 
       - name: Checkout repository
@@ -136,7 +151,7 @@ jobs:
           # workflow_dispatch passes mode and target_sha; workflow_run has none -> dispatched ref HEAD.
           MODE: ${{ github.event.inputs.mode || 'head' }}
           TARGET_SHA: ${{ github.event.inputs.target_sha || github.sha }}
-          IMAGE: ${{ steps.img.outputs.image }}
+          IMAGE: ${{ steps.pull.outputs.image }}
           OUT: ${{ github.workspace }}/ci-out/vi-snapshots
           GHP: ${{ github.workspace }}/_ghp
         run: |
