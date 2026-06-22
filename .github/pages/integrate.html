@@ -1026,17 +1026,26 @@
       if (r.ok) { const j = await r.json(); path = j.path || "README.md"; existing = b64decodeText(j.content || ""); }
       else if (r.status !== 404) await ghJson(r);
       if (existing != null) {
-        if (/labview-ci:dashboard/.test(existing)) return null;
+        const hasMarker = /labview-ci:dashboard/.test(existing);
+        const isMarkdown = /\.(md|markdown|mdown|mkdn?)$/i.test(path);
+        // Already linked from a real MARKDOWN README -> nothing to do (the badge
+        // and links render there, so a re-install must not duplicate the section).
+        if (hasMarker && isMarkdown) return null;
+        if (isMarkdown) {
+          return { path, content: insertReadmeSection(existing, repo), isText: true };
+        }
         // Markdown badges/links only render in a MARKDOWN README. If the repo's
         // README is plain text (e.g. ReadMe.txt) or another non-markdown format,
         // editing it in place would show the raw "[![badge](...)](...)" source
         // instead of a link, so create a proper README.md (GitHub ranks it ABOVE
         // README.txt for rendering) with the dashboard section on top and the
-        // original prose kept below, and leave the existing file untouched.
-        if (/\.(md|markdown|mdown|mkdn?)$/i.test(path)) {
-          return { path, content: insertReadmeSection(existing, repo), isText: true };
-        }
-        const body = `# ${repo.split("/")[1]}\n\n` + readmeSection(repo) + "\n" + existing.replace(/^\s+/, "");
+        // original prose kept below, and leave the existing file untouched. If an
+        // earlier install already spliced the (non-rendering) section into this
+        // plain-text file, drop that copy first so it isn't duplicated.
+        let prose = existing;
+        if (hasMarker) prose = prose.split(readmeSection(repo)).join("").replace(/\n{3,}/g, "\n\n");
+        prose = prose.replace(/^\s+/, "").replace(/\s+$/, "");
+        const body = `# ${repo.split("/")[1]}\n\n` + readmeSection(repo) + (prose ? "\n" + prose : "");
         return { path: "README.md", content: body, isText: true };
       }
       return { path: "README.md", content: `# ${repo.split("/")[1]}\n\n` + readmeSection(repo), isText: true };

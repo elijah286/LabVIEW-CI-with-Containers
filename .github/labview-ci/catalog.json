@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.36.0",
+  "version": "3.36.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.36.1",
+        "date": "2026-06-22",
+        "title": "Re-running Apply to New Repo now repairs a non-markdown README too",
+        "summary": "When a repository already had the dashboard section added to a non-markdown README (e.g. ReadMe.txt, where GitHub shows the markdown as raw text instead of rendering the badge and link), re-running Apply to New Repo now creates a proper README.md so the dashboard link renders. Previously the re-install detected the existing marker and skipped the README entirely, leaving the badge unrendered. The original plain-text file is left untouched, and the previously injected non-rendering section is dropped from the new README.md so it is not duplicated. Markdown READMEs that already link the dashboard are still left alone.",
+        "highlights": [
+          "Re-installing into a repo whose README is plain text (ReadMe.txt, etc.) now migrates the dashboard badge into a real README.md that actually renders, instead of skipping it",
+          "The earlier non-rendering section spliced into the plain-text README is removed from the generated README.md so the section is not duplicated",
+          "Markdown READMEs already linking the dashboard remain untouched (no duplicate sections)"
+        ]
+      },
       {
         "version": "3.36.0",
         "date": "2026-06-22",
