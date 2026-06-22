@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.37.0",
+  "version": "3.37.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.37.1",
+        "date": "2026-06-22",
+        "title": "Windows container jobs wait for the Docker engine instead of failing when a hosted runner starts up without it",
+        "summary": "GitHub's hosted windows-2022 runner pool is currently, intermittently, starting jobs before the Docker engine is up -- or on a VM where the docker service has not been registered yet (actions/runner-images#14252 and #13888). When a job landed on one of those runners, the worker image build and the Windows container activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) failed immediately with 'failed to connect to the docker API ... the system cannot find the file specified' or 'Docker service not found on this runner', even though re-running usually lands on a healthy runner. Every Windows job that uses Docker now runs a shared ensure-docker step that waits up to three minutes for the engine to respond -- starting, or if necessary registering, the docker service first -- and only fails, with a clear message, if Docker never comes up. The worker image build and the VIDiff Windows job, which previously had no such guard at all, are now covered too. Healthy runners are unaffected (the check returns in about a second).",
+        "highlights": [
+          "A shared ensure-docker.ps1 waits for and starts the Docker engine, so a hosted-runner Docker hiccup no longer turns into an immediate red build",
+          "The worker image build and the VIDiff Windows container job, which had no Docker readiness check before, now use it too",
+          "Clear, actionable error if Docker never starts (re-run to get a healthy runner, or use a self-hosted Windows runner) instead of a cryptic npipe failure"
+        ]
+      },
       {
         "version": "3.37.0",
         "date": "2026-06-22",
@@ -2552,7 +2563,8 @@
       ".github/labview-ci/install.sh",
       ".github/labview-ci/install.ps1",
       ".github/labview-ci/README.md",
-      ".github/labview/wait-for-worker-image.sh"
+      ".github/labview/wait-for-worker-image.sh",
+      ".github/labview/ensure-docker.ps1"
     ]
   },
   "capabilities": [
