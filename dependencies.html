@@ -27,6 +27,7 @@
       </div>
       <button id="reload" type="button">Reload</button>
     </div>
+    <div class="note warn" id="linuxVipcBanner" style="font-size:1em;padding:14px 16px;border-width:2px"><strong>Linux VIPC support is coming.</strong> The Linux container does not currently apply repository VIPC configurations automatically, so all Linux package coverage is shown as missing for now.</div>
     <div class="cards">
       <div class="card"><div class="k">Repository</div><div class="v" id="repoCard">-</div></div>
       <div class="card"><div class="k">Worker</div><div class="v" id="workerCard">-</div></div>
@@ -177,6 +178,15 @@
       const actTag = manifest.actions[col.action] || manifest.use || col.defaultTag || "base";
       return { tag:actTag, packages:new Set(), label:actTag || "base" };
     }
+    function markLinuxVipcPending(col, st){
+      if (col.platform !== "linux") return st;
+      st.tag = "linux-vipc-pending";
+      st.label = "pending";
+      st.ready = true;
+      st.unsupported = true;
+      st.packages = new Set();
+      return st;
+    }
     function renderConfigSummary(manifest){
       const vipc = manifest && Array.isArray(manifest.vipc) ? manifest.vipc : [];
       const actions = manifest && manifest.actions ? Object.entries(manifest.actions) : [];
@@ -194,6 +204,7 @@
     }
     function statusCell(pkg, colState){
       if (!pkg) return "";
+      if (colState.unsupported) return '<td class="cell"><span class="mark no">-</span><span class="why">coming</span></td>';
       if (colState.label === "base" || colState.label === "none") return '<td class="cell"><span class="mark no">-</span><span class="why">base</span></td>';
       if (!colState.ready) return '<td class="cell"><span class="mark maybe">?</span><span class="why">unknown</span></td>';
       const ok = colState.packages.has(pkg);
@@ -230,22 +241,25 @@
       }));
       const colStates = {};
       await Promise.all(COLS.map(async c => {
-        const st = resolveColumn(c, manifest);
+        const st = markLinuxVipcPending(c, resolveColumn(c, manifest));
         colStates[c.key] = st;
+        if (st.unsupported) return;
         if (st.tag !== "base" && st.tag !== "none") {
           try { st.packages = packagesInManifest(await loadManifestFor(st.tag, c.platform)); st.ready = true; }
           catch (_) { st.ready = false; }
         } else st.ready = true;
       }));
-      const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base").map(s => s.tag))).join(", ") || "base images only";
+      const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base" && !s.unsupported).map(s => s.tag))).join(", ") || "base images only";
       $("workerCard").textContent = workerTags;
       $("vipcCard").textContent = String(vipcs.length);
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
+      const unsupportedCols = COLS.filter(c => colStates[c.key].unsupported).map(c => c.label);
       const unconfigured = vipcs.filter(v => v.configured === false).length;
-      $("status").className = baseCols.length ? "note warn" : "note";
+      $("status").className = (baseCols.length || unsupportedCols.length) ? "note warn" : "note";
       $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not included in config.container.vipc, so its packages are not expected in any worker. ") : "") + (baseCols.length
-        ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + "."
+        ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
         : "Every listed runner column resolves to a worker manifest for this revision/configuration.");
+      if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as missing: " + unsupportedCols.join(", ") + ".";
       render(vipcs, colStates);
     }
 
@@ -255,22 +269,25 @@
       $("vipcCard").textContent = String((data.vipc || []).length);
       const colStates = {};
       (data.columns || []).forEach(col => {
-        colStates[col.key] = {
+        const known = COLS.find(c => c.key === col.key) || {};
+        colStates[col.key] = markLinuxVipcPending(known, {
           tag: col.tag || "base",
           label: col.version || col.tag || "base",
           ready: col.ready !== false,
           packages: new Set(col.packages || [])
-        };
+        });
       });
-      COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = { tag:"base", label:"base", ready:true, packages:new Set() }; });
-      const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base").map(s => s.label))).join(", ") || "base images only";
+      COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = markLinuxVipcPending(c, { tag:"base", label:"base", ready:true, packages:new Set() }); });
+      const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base" && !s.unsupported).map(s => s.label))).join(", ") || "base images only";
       $("workerCard").textContent = workerTags;
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
+      const unsupportedCols = COLS.filter(c => colStates[c.key].unsupported).map(c => c.label);
       const unconfigured = (data.vipc || []).filter(v => v.configured === false).length;
-      $("status").className = baseCols.length ? "note warn" : "note";
+      $("status").className = (baseCols.length || unsupportedCols.length) ? "note warn" : "note";
       $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not included in config.container.vipc, so its packages are not expected in any worker. ") : "") + (baseCols.length
-        ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + "."
+        ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
         : "Every listed runner column resolves to a worker manifest for this dashboard build.");
+      if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as missing: " + unsupportedCols.join(", ") + ".";
       render((data.vipc || []).map(v => ({ path:v.path, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates);
     }
 

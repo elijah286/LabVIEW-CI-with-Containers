@@ -1,8 +1,57 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "fd42f788102e077390a21c78f94f0406b3843a75",
+  "sha": "fdb4bc7aa258c1b322f9ab0e12a51a9d93e85c18",
   "revisions": [
+    {
+      "sha": "fdb4bc7aa258c1b322f9ab0e12a51a9d93e85c18",
+      "short": "fdb4bc7",
+      "message": "Dependencies: mark Linux VIPC coverage pending (v3.34.17)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T11:57:15Z"
+    },
+    {
+      "sha": "7a7d6a226fb85361eb5f24c88111aba21d84e921",
+      "short": "7a7d6a2",
+      "message": "Release v3.34.16: preserve Windows timeout logs",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T11:47:01Z"
+    },
+    {
+      "sha": "6c2c6629baf2f627da10b993f405f32c3d59229f",
+      "short": "6c2c662",
+      "message": "Release v3.34.15: cancel superseded Windows renders",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T11:39:40Z"
+    },
+    {
+      "sha": "02f5f7fae3f1879ad3eeaa4096fd39560d6c10cb",
+      "short": "02f5f7f",
+      "message": "Release v3.34.14: time out stuck Windows Go renders",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T11:38:12Z"
+    },
+    {
+      "sha": "b6f4d7df30ae773c5afe52cb868a4426c69b6786",
+      "short": "b6f4d7d",
+      "message": "Release v3.34.13: fail empty Go render batches",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T11:25:31Z"
+    },
+    {
+      "sha": "377f461e056d2d3a8ed0a693e1eafb9341f4f396",
+      "short": "377f461",
+      "message": "Release v3.34.12: use Go render startup on Windows",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T11:22:27Z"
+    },
+    {
+      "sha": "3d6c9d42e314ab1bd8a3a4a920b46f94dc9eaa49",
+      "short": "3d6c9d4",
+      "message": "Release v3.34.11: surface Windows 2.0 render startup failures",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T04:40:49Z"
+    },
     {
       "sha": "fd42f788102e077390a21c78f94f0406b3843a75",
       "short": "fd42f78",
@@ -655,55 +704,6 @@
       "date": "2026-06-19T14:06:13Z"
     },
     {
-      "sha": "9d1a98277599c0d551c7f1ba53fea92843b913e0",
-      "short": "9d1a982",
-      "message": "Upgrade page brands the repo it is updating, links it, and ends on the dashboard",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T14:00:14Z"
-    },
-    {
-      "sha": "c7f78bd037d7e3ec1c903f0fa6de97dbfe1c8389",
-      "short": "c7f78bd",
-      "message": "dashboard: number queued runs by their real position in the Actions queue (v3.8.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T13:56:40Z"
-    },
-    {
-      "sha": "e9af6905e35c4e1fe698f1cf0678fdf3f2746942",
-      "short": "e9af690",
-      "message": "FAQ: explain the worker-container lifecycle (per file/revision/action) + the knobs to change it (v3.8.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T13:41:23Z"
-    },
-    {
-      "sha": "f5883b465ddc84c9ed88532b0bd7efc6768619b7",
-      "short": "f5883b4",
-      "message": "dashboard: close the Populate-history dialog after a successful queue (v3.8.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T13:36:46Z"
-    },
-    {
-      "sha": "95cd97cdaf14ef9be9becef3bd966ff53810756d",
-      "short": "95cd97c",
-      "message": "unit tests: run NI Unit Test Framework via built-in LabVIEWCLI RunUnitTests; drop vendored DCAF runner (v3.8.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T13:28:58Z"
-    },
-    {
-      "sha": "e1eff9004868e5d45baf0b3106a1213a1adffb8c",
-      "short": "e1eff90",
-      "message": "dashboard: re-run Mass Compile from Populate history + keep the activity picker usable after Clear (v3.7.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T13:06:17Z"
-    },
-    {
-      "sha": "bb27de7e9235ddb44cf6b61ba29b0b5f84d53425",
-      "short": "bb27de7",
-      "message": "VI Browser: configurable render OS (1.0/2.0 x Windows/Linux) + a VI Browser menu (v3.7.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T12:51:41Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -854,7 +854,8 @@
       "tag": "base",
       "ready": true,
       "packages": [],
-      "version": "base"
+      "version": "pending",
+      "unsupported": true
     },
     {
       "key": "via",
