@@ -83,12 +83,21 @@ if [ "$changed" != "true" ] && [ "$building" != "true" ]; then
   exit 0
 fi
 
-if [ "$changed" = "true" ]; then
-  echo "Worker inputs changed in this push - waiting for '$workflow_name' for $sha."
-  api="$api_sha"
-else
+# Prefer the repo-wide listing whenever a build is actually in progress or queued.
+# A fresh install (or a "Configure Workers" rebuild) dispatches the build via
+# workflow_dispatch on the branch tip, which is almost always a DIFFERENT commit
+# than the one this CI job runs on -- and tooling changes under .github/** never
+# trigger a per-commit push build at all (build-labview-image.yml's push filter is
+# `**.vipc` with `!.github/**`). Keying the wait to this job's exact SHA in those
+# cases would never find the build and would time out after appear_seconds. Only
+# fall back to the per-commit listing when nothing is building yet but this push
+# changed a worker input -- a project *.vipc triggers a push build on THIS commit.
+if [ "$building" = "true" ]; then
   echo "A '$workflow_name' build is in progress - waiting so CI runs on the freshly built worker image."
   api="$api_repo"
+else
+  echo "Worker inputs changed in this push - waiting for '$workflow_name' for $sha."
+  api="$api_sha"
 fi
 
 appear_deadline=$(( $(date +%s) + appear_seconds ))

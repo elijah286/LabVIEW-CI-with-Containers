@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.38.0",
+  "version": "3.38.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.38.1",
+        "date": "2026-06-22",
+        "title": "The first container run after a fresh install no longer times out waiting for the worker image build",
+        "summary": "After installing into a new repository, the first container CI run (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) could fail after five minutes with 'No Build LabVIEW CI Image run found ... then re-run this job', even though the worker image build was running the whole time. The wait step saw that the install commit changed worker inputs (the tooling Dockerfiles and VIPM assets under .github/) and then waited for a build keyed to that exact commit -- but a fresh install dispatches the build via workflow_dispatch on the branch tip, which is a different commit, and .github changes never trigger a per-commit build at all. The wait now prefers the repository-wide build whenever one is in progress or queued, so it waits for the build that is actually running and proceeds once it finishes. A real project dependency change (a project .vipc, which does trigger a build on its own commit) still waits for that per-commit build as before.",
+        "highlights": [
+          "The post-install container run waits for the in-progress worker image build instead of timing out looking for a per-commit build that a fresh install never creates",
+          "The wait prefers the repository-wide Build LabVIEW CI Image run when one is in progress or queued (covers install/Configure Workers dispatches on the branch tip)",
+          "A project .vipc dependency change still waits for the build triggered on its own commit; steady-state runs still proceed immediately"
+        ]
+      },
       {
         "version": "3.38.0",
         "date": "2026-06-22",
