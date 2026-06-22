@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.35.2",
+  "version": "3.35.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.35.3",
+        "date": "2026-06-22",
+        "title": "Dependencies table uses aligned checkbox cells",
+        "summary": "The Dependencies page now keeps each runner-platform column fixed and centered so package rows line up with their headers. Dependency presence is shown as a checked box only; the table no longer labels cells with yes, exp, or other visible qualifiers.",
+        "highlights": [
+          "Fixes runner-platform column alignment across VIPM/VIPC, NI Packages, and System Components tables.",
+          "Shows installed/present dependencies with a checked checkbox instead of yes or exp text.",
+          "Leaves missing, pending, unsupported, and not-used cells visually blank so the table scans by presence only."
+        ]
+      },
       {
         "version": "3.35.2",
         "date": "2026-06-22",
