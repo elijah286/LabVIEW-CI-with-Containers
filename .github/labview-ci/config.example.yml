@@ -51,9 +51,9 @@ config:
     # Per-action container overrides (optional). Each container action can run in
     # a different image than the default above: "latest", a pinned build tag, the
     # LabVIEW year, or "base" (the bare NI image, no baked deps). Anything not
-    # listed uses `use`. Linux jobs stay on the stable NI base image for empty,
-    # "base", or "none"; selecting "latest" or a Linux Beta tag opts them into
-    # the separate Linux Beta worker image where VIPM/VIPC support is validated.
+    # listed uses `use`. Linux jobs use the shared Linux worker for empty/latest
+    # selections; choose "base" or "none" only when you explicitly want the bare
+    # NI image without baked VIPC dependencies.
     actions:
       masscompile: latest
       vi-analyzer: latest

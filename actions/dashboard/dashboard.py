@@ -2866,9 +2866,9 @@ def _known_nipm_dependencies():
     {
       'name': 'VI Package Manager',
       'source': 'NI Package Manager',
-      'packages': {'windows': ['ni-vipm'], 'linux': ['ni-vipm']},
-      'platforms': ['windows', 'linux'],
-      'details': 'NI-published VIPM package that enables VIPC application during worker builds.',
+      'packages': {'windows': ['ni-vipm']},
+      'platforms': ['windows'],
+      'details': 'NI-published Windows VIPM package that enables VIPC application during worker builds. Linux installs VIPM from the native Debian package during its worker build.',
     },
   ]
 
@@ -2910,25 +2910,13 @@ def _build_dependencies_index():
     vipcs.append({'path': path, 'configured': path in configured, 'packages': packages, 'error': error})
   columns = [
     {'key': 'windows', 'label': 'Windows', 'platform': 'windows', 'defaultTag': 'latest'},
-    {'key': 'linux', 'label': 'Linux', 'platform': 'linux', 'tag': 'base'},
-    {'key': 'linuxBeta', 'label': 'Linux Beta', 'platform': 'linux-beta', 'tag': 'latest', 'defaultTag': 'latest'},
+    {'key': 'linux', 'label': 'Linux', 'platform': 'linux', 'defaultTag': 'latest'},
   ]
   manifest_cache = {}
   for col in columns:
     action_tag = config.get('actions', {}).get(col.get('action')) if col.get('action') else ''
     tag = col.get('tag') or action_tag or config.get('use') or col.get('defaultTag') or 'base'
     col['tag'] = tag
-    if col.get('platform') == 'linux':
-      man = _worker_manifest('linux', 'latest')
-      col['ready'] = True
-      col['packages'] = []
-      col['version'] = 'pending'
-      col['unsupported'] = True
-      col['nipkg_ready'] = isinstance(man, dict)
-      col['nipkg_packages'] = _manifest_nipkg_packages(man)
-      col['nipkg_version'] = man.get('version', 'latest') if isinstance(man, dict) else 'latest'
-      col['labview_version'] = man.get('labview_version', '') if isinstance(man, dict) else ''
-      continue
     if tag not in ('base', 'none'):
       cache_key = f"{col['platform']}:{tag}"
       if cache_key not in manifest_cache:

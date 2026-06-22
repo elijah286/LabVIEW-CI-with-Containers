@@ -4,6 +4,7 @@ set -euo pipefail
 VIPC_DIR="${VIPC_DIR:-/opt/lvci/vipm}"
 LABVIEW_VERSION="${LABVIEW_VERSION:-2026}"
 export VIPM_NONINTERACTIVE="${VIPM_NONINTERACTIVE:-1}"
+export VIPM_ASSUME_YES="${VIPM_ASSUME_YES:-1}"
 export NO_COLOR="${NO_COLOR:-1}"
 
 setup_display() {
@@ -51,7 +52,7 @@ find_vipm() {
 
 VIPM_BIN="$(find_vipm || true)"
 if [ -z "$VIPM_BIN" ]; then
-  echo "VIPM CLI was not found after installing ni-vipm." >&2
+  echo "VIPM CLI was not found after installing the native VIPM package." >&2
   exit 1
 fi
 

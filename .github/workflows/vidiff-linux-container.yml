@@ -124,24 +124,26 @@ jobs:
           name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
           name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
           case "$selected" in
-            ''|base|none) image="nationalinstruments/labview:latest-linux" ;;
-            latest) image="ghcr.io/${owner}/${name}:linux-beta-latest" ;;
-            linux-beta-*) image="ghcr.io/${owner}/${name}:${selected}" ;;
-            *) image="ghcr.io/${owner}/${name}:linux-beta-${selected}" ;;
+            ''|latest) image="ghcr.io/${owner}/${name}:linux-latest"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
+            base|none) image="nationalinstruments/labview:latest-linux"; worker_workflow="" ;;
+            linux-beta-*) image="ghcr.io/${owner}/${name}:${selected}"; worker_workflow="Build LabVIEW CI Image - Linux Beta" ;;
+            linux-*) image="ghcr.io/${owner}/${name}:${selected}"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
+            *) image="ghcr.io/${owner}/${name}:linux-${selected}"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
           esac
           echo "LABVIEW_CONTAINER_IMAGE=$image" >> "$GITHUB_ENV"
+          echo "LINUX_WORKER_WORKFLOW=$worker_workflow" >> "$GITHUB_ENV"
           echo "Using Linux container image: $image"
 
-      - name: Wait for Linux Beta worker image build
+      - name: Wait for Linux worker image build
         working-directory: head
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "$LABVIEW_CONTAINER_IMAGE" = "nationalinstruments/labview:latest-linux" ]; then
-            echo "Using the stable NI Linux base image; no Linux Beta worker build to wait for."
+            echo "Using the NI Linux base image; no Linux worker build to wait for."
             exit 0
           fi
-          bash .github/labview/wait-for-worker-image.sh "${{ steps.shas.outputs.head }}" "${{ github.event.before }}" "Build LabVIEW CI Image - Linux Beta"
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.shas.outputs.head }}" "${{ github.event.before }}" "$LINUX_WORKER_WORKFLOW"
 
       - name: Get list of changed VI/CTL files
         id: changed
