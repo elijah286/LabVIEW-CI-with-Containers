@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a",
+  "sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5",
   "revisions": [
+    {
+      "sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5",
+      "short": "d56ded4",
+      "message": "Restore Linux-applicable example VIPC artifact (v3.39.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T23:46:25Z"
+    },
     {
       "sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a",
       "short": "197c1be",
@@ -697,13 +704,6 @@
       "date": "2026-06-20T05:10:36Z"
     },
     {
-      "sha": "2c8f6101fb808ca0b30fbaaa8ec76974bd6b56c8",
-      "short": "2c8f610",
-      "message": "dashboard: move search, filters, and Columns into the shared sticky toolbar (v3.22.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T05:07:06Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -830,6 +830,9 @@
       "configured": true,
       "packages": [
         "dataflow_g_lib_g_image-0.5.0.1",
+        "ni_lib_junit_results_api-1.0.1.6",
+        "ni_lib_simple_xml-1.0.0.4",
+        "ni_lib_utf_junit_report-1.0.1.43",
         "oglib_appcontrol-4.1.0.7",
         "oglib_array-4.1.0.13",
         "oglib_error-4.2.0.23",
