@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.38.7",
+  "version": "3.38.8",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.38.8",
+        "date": "2026-06-22",
+        "title": "Linux Beta image installs native VIPM before applying VIPC files",
+        "summary": "The experimental Linux Beta worker now installs VIPM from JKI's documented Linux .deb instead of looking for an NI Package Manager package that is Windows-only in the tested feeds. The VIPC apply step also sets up Xvfb, marks the LabVIEW container runtime, starts LabVIEW headless, activates VIPM with the documented --name flag, refreshes package sources, applies staged repository VIPC files with `vipm install -y`, and lists installed packages afterward.",
+        "highlights": [
+          "Downloads and installs the documented VIPM Linux Debian package from JKI's CDN during the Linux Beta image build",
+          "Sets up DISPLAY/Xvfb and starts LabVIEW headless before applying repository VIPC files",
+          "Uses the documented VIPM CLI flow: activate, refresh, install -y <vipc>, and list --installed"
+        ]
+      },
       {
         "version": "3.38.7",
         "date": "2026-06-22",
