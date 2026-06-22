@@ -12,7 +12,7 @@
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5}a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 64px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.hero h1{margin:0 0 4px;font-size:1.55em}.sub{margin:0;color:var(--fg-muted);font-size:.9em}.controls{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:12px;align-items:end;margin:18px 0}.field label{display:block;color:var(--fg-muted);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}select,button{font:inherit}select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg)}button{border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--fg);padding:9px 12px;cursor:pointer}button:hover{border-color:var(--link)}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px}.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px}.card .k{color:var(--fg-muted);font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.card .v{margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.note{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:11px 13px;color:var(--fg-muted);font-size:.88em;margin-bottom:16px}.note.warn{border-color:rgba(210,153,34,.55);background:rgba(210,153,34,.10);color:var(--fg)}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)}table{width:100%;border-collapse:collapse;min-width:980px}th,td{border-bottom:1px solid var(--border);padding:8px 9px;text-align:left;vertical-align:top}th{position:sticky;top:0;background:var(--surface);color:var(--fg-muted);font-size:.75em;text-transform:uppercase;letter-spacing:.04em;z-index:1}td.pkg{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em}.vipc-row{background:color-mix(in srgb,var(--surface) 80%,var(--chip));font-weight:700}.vipc-row td{padding-top:10px;padding-bottom:10px}.twisty{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:5px;border:1px solid var(--border);border-radius:4px;color:var(--fg-muted);font-size:.8em}.vipc-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:.75em;color:var(--fg-muted);font-weight:600}.yes{color:var(--ok)}.no{color:var(--bad)}.maybe{color:var(--warn)}.cell{white-space:nowrap;text-align:center}.cell .mark{font-weight:800;font-size:1em}.cell .why{display:block;color:var(--fg-muted);font-size:.68em;margin-top:1px}.empty{padding:28px;text-align:center;color:var(--fg-muted)}.hidden{display:none}@media(max-width:760px){.hero{display:block}.controls{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.wrap{padding-inline:14px}}
   </style>
   <style>
-    .dep-section{margin-top:22px}.dep-section h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}
+    .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}
   </style>
 </head>
 <body>
@@ -38,21 +38,28 @@
     </div>
     <div class="note" id="configCard">Loading container configuration...</div>
     <div class="note" id="status">Loading dependency inventory...</div>
-    <section class="dep-section">
-      <h2>VIPM / VIPC Packages</h2>
-      <p class="dep-caption">Repository VIPC files and the VIPM packages they request.</p>
-      <div class="table-wrap" id="vipcWrap"><div class="empty">Loading...</div></div>
-    </section>
-    <section class="dep-section">
-      <h2>NI Package Manager Installed Dependencies</h2>
-      <p class="dep-caption">NI software installed or expected through NI Package Manager, including LabVIEW and UTF.</p>
-      <div class="table-wrap" id="nipmWrap"><div class="empty">Loading...</div></div>
-    </section>
-    <section class="dep-section">
-      <h2>System Components</h2>
-      <p class="dep-caption">CI runtime components that are not installed by VIPM or NI Package Manager.</p>
-      <div class="table-wrap" id="systemWrap"><div class="empty">Loading...</div></div>
-    </section>
+    <div class="dep-tabs" id="depTabs">
+      <div class="dep-tablist" role="tablist" aria-label="Dependency source">
+        <button class="dep-tab active" id="tab-vipc" type="button" role="tab" aria-selected="true" aria-controls="panel-vipc" data-tab="vipc">VIPM / VIPC</button>
+        <button class="dep-tab" id="tab-nipm" type="button" role="tab" aria-selected="false" aria-controls="panel-nipm" data-tab="nipm">NI Packages</button>
+        <button class="dep-tab" id="tab-system" type="button" role="tab" aria-selected="false" aria-controls="panel-system" data-tab="system">System Components</button>
+      </div>
+      <section class="dep-panel active" id="panel-vipc" role="tabpanel" aria-labelledby="tab-vipc">
+        <h2>VIPM / VIPC Packages</h2>
+        <p class="dep-caption">Repository VIPC files and the VIPM packages they request.</p>
+        <div class="table-wrap" id="vipcWrap"><div class="empty">Loading...</div></div>
+      </section>
+      <section class="dep-panel" id="panel-nipm" role="tabpanel" aria-labelledby="tab-nipm">
+        <h2>NI Package Manager Installed Dependencies</h2>
+        <p class="dep-caption">NI software installed or expected through NI Package Manager, including LabVIEW and UTF.</p>
+        <div class="table-wrap" id="nipmWrap"><div class="empty">Loading...</div></div>
+      </section>
+      <section class="dep-panel" id="panel-system" role="tabpanel" aria-labelledby="tab-system">
+        <h2>System Components</h2>
+        <p class="dep-caption">CI runtime components that are not installed by VIPM or NI Package Manager.</p>
+        <div class="table-wrap" id="systemWrap"><div class="empty">Loading...</div></div>
+      </section>
+    </div>
   </main>
   <script>
   (() => {
@@ -87,6 +94,17 @@
     const api = path => "https://api.github.com/repos/" + repo + path;
     async function fetchJson(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.json(); }
     async function fetchText(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.text(); }
+    function selectDependencyTab(key){
+      Array.from(document.querySelectorAll('.dep-tab')).forEach(tab => {
+        const active = tab.dataset.tab === key;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      Array.from(document.querySelectorAll('.dep-panel')).forEach(panel => panel.classList.toggle('active', panel.id === 'panel-' + key));
+    }
+    function initDependencyTabs(){
+      Array.from(document.querySelectorAll('.dep-tab')).forEach(tab => tab.addEventListener('click', () => selectDependencyTab(tab.dataset.tab)));
+    }
 
     function parseManifestYaml(text){
       const out = { use:"", vipc:[], actions:{}, viBrowser:{} };
@@ -387,6 +405,7 @@
 
     async function init(){
       if (!repo) { $("status").textContent = "Could not determine repository from this Pages URL."; return; }
+      initDependencyTabs();
       try {
         const generated = await fetchJson(base + "dependencies/index.json");
         if (generated && Array.isArray(generated.vipc)) generatedInventory = generated;

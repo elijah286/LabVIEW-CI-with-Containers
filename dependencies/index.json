@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ffd7c07bbd35e23ade119e6163b24b7265ec2ef0",
+  "sha": "5dc779355d8583a5f3cec2663a53158319d5368c",
   "revisions": [
+    {
+      "sha": "5dc779355d8583a5f3cec2663a53158319d5368c",
+      "short": "5dc7793",
+      "message": "Dependencies: show source tables in tabs",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T13:04:01Z"
+    },
     {
       "sha": "ffd7c07bbd35e23ade119e6163b24b7265ec2ef0",
       "short": "ffd7c07",
@@ -695,13 +702,6 @@
       "message": "unit-test runner: log the version-independent add-ons folder + LabVIEW registry (v3.11.3)",
       "author": "Elijah Kerry",
       "date": "2026-06-19T16:46:35Z"
-    },
-    {
-      "sha": "612d13571e8e9ae549abccf76ba534832e4d07c6",
-      "short": "612d135",
-      "message": "worker: install UTF from its dedicated NI Package Manager feed (v3.11.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T16:30:38Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
