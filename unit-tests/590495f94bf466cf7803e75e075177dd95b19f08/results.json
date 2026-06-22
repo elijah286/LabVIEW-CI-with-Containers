@@ -19,7 +19,7 @@
    "author": "Elijah Kerry",
    "date": "2026-06-21T11:35:54-05:00"
   },
-  "generated_utc": "2026-06-22 04:27 UTC"
+  "generated_utc": "2026-06-22 15:52 UTC"
  },
  "summary": {
   "tests": 15,
@@ -29,7 +29,7 @@
   "skipped": 2,
   "percent": 67,
   "status": "failed",
-  "duration": 8.4
+  "duration": 7.6
  },
  "status_order": [
   "failed",
@@ -77,13 +77,13 @@
    "failures": 0,
    "errors": 0,
    "skipped": 0,
-   "time": 1.054,
+   "time": 0.882,
    "cases": [
     {
      "name": "Test Case 1",
      "classname": "",
      "status": "passed",
-     "time": 0.069,
+     "time": 0.037,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -95,7 +95,7 @@
      "name": "Test Case 2",
      "classname": "",
      "status": "passed",
-     "time": 0.041,
+     "time": 0.06,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -107,7 +107,7 @@
      "name": "Test Case 3",
      "classname": "",
      "status": "passed",
-     "time": 0.154,
+     "time": 0.061,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -124,13 +124,13 @@
    "failures": 0,
    "errors": 0,
    "skipped": 0,
-   "time": 0.635,
+   "time": 0.645,
    "cases": [
     {
      "name": "Test Case 1",
      "classname": "",
      "status": "passed",
-     "time": 0.04,
+     "time": 0.09,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -147,13 +147,13 @@
    "failures": 0,
    "errors": 0,
    "skipped": 0,
-   "time": 1.206,
+   "time": 1.028,
    "cases": [
     {
      "name": "Test Case 1",
      "classname": "",
      "status": "passed",
-     "time": 0.066,
+     "time": 0.026,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -165,7 +165,7 @@
      "name": "Test Case 2",
      "classname": "",
      "status": "passed",
-     "time": 0.083,
+     "time": 0.116,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -177,7 +177,7 @@
      "name": "Test Case 3",
      "classname": "",
      "status": "passed",
-     "time": 0.063,
+     "time": 0.041,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -194,13 +194,13 @@
    "failures": 1,
    "errors": 0,
    "skipped": 0,
-   "time": 0.571,
+   "time": 0.538,
    "cases": [
     {
      "name": "Test Case 1",
      "classname": "",
      "status": "passed",
-     "time": 0.056,
+     "time": 0.091,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -212,7 +212,7 @@
      "name": "Test Case 2",
      "classname": "",
      "status": "failed",
-     "time": 0.054,
+     "time": 0.088,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -229,13 +229,13 @@
    "failures": 1,
    "errors": 0,
    "skipped": 0,
-   "time": 2.095,
+   "time": 1.846,
    "cases": [
     {
      "name": "Test Case 1",
      "classname": "",
      "status": "failed",
-     "time": 0.093,
+     "time": 0.102,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -252,13 +252,13 @@
    "failures": 1,
    "errors": 0,
    "skipped": 0,
-   "time": 1.505,
+   "time": 1.302,
    "cases": [
     {
      "name": "Test Case 1",
      "classname": "",
      "status": "failed",
-     "time": 0.041,
+     "time": 0.066,
      "message": "",
      "details": "",
      "test_vi_rel": "",
@@ -285,7 +285,7 @@
    "failures": 0,
    "errors": 0,
    "skipped": 0,
-   "time": 1.171,
+   "time": 1.259,
    "cases": [
     {
      "name": "Test Case 1",
@@ -308,7 +308,7 @@
    "failures": 0,
    "errors": 0,
    "skipped": 0,
-   "time": 0.174,
+   "time": 0.097,
    "cases": [
     {
      "name": "Test Case 1",
