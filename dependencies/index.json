@@ -1,7 +1,800 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "1947119bfdf9cef7b6bf6c9998e3493efcf56117",
+  "sha": "bd32d04c675efec9697f5b85470319e92d620bc7",
+  "revisions": [
+    {
+      "sha": "bd32d04c675efec9697f5b85470319e92d620bc7",
+      "short": "bd32d04",
+      "message": "VI Browser: fall back from stale Linux 2.0 render image overrides",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T03:41:19Z"
+    },
+    {
+      "sha": "d6be42e652db712be3d41b4e378f23f1b9d51f2e",
+      "short": "d6be42e",
+      "message": "Dependencies page: enable revision selector",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T03:40:25Z"
+    },
+    {
+      "sha": "1947119bfdf9cef7b6bf6c9998e3493efcf56117",
+      "short": "1947119",
+      "message": "Release v3.34.5: unify revision-aware dashboard navigation",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T03:37:08Z"
+    },
+    {
+      "sha": "f6cbabdde0b8f6b8c9eefbc6464a1e19d1f7e0f6",
+      "short": "f6cbabd",
+      "message": "Release v3.34.4: fix Activity report fallback",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T03:28:51Z"
+    },
+    {
+      "sha": "8b37cba42fb33426184a9fd83af83841663ecd02",
+      "short": "8b37cba",
+      "message": "Release v3.34.3: fix VI Browser 2.0 dispatch target refs",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T03:12:03Z"
+    },
+    {
+      "sha": "5019c35ccba6faf7620685449cc995b8c24ff263",
+      "short": "5019c35",
+      "message": "Release v3.34.2: Windows VI Browser 2.0 renders and dashboard tooling updates",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T02:56:38Z"
+    },
+    {
+      "sha": "348be3a719a4da1dbf754d6370a8bf924d839dae",
+      "short": "348be3a",
+      "message": "dashboard: show unit-test failed percentage with configurable gates",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T02:40:32Z"
+    },
+    {
+      "sha": "ce9a29e8ad4ab9e45849f2358f9c81bda4115d48",
+      "short": "ce9a29e",
+      "message": "ci: fix corrupted YAML indentation in build-labview-linux-image.yml",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T20:52:46Z"
+    },
+    {
+      "sha": "b896b29f59a964925c13ac4b6c424202d7f22315",
+      "short": "b896b29",
+      "message": "dashboard: key active runs to targeted revision and show queued position",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T20:34:41Z"
+    },
+    {
+      "sha": "2ddd359f9f5d8731ffd7c3203341874de854f172",
+      "short": "2ddd359",
+      "message": "gate: wait only for Windows worker build; treat cancelled build as non-blocking",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T20:04:46Z"
+    },
+    {
+      "sha": "3526743da0f5770a004fe9f358a265ff152e26ca",
+      "short": "3526743",
+      "message": "Release 3.33.0: VIPC/UTF milestone + VI Browser 2.0 platform dispatch",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T19:19:15Z"
+    },
+    {
+      "sha": "1ce885c0b4d6e3131298765b739a947a2e166055",
+      "short": "1ce885c",
+      "message": "install-vipc: apply required project VIPCs before best-effort tooling",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T19:12:00Z"
+    },
+    {
+      "sha": "c09fcaf874f98d99aee232604134b2a386749049",
+      "short": "c09fcaf",
+      "message": "Reliable VIPC bake: required UTF essentials first, best-effort tooling; align gate with build triggers",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T19:10:58Z"
+    },
+    {
+      "sha": "506ada832fa1c99b9845a4661da5d869ebf3be49",
+      "short": "506ada8",
+      "message": "install-vipc: abort fast when VIPM engine wedges (no 900s-per-package hang)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T18:03:02Z"
+    },
+    {
+      "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
+      "short": "590495f",
+      "message": "example: add UTF JUnit reporter deps to Dependencies.vipc",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T16:35:54Z"
+    },
+    {
+      "sha": "662b0dc53f8b4ce44a5ae0072c1cc79042fa0146",
+      "short": "662b0dc",
+      "message": "Restore catalog 3.32.2 release history (keep VIPC file-set additions)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T16:33:51Z"
+    },
+    {
+      "sha": "d06589004193e187e0143c9a0ee43f41c60b7c37",
+      "short": "d065890",
+      "message": "Wire VIPC dependency gate and recursive discovery into pipeline",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T16:30:32Z"
+    },
+    {
+      "sha": "f50a51017bfc78d552cf4ab1505f41cc3fdd3762",
+      "short": "f50a510",
+      "message": "Document proven VIPC layering path",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T15:57:52Z"
+    },
+    {
+      "sha": "445f985270e0db5eb99fe9783e3c88be9b781220",
+      "short": "445f985",
+      "message": "Fix VIPC bake workflow summary quoting",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T15:36:29Z"
+    },
+    {
+      "sha": "4d5dfc531a96c78b7a9d3a2ba6522547a30f75ba",
+      "short": "4d5dfc5",
+      "message": "unit-tests: use built-in LabVIEW RunUnitTests CLI",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T15:21:55Z"
+    },
+    {
+      "sha": "6a17ccafa5d26af2ced63607232e1a73c085f5bc",
+      "short": "6a17cca",
+      "message": "Fallback when VIPM accepts VIPC but installs nothing",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T15:13:00Z"
+    },
+    {
+      "sha": "eb2240d106503d2e207374ae8e0c7119af656a45",
+      "short": "eb2240d",
+      "message": "example: run UTF tests from Example project",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T15:00:06Z"
+    },
+    {
+      "sha": "7cb07731bb4ac55f2f82389cf7eb339e7389e88b",
+      "short": "7cb0773",
+      "message": "Layer Windows VIPC images on reusable VIPM base",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T14:40:13Z"
+    },
+    {
+      "sha": "29d43f043d308719c96a7a936ad7b42dd28efded",
+      "short": "29d43f0",
+      "message": "unit-tests: run UTF through native API wrapper",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T14:22:42Z"
+    },
+    {
+      "sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf",
+      "short": "3d67c5a",
+      "message": "Add VIPC-baked Windows base image workflow",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T14:19:51Z"
+    },
+    {
+      "sha": "e75a9b1b629966d995033fcf74d461ff36ae6d63",
+      "short": "e75a9b1",
+      "message": "unit-tests(diag): dump LabVIEW CLI operations folder + probe RunUnitTests without -JUnitReportPath (isolate -350053)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T13:45:01Z"
+    },
+    {
+      "sha": "f108724ee786c59c43e5e65f57b29200ad6e7054",
+      "short": "f108724",
+      "message": "VI Browser: show generate prompt for missing 2.0 diagrams",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T13:36:04Z"
+    },
+    {
+      "sha": "cb7e4c00660ffafc19ca4b5e3f5b9593329be9db",
+      "short": "cb7e4c0",
+      "message": "vipm: log git status/remote in vipm cwd + set GitHub env for public-repo detection (per JKI)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T04:41:45Z"
+    },
+    {
+      "sha": "4a8204ae5e30db73eec909c78344d2ccac3fdd82",
+      "short": "4a8204a",
+      "message": "vipm: real git clone for CE public-repo context + VIPM_DEBUG diagnostics",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T03:28:39Z"
+    },
+    {
+      "sha": "9db33efa21a9d63d9f33585ca516a303621be4cb",
+      "short": "9db33ef",
+      "message": "VI Browser: make missing 2.0 platform renders actionable",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T03:00:50Z"
+    },
+    {
+      "sha": "601c2372776769e1caca103e74b22454d3bff510",
+      "short": "601c237",
+      "message": "fix(vipm): install full Git for Windows (winget->silent installer->MinGit) per JKI so VIPM CE can reach the community package index",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T02:43:42Z"
+    },
+    {
+      "sha": "23728d54fa50ec183ade85b004bd9e146176ab31",
+      "short": "23728d5",
+      "message": "Settings consolidation: a shared Settings sub-navigation on the config pages (v3.32.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T01:56:32Z"
+    },
+    {
+      "sha": "335b2cb7eebb9fc0ccab4df7a0fd996a59f95619",
+      "short": "335b2cb",
+      "message": "fix(vipm): fall through to by-name install when engine rejects .vipc file (Code 42), only skip fallback on genuine startup timeout",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T01:39:06Z"
+    },
+    {
+      "sha": "2712af90325d50be9fb77ba8ec0e09ddd5a6a3a6",
+      "short": "2712af9",
+      "message": "VI Browser in-pane reports: Back-to-VIs, one-click full report, loading state (v3.31.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T00:18:58Z"
+    },
+    {
+      "sha": "5a7ace112d2fdd4c2476b5feb554c4a59739c7ef",
+      "short": "5a7ace1",
+      "message": "VIPM: pre-launch VIPM engine before install (fix 'wait for VIPM startup' timeout); skip redundant fallback on engine-startup timeout",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T00:17:15Z"
+    },
+    {
+      "sha": "6684a122fabb188f9e35591824691b5323b7bf98",
+      "short": "6684a12",
+      "message": "Activity switcher: grouped lenses + deep-link opens the dropdown on the right one (v3.30.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T00:10:03Z"
+    },
+    {
+      "sha": "61997ee5c8534d4c2509edd50e084647a2d03f78",
+      "short": "61997ee",
+      "message": "VI Browser: frame a revision's reports in the pane (unified Activity switcher, v3.29.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T22:54:44Z"
+    },
+    {
+      "sha": "0bc320cc7cb0310ba953fcb2f616d48419284ad5",
+      "short": "0bc320c",
+      "message": "VIPM: stop forcing Community Edition (it enables the public-repo gate), refresh --force, install .vipc file directly",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T22:06:38Z"
+    },
+    {
+      "sha": "199463e5718aa6a02ebd14819b7023476cc62ca0",
+      "short": "199463e",
+      "message": "Fix PowerShell quoting in MinGit install step (parens in double-quoted string broke vipm git probe)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T21:10:43Z"
+    },
+    {
+      "sha": "f3816445fee5ef504419dd1ca400e9b1c293f403",
+      "short": "f381644",
+      "message": "Restore the Activity switcher's Snapshots entry and the in-VI-Browser picker (v3.28.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T21:03:42Z"
+    },
+    {
+      "sha": "78163147adb9fbf01931aacdd8bd2d797d6b49fd",
+      "short": "7816314",
+      "message": "dashboard: promote Documentation to a top-level nav link + fix overlapping top-bar menus (v3.27.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T20:56:09Z"
+    },
+    {
+      "sha": "96b9b5a89d73a4b818f356fa8a295070ce6b2a3e",
+      "short": "96b9b5a",
+      "message": "Bake portable Git into worker so VIPM 26.3 can verify public repo (catalog 3.26.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T19:54:58Z"
+    },
+    {
+      "sha": "a53eb5dbb781bd621d06883670971bdeb9b33f34",
+      "short": "a53eb5d",
+      "message": "docs: add developer Documentation page and maintenance rule",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T19:51:02Z"
+    },
+    {
+      "sha": "753c1294c738a02e16a78ffbf3984921eeb1e179",
+      "short": "753c129",
+      "message": "Catalog 3.26.1: worker bakes .vipc deps under VIPM 26.3 Community Edition (public-repo fix)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T19:05:49Z"
+    },
+    {
+      "sha": "58bc9c6ccd3e344b630641853fd0f7964ae7ecb1",
+      "short": "58bc9c6",
+      "message": "Run worker vipm install from a public-repo context (fixes VIPM 26.3 Community Edition exit 6)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T19:04:38Z"
+    },
+    {
+      "sha": "51bcd260a110be8b32e753fa590cc5d3be7cafbc",
+      "short": "51bcd26",
+      "message": "dashboard: surface the Activity picker inside the VI Browser (v3.26.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T18:56:34Z"
+    },
+    {
+      "sha": "fc45f06c29e3cdda19c898ca28dec19731430dde",
+      "short": "fc45f06",
+      "message": "header: Activity picker gains a Snapshots (VI Browser) entry (v3.25.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T18:42:11Z"
+    },
+    {
+      "sha": "cfd12bb62b0a3fdbc08045ca445b5603cf81f8ee",
+      "short": "cfd12bb",
+      "message": "Fix headless vipm install for VIPM 26.3 CLI (drop --refresh, use vipm refresh + global LabVIEW flags)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T18:32:16Z"
+    },
+    {
+      "sha": "77bdeb6bf92f6aae7975ece78ed9cf9f8d1d01d9",
+      "short": "77bdeb6",
+      "message": "worker: upgrade VIPM to 2026 Q3 (26.3.3954) for headless container installs (catalog 3.24.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T16:24:14Z"
+    },
+    {
+      "sha": "b89ad0d04a692702e92af441328f66e5c56ae300",
+      "short": "b89ad0d",
+      "message": "catalog: add the release entry for the VI Browser back-link removal (v3.24.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T15:08:22Z"
+    },
+    {
+      "sha": "14003c01b0dbe4d6a925988c80bbf77926bff333",
+      "short": "14003c0",
+      "message": "VI Browser: drop the redundant \"CI Dashboard\" sidebar back-link (v3.24.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T15:06:40Z"
+    },
+    {
+      "sha": "1abc5a9fa27d4d7eee8a309fdca374218f96d142",
+      "short": "1abc5a9",
+      "message": "worker: seed VIPM Settings.ini so vipm install works in a fresh image",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T14:56:03Z"
+    },
+    {
+      "sha": "282afea22438c0dd4800594c730e4cce4ec1a58e",
+      "short": "282afea",
+      "message": "worker: use correct vipm CLI flags (--refresh global option, drop invalid -y)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T14:19:03Z"
+    },
+    {
+      "sha": "5da6681c882325b5b588c80dfaa0657844624b4d",
+      "short": "5da6681",
+      "message": "worker: install VIPM tooling headlessly in Community Edition (fixes UTF -350053)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T13:37:43Z"
+    },
+    {
+      "sha": "23bc50bbd55065963da39576d62baaa2554b8023",
+      "short": "23bc50b",
+      "message": "header: Activity picker to switch a revision's reports in place (v3.24.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T12:58:37Z"
+    },
+    {
+      "sha": "579ef102d488bc9ad3e344cd570de6d2afbd3de2",
+      "short": "579ef10",
+      "message": "config pages: drop the redundant \"Back to dashboard\" link (v3.23.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T05:54:17Z"
+    },
+    {
+      "sha": "867967122ad4855ada1a39165b3459626246693c",
+      "short": "8679671",
+      "message": "header: Settings + Help nav on every page, with the current section highlighted (v3.23.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T05:32:06Z"
+    },
+    {
+      "sha": "c53462ffae15744abbf54a7f9654b27c4c1f8e1c",
+      "short": "c53462f",
+      "message": "catalog: restore the v3.21.1 release-notes entry dropped by a mid-commit race",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T05:10:36Z"
+    },
+    {
+      "sha": "2c8f6101fb808ca0b30fbaaa8ec76974bd6b56c8",
+      "short": "2c8f610",
+      "message": "dashboard: move search, filters, and Columns into the shared sticky toolbar (v3.22.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T05:07:06Z"
+    },
+    {
+      "sha": "c542069d037fb2a5c83e0f766b270df0421a699f",
+      "short": "c542069",
+      "message": "FAQ: add \"where worker containers are stored / run\" and \"what is an Actions runner\" (v3.21.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T05:06:06Z"
+    },
+    {
+      "sha": "35fd075d2de1b515855715fe8516e7113c3bfa8f",
+      "short": "35fd075",
+      "message": "CI runs now show which revision they check and who requested them (v3.21.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T05:01:39Z"
+    },
+    {
+      "sha": "8a5d7a489fd9f7b1db8f1dd6024f4708d2edf1e3",
+      "short": "8a5d7a4",
+      "message": "UX overhaul (2c-2b): VI Browser revision bar gains previous / next steppers (v3.20.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T04:48:35Z"
+    },
+    {
+      "sha": "e90840ecf73c3710c2e576dd2091fa566f790fab",
+      "short": "e90840e",
+      "message": "worker: install VIPM tooling by package name so headless UTF works (v3.19.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T04:49:19Z"
+    },
+    {
+      "sha": "c861b357a207c8fb28f14a3dd1b5670e4eb80a1c",
+      "short": "c861b35",
+      "message": "UX overhaul (2c-2): VI Browser revision picker joins the shared context bar (v3.19.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T04:40:54Z"
+    },
+    {
+      "sha": "fd7a319f38a55c63cce4fa3219dc116eefe798db",
+      "short": "fd7a319",
+      "message": "header: persistent revision context bar for reports (v3.18.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T04:29:50Z"
+    },
+    {
+      "sha": "e8856619a3cebb6229575df987da36b02171a01b",
+      "short": "e885661",
+      "message": "header: grouped Settings / Help top-nav menus (v3.17.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T04:19:37Z"
+    },
+    {
+      "sha": "24f0606bb8e66f3ffab099e27558603a0c260418",
+      "short": "24f0606",
+      "message": "header: run / queue / fail activity pill (v3.16.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T04:03:16Z"
+    },
+    {
+      "sha": "286fe11e3c9fbcbb71e77a8fc0e616d226b37d21",
+      "short": "286fe11",
+      "message": "header: global failure attention banner (v3.15.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T03:07:59Z"
+    },
+    {
+      "sha": "84f511ebe63f41e1366580d386c67ad73758c7e7",
+      "short": "84f511e",
+      "message": "vi-browser: always show the 2.0 Linux/Windows switch (v3.14.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T02:47:50Z"
+    },
+    {
+      "sha": "83ac9d04e630fa31233dc1287ba3f68e812babbd",
+      "short": "83ac9d0",
+      "message": "vi-browser: add a Linux/Windows toggle to the 2.0 view (v3.14.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T02:34:33Z"
+    },
+    {
+      "sha": "8d9b4c469d58672747ec6387d80f72f20da8eff7",
+      "short": "8d9b4c4",
+      "message": "FAQ: explain how the Clients page discovers and tracks repositories + link it from Clients (v3.13.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T01:22:29Z"
+    },
+    {
+      "sha": "2b8483b9328a6b23c0ed3156fbb067465aff2e72",
+      "short": "2b8483b",
+      "message": "dashboard: collapse revision table to cards on narrow screens (v3.13.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T01:17:47Z"
+    },
+    {
+      "sha": "2a741995e6eb9392d26296d72b9b8cf83c6892fc",
+      "short": "2a74199",
+      "message": "dashboard: re-check queued/running state when the tab is shown again (v3.13.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T00:43:19Z"
+    },
+    {
+      "sha": "9c497db1d98e751657b5bbdfb69fa0fe6d17e5cd",
+      "short": "9c497db",
+      "message": "dashboard: merge revision columns into one rich Revision cell (v3.13.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T00:10:01Z"
+    },
+    {
+      "sha": "fe9ab462a4e02f9feb261e297358e923fe6b1ff3",
+      "short": "fe9ab46",
+      "message": "dashboard: add search + status filter to the revision table (v3.13.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-20T00:03:41Z"
+    },
+    {
+      "sha": "0a39bab17531c8f1ea5b3dd7ef2b92fb7403f9d6",
+      "short": "0a39bab",
+      "message": "dashboard: replace emoji status badges with clean status chips (v3.12.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T22:27:49Z"
+    },
+    {
+      "sha": "7e1847b721eef7a938391e1b85bc19e042573aa2",
+      "short": "7e1847b",
+      "message": "dashboard: never show a phantom \"updating to the same version\" in the header (v3.12.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T19:49:31Z"
+    },
+    {
+      "sha": "4a685e91b112bc883f3b328eb07a48d279d13100",
+      "short": "4a685e9",
+      "message": "unit-test runner: dump LVAddons lvaddoninfo.json manifests (v3.12.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T17:33:10Z"
+    },
+    {
+      "sha": "92d9bb133520bb927cd06960acb37e812f6f8be7",
+      "short": "92d9bb1",
+      "message": "dashboard menu: show target version while Pages rebuilds (v3.12.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T17:16:20Z"
+    },
+    {
+      "sha": "6707aae888ce898c493e4d1588802c6591ddbda0",
+      "short": "6707aae",
+      "message": "Merge branch 'main' of https://github.com/elijah286/LabVIEW-CI-with-Containers",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T16:53:28Z"
+    },
+    {
+      "sha": "ea47512d58b68b8a401cf5acd589eccab48d86de",
+      "short": "ea47512",
+      "message": "added a custom vi analyzer test",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T16:53:15Z"
+    },
+    {
+      "sha": "2fb3ae1a6fa5babb7adbed33175399f5df72def9",
+      "short": "2fb3ae1",
+      "message": "VI Analyzer: move pipeline configuration to its own dedicated page; it only maps committed .viancfg files to code (v3.12.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T16:48:56Z"
+    },
+    {
+      "sha": "873cb98db00880c060792bd2bb6215e51fd3f7ce",
+      "short": "873cb98",
+      "message": "unit-test runner: log the version-independent add-ons folder + LabVIEW registry (v3.11.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T16:46:35Z"
+    },
+    {
+      "sha": "612d13571e8e9ae549abccf76ba534832e4d07c6",
+      "short": "612d135",
+      "message": "worker: install UTF from its dedicated NI Package Manager feed (v3.11.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T16:30:38Z"
+    },
+    {
+      "sha": "213a1f88bb583413dcd71cb889c5293835ced63a",
+      "short": "213a1f8",
+      "message": "unit-test report: banner when the container is missing required tooling (v3.11.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T16:16:09Z"
+    },
+    {
+      "sha": "330375d4c50323b76762e2a9bdbd6bf7f660dd18",
+      "short": "330375d",
+      "message": "VI Analyzer: configure which test settings run on which code + re-run a single VI with a chosen configuration (v3.11.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T16:10:07Z"
+    },
+    {
+      "sha": "7157534898b22d0df4b7e068129c32b5bb361b0a",
+      "short": "7157534",
+      "message": "v3.10.3: print LabVIEW CLI session log when a UTF run produces no report",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T15:22:12Z"
+    },
+    {
+      "sha": "017bff5f358fd41f28beef244e536c6169fcbda6",
+      "short": "017bff5",
+      "message": "v3.10.2: use the modern VIPM CLI to apply VIPC and never fail the worker build on it",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T14:56:36Z"
+    },
+    {
+      "sha": "c1b6efffb83bf3765580279b0b95de100cd25a8e",
+      "short": "c1b6eff",
+      "message": "unit tests: install VIPM from the NI feed (ni-vipm) so the UTF JUnit Report library bakes into the worker; the external VIPM installer URL now 404s (v3.10.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T14:32:20Z"
+    },
+    {
+      "sha": "27fef3c764a61306d1f9667e0895ac484b98887b",
+      "short": "27fef3c",
+      "message": "unit tests: bake NI 'UTF JUnit Report' library into the worker so RunUnitTests emits JUnit; fix Windows report-builder print crash (v3.10.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T14:06:13Z"
+    },
+    {
+      "sha": "9d1a98277599c0d551c7f1ba53fea92843b913e0",
+      "short": "9d1a982",
+      "message": "Upgrade page brands the repo it is updating, links it, and ends on the dashboard",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T14:00:14Z"
+    },
+    {
+      "sha": "c7f78bd037d7e3ec1c903f0fa6de97dbfe1c8389",
+      "short": "c7f78bd",
+      "message": "dashboard: number queued runs by their real position in the Actions queue (v3.8.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T13:56:40Z"
+    },
+    {
+      "sha": "e9af6905e35c4e1fe698f1cf0678fdf3f2746942",
+      "short": "e9af690",
+      "message": "FAQ: explain the worker-container lifecycle (per file/revision/action) + the knobs to change it (v3.8.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T13:41:23Z"
+    },
+    {
+      "sha": "f5883b465ddc84c9ed88532b0bd7efc6768619b7",
+      "short": "f5883b4",
+      "message": "dashboard: close the Populate-history dialog after a successful queue (v3.8.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T13:36:46Z"
+    },
+    {
+      "sha": "95cd97cdaf14ef9be9becef3bd966ff53810756d",
+      "short": "95cd97c",
+      "message": "unit tests: run NI Unit Test Framework via built-in LabVIEWCLI RunUnitTests; drop vendored DCAF runner (v3.8.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T13:28:58Z"
+    },
+    {
+      "sha": "e1eff9004868e5d45baf0b3106a1213a1adffb8c",
+      "short": "e1eff90",
+      "message": "dashboard: re-run Mass Compile from Populate history + keep the activity picker usable after Clear (v3.7.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T13:06:17Z"
+    },
+    {
+      "sha": "bb27de7e9235ddb44cf6b61ba29b0b5f84d53425",
+      "short": "bb27de7",
+      "message": "VI Browser: configurable render OS (1.0/2.0 x Windows/Linux) + a VI Browser menu (v3.7.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T12:51:41Z"
+    },
+    {
+      "sha": "eb6fe7424d8c525fc425c7e42cd616c47a0c4a4c",
+      "short": "eb6fe74",
+      "message": "unit tests: mass-compile the vendored UTF runner so LabVIEW 2026 can load it (v3.6.7)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T12:46:50Z"
+    },
+    {
+      "sha": "d910aff48926ffc82efbdaa0b134462dfdbe1bad",
+      "short": "d910aff",
+      "message": "Populate history: re-run finished activities, working Close button, per-activity controls (v3.6.6)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T12:15:07Z"
+    },
+    {
+      "sha": "f394e5ee1209fe79eeb4daec90591c187c09ffbb",
+      "short": "f394e5e",
+      "message": "ci: bump JavaScript GitHub Actions to their Node 24 releases (v3.6.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T04:59:31Z"
+    },
+    {
+      "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
+      "short": "12553d6",
+      "message": "added utf files",
+      "author": "Elijah Kerry",
+      "date": "2026-06-18T23:03:10Z"
+    },
+    {
+      "sha": "df868ea07cef49f7ed721442b627ec78ba306e7f",
+      "short": "df868ea",
+      "message": "resized the graph",
+      "author": "Elijah Kerry",
+      "date": "2026-06-01T08:20:17Z"
+    },
+    {
+      "sha": "c433e9e5e28492955ffa4d83f0434159b64d3fb7",
+      "short": "c433e9e",
+      "message": "moved a constant",
+      "author": "Elijah Kerry",
+      "date": "2026-05-29T12:38:27Z"
+    },
+    {
+      "sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1",
+      "short": "d1705cb",
+      "message": "moved the send command button",
+      "author": "Elijah Kerry",
+      "date": "2026-05-29T12:27:27Z"
+    },
+    {
+      "sha": "d1a86a8741bec13cfa11446d0e72d12479a209ae",
+      "short": "d1a86a8",
+      "message": "fixed errors in motor VIs",
+      "author": "Elijah Kerry",
+      "date": "2024-11-21T22:32:29Z"
+    },
+    {
+      "sha": "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6",
+      "short": "2b5f1aa",
+      "message": "Minor refinements",
+      "author": "Elijah Kerry",
+      "date": "2024-11-21T17:52:34Z"
+    },
+    {
+      "sha": "3d513473c8dce75e22b08294b87de2fb37fd9798",
+      "short": "3d51347",
+      "message": "Excercise manual correction",
+      "author": "Elijah Kerry",
+      "date": "2024-11-21T17:25:43Z"
+    },
+    {
+      "sha": "1b00b2d59dd388f8fb93de6661d429025e320a6b",
+      "short": "1b00b2d",
+      "message": "Copy of excercise generated",
+      "author": "Elijah Kerry",
+      "date": "2024-11-21T17:20:04Z"
+    },
+    {
+      "sha": "f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5",
+      "short": "f4640da",
+      "message": "Added new excercises",
+      "author": "Elijah Kerry",
+      "date": "2024-11-21T16:58:11Z"
+    },
+    {
+      "sha": "f96842dc7fd776c01e186bb089eb7079444390f1",
+      "short": "f96842d",
+      "message": "improved resize appearance",
+      "author": "Elijah Kerry",
+      "date": "2024-11-04T12:09:33Z"
+    },
+    {
+      "sha": "e2ee064d41e45456d7d51afd63c3fce28713fc94",
+      "short": "e2ee064",
+      "message": "mass compiled on windows",
+      "author": "Elijah Kerry",
+      "date": "2024-11-04T12:06:41Z"
+    },
+    {
+      "sha": "abb3a165d423dff26829fa296e1039bbc3903ece",
+      "short": "abb3a16",
+      "message": "Windows bug",
+      "author": "Elijah Kerry",
+      "date": "2024-11-04T11:57:48Z"
+    },
+    {
+      "sha": "7599b047409f6801f226b06159da3036986c5bb8",
+      "short": "7599b04",
+      "message": "debugging the assignment of visa resources to curriculum code",
+      "author": "Elijah Kerry",
+      "date": "2024-11-04T10:44:47Z"
+    }
+  ],
   "config": {
     "use": "",
     "actions": {},
@@ -68,10 +861,25 @@
       "label": "VIA",
       "platform": "windows",
       "action": "vi-analyzer",
-      "tag": "base",
+      "defaultTag": "latest",
+      "tag": "latest",
       "ready": true,
-      "packages": [],
-      "version": "base"
+      "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
+        "jki_lib_caraya-1.4.4.148",
+        "jki_vi_tester",
+        "ni_lib_junit_results_api-1.0.1.6",
+        "ni_lib_simple_xml-1.0.0.4",
+        "ni_lib_utf_junit_report-1.0.1.43",
+        "oglib_appcontrol-4.1.0.7",
+        "oglib_array-4.1.0.13",
+        "oglib_error-4.2.0.23",
+        "oglib_file-4.0.0.20",
+        "oglib_lvdata-4.2.0.21",
+        "oglib_string-4.1.0.12",
+        "wovalab_lib_antidoc_cli-3.3.0.117"
+      ],
+      "version": "win-8913c01f4cc4"
     },
     {
       "key": "diff",
@@ -98,20 +906,50 @@
       "label": "UTF",
       "platform": "windows",
       "action": "unit-tests",
-      "tag": "base",
+      "defaultTag": "latest",
+      "tag": "latest",
       "ready": true,
-      "packages": [],
-      "version": "base"
+      "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
+        "jki_lib_caraya-1.4.4.148",
+        "jki_vi_tester",
+        "ni_lib_junit_results_api-1.0.1.6",
+        "ni_lib_simple_xml-1.0.0.4",
+        "ni_lib_utf_junit_report-1.0.1.43",
+        "oglib_appcontrol-4.1.0.7",
+        "oglib_array-4.1.0.13",
+        "oglib_error-4.2.0.23",
+        "oglib_file-4.0.0.20",
+        "oglib_lvdata-4.2.0.21",
+        "oglib_string-4.1.0.12",
+        "wovalab_lib_antidoc_cli-3.3.0.117"
+      ],
+      "version": "win-8913c01f4cc4"
     },
     {
       "key": "docs",
       "label": "Antidoc",
       "platform": "windows",
       "action": "antidoc",
-      "tag": "base",
+      "defaultTag": "latest",
+      "tag": "latest",
       "ready": true,
-      "packages": [],
-      "version": "base"
+      "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
+        "jki_lib_caraya-1.4.4.148",
+        "jki_vi_tester",
+        "ni_lib_junit_results_api-1.0.1.6",
+        "ni_lib_simple_xml-1.0.0.4",
+        "ni_lib_utf_junit_report-1.0.1.43",
+        "oglib_appcontrol-4.1.0.7",
+        "oglib_array-4.1.0.13",
+        "oglib_error-4.2.0.23",
+        "oglib_file-4.0.0.20",
+        "oglib_lvdata-4.2.0.21",
+        "oglib_string-4.1.0.12",
+        "wovalab_lib_antidoc_cli-3.3.0.117"
+      ],
+      "version": "win-8913c01f4cc4"
     }
   ]
 }

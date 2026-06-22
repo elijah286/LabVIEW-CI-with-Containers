@@ -32,6 +32,7 @@
       <div class="card"><div class="k">Worker</div><div class="v" id="workerCard">-</div></div>
       <div class="card"><div class="k">VIPC Files</div><div class="v" id="vipcCard">-</div></div>
     </div>
+    <div class="note" id="configCard">Loading container configuration...</div>
     <div class="note" id="status">Loading dependency inventory...</div>
     <div class="table-wrap" id="tableWrap"><div class="empty">Loading...</div></div>
   </main>
@@ -42,16 +43,17 @@
       { key:"snap1w", label:"1.0 Snap Win", platform:"windows", action:"snapshots", image:"base" },
       { key:"snap2w", label:"2.0 Snap Win", platform:"windows", action:"snapshots", image:"base" },
       { key:"snap2l", label:"2.0 Snap Linux", platform:"linux", action:"snapshots", image:"base" },
-      { key:"via", label:"VIA", platform:"windows", action:"vi-analyzer", image:"worker" },
+      { key:"via", label:"VIA", platform:"windows", action:"vi-analyzer", image:"worker", defaultTag:"latest" },
       { key:"diff", label:"Diff", platform:"windows", action:"vidiff", image:"worker" },
       { key:"mc", label:"Compile", platform:"windows", action:"masscompile", image:"worker" },
-      { key:"utf", label:"UTF", platform:"windows", action:"unit-tests", image:"worker" },
-      { key:"docs", label:"Antidoc", platform:"windows", action:"antidoc", image:"worker" }
+      { key:"utf", label:"UTF", platform:"windows", action:"unit-tests", image:"worker", defaultTag:"latest" },
+      { key:"docs", label:"Antidoc", platform:"windows", action:"antidoc", image:"worker", defaultTag:"latest" }
     ];
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
     const short = s => String(s || "").slice(0, 7);
     const cfg = window.LVCI || {};
+    let generatedInventory = null;
 
     function repoFromUrl(){
       if (cfg.repo) return cfg.repo;
@@ -94,6 +96,13 @@
     }
 
     async function listCommits(){
+      try {
+        const runs = await fetchJson(api("/commits?per_page=100"));
+        if (runs.length) return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
+      } catch (_) {}
+      if (generatedInventory && Array.isArray(generatedInventory.revisions) && generatedInventory.revisions.length) {
+        return generatedInventory.revisions.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha }));
+      }
       try {
         const d = await fetchJson(base + "vi-snapshots/files.json");
         const commits = (d.commits || []).filter(c => c.sha);
@@ -165,8 +174,23 @@
     }
     function resolveColumn(col, manifest){
       if (col.image === "base") return { tag:"base", packages:new Set(), label:"base" };
-      const actTag = manifest.actions[col.action] || manifest.use || "base";
+      const actTag = manifest.actions[col.action] || manifest.use || col.defaultTag || "base";
       return { tag:actTag, packages:new Set(), label:actTag || "base" };
+    }
+    function renderConfigSummary(manifest){
+      const vipc = manifest && Array.isArray(manifest.vipc) ? manifest.vipc : [];
+      const actions = manifest && manifest.actions ? Object.entries(manifest.actions) : [];
+      const use = manifest && manifest.use ? manifest.use : "";
+      if (!use && !vipc.length && !actions.length) {
+        $("configCard").innerHTML = 'This revision has no <code>config.container</code> block. Worker-backed defaults use <span class="pill">latest</span> for VIA, UTF, and Antidoc; base-image runners stay <span class="pill">base</span>.';
+        return;
+      }
+      const bits = [];
+      bits.push('<strong>Container config for this revision:</strong>');
+      bits.push('use ' + (use ? '<span class="pill">' + esc(use) + '</span>' : '<span class="pill">default</span>'));
+      bits.push('VIPC ' + (vipc.length ? vipc.map(v => '<span class="pill">' + esc(v.path || v) + '</span>').join(' ') : '<span class="pill">none</span>'));
+      if (actions.length) bits.push('actions ' + actions.map(([k,v]) => '<span class="pill">' + esc(k) + ': ' + esc(v) + '</span>').join(' '));
+      $("configCard").innerHTML = bits.join(' &nbsp; ');
     }
     function statusCell(pkg, colState){
       if (!pkg) return "";
@@ -180,7 +204,7 @@
       const heads = COLS.map(c => '<th>' + esc(c.label) + '</th>').join('');
       const rows = [];
       vipcs.forEach((v, idx) => {
-        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span> <span class="pill">' + (v.packages.length || 0) + ' packages</span></td></tr>');
+        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span> <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + (v.configured === false ? ' <span class="pill">not included</span>' : '') + '</td></tr>');
         if (v.open) {
           if (v.error) rows.push('<tr><td class="pkg">' + esc(v.error) + '</td>' + COLS.map(() => '<td></td>').join('') + '</tr>');
           (v.packages || []).forEach(pkg => rows.push('<tr><td class="pkg">' + esc(pkg) + '</td>' + COLS.map(c => statusCell(pkg, colStates[c.key])).join('') + '</tr>'));
@@ -195,6 +219,7 @@
       $("repoCard").textContent = repo || "unknown";
       const yaml = await fetchText(raw(".github/labview-ci.yml", sha)).catch(() => "");
       const manifest = parseManifestYaml(yaml);
+      renderConfigSummary(manifest);
       const discovered = await listVipcs(sha).catch(() => manifest.vipc.map(v => v.path));
       const configured = new Set(manifest.vipc.map(v => v.path));
       const vipcs = await Promise.all(discovered.map(async path => {
@@ -216,19 +241,16 @@
       $("workerCard").textContent = workerTags;
       $("vipcCard").textContent = String(vipcs.length);
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
+      const unconfigured = vipcs.filter(v => v.configured === false).length;
       $("status").className = baseCols.length ? "note warn" : "note";
-      $("status").textContent = baseCols.length
+      $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not included in config.container.vipc, so its packages are not expected in any worker. ") : "") + (baseCols.length
         ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + "."
-        : "Every listed runner column resolves to a worker manifest for this revision/configuration.";
+        : "Every listed runner column resolves to a worker manifest for this revision/configuration.");
       render(vipcs, colStates);
     }
 
     function renderGenerated(data){
-      const sel = $("rev");
-      const label = data.sha ? short(data.sha) + " - generated dashboard inventory" : "generated dashboard inventory";
-      sel.innerHTML = '<option value="' + esc(data.sha || '') + '">' + esc(label) + '</option>';
-      sel.disabled = true;
-      $("reload").addEventListener("click", () => location.reload());
+      renderConfigSummary(data.config || {});
       $("repoCard").textContent = data.repo || repo || "unknown";
       $("vipcCard").textContent = String((data.vipc || []).length);
       const colStates = {};
@@ -244,27 +266,40 @@
       const workerTags = Array.from(new Set(Object.values(colStates).filter(s => s.tag && s.tag !== "base").map(s => s.label))).join(", ") || "base images only";
       $("workerCard").textContent = workerTags;
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
+      const unconfigured = (data.vipc || []).filter(v => v.configured === false).length;
       $("status").className = baseCols.length ? "note warn" : "note";
-      $("status").textContent = baseCols.length
+      $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not included in config.container.vipc, so its packages are not expected in any worker. ") : "") + (baseCols.length
         ? "Some runner columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + "."
-        : "Every listed runner column resolves to a worker manifest for this dashboard build.";
-      render((data.vipc || []).map(v => ({ path:v.path, packages:v.packages || [], error:v.error || "", open:true })), colStates);
+        : "Every listed runner column resolves to a worker manifest for this dashboard build.");
+      render((data.vipc || []).map(v => ({ path:v.path, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates);
     }
 
     async function init(){
       if (!repo) { $("status").textContent = "Could not determine repository from this Pages URL."; return; }
       try {
         const generated = await fetchJson(base + "dependencies/index.json");
-        if (generated && Array.isArray(generated.vipc)) { renderGenerated(generated); return; }
+        if (generated && Array.isArray(generated.vipc)) generatedInventory = generated;
       } catch (_) {}
       const commits = await listCommits().catch(e => { $("status").textContent = e.message; return []; });
       const sel = $("rev");
-      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '">' + esc((c.short || short(c.sha)) + ' - ' + (c.message || '')) + '</option>').join('');
       const params = new URLSearchParams(location.search);
-      if (params.get("sha") && commits.some(c => c.sha === params.get("sha"))) sel.value = params.get("sha");
-      sel.addEventListener("change", () => { const u = new URL(location.href); u.searchParams.set("sha", sel.value); history.replaceState(null, "", u); loadRevision(sel.value); });
-      $("reload").addEventListener("click", () => loadRevision(sel.value));
-      if (sel.value) loadRevision(sel.value);
+      const requestedSha = params.get("sha") || "";
+      const generatedSha = generatedInventory && generatedInventory.sha;
+      if (requestedSha && !commits.some(c => c.sha === requestedSha)) commits.unshift({ sha:requestedSha, short:short(requestedSha), message:"requested revision" });
+      if (generatedSha && !commits.some(c => c.sha === generatedSha)) commits.unshift({ sha:generatedSha, short:short(generatedSha), message:"generated dashboard inventory" });
+      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '">' + esc((c.short || short(c.sha)) + ' - ' + (c.message || '')) + '</option>').join('');
+      if (requestedSha && commits.some(c => c.sha === requestedSha)) sel.value = requestedSha;
+      else if (generatedSha && commits.some(c => c.sha === generatedSha)) sel.value = generatedSha;
+      async function showSelected(){
+        const u = new URL(location.href);
+        if (sel.value) u.searchParams.set("sha", sel.value);
+        history.replaceState(null, "", u);
+        if (generatedInventory && sel.value && sel.value === generatedInventory.sha) renderGenerated(generatedInventory);
+        else await loadRevision(sel.value);
+      }
+      sel.addEventListener("change", showSelected);
+      $("reload").addEventListener("click", showSelected);
+      if (sel.value) showSelected();
       else $("status").textContent = "No revisions found.";
     }
     init();
