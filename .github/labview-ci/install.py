@@ -323,7 +323,7 @@ def print_next_steps(catalog: dict, owner: str | None, name: str | None, activit
 
 def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str | None,
                  activities: list[str], os_list: list[str], labview_version: str,
-                 dry_run: bool) -> int:
+                 branch: str, dry_run: bool) -> int:
     """Write thin caller workflows + Dependabot + config that reference the source
     repo's reusable workflow/actions at the major tag, instead of vendoring copies.
     A thin consumer holds only these small files; updates arrive via the moving tag.
@@ -364,7 +364,7 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
         "  pull_request:\n"
         "    paths: ['**.vi', '**.ctl', '**.lvproj', '**.lvlib', '**.lvclass']\n"
         "  push:\n"
-        "    branches: [main]\n"
+        f"    branches: [{branch}]\n"
         "    paths: ['**.vi', '**.ctl', '**.lvproj', '**.lvlib', '**.lvclass']\n"
         "  workflow_dispatch:\n\n"
         "jobs:\n"
@@ -659,6 +659,11 @@ def main() -> int:
 
     owner, name = detect_target_repo(target_root, args.repo)
     subs = build_substitutions(catalog, owner, name)
+    # Vendored workflows carry a static `branches: [main]` push-trigger filter that
+    # YAML can't express as the default branch; rewrite it to the target repo's
+    # actual default branch so push-to-default CI fires on non-"main" repos.
+    if branch and branch != "main":
+        subs.append(("branches: [main]", f"branches: [{branch}]"))
     if not subs:
         warn("target repo owner/name unknown - cosmetic branding left as-is "
              "(functional wiring still adapts at runtime). Pass --repo owner/name to rebrand.")
@@ -676,7 +681,7 @@ def main() -> int:
 
     if args.thin:
         return thin_install(catalog, target_root, owner, name, activities, os_list,
-                            labview_version, args.dry_run)
+                            labview_version, branch, args.dry_run)
 
     file_list = resolve_file_list(catalog, activities, os_list)
     stats = {"installed": 0, "updated": 0, "skipped": 0, "planned": 0, "preserved": 0}

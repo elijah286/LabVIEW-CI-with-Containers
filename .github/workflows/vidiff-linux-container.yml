@@ -90,7 +90,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         working-directory: head
         run: |
-          git fetch --no-tags origin main
+          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
       - name: Wait for worker image build

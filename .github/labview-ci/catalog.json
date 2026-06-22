@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.36.1",
+  "version": "3.37.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.37.0",
+        "date": "2026-06-22",
+        "title": "Container CI works on repos whose default branch is not main, and the worker image build no longer fails on a missing Dockerfile",
+        "summary": "Two fixes make a fresh container install actually run on more repositories. First, the worker image build was failing immediately with 'the system cannot find the file specified' because the install copied only labview-ci.Dockerfile, not the two Dockerfiles the Windows build actually uses (labview-vipm-base.Dockerfile and labview-vipc-layer.Dockerfile, introduced when the worker was split into a shared base plus a VIPC layer). The install now vendors all three, so Build LabVIEW CI Image succeeds and the container activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) get a real image. Second, the container workflows assumed the default branch was named main: the 'Restore CI scripts' step ran 'git fetch origin main' and failed with exit 128 ('couldn't find remote ref main') on a repo whose default branch is master, and the push trigger only fired on main. The fetch now uses the repository's actual default branch, and Apply to New Repo rewrites the push-trigger branch to the target repo's default branch at install time, so push-to-default CI fires regardless of the branch name.",
+        "highlights": [
+          "Worker image build no longer fails on a missing Dockerfile: the install now vendors labview-vipm-base.Dockerfile and labview-vipc-layer.Dockerfile alongside labview-ci.Dockerfile",
+          "Container workflows fetch CI scripts from the repository's default branch instead of a hardcoded 'main', fixing the exit-128 'couldn't find remote ref main' failure on master-default repos",
+          "Apply to New Repo rewrites the workflow push-trigger branch to the target repo's default branch, so push-to-default CI runs on repos that don't use 'main'"
+        ]
+      },
       {
         "version": "3.36.1",
         "date": "2026-06-22",
@@ -2734,6 +2745,8 @@
         "windows": [
           ".github/workflows/build-labview-image.yml",
           ".github/docker/labview-ci.Dockerfile",
+          ".github/docker/labview-vipm-base.Dockerfile",
+          ".github/docker/labview-vipc-layer.Dockerfile",
           ".github/labview/vipm/"
         ],
         "linux": [

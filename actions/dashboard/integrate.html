@@ -1742,6 +1742,18 @@
         const branch = meta && meta.default_branch;
         if (!branch) throw new Error("Your repository has no commits yet. Push an initial commit (e.g. a README) first, then install.");
         setup.branch = branch;   // remembered so we can dispatch the dashboard build right after an auto-merge
+        // The workflow push triggers are vendored with a static `branches: [main]`
+        // filter, which YAML can't express as the repo's default branch. Rewrite it
+        // to the target repo's actual default branch so push-to-default CI fires on
+        // repos whose default branch isn't "main" (e.g. "master"). main-default
+        // repos keep the original text untouched.
+        if (branch && branch !== "main") {
+          for (const f of files) {
+            if (f && f.isText && typeof f.content === "string" && f.path && f.path.indexOf(".github/workflows/") === 0) {
+              f.content = f.content.split("branches: [main]").join("branches: [" + branch + "]");
+            }
+          }
+        }
         setup.private = !!(meta && meta.private);   // private repos can't publish Pages on a free plan
         const headRef = await ghWrite(`/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, null, "read the default branch");
         const headSha = headRef.object.sha;
