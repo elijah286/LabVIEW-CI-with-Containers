@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "c72674529baf5e3e2e789bfac7b221bd3942951c",
+  "sha": "78a128abe0af0cd5d67f61ecb6fe6a481bcd6db6",
   "revisions": [
+    {
+      "sha": "78a128abe0af0cd5d67f61ecb6fe6a481bcd6db6",
+      "short": "78a128a",
+      "message": "Release v3.34.9: enable complete history reruns",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T04:19:17Z"
+    },
     {
       "sha": "c72674529baf5e3e2e789bfac7b221bd3942951c",
       "short": "c726745",
@@ -695,13 +702,6 @@
       "message": "unit tests: mass-compile the vendored UTF runner so LabVIEW 2026 can load it (v3.6.7)",
       "author": "Elijah Kerry",
       "date": "2026-06-19T12:46:50Z"
-    },
-    {
-      "sha": "d910aff48926ffc82efbdaa0b134462dfdbe1bad",
-      "short": "d910aff",
-      "message": "Populate history: re-run finished activities, working Close button, per-activity controls (v3.6.6)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T12:15:07Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",

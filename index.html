@@ -1085,7 +1085,7 @@
       // The exact cells to dispatch, from each activity's mode + the revision scope:
       //   off    -> nothing
       //   fill   -> only the empty (never-run) cells          (the old default)
-      //   rerun  -> empty AND already-done cells, re-dispatched (replaces the result)
+      //   rerun  -> empty AND already-done cells: fill gaps and replace existing results
       // Snapshots is content-addressed: its one backfill run only ever renders the
       // MISSING blobs, so it has no meaningful "re-run" \u2014 it always behaves as fill.
       var inc=histIncludedShas(); var out=[];
@@ -1126,11 +1126,11 @@
       // re-enable the original intent because actMode itself is left untouched.
       //   snapshots -> only ever fills the missing renders (content-addressed)
       //   fill      -> needs a missing cell, else there is nothing to fill (Skip)
-      //   rerun     -> needs an existing result to replace; with none it falls back
-      //                to filling the gaps, or Skip when there are none either
+      //   rerun     -> every selected revision with this activity; existing results
+      //                are replaced and missing cells are filled
       if(mode==='off') return 'off';
       if(cap==='snapshots') return c.fill>0 ? 'fill' : 'off';
-      if(mode==='rerun')    return c.done>0 ? 'rerun' : (c.fill>0 ? 'fill' : 'off');
+      if(mode==='rerun')    return (c.done>0 || c.fill>0) ? 'rerun' : 'off';
       return c.fill>0 ? 'fill' : 'off';
     }
     function histRefresh(){
@@ -1152,9 +1152,9 @@
             bFill.title=(c.fill>0 ? (cap==='snapshots'?'Render the snapshots still missing in the selected revisions':'Queue only the selected revisions missing this result')
                                   : (cap==='snapshots'?'Nothing to render \u2014 every selected revision already has its snapshots':'Nothing to fill \u2014 every selected revision already has this result')); }
           var bRe=seg.querySelector('button[data-mode="rerun"]');
-          if(bRe){ bRe.disabled=(c.done===0);
-            bRe.title=(c.done>0 ? 'Re-run every selected revision, replacing the existing result'
-                                : 'Nothing to re-run \u2014 no existing results in the selected revisions yet'); }
+          if(bRe){ bRe.disabled=((c.done||0)+(c.fill||0)===0);
+            bRe.title=((c.done||0)+(c.fill||0)>0 ? 'Run every selected revision for this activity; existing results are replaced and missing ones are filled'
+                                               : 'Nothing to re-run \u2014 no selected revisions have this activity'); }
           Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){ b.classList.toggle('on', b.getAttribute('data-mode')===mode); });
         }
         var row=document.getElementById('cidash-hist-actrow-'+cap); if(row) row.classList.toggle('skip', mode==='off');
@@ -1330,7 +1330,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-22 04:15 UTC &nbsp;|&nbsp; Live — refreshing every 60 s while CI runs</div>
+  <div class="sub">Last updated: 2026-06-22 04:21 UTC &nbsp;|&nbsp; Live — refreshing every 60 s while CI runs</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -1370,6 +1370,24 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=78a128abe0af0cd5d67f61ecb6fe6a481bcd6db6" class="cidash-rev-msg" title="Release v3.34.9: enable complete history reruns">Release v3.34.9: enable complete history reruns</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=78a128abe0af0cd5d67f61ecb6fe6a481bcd6db6" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">78a128a</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-22</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -3141,24 +3159,6 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=eb6fe7424d8c525fc425c7e42cd616c47a0c4a4c" class="cidash-rev-msg" title="unit tests: mass-compile the vendored UTF runner so LabVIEW 2026 can load it (v3">unit tests: mass-compile the vendored UTF runner so LabVIEW 2026 can load it (v3</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=eb6fe7424d8c525fc425c7e42cd616c47a0c4a4c" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">eb6fe74</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-19</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d910aff48926ffc82efbdaa0b134462dfdbe1bad" class="cidash-rev-msg" title="Populate history: re-run finished activities, working Close button, per-activity">Populate history: re-run finished activities, working Close button, per-activity</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d910aff48926ffc82efbdaa0b134462dfdbe1bad" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">d910aff</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-19</div>
           </div>
         </div>
       </td>
