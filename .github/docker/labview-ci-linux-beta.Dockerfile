@@ -7,12 +7,14 @@
 # =============================================================================
 
 ARG NIPM_FEED_URL=https://download.ni.com/support/nipkg/products/ni-l/ni-labview-2026/26.1/released
+ARG VIPM_FEED_URL=https://download.ni.com/support/nipkg/products/ni-v/ni-vipm/26.1/released
 ARG VIA_SUPPORT_PACKAGE=ni-vialin-labview-support
 ARG VIPM_PACKAGE=ni-vipm
 
 FROM nationalinstruments/labview:latest-linux
 
 ARG NIPM_FEED_URL
+ARG VIPM_FEED_URL
 ARG VIA_SUPPORT_PACKAGE
 ARG VIPM_PACKAGE
 ARG CI_WORKER_VERSION=dev
@@ -36,8 +38,30 @@ RUN set -eux; \
         echo "nipkg was not found; installing Linux worker packages with apt: ${VIA_SUPPORT_PACKAGE} ${VIPM_PACKAGE}"; \
         export DEBIAN_FRONTEND=noninteractive; \
         apt-get update; \
-        apt-get install -y --no-install-recommends "${VIA_SUPPORT_PACKAGE}" "${VIPM_PACKAGE}"; \
-        rm -rf /var/lib/apt/lists/*; \
+        if apt-get install -y --no-install-recommends "${VIA_SUPPORT_PACKAGE}" "${VIPM_PACKAGE}"; then \
+            rm -rf /var/lib/apt/lists/*; \
+        else \
+            echo "apt-get could not install ${VIA_SUPPORT_PACKAGE} or ${VIPM_PACKAGE}. Collecting Linux package discovery diagnostics."; \
+            echo "Apt sources:"; \
+            find /etc/apt -maxdepth 3 -type f \( -name '*.list' -o -name '*.sources' \) -print -exec sed -n '1,80p' {} \; || true; \
+            echo "apt-cache search results:"; \
+            apt-cache search 'ni-.*\(vipm\|vialin\|labview\)' || true; \
+            echo "Installed NI Debian packages:"; \
+            dpkg-query -W -f='${Package} ${Version}\n' 2>/dev/null | grep -E '^(ni-|nipkg|labview)' | sort | head -n 200 || true; \
+            echo "NI Package Manager feed architecture summaries:"; \
+            apt-get install -y --no-install-recommends ca-certificates curl >/dev/null 2>&1 || true; \
+            for FEED in "${NIPM_FEED_URL}" "${VIPM_FEED_URL}"; do \
+                echo "Feed: ${FEED}"; \
+                if command -v curl >/dev/null 2>&1; then \
+                    curl -fsSL "${FEED}/Packages" | grep '^Architecture:' | sort | uniq -c || true; \
+                    curl -fsSL "${FEED}/Packages" | grep -E '^(Package: (ni-vipm|ni-vialin-labview-support)|Architecture:)' | head -n 80 || true; \
+                else \
+                    echo "curl unavailable for feed inspection"; \
+                fi; \
+            done; \
+            echo "Linux Beta cannot install VIPM from the tested package sources until NI publishes a Linux VIPM package or the base image includes nipkg/VIPM."; \
+            exit 127; \
+        fi; \
     else \
         echo "No supported package manager found for Linux worker packages."; \
         command -v dpkg || true; \

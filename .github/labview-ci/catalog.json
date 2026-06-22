@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.38.6",
+  "version": "3.38.7",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.38.7",
+        "date": "2026-06-22",
+        "title": "Linux Beta image reports NI package-source diagnostics when VIPM is unavailable",
+        "summary": "The experimental Linux Beta image now turns the current apt package miss into an explicit package-source diagnostic: apt sources, apt-cache search results, installed NI Debian packages, and NI feed architecture summaries. This documents whether the base image can install VIPM/VIPC support before the build reaches the VIPC apply step.",
+        "highlights": [
+          "Reports apt sources and apt-cache search output when ni-vialin-labview-support or ni-vipm cannot be installed on Linux",
+          "Captures installed NI Debian packages from the base image to show what Linux tooling is already present",
+          "Checks the LabVIEW 2026 and VIPM NI package feeds for available architectures so Linux VIPM availability is visible in the build log"
+        ]
+      },
       {
         "version": "3.38.6",
         "date": "2026-06-22",
