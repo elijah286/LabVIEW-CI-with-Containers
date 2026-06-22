@@ -1,0 +1,6 @@
+	<ItemsToAnalyze>
+		<Item>
+			<Path>"/workspace"</Path>
+			<Removed>FALSE</Removed>
+		</Item>
+	</ItemsToAnalyze>
