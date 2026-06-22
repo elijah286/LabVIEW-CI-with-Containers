@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "bd32d04c675efec9697f5b85470319e92d620bc7",
+  "sha": "c72674529baf5e3e2e789bfac7b221bd3942951c",
   "revisions": [
+    {
+      "sha": "c72674529baf5e3e2e789bfac7b221bd3942951c",
+      "short": "c726745",
+      "message": "Release v3.34.8: fix dashboard document switching",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T03:52:14Z"
+    },
     {
       "sha": "bd32d04c675efec9697f5b85470319e92d620bc7",
       "short": "bd32d04",
@@ -695,13 +702,6 @@
       "message": "Populate history: re-run finished activities, working Close button, per-activity controls (v3.6.6)",
       "author": "Elijah Kerry",
       "date": "2026-06-19T12:15:07Z"
-    },
-    {
-      "sha": "f394e5ee1209fe79eeb4daec90591c187c09ffbb",
-      "short": "f394e5e",
-      "message": "ci: bump JavaScript GitHub Actions to their Node 24 releases (v3.6.5)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-19T04:59:31Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
