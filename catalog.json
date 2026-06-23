@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.41.0",
+  "version": "3.41.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.41.1",
+        "date": "2026-06-23",
+        "title": "Label and isolate VI Browser 2.0 snapshot reruns",
+        "summary": "Manual VI Browser 2.0 snapshot reruns now show the target revision in the GitHub Actions run name, and the Windows/Linux 2.0 snapshot workflows scope concurrency by target revision instead of using one global queue per workflow. Re-running several selected revisions no longer appears as a stack of identical runs and no longer risks canceling different target revisions in the same batch.",
+        "highlights": [
+          "Adds target-SHA run names to Windows and Linux VI Browser 2.0 snapshot runs",
+          "Scopes 2.0 snapshot workflow concurrency by target revision so different selected commits do not cancel each other",
+          "Keeps duplicate reruns for the same target revision cancelable while making multi-revision history reruns clear in Actions"
+        ]
+      },
       {
         "version": "3.41.0",
         "date": "2026-06-23",
