@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.17",
+  "version": "3.46.18",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.18",
+        "date": "2026-06-23",
+        "title": "Use crane for the registry-native base copy",
+        "type": "patch",
+        "summary": "The Windows runner does not ship docker buildx, so the registry-native copy now uses crane (go-containerregistry), a small self-contained binary. A no-dependency repository copies the public LCWC base image into its own GHCR worker package via crane copy + crane tag, with cross-repo blob mounting, so the multi-gigabyte layers are never downloaded to or re-uploaded from the runner. The base digest is read with crane digest (no pull).",
+        "highlights": [
+          "Downloads crane and copies the base image server-side instead of relying on docker buildx (absent on the Windows runner).",
+          "crane copy + crane tag publishes all worker tags by blob-mounting layers within the same GHCR owner.",
+          "No-dependency worker images are ready in a couple of minutes instead of fifteen-plus."
+        ]
+      },
       {
         "version": "3.46.17",
         "date": "2026-06-23",
