@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.3",
+  "version": "3.46.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.4",
+        "date": "2026-06-23",
+        "title": "GitLab installs can open a merge request from the browser",
+        "type": "patch",
+        "summary": "Apply to a new repository now supports a GitLab token install path. GitLab mode can store a GitLab host and token in the browser, create an install branch, commit the generated GitLab CI scaffold plus shared LabVIEW CI payload, and open a merge request. The command-line fallback now explains exactly where to run the generated scripts: in a local terminal from a cloned repository, not inside the GitLab web UI.",
+        "highlights": [
+          "Adds a GitLab token panel for browser-based install branch, commit, and merge-request creation.",
+          "Keeps GitLab.com as the default host while allowing self-managed GitLab server URLs.",
+          "Clarifies command-line fallback steps: clone the repo locally, cd into it, paste the command in Terminal/Git Bash/PowerShell, review, commit, and push."
+        ]
+      },
       {
         "version": "3.46.3",
         "date": "2026-06-23",
