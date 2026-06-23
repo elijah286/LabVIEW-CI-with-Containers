@@ -672,6 +672,10 @@
       return `https://${parts[0].toLowerCase()}.gitlab.io/${parts.slice(1).join("/")}`;
     }
 
+    function gitlabProjectUrl(projectPath) {
+      return gitlabHost() + "/" + projectPath.split("/").map(encodeURIComponent).join("/");
+    }
+
     function updateProviderUi() {
       const gitlab = isGitLab();
       const repo = $("repo");
@@ -2539,21 +2543,23 @@
     }
 
     function gitlabInstallSuccess(mr, projectPath, branchName, fileCount) {
-      setInsBar(1, "done");
+      setInsBar(null, "warn");
       const url = gitlabPagesUrl();
+      const projectUrl = gitlabProjectUrl(projectPath);
       const mrLink = mr.web_url || "#";
       const mrNum = mr.iid || mr.id || "";
-      setInsStatus(`&#10003; Done &mdash; opened GitLab merge request <a href="${esc(mrLink)}" target="_blank" rel="noopener">!${esc(mrNum)}</a> in <code class="inl">${esc(projectPath)}</code>.`, "ok");
+      setInsStatus(`&#10003; Install files are ready &mdash; opened GitLab merge request <a href="${esc(mrLink)}" target="_blank" rel="noopener">!${esc(mrNum)}</a> in <code class="inl">${esc(projectPath)}</code>. The dashboard URL can 404 until GitLab finishes the <code class="inl">pages</code> deployment.`, "warn");
       const done = [
         `Created branch <code class="inl">${esc(branchName)}</code>.`,
         `Added ${fileCount} LabVIEW CI file${fileCount === 1 ? "" : "s"}, including <code class="inl">.gitlab-ci.yml</code> and <code class="inl">.gitlab/labview-ci/</code>.`,
-        `After the merge, GitLab Pages will publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job runs.`
+        `After the merge, GitLab Pages should publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job deploys it.`
       ];
       const doneEl = $("insDone");
       if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = ""; }
       const steps = [
         `Review and merge the GitLab merge request.`,
-        `Open <strong>Build &rsaquo; Pipelines</strong> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `Open <a href="${esc(projectUrl + "/-/pipelines")}" target="_blank" rel="noopener"><strong>Build &rsaquo; Pipelines</strong></a> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `If the expected Pages URL still shows 404 after the job completes, open <a href="${esc(projectUrl + "/-/pages")}" target="_blank" rel="noopener"><strong>Deploy &rsaquo; Pages</strong></a> in GitLab and use the URL GitLab lists there.`,
         `If you instead use the command-line fallback later, run it from a local clone: <code class="inl">git clone</code>, <code class="inl">cd</code> into the repo, paste the command, then commit and push.`
       ];
       const nextEl = $("insNext");
@@ -2563,25 +2569,27 @@
     }
 
     function gitlabInitialBranchSuccess(projectPath, branchName, fileCount) {
-      setInsBar(1, "done");
+      setInsBar(null, "warn");
       const url = gitlabPagesUrl();
-      setInsStatus(`&#10003; Done &mdash; created the initial <code class="inl">${esc(branchName)}</code> branch and installed LabVIEW CI into <code class="inl">${esc(projectPath)}</code>.`, "ok");
+      const projectUrl = gitlabProjectUrl(projectPath);
+      setInsStatus(`&#10003; Install files are in GitLab &mdash; created the initial <code class="inl">${esc(branchName)}</code> branch in <code class="inl">${esc(projectPath)}</code>. The dashboard URL can 404 until GitLab finishes the <code class="inl">pages</code> deployment.`, "warn");
       const done = [
         `Created branch <code class="inl">${esc(branchName)}</code> as the project&rsquo;s initial branch.`,
         `Added ${fileCount} LabVIEW CI file${fileCount === 1 ? "" : "s"}, including <code class="inl">.gitlab-ci.yml</code> and <code class="inl">.gitlab/labview-ci/</code>.`,
-        `GitLab Pages will publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job runs.`
+        `GitLab Pages should publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job deploys it.`
       ];
       const doneEl = $("insDone");
       if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = ""; }
       const steps = [
         `Refresh GitLab and confirm <code class="inl">${esc(branchName)}</code> is the default branch. If GitLab does not set it automatically, open <strong>Settings &rsaquo; Repository &rsaquo; Branch defaults</strong> and choose it.`,
-        `Open <strong>Build &rsaquo; Pipelines</strong> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `Open <a href="${esc(projectUrl + "/-/pipelines")}" target="_blank" rel="noopener"><strong>Build &rsaquo; Pipelines</strong></a> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `If the expected Pages URL still shows 404 after the job completes, open <a href="${esc(projectUrl + "/-/pages")}" target="_blank" rel="noopener"><strong>Deploy &rsaquo; Pages</strong></a> in GitLab and use the URL GitLab lists there.`,
         `Future installer runs will use the normal merge request path now that the repository has an initial branch.`
       ];
       const nextEl = $("insNext");
       if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
       const note = $("insNote");
-      if (note) { note.innerHTML = `No merge request was needed because this GitLab project did not have an existing target branch yet. Full Windows LabVIEW jobs still need a Windows Docker GitLab Runner registered to this project or group.`; note.style.display = ""; }
+      if (note) { note.innerHTML = `No merge request was needed because this GitLab project did not have an existing target branch yet. A Pages 404 after a green pipeline usually means GitLab is still publishing, Pages access is restricted, or GitLab chose a different final Pages URL; check <strong>Deploy &rsaquo; Pages</strong> for the authoritative URL. Full Windows LabVIEW jobs still need a Windows Docker GitLab Runner registered to this project or group.`; note.style.display = ""; }
     }
 
     async function gitlabInstallToRepo() {

@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.8",
+  "version": "3.46.9",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.9",
+        "date": "2026-06-23",
+        "title": "GitLab install completion distinguishes Pages publishing",
+        "type": "patch",
+        "summary": "GitLab browser installs now report that the repository files are installed while GitLab Pages is still publishing, instead of implying the dashboard URL is immediately live. The success panel links directly to the target project's Pipelines and Deploy > Pages screens and explains that a 404 can mean the pages job has not deployed yet, access is restricted, or GitLab has assigned a different final Pages URL.",
+        "highlights": [
+          "Uses the installer warning state for GitLab installs until Pages is verified from GitLab.",
+          "Adds direct links to the target project's Pipelines and Deploy > Pages screens after GitLab install.",
+          "Explains what to check when the expected GitLab Pages dashboard URL returns 404."
+        ]
+      },
       {
         "version": "3.46.8",
         "date": "2026-06-23",
