@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.45.1",
+  "version": "3.46.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.0",
+        "date": "2026-06-23",
+        "title": "Unit Test Framework: run all projects by default, or pick specific ones by revision",
+        "type": "minor",
+        "summary": "The Unit Testing configurator now leads with a default-on \"Run every LabVIEW project found in each revision\" option for the Unit Test Framework. With it on, CI discovers and runs every .lvproj that contains tests in whatever revision is being tested - so re-running an older revision runs the projects it had then, and brand-new projects are picked up automatically without any config change. Unchecking it switches to explicit control: a revision picker lets you reach a project that only existed in an older revision (the tree is read at that commit), tick exactly the .lvproj you want, and those run in any revision where they exist while being skipped where absent. A project you tick from an old revision stays selected and is clearly marked when it is not in the latest revision.",
+        "highlights": [
+          "Default \"Run every project\" mode handles old re-runs and new projects automatically (empty locations).",
+          "Explicit mode adds a revision picker so projects that no longer exist at HEAD are still selectable.",
+          "Ticked projects run where present and are skipped where absent; selecting none falls back to running all."
+        ]
+      },
       {
         "version": "3.45.1",
         "date": "2026-06-23",
