@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ab754baf84f423355496b9b2b2ed237d7f2e9fec",
+  "sha": "a2cf0b77978d5c2cd685ff42f216cd031365a8d8",
   "revisions": [
+    {
+      "sha": "a2cf0b77978d5c2cd685ff42f216cd031365a8d8",
+      "short": "a2cf0b7",
+      "message": "dashboard: stage documentation.html so doc edits deploy",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T21:47:11Z"
+    },
+    {
+      "sha": "c93c7cd433f4af31920d2b4c89fcd1dc18ba515e",
+      "short": "c93c7cd",
+      "message": "Re-enable installs: turn off Apply-page install pause (v3.46.14)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T21:39:39Z"
+    },
     {
       "sha": "ab754baf84f423355496b9b2b2ed237d7f2e9fec",
       "short": "ab754ba",
@@ -688,20 +702,6 @@
       "message": "example: run UTF tests from Example project",
       "author": "Elijah Kerry",
       "date": "2026-06-21T15:00:06Z"
-    },
-    {
-      "sha": "7cb07731bb4ac55f2f82389cf7eb339e7389e88b",
-      "short": "7cb0773",
-      "message": "Layer Windows VIPC images on reusable VIPM base",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T14:40:13Z"
-    },
-    {
-      "sha": "29d43f043d308719c96a7a936ad7b42dd28efded",
-      "short": "29d43f0",
-      "message": "unit-tests: run UTF through native API wrapper",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T14:22:42Z"
     },
     {
       "sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf",
