@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "d651281be563f7327566c1f7c5ebf84be19950dc",
+  "sha": "920ae7aac2bf16480a2fa4929dba6cad3d27aa55",
   "revisions": [
+    {
+      "sha": "920ae7aac2bf16480a2fa4929dba6cad3d27aa55",
+      "short": "920ae7a",
+      "message": "Apply flow: fix GitLab dashboard builder indentation",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T18:41:48Z"
+    },
     {
       "sha": "d651281be563f7327566c1f7c5ebf84be19950dc",
       "short": "d651281",
@@ -695,13 +702,6 @@
       "message": "vipm: log git status/remote in vipm cwd + set GitHub env for public-repo detection (per JKI)",
       "author": "Elijah Kerry",
       "date": "2026-06-21T04:41:45Z"
-    },
-    {
-      "sha": "4a8204ae5e30db73eec909c78344d2ccac3fdd82",
-      "short": "4a8204a",
-      "message": "vipm: real git clone for CE public-repo context + VIPM_DEBUG diagnostics",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T03:28:39Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
