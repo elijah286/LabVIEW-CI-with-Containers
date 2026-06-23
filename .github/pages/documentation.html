@@ -195,26 +195,23 @@
         writes a report, deploys it to the <code>gh-pages</code> branch, and posts a commit status. A separate
         dashboard workflow reacts to those statuses and rebuilds the Pages dashboard.</p>
 
-      <div class="diagram">  commit / PR
-       │
-       ▼
-  labview-ci.reusable.yml ───────────────────────────────────────────────┐
-       │  (config job reads .github/labview-ci.yml, exposes outputs)      │
-       │                                                                  │
-       ├─ has-masscompile & os-windows ─► masscompile (windows-2022)      │
-       ├─ has-vi-analyzer  & os-linux   ─► vi-analyzer (ubuntu-latest)    │   each job:
-       ├─ has-vidiff       …            ─► vidiff                          │   1. pull image (GHCR / NI)
-       ├─ has-snapshots    …            ─► vi-snapshots                    │   2. docker run --rm
-       └─ …                                                               │   3. LabVIEW headless
-                                                                          │   4. build report (host)
-  GHCR  ghcr.io/<owner>/<repo>-labview   ◄── built by build-labview-image │   5. deploy to gh-pages
-        ghcr.io/<owner>/<repo>-toimages  ◄── built by build-toimages-image│   6. POST commit status
-  NI    nationalinstruments/labview      ◄── base layer (public)          │
-                                                                          ▼
-  status event ─► dashboard-pages.yml ─► actions/dashboard ─► gh-pages root (index.html, …)
-                                                                          │
-                                                                          ▼
-                                               GitHub Pages  ◄── your dashboard + reports</div>
+      <div class="mermaid">
+flowchart TD
+  CP["commit / PR"] --> RW["labview-ci.reusable.yml&lt;br/&gt;config job reads .github/labview-ci.yml"]
+  RW -->|"has-masscompile and os-windows"| MC["masscompile&lt;br/&gt;windows-2022"]
+  RW -->|"has-vi-analyzer and os-linux"| VA["vi-analyzer&lt;br/&gt;ubuntu-latest"]
+  RW -->|has-vidiff| VD["vidiff"]
+  RW -->|has-snapshots| SN["vi-snapshots"]
+  MC --> JOB["each job&lt;br/&gt;1. pull image (GHCR / NI)&lt;br/&gt;2. docker run --rm&lt;br/&gt;3. LabVIEW headless&lt;br/&gt;4. build report on host&lt;br/&gt;5. deploy to gh-pages&lt;br/&gt;6. post commit status"]
+  VA --> JOB
+  VD --> JOB
+  SN --> JOB
+  IMG["images&lt;br/&gt;ghcr.io/owner/repo-labview &mdash; build-labview-image&lt;br/&gt;ghcr.io/owner/repo-toimages &mdash; build-toimages-image&lt;br/&gt;nationalinstruments/labview &mdash; base layer (public)"] -.->|"pulled by"| JOB
+  JOB -->|"commit status"| ST["status event"]
+  ST --> DP["dashboard-pages.yml&lt;br/&gt;actions/dashboard"]
+  DP --> GHP["gh-pages root&lt;br/&gt;index.html, reports, snapshots"]
+  GHP --> PAGES["GitHub Pages&lt;br/&gt;your dashboard + reports"]
+</div>
 
       <p>Three deploy destinations live side by side on the <code>gh-pages</code> branch (all written with
         <code>keep_files: true</code> so they never clobber each other):</p>
