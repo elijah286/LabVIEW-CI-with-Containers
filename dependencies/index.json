@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2efcb33789c7f6a3a1ca577778c50115d58eedb7",
+  "sha": "ab754baf84f423355496b9b2b2ed237d7f2e9fec",
   "revisions": [
+    {
+      "sha": "ab754baf84f423355496b9b2b2ed237d7f2e9fec",
+      "short": "ab754ba",
+      "message": "docs: add Workflow & runner reference (section 17) with diagrams",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T20:55:44Z"
+    },
+    {
+      "sha": "000eed7bfa628d40726017475ca599514b5ce66e",
+      "short": "000eed7",
+      "message": "Fix worker build VIPC staging output indentation (v3.46.13)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T20:33:26Z"
+    },
     {
       "sha": "2efcb33789c7f6a3a1ca577778c50115d58eedb7",
       "short": "2efcb33",
@@ -695,13 +709,6 @@
       "message": "Add VIPC-baked Windows base image workflow",
       "author": "Elijah Kerry",
       "date": "2026-06-21T14:19:51Z"
-    },
-    {
-      "sha": "e75a9b1b629966d995033fcf74d461ff36ae6d63",
-      "short": "e75a9b1",
-      "message": "unit-tests(diag): dump LabVIEW CLI operations folder + probe RunUnitTests without -JUnitReportPath (isolate -350053)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T13:45:01Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
