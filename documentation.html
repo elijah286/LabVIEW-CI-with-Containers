@@ -6,6 +6,11 @@
   <title>Documentation — LabVIEW CI</title>
   <script>window.LVCI={context:'documentation'};</script>
   <script src="lvci-header.js" defer></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default', securityLevel: 'loose', flowchart: { htmlLabels: true, useMaxWidth: true } });
+  </script>
   <style>
     :root{
       --bg:#0d1117;--surface:#161b22;--surface2:#1c2230;--border:#30363d;
@@ -73,6 +78,9 @@
     .diagram{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px;
              margin:16px 0;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78em;
              line-height:1.45;white-space:pre;color:var(--fg)}
+    .mermaid{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px;
+             margin:16px 0;overflow-x:auto;text-align:center;line-height:1.4}
+    .mermaid svg{max-width:100%;height:auto}
     .pill{display:inline-block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
           padding:1px 8px;border-radius:999px;border:1px solid var(--border);color:var(--fg-muted);vertical-align:middle}
     .pill.win{color:#58a6ff;border-color:#1f6feb}
@@ -780,15 +788,12 @@ docker run --rm `
         LabVIEW containers. Every Windows job pins <code>windows-2022</code> explicitly.</div>
 
       <h3>Which runner OS a job uses</h3>
-      <div class="diagram">                       a workflow job needs to run
-                                  &boxv;
-                  &boxur;───────────────&boxvl;────────────────&boxul;
-         runs LabVIEW inside a                       no ──&blacktriangleright;  ubuntu-latest
-         WINDOWS Docker container?                          orchestration &middot; config gating
-                  &boxv; yes                                         Pages deploys &middot; releases
-                  &boxv;                                           Linux containers &middot; discovery
-                  &boxvr;──&blacktriangleright;  windows-2022                          maintenance &middot; image publishing
-         (Windows containers need the Windows Docker engine)</div>
+      <div class="mermaid">
+flowchart TD
+  A["A workflow job needs to run"] --> B{"Runs LabVIEW inside a&lt;br/&gt;Windows Docker container?"}
+  B -->|yes| W["windows-2022&lt;br/&gt;Windows container build"]
+  B -->|no| U["ubuntu-latest&lt;br/&gt;orchestration, config gating&lt;br/&gt;Pages deploys, releases&lt;br/&gt;Linux containers, discovery&lt;br/&gt;maintenance, image publishing"]
+</div>
 
       <h3>Activity fan-out — the reusable workflow gates every job</h3>
       <p><code>labview-ci.reusable.yml</code> is where repo settings decide which jobs run. A single <code>config</code>
@@ -797,36 +802,33 @@ docker run --rm `
         for this commit is rebuilt. Each activity job runs only when <em>both</em> its capability flag and its platform
         flag are true — toggling either in <strong>Configure Workers</strong> turns the job on or off with no workflow
         edits.</p>
-      <div class="diagram"> commit / PR / workflow_dispatch
-           &boxv;
-           &boxvr;──&blacktriangleright;  config (ubuntu-latest)        reads .github/labview-ci.yml ─&blacktriangleright; has-&lt;cap&gt;, os-windows, os-linux
-           &boxv;
-           &boxvr;──&blacktriangleright;  gate-images (ubuntu-latest)   waits for this SHA's worker-image rebuild (if any)
-           &boxv;
-           &boxv;   each activity runs ONLY when  has-&lt;cap&gt; == true  AND  os-&lt;platform&gt; == true
-           &boxvr;──&blacktriangleright;  mass-compile     windows-2022   if has-masscompile &amp; os-windows
-           &boxvr;──&blacktriangleright;  mass-compile     ubuntu-latest  if has-masscompile &amp; os-linux
-           &boxvr;──&blacktriangleright;  vi-analyzer      win / linux    if has-vi-analyzer  &amp; os-&lt;platform&gt;
-           &boxvr;──&blacktriangleright;  vidiff           win / linux    if has-vidiff       &amp; os-&lt;platform&gt;
-           &boxur;──&blacktriangleright;  snapshots        windows-2022   if has-snapshots    &amp; os-windows</div>
+      <div class="mermaid">
+flowchart TD
+  T["commit / PR / workflow_dispatch"] --> C["config &middot; ubuntu-latest&lt;br/&gt;reads .github/labview-ci.yml"]
+  C --> G["gate-images &middot; ubuntu-latest&lt;br/&gt;waits for this SHA's worker-image rebuild"]
+  G --> M1["mass-compile &middot; windows-2022&lt;br/&gt;if has-masscompile and os-windows"]
+  G --> M2["mass-compile &middot; ubuntu-latest&lt;br/&gt;if has-masscompile and os-linux"]
+  G --> V["vi-analyzer &middot; win / linux&lt;br/&gt;if has-vi-analyzer and os-platform"]
+  G --> D["vidiff &middot; win / linux&lt;br/&gt;if has-vidiff and os-platform"]
+  G --> S["snapshots &middot; windows-2022&lt;br/&gt;if has-snapshots and os-windows"]
+</div>
 
       <h3>Image build — gate, coordinate, then the heavy lift</h3>
       <p>The Windows worker image build (<code>build-labview-image.yml</code>) is a three-job run, and only the last
         job is on Windows. The two Ubuntu jobs first decide <em>whether</em> to rebuild and <em>safely when</em>, so the
         expensive Windows runner is reserved for the actual Docker build.</p>
-      <div class="diagram"> push(**.vipc) / monthly cron / workflow_dispatch
-              &boxv;
-              &boxvr;──&blacktriangleright;  gate (ubuntu-latest)         "should we rebuild?"
-              &boxv;         dispatch / cron ........... build
-              &boxv;         a worker input changed .... build
-              &boxv;         only monitor:false .vipc .. SKIP (bake-once / pin)
-              &boxv;
-              &boxvr;──&blacktriangleright;  coordinate (ubuntu-latest)   drain or cancel CI started BEFORE this build
-              &boxv;
-              &boxur;──&blacktriangleright;  build-and-push (windows-2022)
-                        Prepare LCWC base ─&blacktriangleright; no VIPC: copy/tag base (seconds)
-                                           ─&blacktriangleright; VIPC:    build dependency layer (slow)
-                        ─&blacktriangleright; push tags ─&blacktriangleright; worker manifest ─&blacktriangleright; gh-pages</div>
+      <div class="mermaid">
+flowchart TD
+  T["push **.vipc / monthly cron / workflow_dispatch"] --> G{"gate &middot; ubuntu-latest&lt;br/&gt;should we rebuild?"}
+  G -->|"only monitor:false .vipc"| SK["skip &mdash; bake-once / pin"]
+  G -->|"dispatch / cron / worker input changed"| CO["coordinate &middot; ubuntu-latest&lt;br/&gt;drain or cancel in-flight CI"]
+  CO --> B["build-and-push &middot; windows-2022"]
+  B --> P{"Prepare LCWC base"}
+  P -->|"no VIPC"| CP["copy / tag base &mdash; seconds"]
+  P -->|VIPC| BD["build dependency layer &mdash; slow"]
+  CP --> PU["push tags &rarr; worker manifest &rarr; gh-pages"]
+  BD --> PU
+</div>
       <div class="note"><span class="lbl">Linux image builds differ</span>
         The Linux worker image (<code>build-labview-linux-image.yml</code>) keeps the gate job but builds on
         <code>ubuntu-latest</code> — Linux containers build on a Linux runner. The Linux&nbsp;Beta and the VI&nbsp;Browser
