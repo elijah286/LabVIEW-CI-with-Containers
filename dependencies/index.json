@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "6ec5d4fec2a0a9cb0a6b65d2e449a900ac4f80ac",
+  "sha": "1941eb35dda9c273d63d9fd5542a42bceba08302",
   "revisions": [
+    {
+      "sha": "1941eb35dda9c273d63d9fd5542a42bceba08302",
+      "short": "1941eb3",
+      "message": "Enable forced snapshot reruns from dashboard history",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T01:02:12Z"
+    },
     {
       "sha": "6ec5d4fec2a0a9cb0a6b65d2e449a900ac4f80ac",
       "short": "6ec5d4f",
@@ -695,13 +702,6 @@
       "message": "worker: use correct vipm CLI flags (--refresh global option, drop invalid -y)",
       "author": "Elijah Kerry",
       "date": "2026-06-20T14:19:03Z"
-    },
-    {
-      "sha": "5da6681c882325b5b588c80dfaa0657844624b4d",
-      "short": "5da6681",
-      "message": "worker: install VIPM tooling headlessly in Community Edition (fixes UTF -350053)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T13:37:43Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
