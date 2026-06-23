@@ -178,16 +178,52 @@
     body.lens-report #viewer{display:none}
     body.lens-report #lens-bar{display:flex}
     body.lens-report #lens-frame{display:block}
+    /* ── Mobile drawer controls (hidden on desktop; the @media block below turns
+       them on at narrow widths) ── */
+    #mobile-files{display:none;align-items:center;gap:6px;border:1px solid var(--border);
+                  border-radius:7px;background:var(--bg);color:var(--fg);font:inherit;
+                  font-weight:600;font-size:.9em;padding:4px 10px;cursor:pointer}
+    #mobile-files:hover{background:var(--sidebar-hover)}
+    #mobile-files svg{width:15px;height:15px;flex:0 0 auto}
+    #vb-files-close{display:none}
+    #vb-scrim{display:none}
     @media (max-width:720px){
       body{flex-direction:column;height:100dvh;overflow:hidden}
-      #sidebar{width:100%;min-width:0;max-height:42dvh;border-right:0;border-bottom:1px solid var(--border)}
-      #sidebar-header{padding:10px 12px}
+      /* The VI tree becomes an off-canvas drawer so the snapshot / block diagram
+         gets the whole screen. The toolbar "VIs" button opens it; the scrim, the
+         drawer's own close button, or picking a VI collapses it. Revision
+         switching lives in the always-visible header context bar, so navigation
+         and switching document types never depend on the drawer. */
+      #sidebar{position:fixed;top:var(--lvh-h,0px);bottom:0;left:0;z-index:260;
+               width:min(86vw,340px);max-height:none;min-width:0;
+               border-right:1px solid var(--border);border-bottom:0;
+               transform:translateX(-105%);transition:transform .22s ease;
+               box-shadow:2px 0 18px rgba(0,0,0,.45)}
+      body.vb-files-open #sidebar{transform:translateX(0)}
+      #sidebar-header{padding:10px 44px 10px 12px;position:relative}
       #vi-list{min-height:120px}
+      #vb-scrim{display:block;position:fixed;inset:var(--lvh-h,0px) 0 0 0;z-index:255;
+                background:rgba(1,4,9,.5);opacity:0;pointer-events:none;transition:opacity .22s ease}
+      body.vb-files-open #vb-scrim{opacity:1;pointer-events:auto}
+      #vb-files-close{display:inline-flex;align-items:center;justify-content:center;
+                      position:absolute;top:8px;right:8px;width:30px;height:30px;
+                      border:1px solid var(--border);border-radius:7px;background:var(--bg);
+                      color:var(--fg-muted);font-size:1em;line-height:1;cursor:pointer}
+      #vb-files-close:hover{color:var(--fg);background:var(--sidebar-hover)}
       .lvci-ctxbar #commit-select{max-width:100%;min-width:0;width:100%}
       #main{min-height:0;min-width:0}
-      #toolbar,#lens-bar{padding:8px 10px;gap:8px}
-      #viewer-toggle-label{flex-basis:100%}
-      #viewer-hint,#lens-bar #lens-open{margin-left:0}
+      /* Compact, horizontally-scrollable toolbar keeps the controls to one slim
+         row so the viewer keeps its height. */
+      #toolbar{padding:7px 10px;gap:7px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;
+               -webkit-overflow-scrolling:touch;scrollbar-width:none}
+      #toolbar::-webkit-scrollbar{display:none}
+      #toolbar>*{flex:0 0 auto}
+      #mobile-files{display:inline-flex;position:sticky;left:0;z-index:1}
+      #viewer-toggle-label{display:none}
+      #viewer-hint{display:none}
+      #vi-title{max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      #lens-bar{padding:8px 10px;gap:8px}
+      #lens-bar #lens-open{margin-left:auto}
       #viewer{min-height:220px}
       #vi-diffrun{padding:18px 14px}
     }
@@ -197,6 +233,7 @@
 
 <div id="sidebar">
   <div id="sidebar-header">
+    <button type="button" id="vb-files-close" aria-label="Close the VI list" title="Close">&#10005;</button>
     <h1>VI Browser</h1>
     <select id="commit-select"><option value="">Loading commits…</option></select>
     <input id="search" type="search" placeholder="Filter VIs…">
@@ -214,6 +251,7 @@
 
 <div id="main">
   <div id="toolbar">
+    <button type="button" id="mobile-files" aria-expanded="false" aria-label="Show or hide the VI list" title="Show or hide the VI list"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 3.5h12v2H2zM2 7h12v2H2zM2 10.5h12v2H2z"/></svg>VIs</button>
     <span id="viewer-toggle-label">Viewer</span>
     <span id="viewer-toggle" title="Switch between the classic VI Browser (1.0), the in-place renderer (2.0), and this VI's side-by-side diff">
       <button type="button" data-viewer="1" title="1.0 — classic gallery: front panel + block diagram, with each structure's cases in a stepper below the diagram">1.0</button>
@@ -314,6 +352,9 @@
   <iframe id="lens-frame" title="CI report"></iframe>
   <div id="lens-loading"><span class="spinner"></span><span>Loading report&hellip;</span></div>
 </div>
+
+<!-- Mobile: dim scrim behind the VI-list drawer; tap to close. -->
+<div id="vb-scrim"></div>
 
 <script src="vi-render.js"></script>
 <script>
@@ -1291,6 +1332,7 @@ function setPlatformToggle(viRel) {
 }
 
 function openVI(row) {
+  vbCloseFilesDrawer();                  // collapse the mobile VI-list drawer once a VI is chosen
   setActiveRow(row);
   currentDiffRow = row;
   currentDiffVi = null;
@@ -1310,6 +1352,7 @@ function openVI(row) {
 // Open a changed VI's side-by-side diff report (from the selected container), or
 // its snapshot when no diff report exists. Wires the toolbar link + platform switch.
 function openDiff(viRel, type, row) {
+  vbCloseFilesDrawer();                  // collapse the mobile VI-list drawer once a diff is chosen
   const chgInfo = changeMap[viRel];
   // A NEW VI has no previous version to diff against. The tree badge opens its
   // snapshot and the Diff toggle is disabled for it, so this is reachable only via
@@ -1685,6 +1728,39 @@ document.getElementById('changed-only').addEventListener('change', e => {
   syncUrl();
   renderList(document.getElementById('search').value);
 });
+// ── Mobile VI-list drawer ────────────────────────────────────────────────
+// On narrow screens the VI tree is an off-canvas drawer so the viewer fills the
+// screen. The toolbar "VIs" button toggles it; the scrim, the drawer's close
+// button, or selecting a VI collapses it. On desktop the toggle is hidden, so the
+// body class is never set and the sidebar stays a normal column (workflow intact).
+function vbFilesDrawerOpen() {
+  document.body.classList.add('vb-files-open');
+  const b = document.getElementById('mobile-files');
+  if (b) b.setAttribute('aria-expanded', 'true');
+}
+function vbCloseFilesDrawer() {
+  if (!document.body.classList.contains('vb-files-open')) return;
+  document.body.classList.remove('vb-files-open');
+  const b = document.getElementById('mobile-files');
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+function vbToggleFilesDrawer() {
+  if (document.body.classList.contains('vb-files-open')) vbCloseFilesDrawer();
+  else vbFilesDrawerOpen();
+}
+(function wireFilesDrawer() {
+  const t = document.getElementById('mobile-files'); if (t) t.addEventListener('click', vbToggleFilesDrawer);
+  const c = document.getElementById('vb-files-close'); if (c) c.addEventListener('click', vbCloseFilesDrawer);
+  const s = document.getElementById('vb-scrim'); if (s) s.addEventListener('click', vbCloseFilesDrawer);
+  // Leaving the mobile breakpoint (e.g. rotate to landscape) clears the drawer so
+  // it can never strand an open overlay on a wide layout.
+  if (window.matchMedia) {
+    const mq = window.matchMedia('(max-width:720px)');
+    const onChange = () => { if (!mq.matches) vbCloseFilesDrawer(); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
+  }
+})();
+
 document.getElementById('expand-all').addEventListener('click', () => {
   if (treeRoot) allFolderPaths(treeRoot).forEach(p => expanded.add(p));
   renderList(document.getElementById('search').value);

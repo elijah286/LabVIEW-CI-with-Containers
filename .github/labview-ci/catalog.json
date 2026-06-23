@@ -1,11 +1,24 @@
 {
   "schemaVersion": 1,
-  "version": "3.45.0",
+  "version": "3.45.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.45.1",
+        "date": "2026-06-23",
+        "title": "VI Browser is usable on phones and small screens",
+        "summary": "The VI Browser now adapts to narrow screens so the snapshot and block diagram get the whole viewport. On phones the VI tree becomes an off-canvas drawer that opens with a \"VIs\" button and closes when you pick a VI (or tap the dimmed backdrop), and the viewer toolbar collapses to a single slim, horizontally scrollable row. The desktop layout is unchanged, and switching revisions or other document types still uses the always-visible shared header.",
+        "highlights": [
+          "On small screens the VI file tree slides in as an off-canvas drawer instead of permanently occupying the top of the screen, so the open VI fills the viewport",
+          "A \"VIs\" toggle in the viewer toolbar opens the tree; selecting a VI, tapping the backdrop, or the drawer's close button collapses it again",
+          "The viewer toolbar (1.0 / 2.0 / Diff and the front-panel / block-diagram switches) becomes one compact, horizontally scrollable row to free up vertical space",
+          "Revision switching and navigation to other document types stay in the always-visible header, so the drawer is never needed to move around the site",
+          "Desktop layout and workflow are unchanged"
+        ]
+      },
       {
         "version": "3.45.0",
         "date": "2026-06-23",
