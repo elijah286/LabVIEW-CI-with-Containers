@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.4",
+  "version": "3.46.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.5",
+        "date": "2026-06-23",
+        "title": "GitLab browser installs tolerate empty repository trees",
+        "type": "patch",
+        "summary": "Fixes the GitLab browser install path when GitLab returns 404 Tree Not Found while reading the target repository tree. The installer now resolves the default branch to a commit SHA before listing files and treats a missing tree as an empty inventory, so fresh GitLab projects can continue to the install commit and merge request instead of reporting a misleading token visibility error.",
+        "highlights": [
+          "Reads the GitLab default branch commit before listing repository files.",
+          "Treats GitLab 404 Tree Not Found during file inventory as an empty repository tree.",
+          "Prevents the Apply page from mislabeling this GitLab tree response as a token visibility problem."
+        ]
+      },
       {
         "version": "3.46.4",
         "date": "2026-06-23",

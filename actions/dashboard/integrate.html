@@ -2310,10 +2310,25 @@
       return { files, activities, osList, version };
     }
 
-    async function gitlabExistingPaths(projectKey, branch) {
+    async function gitlabBranchTreeRef(projectKey, branch) {
+      try {
+        const br = await glWrite(`/projects/${projectKey}/repository/branches/${encodeURIComponent(branch)}`, null, "read your GitLab default branch");
+        return (br && br.commit && br.commit.id) || branch;
+      } catch (_) {
+        return branch;
+      }
+    }
+
+    async function gitlabExistingPaths(projectKey, treeRef) {
       const paths = new Set();
       for (let page = 1; page <= 20; page++) {
-        const tree = await glWrite(`/projects/${projectKey}/repository/tree?ref=${encodeURIComponent(branch)}&recursive=true&per_page=100&page=${page}`, null, "list your GitLab repository files");
+        let tree;
+        try {
+          tree = await glWrite(`/projects/${projectKey}/repository/tree?ref=${encodeURIComponent(treeRef)}&recursive=true&per_page=100&page=${page}`, null, "list your GitLab repository files");
+        } catch (e) {
+          if (e && e.status === 404 && /tree not found/i.test(e.glMessage || e.message || "")) return paths;
+          throw e;
+        }
         if (!Array.isArray(tree) || !tree.length) break;
         tree.filter(t => t && t.type === "blob" && t.path).forEach(t => paths.add(t.path));
         if (tree.length < 100) break;
@@ -2389,8 +2404,9 @@
         const branchName = INSTALL_BRANCH + "-" + Date.now().toString(36);
         const built = await collectGitLabInstallFiles();
 
-        setInsStatus("Reading your GitLab repository&hellip;", null);
-        const existingPaths = await gitlabExistingPaths(projectKey, defaultBranch);
+          setInsStatus("Reading your GitLab repository&hellip;", null);
+          const treeRef = await gitlabBranchTreeRef(projectKey, defaultBranch);
+          const existingPaths = await gitlabExistingPaths(projectKey, treeRef);
         const acts = built.activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
         const commitMessage = `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})`;
         const actions = gitlabCommitActions(built.files, existingPaths);
