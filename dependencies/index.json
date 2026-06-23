@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "60764e773522b0e6d9a33eea6bd8ad0cfcfb2a9c",
+  "sha": "7e678a7003be76df236d8a6f0afe417bc83637d4",
   "revisions": [
+    {
+      "sha": "7e678a7003be76df236d8a6f0afe417bc83637d4",
+      "short": "7e678a7",
+      "message": "Keep capability chooser closed on load",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T17:13:30Z"
+    },
     {
       "sha": "60764e773522b0e6d9a33eea6bd8ad0cfcfb2a9c",
       "short": "60764e7",
@@ -695,13 +702,6 @@
       "message": "VIPM: pre-launch VIPM engine before install (fix 'wait for VIPM startup' timeout); skip redundant fallback on engine-startup timeout",
       "author": "Elijah Kerry",
       "date": "2026-06-21T00:17:15Z"
-    },
-    {
-      "sha": "6684a122fabb188f9e35591824691b5323b7bf98",
-      "short": "6684a12",
-      "message": "Activity switcher: grouped lenses + deep-link opens the dropdown on the right one (v3.30.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T00:10:03Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
