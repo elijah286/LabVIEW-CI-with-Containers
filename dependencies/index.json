@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "c0de54f6ffa994a0197898f856fdcbd100776555",
+  "sha": "9c822baa93f3e9fedc344534b39a3c941344587c",
   "revisions": [
+    {
+      "sha": "9c822baa93f3e9fedc344534b39a3c941344587c",
+      "short": "9c822ba",
+      "message": "Align populate history activity controls",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T02:05:20Z"
+    },
+    {
+      "sha": "6ce94e199f88bd339c723208ed6d5e9b7eb00a4e",
+      "short": "6ce94e1",
+      "message": "Clarify 2.0 snapshot reruns in Actions",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T01:46:45Z"
+    },
     {
       "sha": "c0de54f6ffa994a0197898f856fdcbd100776555",
       "short": "c0de54f",
@@ -688,20 +702,6 @@
       "message": "catalog: add the release entry for the VI Browser back-link removal (v3.24.4)",
       "author": "Elijah Kerry",
       "date": "2026-06-20T15:08:22Z"
-    },
-    {
-      "sha": "14003c01b0dbe4d6a925988c80bbf77926bff333",
-      "short": "14003c0",
-      "message": "VI Browser: drop the redundant \"CI Dashboard\" sidebar back-link (v3.24.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T15:06:40Z"
-    },
-    {
-      "sha": "1abc5a9fa27d4d7eee8a309fdca374218f96d142",
-      "short": "1abc5a9",
-      "message": "worker: seed VIPM Settings.ini so vipm install works in a fresh image",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T14:56:03Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
