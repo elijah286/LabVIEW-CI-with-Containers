@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.41.1",
+  "version": "3.41.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.41.2",
+        "date": "2026-06-22",
+        "title": "Align Populate History activity controls",
+        "type": "patch",
+        "summary": "Populate History activity rows now keep Skip/Fill/Re-run controls in a consistent right-side lane, including rows that also show Windows/Linux platform toggles.",
+        "highlights": [
+          "Changed the activity rows from wrapping flex layout to a fixed grid so mode controls align consistently.",
+          "Rows with platform selectors place Windows/Linux choices above the same right-aligned mode control instead of pushing some controls left.",
+          "Compact layouts stack controls cleanly without reserving an empty platform row for single-platform activities."
+        ]
+      },
       {
         "version": "3.41.1",
         "date": "2026-06-23",
