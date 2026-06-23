@@ -222,6 +222,13 @@ LV_SOURCE_EXTS = (
 # CI-vs-project split correct even though the tooling itself ships VIs.
 TOOLING_PREFIXES = ('.github/', 'actions/', '_lvci/', 'ci-out/', 'build/')
 
+# External dependency manifests (VI Package Configuration / VI Package). A
+# revision whose ONLY project-source change is to these touches no actual VIs
+# or LabVIEW code — it just bumps the add-on dependencies the project pulls in.
+# These can be filtered out of the dashboard (they never get per-VI CI results
+# unless dependency-change CI is enabled — see config.triggers.onDependencyChange).
+DEP_EXTS = ('.vipc', '.vip')
+
 # ── Classify a commit: does it touch project LabVIEW source? ─────
 # Cached so the paged fetch below and the row loop share ONE detail call per
 # commit (the file list comes from the per-commit endpoint).
@@ -231,10 +238,16 @@ def classify_commit(sha):
         return _classify_cache[sha]
     detail = gh_get(f'commits/{sha}') or {}
     files = [f['filename'] for f in (detail.get('files') or [])]
-    is_proj = any(
-        f.lower().endswith(LV_SOURCE_EXTS) and not f.startswith(TOOLING_PREFIXES)
-        for f in files)
-    info = {'files': files, 'is_project': is_proj}
+    # Project LabVIEW source touched by this commit (excluding the CI tooling's
+    # own helper VIs under .github/, actions/, etc.).
+    proj_src = [f for f in files
+                if f.lower().endswith(LV_SOURCE_EXTS) and not f.startswith(TOOLING_PREFIXES)]
+    is_proj = bool(proj_src)
+    # A "dependency-only" revision is a project revision whose every project-source
+    # change is an external dependency manifest (.vipc/.vip) — i.e. no real VI,
+    # control, class, library or project file changed.
+    is_dep_only = is_proj and all(f.lower().endswith(DEP_EXTS) for f in proj_src)
+    info = {'files': files, 'is_project': is_proj, 'is_dep_only': is_dep_only}
     _classify_cache[sha] = info
     return info
 
@@ -520,6 +533,9 @@ for c in commits_data:
     files = _info['files']
     is_project = _info['is_project']
     proj_flag = 'true' if is_project else 'false'
+    # Dependency-only revisions (only .vipc/.vip changed) can be filtered out of
+    # the dashboard via the "Include dependency-only revisions" toggle.
+    dep_only_flag = 'true' if _info.get('is_dep_only') else 'false'
 
     # Record this revision's VI file tree for the VI Browser (project revisions
     # only — CI/tooling commits don't change the VI set, so they would just
@@ -813,7 +829,7 @@ for c in commits_data:
     _browse = f'{pages_url}/vi-snapshots/index.html?sha={sha}'
 
     rows_html.append(f"""
-    <tr data-project="{proj_flag}">
+    <tr data-project="{proj_flag}" data-deponly="{dep_only_flag}">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:{_av_bg}" title="{html.escape(author)}" aria-hidden="true">{html.escape(_av_initial)}</span>
@@ -904,6 +920,28 @@ try:
             if _cv.isdigit():
                 lvci_max_parallel = int(_cv)
             break
+except Exception:
+    pass
+
+# Whether a dependency-only change re-runs the pipeline (config.triggers.
+# onDependencyChange, default off). When ON, dependency-only revisions DO get
+# CI results, so the dashboard shows them by default; when OFF they never get
+# per-VI results, so they are filtered out by default. Either way the user can
+# flip the "Include dependency-only revisions" toggle on the page.
+lvci_dep_ci_on = False
+try:
+    _in_trig = False
+    for _tline in open('.github/labview-ci.yml', encoding='utf-8'):
+        if re.match(r'^\s*triggers:\s*$', _tline):
+            _in_trig = True
+            continue
+        if _in_trig:
+            _tm = re.match(r'^\s{4}onDependencyChange:\s*(\S+)', _tline)
+            if _tm:
+                lvci_dep_ci_on = (_tm.group(1).strip().lower() == 'true')
+                break
+            if re.match(r'^\s{0,3}\S', _tline):
+                _in_trig = False
 except Exception:
     pass
 lvci_is_source = (not lvci_src_repo) or (lvci_src_repo.lower() == repo.lower())
@@ -2636,6 +2674,10 @@ html = f"""<!DOCTYPE html>
       <input type="checkbox" id="show-nonproject">
       Include CI-only revisions
     </label>
+    <label class="cidash-check" for="show-deponly" title="Revisions whose only change is an external dependency (.vipc/.vip). They get CI results only when dependency-change CI is enabled.">
+      <input type="checkbox" id="show-deponly"{' checked' if lvci_dep_ci_on else ''}>
+      Include dependency-only revisions
+    </label>
     <div class="cidash-colmenu">
       <button type="button" id="cidash-colbtn" class="cidash-colbtn" aria-haspopup="true" aria-expanded="false">&#9783; Columns &#9662;</button>
       <div id="cidash-colpanel" class="cidash-colpanel" role="menu" hidden></div>
@@ -2686,6 +2728,7 @@ html = f"""<!DOCTYPE html>
   <script>
     (() => {{
       const checkbox = document.getElementById('show-nonproject');
+      const depCheckbox = document.getElementById('show-deponly');
       const rows = document.querySelectorAll('tbody tr[data-project]');
       const emptyState = document.getElementById('empty-state');
       const noresults = document.getElementById('cidash-noresults');
@@ -2701,13 +2744,18 @@ html = f"""<!DOCTYPE html>
         if (row.querySelector('.cidash-chip')) return 'pass';
         return 'none';
       }};
-      // A row shows when it passes the CI-only toggle AND the search text AND the
-      // status filter (composed, so the three controls stack).
+      // A row shows when it passes the CI-only toggle AND the dependency-only
+      // toggle AND the search text AND the status filter (composed, so all the
+      // controls stack). Dependency-only revisions (only .vipc/.vip changed) are
+      // hidden unless their toggle is on — its default follows whether
+      // dependency-change CI is enabled.
       const applyFilter = () => {{
         let visible = 0;
         rows.forEach((row) => {{
           const isProject = row.getAttribute('data-project') === 'true';
+          const isDepOnly = row.getAttribute('data-deponly') === 'true';
           let show = isProject || checkbox.checked;
+          if (show && isDepOnly && depCheckbox && !depCheckbox.checked) show = false;
           if (show && term) show = row.textContent.toLowerCase().includes(term);
           if (show && statusFilter !== 'all') show = rowStatus(row) === statusFilter;
           row.style.display = show ? '' : 'none';
@@ -2718,6 +2766,7 @@ html = f"""<!DOCTYPE html>
         if (noresults)  noresults.style.display  = (!visible &&  filtering) ? '' : 'none';
       }};
       checkbox.addEventListener('change', applyFilter);
+      if (depCheckbox) depCheckbox.addEventListener('change', applyFilter);
       if (search) search.addEventListener('input', () => {{ term = search.value.trim().toLowerCase(); applyFilter(); }});
       segBtns.forEach((b) => b.addEventListener('click', () => {{
         segBtns.forEach((x) => x.classList.remove('on'));

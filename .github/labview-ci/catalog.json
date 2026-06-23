@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.40.0",
+  "version": "3.41.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.41.0",
+        "date": "2026-06-23",
+        "title": "Optional dependency-change CI + a dashboard filter for dependency-only revisions",
+        "summary": "Changing a committed .vipc still rebuilds the worker container as before; now you can also opt in to re-running the build/test/doc pipeline against the rebuilt image, so the project is re-validated whenever its dependencies change. A new dashboard toggle filters out revisions whose only change is an external dependency (.vipc/.vip). Both are off by default and set on the Configure page (config.triggers.onDependencyChange).",
+        "highlights": [
+          "Configure > When dependencies change: opt in to re-run Mass Compile, VI Analyzer, Unit Tests and Antidoc for a revision after a .vipc change (VIDiff and Snapshots are skipped - a dependency-only change touches no VIs). Off by default.",
+          "build-labview-image.yml dispatches those activities once the worker image has rebuilt - only when config.triggers.onDependencyChange is true, and only on a real project .vipc push (not the monthly base rebuild).",
+          "Dashboard: a new \"Include dependency-only revisions\" toggle hides revisions that only bump external dependencies; its default follows whether dependency-change CI is enabled."
+        ]
+      },
       {
               "version": "3.40.0",
               "date": "2026-06-22",

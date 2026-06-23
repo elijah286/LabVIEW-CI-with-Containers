@@ -537,3 +537,94 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Worker version:** \`${{ steps.ver.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "[Worker manifest](${{ env.PAGES_URL }}/workers/windows/${{ steps.ver.outputs.version }}/manifest.html)" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Re-validate the project after a dependency change (opt-in) ───────────────
+  # A push that changes a project .vipc rebuilds the worker image above. By
+  # default nothing else re-runs: the per-activity workflows trigger on **.vi
+  # paths, not .vipc, so a dependency bump is never re-checked against the new
+  # image. When the project opts in with config.triggers.onDependencyChange: true,
+  # dispatch the build/test/doc activities for this commit AFTER the fresh image
+  # exists, re-validating the project against its new dependencies. VIDiff and
+  # Snapshots are skipped on purpose: a dependency-only commit changes no VI
+  # content, so a diff/snapshot run has nothing new to render. Off by default;
+  # flip it on the Configure page. (Only fires on a real .vipc push, not the
+  # monthly base-image rebuild or a manual dispatch.)
+  revalidate:
+    needs: build-and-push
+    if: ${{ github.event_name == 'push' && needs.build-and-push.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write     # dispatch the per-activity workflows
+      contents: read     # read .github/labview-ci.yml + see which workflows exist
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Re-run the pipeline when dependency-change CI is enabled
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.sha }}
+          REF: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess, pathlib
+
+          def on_dep_change():
+              cfg = pathlib.Path('.github/labview-ci.yml')
+              if not cfg.exists():
+                  return False
+              in_trig = False
+              for line in cfg.read_text(encoding='utf-8').splitlines():
+                  if re.match(r'^\s*triggers:\s*$', line):
+                      in_trig = True; continue
+                  if in_trig:
+                      m = re.match(r'^\s{4}onDependencyChange:\s*(\S+)', line)
+                      if m:
+                          return m.group(1).strip().lower() == 'true'
+                      if re.match(r'^\s{0,3}\S', line):
+                          in_trig = False
+              return False
+
+          head = os.environ.get('HEAD_SHA', '')
+          ref = os.environ.get('REF', '') or 'main'
+          summary = os.environ.get('GITHUB_STEP_SUMMARY')
+          def note(line):
+              if summary:
+                  with open(summary, 'a', encoding='utf-8') as f:
+                      f.write(line + '\n')
+
+          if not on_dep_change():
+              print('config.triggers.onDependencyChange is off -> nothing to re-run.')
+              note('Dependency-change CI is off. Enable it on the Configure page '
+                   '(config.triggers.onDependencyChange) to re-validate the project '
+                   'whenever its dependencies change.')
+              raise SystemExit(0)
+
+          # Re-validate against the freshly rebuilt worker image. Build / test /
+          # doc activities only -- VIDiff and Snapshots are keyed by VI content and
+          # a dependency-only commit changes no VI, so they have nothing new to do.
+          activities = [
+              'masscompile-windows-container.yml',
+              'run-vi-analyzer-windows-container.yml',
+              'unit-tests-windows-container.yml',
+              'run-antidoc-windows-container.yml',
+          ]
+          note('### Dependency change: re-validating the project')
+          note('')
+          note('Worker image rebuilt for the new dependencies; re-running the pipeline for `%s`.' % head)
+          dispatched = 0
+          for wf in activities:
+              if not pathlib.Path('.github/workflows', wf).exists():
+                  continue
+              r = subprocess.run(
+                  ['gh', 'workflow', 'run', wf, '--ref', ref, '-f', 'commit_sha=' + head],
+                  capture_output=True, text=True)
+              if r.returncode == 0:
+                  print('dispatched', wf, 'for', head)
+                  note('- `%s`' % wf)
+                  dispatched += 1
+              else:
+                  print('::warning::could not dispatch %s: %s' % (wf, (r.stderr or r.stdout).strip()))
+          print('Dispatched %d activity workflow(s).' % dispatched)
+          if dispatched == 0:
+              print('::notice::dependency-change CI is on, but no per-activity workflows are installed to dispatch.')
+          PY
