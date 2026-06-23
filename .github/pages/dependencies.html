@@ -14,6 +14,25 @@
   <style>
     .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}.dep-panel table{table-layout:fixed}.dep-panel th:first-child{width:auto}.dep-panel th.dep-col,.dep-panel td.cell{width:112px;min-width:112px;max-width:112px;text-align:center;vertical-align:middle}.dep-panel th.dep-col{padding-left:6px;padding-right:6px}.dep-check{width:16px;height:16px;margin:0;accent-color:var(--ok);opacity:1;vertical-align:middle}.dep-check:disabled{opacity:1}.dep-empty{display:inline-block;width:16px;height:16px}.dep-na{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;font-size:.72em;font-weight:700;color:var(--fg-muted);letter-spacing:.02em}.dep-bang{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--bad);color:#fff;font-weight:800;font-size:11px;line-height:1}.dragon-file td{background:var(--surface);font-weight:600}.dragon-sep td{padding-top:14px}.exp-head{background:none;border:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}.exp-head .exp-name{border-bottom:1px dotted currentColor}.exp-head .exp-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-style:normal;line-height:1;font-weight:700}.exp-head:hover{color:var(--link)}.col-head{display:inline-flex;align-items:center;justify-content:center;gap:6px}.col-head .exp-head{width:auto}.col-link{color:inherit;text-decoration:none;border-bottom:1px dotted currentColor}.col-link:hover{color:var(--link);border-bottom-color:var(--link)}.exp-pop{position:fixed;width:320px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:60;font-size:.84em;font-weight:400;line-height:1.5;color:var(--fg);text-transform:none;letter-spacing:normal}.exp-pop .exp-pop-h{display:block;margin-bottom:5px;font-size:1.02em}
   </style>
+  <style>
+    .upd{border:1px solid rgba(210,153,34,.55);background:rgba(210,153,34,.10);border-radius:10px;padding:16px 18px;margin:6px 0 18px}
+    .upd.hidden{display:none}
+    .upd-h{margin:0 0 4px;font-size:1.12em}
+    .upd-sub{margin:0 0 12px;color:var(--fg-muted);font-size:.9em}
+    .upd-block{margin:10px 0}
+    .upd-k{color:var(--fg-muted);font-size:.74em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+    .upd-pills{display:flex;flex-wrap:wrap;gap:5px}
+    .upd-pill{display:inline-block;font-size:.82em;padding:2px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--fg)}
+    .upd-pill.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78em}
+    .upd-exp{margin:12px 0}
+    .upd-radio{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-size:.9em;cursor:pointer}
+    .upd-radio input{margin-top:3px}
+    .upd-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px}
+    .upd-btn{display:inline-block;padding:9px 16px;border-radius:7px;background:var(--accent);color:var(--accent-fg);font-weight:600;font-size:.9em;text-decoration:none}
+    .upd-btn:hover{filter:brightness(1.06);text-decoration:none}
+    .upd-hint{color:var(--fg-muted);font-size:.82em;max-width:520px}
+    .upd-hint code{background:var(--chip);padding:1px 5px;border-radius:4px;font-family:ui-monospace,Menlo,monospace}
+  </style>
 </head>
 <body>
   <main class="wrap">
@@ -35,6 +54,7 @@
       <div class="card"><div class="k">VIPC Files</div><div class="v" id="vipcCard">-</div></div>
     </div>
     <div class="note hidden" id="status"></div>
+    <div id="updatePanel" class="upd hidden" role="region" aria-label="Dependency update needed"></div>
     <div class="dep-tabs" id="depTabs">
       <section class="dep-panel active" id="panel-vipc" role="tabpanel" aria-labelledby="tab-vipc">
         <h2>VIPM / VIPC Packages</h2>
@@ -555,10 +575,45 @@
       renderSystem(data.system || [], colStates);
     }
 
+    async function renderUpdatePanel(){
+      const el = $("updatePanel");
+      if (!el) return;
+      let d = null;
+      try { d = await fetchJson(base + "deps-pending.json"); } catch(_) {}
+      if (!d || !d.pending) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+      const pkgs = d.packages || [], files = d.vipcs || [], drg = d.dragon || [];
+      const conts = (d.containers && d.containers.length) ? d.containers : ["windows"];
+      const contLabel = c => ({ windows:"Windows worker", linux:"Linux worker", "windows-experimental":"Windows Beta (Dragon)" }[c] || c);
+      const wfUrl = "https://github.com/" + repo + "/actions/workflows/build-labview-image.yml";
+      const block = (k, items) => items.length ? '<div class="upd-block"><div class="upd-k">' + k + '</div><div class="upd-pills">' + items.join("") + '</div></div>' : "";
+      const pill = (s, mono) => '<span class="upd-pill' + (mono ? ' mono' : '') + '">' + esc(s) + '</span>';
+      el.classList.remove("hidden");
+      el.innerHTML =
+        '<h2 class="upd-h">\u26A0\uFE0F Dependency update needed</h2>' +
+        '<p class="upd-sub">Your project declares dependencies that are <strong>not yet baked</strong> into the worker container(s). Until you run this update, container CI may fail or show broken code.</p>' +
+        block("New / changed packages", pkgs.map(p => pill(p))) +
+        block("Dragon items", drg.map(x => pill(x.name || x.package_id || ""))) +
+        block("Declared in", files.map(f => pill(f, true))) +
+        block("Containers to update", conts.map(c => pill(contLabel(c)))) +
+        '<div class="note warn upd-exp"><strong>This is a long operation.</strong> It rebuilds the worker container(s) by installing your dependencies with VIPM, which can take a while depending on the dependencies. <strong>Do not run other CI actions until it completes</strong> &mdash; they would run against the old container and may error.</div>' +
+        '<div class="upd-block"><div class="upd-k">How to apply</div>' +
+        '<label class="upd-radio"><input type="radio" name="updMode" value="replace" checked> <span><strong>Replace existing containers</strong> (default) &mdash; rebuild in place; your pipeline actions keep using them automatically.</span></label>' +
+        '<label class="upd-radio"><input type="radio" name="updMode" value="new"> <span><strong>Create new containers</strong> &mdash; publish a new tagged container alongside the current one; select it per action in Configure Workers.</span></label>' +
+        '</div>' +
+        '<div class="upd-actions"><a class="upd-btn" id="updRun" target="_blank" rel="noopener" href="' + wfUrl + '">Run the container update \u2197</a>' +
+        '<span class="upd-hint">Opens the <strong>Build LabVIEW CI Image</strong> workflow. Click <strong>Run workflow</strong>, set <code>update_mode</code> = <code>replace</code>, and run it.</span></div>';
+      el.querySelectorAll('input[name=updMode]').forEach(r => r.addEventListener("change", () => {
+        const mode = (el.querySelector('input[name=updMode]:checked') || {}).value || "replace";
+        const hint = el.querySelector(".upd-hint");
+        if (hint) hint.innerHTML = 'Opens the <strong>Build LabVIEW CI Image</strong> workflow. Click <strong>Run workflow</strong>, set <code>update_mode</code> = <code>' + esc(mode) + '</code>, and run it.';
+      }));
+    }
+
     async function init(){
       initDependencyTabs();   // wire sub-view switching regardless of repo resolution
       if (!repo) { setStatus("Could not determine repository from this Pages URL."); return; }
       initExpInfo();
+      renderUpdatePanel();
       try {
         const generated = await fetchJson(base + "dependencies/index.json");
         if (generated && Array.isArray(generated.vipc)) generatedInventory = generated;

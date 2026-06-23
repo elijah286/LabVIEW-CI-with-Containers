@@ -33,6 +33,11 @@ on:
         type: choice
         options: [config, drain, cancel]
         default: config
+      update_mode:
+        description: 'Dependency update: replace = rebuild the current container tags in place (actions keep using them automatically); new = publish a new dated tag ALONGSIDE the current one, to select per-action in Configure Workers'
+        type: choice
+        options: [replace, new]
+        default: replace
 
 env:
   # IMAGE_NAME and PAGES_URL are populated at runtime by the resolve step below
@@ -498,9 +503,18 @@ jobs:
             Write-Host "::notice::Unit Tests capability is not installed; UTF/JUnit-only VIPM essentials will be skipped for this worker build. Project VIPC dependencies remain required."
           }
           # The immutable per-content tag ($wv) sits alongside the moving tags.
-          # :latest is always published so the Configure dialog's default "Latest"
-          # container selection reliably resolves to the newest build.
-          $tags  = @("${base}:${ver}", "${base}:${ver}-${date}", "${base}:${wv}", "${base}:latest")
+          # update_mode=replace (default): rebuild the standard tags in place, so
+          # actions using :latest/:<year> pick up the dependency update automatically.
+          # update_mode=new: publish a NEW dated tag alongside the current container
+          # WITHOUT moving :latest/:<year>, so existing actions keep the current
+          # worker until a user selects the new tag per action in Configure Workers.
+          $updateMode = '${{ github.event.inputs.update_mode || 'replace' }}'
+          if ($updateMode -eq 'new') {
+            $newTag = "${ver}-deps-${date}"
+            $tags = @("${base}:${wv}", "${base}:${newTag}")
+          } else {
+            $tags = @("${base}:${ver}", "${base}:${ver}-${date}", "${base}:${wv}", "${base}:latest")
+          }
 
           if ($vipcCount -eq 0) {
             Write-Host "::notice::No repository VIPC dependencies are selected. Fast path: copying the LCWC base image into this repository's GHCR worker package at the REGISTRY level (crane copy) -- the multi-gigabyte layers are blob-mounted server-side, never downloaded to or re-uploaded from the runner, so this takes seconds, not minutes."
@@ -527,6 +541,9 @@ jobs:
               Write-Host "Pushing $tag"
               docker push $tag
               if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+            if ($updateMode -eq 'new') {
+              Write-Host "::notice::Published a NEW worker tag '${base}:${newTag}' alongside the current container. Select it per action in Configure Workers; existing actions keep using the current :latest / :${ver} worker until you switch them."
             }
           }
 

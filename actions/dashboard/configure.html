@@ -600,6 +600,10 @@
       const cur = (winLatest && winLatest.version) ? String(winLatest.version) : "";
       const o = [["__default__", "Project default (inherit)"], ["latest", "Latest build"]];
       if (cur) o.push([cur, "Pinned: " + cur]);
+      // Newly-created dependency containers (published by "Create new" in the
+      // Dependencies dialog as <year>-deps-<date>) are offered here so an action
+      // can be pointed at a new container without replacing the current one.
+      (window.__lvciDepTags || []).forEach(t => { if (t && !o.some(x => x[0] === t)) o.push([t, "Dependency build: " + t]); });
       o.push(["base", "Bare NI base image"], ["__custom__", "Custom tag\u2026"]);
       return o;
     }
@@ -620,7 +624,7 @@
         const sel = document.createElement("select");
         sel.setAttribute("aria-label", "Container for " + cap.name);
         actionTagOptions().forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; sel.appendChild(o); });
-        const custom = document.createElement("input"); custom.type = "text"; custom.placeholder = "image tag, e.g. win-ab12cd34"; custom.hidden = true;
+        const custom = document.createElement("input"); custom.type = "text"; custom.placeholder = "tag, e.g. 2026-deps-20260623 or win-ab12cd34"; custom.hidden = true;
         const curVal = actionContainer.get(cap.id);
         if (!curVal) { sel.value = "__default__"; }
         else if ([...sel.options].some(o => o.value === curVal)) { sel.value = curVal; }

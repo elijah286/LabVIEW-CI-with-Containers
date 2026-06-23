@@ -1640,6 +1640,19 @@
       '<a target="_blank" rel="noopener" href="https://github.com/' + repo + '/actions">Build LabVIEW CI Image \u2197</a>' +
       '<span class="lvci-dep-sub">.</span></span>';
 
+    // Persistent "dependencies pending" banner — shown on every page (read from
+    // deps-pending.json published by the dashboard build) until the repo's worker
+    // container(s) are updated with its declared VIPC/Dragon dependencies. Unlike
+    // the transient rebuild bar above, this stays up until the update completes.
+    var pendbar = document.createElement('div');
+    pendbar.id = 'lvci-pendbar';
+    pendbar.className = 'lvci-depbar';
+    pendbar.setAttribute('role', 'alert');
+    pendbar.innerHTML =
+      '<span class="lvci-dep-txt"><strong>\u26A0\uFE0F Dependencies need to be installed into your containers. </strong>' +
+      '<span class="lvci-dep-sub">Your project declares dependencies that are not yet baked into the worker container(s); container CI may error or show broken code until you update them. </span>' +
+      '<a href="' + navBase + '/dependencies.html">Review &amp; update dependencies \u2197</a></span>';
+
     // Global attention bar (failure banner) — hidden until the activity poll
     // finds a workflow whose newest run failed; names it + links to the run.
     var alertBar = document.createElement('div');
@@ -1700,6 +1713,7 @@
     document.body.insertBefore(hdr, menu);
     if (ctxbar) document.body.insertBefore(ctxbar, menu);     // persistent context bar (revision selector) under the header
     document.body.insertBefore(depbar, menu);                 // dependency/container rebuild bar
+    document.body.insertBefore(pendbar, menu);                // persistent "dependencies pending" bar
     document.body.insertBefore(alertBar, menu);               // global attention bar, directly under the header
     if (rebuild) document.body.insertBefore(rebuild, menu);   // directly under the bar
 
@@ -1707,6 +1721,27 @@
     // Signal pages that the header (and its #lvci-ctxbar context bar) is mounted,
     // so a page can move its own revision selector / controls into the shared bar.
     try { window.lvciHeaderReady = true; document.dispatchEvent(new CustomEvent('lvci:ready')); } catch (e) {}
+
+    // Persistent pending-dependencies banner (every page): the dashboard build
+    // publishes deps-pending.json at the Pages root when the repo declares VIPC/
+    // Dragon dependencies that are not yet baked into its worker container(s).
+    try {
+      fetch(base + '/deps-pending.json', { cache: 'no-cache' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.pending) return;
+          var pkgs = (d.packages || []).length, drg = (d.dragon || []).length, parts = [];
+          if (pkgs) parts.push(pkgs + ' package' + (pkgs === 1 ? '' : 's'));
+          if (drg) parts.push(drg + ' Dragon item' + (drg === 1 ? '' : 's'));
+          if (parts.length) {
+            var sub = pendbar.querySelector('.lvci-dep-sub');
+            if (sub) sub.textContent = 'Your project declares ' + parts.join(' and ') +
+              ' not yet baked into the worker container(s); container CI may error or show broken code until you update them. ';
+          }
+          pendbar.classList.add('show');
+        })
+        .catch(function () {});
+    } catch (e) {}
 
     // VI Browser owns #commit-select and moves it into this context bar on the
     // lvci:ready event above. Document switching now lives in the Dashboard menu,

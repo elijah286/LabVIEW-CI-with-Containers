@@ -3271,6 +3271,63 @@ def _system_dependencies():
     },
   ]
 
+def _compute_deps_pending(data):
+  """Decide whether the repo declares project dependencies that are NOT yet baked
+  into its current worker container(s). This drives the persistent dashboard
+  banner and the Dependencies dialog. Conservative: only flags a project VIPC that
+  is configured to be baked and parsed cleanly, whose packages are missing from the
+  current Windows worker manifest; plus declared Dragon deps not yet installed."""
+  cols = {c.get('key'): c for c in data.get('columns', [])}
+
+  def baked(key):
+    c = cols.get(key) or {}
+    return {str(p).lower() for p in (c.get('packages') or [])}
+
+  win_baked = baked('windows')
+  lin_baked = baked('linux')
+  pending_pkgs = set()
+  pending_files = []
+  lin_missing = False
+  for v in data.get('vipc', []):
+    if v.get('role') != 'project' or not v.get('configured') or v.get('error'):
+      continue
+    pkgs = v.get('packages') or []
+    if not pkgs:
+      continue
+    missing = [p for p in pkgs if str(p).lower() not in win_baked]
+    if missing:
+      pending_files.append(v.get('path'))
+      pending_pkgs.update(missing)
+    if any(str(p).lower() not in lin_baked for p in pkgs):
+      lin_missing = True
+
+  dragon = data.get('dragon') or {}
+  dragon_pending = []
+  for item in dragon.get('install_set') or []:
+    st = str(item.get('status') or '')
+    if st in ('pending', 'not_attempted', 'missing', 'wrong_version', 'conflict'):
+      dragon_pending.append({'name': item.get('name') or item.get('package_id') or '', 'status': st})
+
+  containers = []
+  if pending_files:
+    containers.append('windows')
+    if lin_missing:
+      containers.append('linux')
+  if dragon_pending:
+    containers.append('windows-experimental')
+
+  return {
+    'schema': 1,
+    'pending': bool(pending_files or dragon_pending),
+    'repo': data.get('repo', ''),
+    'sha': data.get('sha', ''),
+    'packages': sorted(pending_pkgs, key=str.lower),
+    'vipcs': pending_files,
+    'dragon': dragon_pending,
+    'containers': sorted(set(containers)),
+    'generated': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+  }
+
 def _build_dependencies_index():
   config = _parse_container_config()
   config_vipc_paths = {v.get('path', '') for v in config.get('vipc') or []}
@@ -3330,6 +3387,15 @@ def _build_dependencies_index():
   }
   with open('ci-out/dashboard/dependencies/index.json', 'w', encoding='utf-8') as fh:
     json.dump(data, fh, indent=2, ensure_ascii=True)
+  # Persistent "dependencies pending" signal, read by the shared header on every
+  # page to show the banner until the worker container(s) are updated.
+  try:
+    pending = _compute_deps_pending(data)
+  except Exception as exc:
+    print(f"WARN: could not compute deps-pending: {exc}", file=sys.stderr)
+    pending = {'schema': 1, 'pending': False}
+  with open('ci-out/dashboard/deps-pending.json', 'w', encoding='utf-8') as fh:
+    json.dump(pending, fh, ensure_ascii=True)
 
 try:
   _build_dependencies_index()
