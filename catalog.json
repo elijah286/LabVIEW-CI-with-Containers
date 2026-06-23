@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.39.4",
+  "version": "3.40.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+              "version": "3.40.0",
+              "date": "2026-06-22",
+              "title": "Windows worker installs JKI Dragon from NI Package Manager",
+              "summary": "The Windows LabVIEW worker image now installs JKI Dragon from the LabVIEW 2026 NI Package Manager feed during image build. Dragon is treated as a required NIPM-delivered dependency-management component, captured by the worker manifest through nipkg list, and shown on the Dependencies page's NI Packages tab so users can verify it is present in the rebuilt container.",
+              "highlights": [
+                      "Installs the NIPM package jki-dragon into the Windows worker image and fails the image build if Dragon cannot be installed.",
+                      "Adds JKI Dragon to the generated and static NI Packages dependency table entries.",
+                      "Relies on the existing worker manifest nipkg_packages capture so the Dependencies page proves Dragon is present after the container is rebuilt."
+              ]
+      },
       {
         "version": "3.39.4",
         "date": "2026-06-22",
