@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2d13949522d3c7aea63abf01a398e8ff0714f986",
+  "sha": "60764e773522b0e6d9a33eea6bd8ad0cfcfb2a9c",
   "revisions": [
+    {
+      "sha": "60764e773522b0e6d9a33eea6bd8ad0cfcfb2a9c",
+      "short": "60764e7",
+      "message": "Guard capability edits that build worker images",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T17:06:17Z"
+    },
     {
       "sha": "2d13949522d3c7aea63abf01a398e8ff0714f986",
       "short": "2d13949",
@@ -695,13 +702,6 @@
       "message": "Activity switcher: grouped lenses + deep-link opens the dropdown on the right one (v3.30.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-21T00:10:03Z"
-    },
-    {
-      "sha": "61997ee5c8534d4c2509edd50e084647a2d03f78",
-      "short": "61997ee",
-      "message": "VI Browser: frame a revision's reports in the pane (unified Activity switcher, v3.29.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T22:54:44Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
