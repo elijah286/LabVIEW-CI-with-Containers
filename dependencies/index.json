@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "d5d758cc1868458237275f7a4dc331703cfd320d",
+  "sha": "2e465879d80741af5162746c5f718d3480bf7348",
   "revisions": [
+    {
+      "sha": "2e465879d80741af5162746c5f718d3480bf7348",
+      "short": "2e46587",
+      "message": "Apply flow: initialize empty GitLab projects",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T17:53:23Z"
+    },
     {
       "sha": "d5d758cc1868458237275f7a4dc331703cfd320d",
       "short": "d5d758c",
@@ -695,13 +702,6 @@
       "message": "fix(vipm): install full Git for Windows (winget->silent installer->MinGit) per JKI so VIPM CE can reach the community package index",
       "author": "Elijah Kerry",
       "date": "2026-06-21T02:43:42Z"
-    },
-    {
-      "sha": "23728d54fa50ec183ade85b004bd9e146176ab31",
-      "short": "23728d5",
-      "message": "Settings consolidation: a shared Settings sub-navigation on the config pages (v3.32.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T01:56:32Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
