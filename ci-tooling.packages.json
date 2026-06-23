@@ -38,6 +38,13 @@
         "note": "REQUIRED for headless UTF: the RunUnitTests CLI operation ships in the container but its VI tree links against this library's JUnit-report VIs. Without it the operation is broken and fails with LabVIEWCLI error -350053 ('missing or bad files ... in the operation folder'). NI-published on VIPM (Apache 2.0, LabVIEW>=13.0, Win/Mac/Linux); 1.0.1.43 is the only release. Requires the UTF toolkit (ni-utf-labview-support), which the Dockerfile installs via nipkg."
       },
       {
+        "name": "ni_lib_junit_results_api",
+        "version": "1.0.1.6",
+        "include": true,
+        "summary": "JUnit Results API by NI - LabVIEW API for building and writing JUnit-format test result files; the results-model library underneath the UTF JUnit report path.",
+        "note": "Added alongside ni_lib_utf_junit_report so the headless 'LabVIEWCLI -OperationName RunUnitTests' JUnit output has its full VI tree baked into the worker image."
+      },
+      {
         "name": "dataflow_g_lib_g_image",
         "version": "0.5.0.1",
         "include": true,
