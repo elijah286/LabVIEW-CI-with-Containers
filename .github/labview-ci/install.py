@@ -51,6 +51,7 @@ TEXT_EXTS = {
 # at the tooling SOURCE repo (catalog.source) so re-runs / upgrades still work.
 NO_SUBSTITUTION_PREFIX = ".github/labview-ci/"
 DEFAULT_EXCLUDED_STATUSES = {"planned", "experimental"}
+GITHUB_WORKFLOW_PREFIX = ".github/workflows/"
 
 
 def log(msg: str = "") -> None:
@@ -132,11 +133,13 @@ def read_manifest(target_root: Path):
     return info
 
 
-def build_substitutions(catalog: dict, owner: str | None, name: str | None) -> list[tuple[str, str]]:
+def build_substitutions(catalog: dict, owner: str | None, name: str | None,
+                        provider: str = "github") -> list[tuple[str, str]]:
     if not owner or not name:
         return []
+    pages_host = f"{owner.lower()}.gitlab.io" if provider == "gitlab" else f"{owner.lower()}.github.io"
     tokens = {
-        "pagesHost": f"{owner.lower()}.github.io",
+        "pagesHost": pages_host,
         "ownerRepo": f"{owner}/{name}",
         "repoName": name,
     }
@@ -270,7 +273,7 @@ def copy_entry(entry: str, source_root: Path, target_root: Path,
 
 def write_manifest(target_root: Path, catalog: dict, activities: list[str], os_list: list[str],
                    labview_version: str, image_name: str | None, branch: str,
-                   dry_run: bool) -> None:
+                   dry_run: bool, provider: str = "github") -> None:
     src = catalog.get("source", {})
     now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     lines = [
@@ -279,6 +282,7 @@ def write_manifest(target_root: Path, catalog: dict, activities: list[str], os_l
         f"schemaVersion: {catalog.get('schemaVersion', 1)}",
         f"installedVersion: {catalog.get('version', '0.0.0')}",
         f"installedAt: {now}",
+        f"provider: {provider}",
         "source:",
         f"  repo: {src.get('repo', '')}",
         # Pin to the EXACT published version (an immutable tag), never the source's
@@ -327,6 +331,188 @@ def print_next_steps(catalog: dict, owner: str | None, name: str | None, activit
         log("  6. Run 'Build LabVIEW CI Image' once so the analyzer image exists.")
     log("")
     log("Done. Open a pull request that changes a VI to see the pipeline run.")
+
+
+def gitlab_pages_url(owner: str | None, name: str | None) -> str:
+    if not owner or not name:
+        return "https://<namespace>.gitlab.io/<project>"
+    return f"https://{owner.lower()}.gitlab.io/{name}"
+
+
+def gitlab_root_ci() -> str:
+    return (
+        "# LabVIEW CI - GitLab entrypoint. Installed by .github/labview-ci/install.py.\n"
+        "# The shared provider-specific jobs live under .gitlab/labview-ci/.\n"
+        "include:\n"
+        "  - local: '.gitlab/labview-ci/pipeline.yml'\n"
+    )
+
+
+def gitlab_pipeline_yml(branch: str) -> str:
+    br = branch or "main"
+    return (
+        "# LabVIEW CI - GitLab pipeline scaffold.\n"
+        "# This provider slice publishes dashboard assets to GitLab Pages.\n"
+        "# Windows LabVIEW workers require a registered Windows Docker GitLab Runner.\n"
+        "stages:\n"
+        "  - dashboard\n"
+        "  - pages\n\n"
+        "variables:\n"
+        "  LVCI_PROVIDER: gitlab\n"
+        "  LVCI_TARGET_SHA: $CI_COMMIT_SHA\n\n"
+        "lvci:dashboard:\n"
+        "  stage: dashboard\n"
+        "  image: python:3.12-alpine\n"
+        "  rules:\n"
+        f"    - if: '$CI_COMMIT_BRANCH == \"{br}\"'\n"
+        "    - if: '$CI_PIPELINE_SOURCE == \"web\"'\n"
+        "    - if: '$CI_PIPELINE_SOURCE == \"schedule\"'\n"
+        "  script:\n"
+        "    - python .gitlab/labview-ci/build-dashboard.py\n"
+        "  artifacts:\n"
+        "    paths:\n"
+        "      - public\n"
+        "    expire_in: 1 week\n\n"
+        "pages:\n"
+        "  stage: pages\n"
+        "  needs:\n"
+        "    - job: lvci:dashboard\n"
+        "      artifacts: true\n"
+        "  rules:\n"
+        f"    - if: '$CI_COMMIT_BRANCH == \"{br}\"'\n"
+        "    - if: '$CI_PIPELINE_SOURCE == \"web\"'\n"
+        "  script:\n"
+        "    - test -d public\n"
+        "  artifacts:\n"
+        "    paths:\n"
+        "      - public\n"
+    )
+
+
+def gitlab_dashboard_builder(catalog: dict, owner: str | None, name: str | None) -> str:
+    version = str(catalog.get("version", "0.0.0"))
+    pages = gitlab_pages_url(owner, name)
+    fallback_repo = (owner + "/" + name) if owner and name else "namespace/project"
+    return f'''#!/usr/bin/env python3
+"""Build the first GitLab-hosted LabVIEW CI dashboard payload."""
+
+from __future__ import annotations
+
+import html
+import json
+import os
+import shutil
+from pathlib import Path
+
+
+ROOT = Path.cwd()
+PUBLIC = ROOT / "public"
+PAGES_SRC = ROOT / ".github" / "pages"
+CATALOG = ROOT / ".github" / "labview-ci" / "catalog.json"
+MANIFEST = ROOT / ".github" / "labview-ci.yml"
+
+
+def copy_pages() -> None:
+    PUBLIC.mkdir(parents=True, exist_ok=True)
+    if PAGES_SRC.is_dir():
+        for child in PAGES_SRC.iterdir():
+            dst = PUBLIC / child.name
+            if child.is_dir():
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.copytree(child, dst)
+            else:
+                shutil.copy2(child, dst)
+    if CATALOG.is_file():
+        shutil.copy2(CATALOG, PUBLIC / "catalog.json")
+
+
+def read_catalog() -> dict:
+    if CATALOG.is_file():
+        return json.loads(CATALOG.read_text(encoding="utf-8"))
+    return {{"version": "{version}"}}
+
+
+def selected_activities() -> list[str]:
+    if not MANIFEST.is_file():
+        return []
+    activities = []
+    in_activities = False
+    for raw in MANIFEST.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if line == "activities:":
+            in_activities = True
+            continue
+        if in_activities and line.startswith("- "):
+            activities.append(line[2:].strip())
+        elif in_activities and line and not raw.startswith(" "):
+            break
+    return activities
+
+
+def main() -> None:
+    copy_pages()
+    cat = read_catalog()
+    repo = html.escape(os.environ.get("CI_PROJECT_PATH", "{fallback_repo}"))
+    version = html.escape(str(cat.get("version", "{version}")))
+    sha = html.escape(os.environ.get("CI_COMMIT_SHA", "")[:12])
+    pages = html.escape(os.environ.get("CI_PAGES_URL", "{pages}"))
+    activities = selected_activities() or ["dashboard"]
+    activity_html = "".join("<li>" + html.escape(a) + "</li>" for a in activities)
+    (PUBLIC / "index.html").write_text("""<!doctype html>
+<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+<title>LabVIEW CI - GitLab</title>
+<style>body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#f6f8fa;color:#24292f}}main{{max-width:920px;margin:0 auto;padding:42px 20px}}.panel{{background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:24px}}code{{background:#afb8c133;border-radius:6px;padding:.16em .38em}}</style></head>
+<body><main><div class=\"panel\"><h1>LabVIEW CI for GitLab</h1>
+<p>This repository has the first GitLab provider scaffold for LabVIEW CI installed. Shared dashboard assets and catalog metadata stay versioned with the GitHub provider while GitLab-specific CI templates publish this Pages site.</p>
+<p><strong>Project:</strong> <code>""" + repo + """</code><br><strong>Tooling version:</strong> <code>""" + version + """</code><br><strong>Pages URL:</strong> <code>""" + pages + """</code><br><strong>Commit:</strong> <code>""" + sha + """</code></p>
+<h2>Installed Activities</h2><ul>""" + activity_html + """</ul>
+<p>Full Windows LabVIEW worker parity requires a registered Windows Docker GitLab Runner.</p>
+</div></main></body></html>\n""", encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
+'''
+
+
+def write_gitlab_scaffold(target_root: Path, catalog: dict, owner: str | None, name: str | None,
+                          branch: str, dry_run: bool) -> None:
+    files = {
+        ".gitlab-ci.yml": gitlab_root_ci(),
+        ".gitlab/labview-ci/pipeline.yml": gitlab_pipeline_yml(branch),
+        ".gitlab/labview-ci/build-dashboard.py": gitlab_dashboard_builder(catalog, owner, name),
+        ".gitlab/labview-ci/README.md": (
+            "# LabVIEW CI for GitLab\n\n"
+            "This directory contains the GitLab CI provider adapter generated by "
+            "`.github/labview-ci/install.py --provider gitlab`. The shared catalog, "
+            "dashboard assets, and LabVIEW scripts remain versioned with the GitHub "
+            "provider so both integrations stay in one release stream.\n\n"
+            "Full Windows LabVIEW worker parity requires a registered Windows Docker "
+            "GitLab Runner. The initial scaffold publishes the dashboard payload to "
+            "GitLab Pages and reserves the provider boundary for worker jobs.\n"
+        ),
+    }
+    for rel, content in files.items():
+        if dry_run:
+            log(f"  would write     {rel}")
+            continue
+        dst = target_root / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(content, encoding="utf-8")
+        log(f"  write           {rel}")
+
+
+def print_gitlab_next_steps(owner: str | None, name: str | None) -> None:
+    log("")
+    log("Next steps")
+    log("  1. Review the changes:        git status && git diff")
+    log("  2. Commit and push to GitLab: git add .github .gitlab .gitlab-ci.yml && git commit -m \"Add LabVIEW CI for GitLab\" && git push")
+    log("  3. In GitLab, let the pipeline run and publish the Pages artifact.")
+    log(f"  4. Open the Pages site:       {gitlab_pages_url(owner, name)}")
+    log("  5. Full worker parity requires a registered Windows Docker GitLab Runner.")
+    log("")
+    log("GitLab provider status: dashboard/Pages scaffold installed; worker jobs and browser dispatch adapters are the next slices.")
 
 
 def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str | None,
@@ -601,6 +787,8 @@ def main() -> int:
                         help="Default branch the workflows trigger on (default: catalog default).")
     parser.add_argument("--repo", default="",
                         help="Target repo owner/name (default: inferred from the git remote).")
+    parser.add_argument("--provider", choices=("github", "gitlab"), default="github",
+                        help="Target CI provider to scaffold (default: github).")
     parser.add_argument("--source", default="",
                         help="Path to the tooling checkout to copy from (default: this script's repo root).")
     parser.add_argument("--target", default="",
@@ -660,11 +848,14 @@ def main() -> int:
     force = args.force or update
     preserve = {p.replace("\\", "/") for p in catalog.get("userConfig", {}).get("files", [])}
 
+    if args.provider == "gitlab" and args.thin:
+        die("--thin is currently only supported for --provider github.")
+
     if source_root == target_root:
         warn("source and target are the same directory (installing into the tooling repo itself).")
 
     owner, name = detect_target_repo(target_root, args.repo)
-    subs = build_substitutions(catalog, owner, name)
+    subs = build_substitutions(catalog, owner, name, args.provider)
     # Vendored workflows carry a static `branches: [main]` push-trigger filter that
     # YAML can't express as the default branch; rewrite it to the target repo's
     # actual default branch so push-to-default CI fires on non-"main" repos.
@@ -680,6 +871,7 @@ def main() -> int:
     log(f"  activities: {', '.join(activities)}")
     log(f"  os:         {', '.join(os_list)}")
     log(f"  labview:    {labview_version}")
+    log(f"  provider:   {args.provider}")
     if update and prev.get("installedVersion"):
         log(f"  version:    {prev.get('installedVersion')} -> {catalog.get('version', '0.0.0')}")
     log(f"  mode:       {'dry-run ' if args.dry_run else ''}{'update' if update else ('thin install' if args.thin else 'install')}")
@@ -690,6 +882,8 @@ def main() -> int:
                             labview_version, branch, args.dry_run)
 
     file_list = resolve_file_list(catalog, activities, os_list)
+    if args.provider == "gitlab":
+        file_list = [f for f in file_list if not f.replace("\\", "/").startswith(GITHUB_WORKFLOW_PREFIX)]
     stats = {"installed": 0, "updated": 0, "skipped": 0, "planned": 0, "preserved": 0}
     for entry in file_list:
         copy_entry(entry, source_root, target_root, subs, force, args.dry_run, stats,
@@ -699,15 +893,18 @@ def main() -> int:
     # in the tooling repo and can't be rebranded into a consumer, so the vendored
     # source dashboard-pages.yml (which runs ./actions/dashboard) can't work here.
     # Replace it with a thin caller that checks the tooling out at runtime.
-    if any(f.endswith("dashboard-pages.yml") for f in file_list) and not args.dry_run:
+    if args.provider == "github" and any(f.endswith("dashboard-pages.yml") for f in file_list) and not args.dry_run:
         dpath = target_root / ".github" / "workflows" / "dashboard-pages.yml"
         if dpath.exists():
             dpath.write_text(consumer_dashboard_workflow(catalog, branch), encoding="utf-8")
             log("  rewrite (thin)  .github/workflows/dashboard-pages.yml")
 
+    if args.provider == "gitlab":
+        write_gitlab_scaffold(target_root, catalog, owner, name, branch, args.dry_run)
+
     write_manifest(target_root, catalog, [a for a in activities if a in
                    {c["id"] for c in catalog.get("capabilities", []) if c.get("status") != "planned"}],
-                   os_list, labview_version, image_name, branch, args.dry_run)
+                   os_list, labview_version, image_name, branch, args.dry_run, args.provider)
 
     log("")
     if args.dry_run:
@@ -727,7 +924,10 @@ def main() -> int:
     log(f"Installed {stats['installed']} file(s); {stats['skipped']} skipped (already present).")
     if stats["skipped"]:
         log("Use --force to overwrite skipped files.")
-    print_next_steps(catalog, owner, name, activities, labview_version, image_name, not args.no_vars)
+    if args.provider == "gitlab":
+        print_gitlab_next_steps(owner, name)
+    else:
+        print_next_steps(catalog, owner, name, activities, labview_version, image_name, not args.no_vars)
     return 0
 
 

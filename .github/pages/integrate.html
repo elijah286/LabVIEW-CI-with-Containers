@@ -155,6 +155,14 @@
       <p class="hint">Where to install. Required for the one-click install; the command-line option can also infer it from your git remote.</p>
       <div class="row">
         <div class="field">
+          <label class="fl" for="providerTop">Install target</label>
+          <select id="providerTop">
+            <option value="github" selected>GitHub</option>
+            <option value="gitlab">GitLab</option>
+          </select>
+          <p class="hint" id="providerTopHint" style="margin-top:6px">GitHub supports the browser pull-request install flow.</p>
+        </div>
+        <div class="field">
           <label class="fl" for="repo">Target repo (owner/name)</label>
           <input type="text" id="repo" placeholder="your-org/your-lv-repo" autocomplete="off" spellcheck="false" list="repoList">
           <datalist id="repoList"></datalist>
@@ -189,9 +197,9 @@
 
     <section>
       <h2>3. Install</h2>
-      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a fine-grained token; the panel walks you through creating it with the permissions pre-filled. It stays in this browser so you don&rsquo;t have to paste it again.</p>
+      <p class="hint" id="installHint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a fine-grained token; the panel walks you through creating it with the permissions pre-filled. It stays in this browser so you don&rsquo;t have to paste it again.</p>
 
-      <div class="insopts">
+      <div class="insopts" id="githubInstallOptions">
         <label class="insopt"><input type="checkbox" id="optReadme" checked>
           <span><strong>Add a CI dashboard link to the README</strong><small>Adds a dashboard badge and link to your README in the same pull request (only if it isn&rsquo;t already there).</small></span>
         </label>
@@ -282,7 +290,7 @@
 
     <section>
       <h2>4. Finish setup</h2>
-      <ol class="steps">
+      <ol class="steps" id="finishSteps">
         <li>Merge the install pull request — the <strong>dashboard publishes itself</strong> from that merge (no CI run required), and the README link lands in the same merge.</li>
         <li>Enable <strong>GitHub Pages</strong> from the <code class="inl">gh-pages</code> branch (Settings &rsaquo; Pages).</li>
         <li>Set <strong>Workflow permissions</strong> to <em>Read and write</em> (Settings &rsaquo; Actions &rsaquo; General).</li>
@@ -314,6 +322,8 @@
     const csv = (set) => [...set].join(",");
     const ext = (p) => { const i = p.lastIndexOf("."); return i < 0 ? "" : p.slice(i).toLowerCase(); };
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const provider = () => (($("providerTop") && $("providerTop").value) || "github");
+    const isGitLab = () => provider() === "gitlab";
 
     // Relocation pointer (.github/labview-ci/source.json). The single switch that
     // moves the whole tooling to a new official home (e.g. an NI-owned repo): if it
@@ -502,12 +512,18 @@
       return [...new Set(files)];
     }
 
+    function providerFiles(files) {
+      if (!isGitLab()) return files;
+      return files.filter(p => !p.startsWith(".github/workflows/"));
+    }
+
     // ---- branding substitution (mirrors install.py) ----------------------
     function buildSubs() {
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) return [];
       const [owner, name] = repo.split("/");
-      const tokens = { pagesHost: `${owner.toLowerCase()}.github.io`, ownerRepo: `${owner}/${name}`, repoName: name };
+      const pagesHost = isGitLab() ? `${owner.toLowerCase()}.gitlab.io` : `${owner.toLowerCase()}.github.io`;
+      const tokens = { pagesHost, ownerRepo: `${owner}/${name}`, repoName: name };
       const rules = (catalog.substitutions && catalog.substitutions.ordered) || [];
       return rules.map(r => [r.find, r.replaceWith.replace(/\{(\w+)\}/g, (_, k) => tokens[k] || "")])
                   .filter(([f, t]) => f !== t);
@@ -523,23 +539,70 @@
       const repo = $("repo").value.trim();
       const s = source();
       const extra = repo.includes("/") ? ` --repo ${repo}` : "";
+      const providerArg = isGitLab() ? " --provider gitlab" : "";
       if (activeTab === "pwsh") {
         return `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/${s.repo}/${s.ref}/.github/labview-ci/install.ps1))) \`\n` +
-               `    --activities ${acts} --os ${oss} --labview-version ${ver}${extra}`;
+               `    --activities ${acts} --os ${oss} --labview-version ${ver}${providerArg}${extra}`;
       }
       return `curl -fsSL https://raw.githubusercontent.com/${s.repo}/${s.ref}/.github/labview-ci/install.sh \\\n` +
-             `  | bash -s -- --activities ${acts} --os ${oss} --labview-version ${ver}${extra}`;
+             `  | bash -s -- --activities ${acts} --os ${oss} --labview-version ${ver}${providerArg}${extra}`;
     }
 
     function varsHint() {
       const ver = $("version").value;
       const repo = $("repo").value.trim() || "<owner>/<repo>";
-      $("varsStep").innerHTML =
-        `Optionally pin settings as Actions variables: ` +
-        `<code class="inl">gh variable set LABVIEW_VERSION -R ${repo} -b ${ver}</code> (has a safe fallback).`;
+      if (isGitLab()) {
+        $("varsStep").innerHTML =
+          `Optional GitLab CI/CD variables can override installer defaults later; the initial scaffold records LabVIEW ${ver} in <code class="inl">.github/labview-ci.yml</code>.`;
+      } else {
+        $("varsStep").innerHTML =
+          `Optionally pin settings as Actions variables: ` +
+          `<code class="inl">gh variable set LABVIEW_VERSION -R ${repo} -b ${ver}</code> (has a safe fallback).`;
+      }
+    }
+
+    function gitlabPagesUrl() {
+      const repo = $("repo").value.trim();
+      if (!repo.includes("/")) return "https://<namespace>.gitlab.io/<project>";
+      const [owner, name] = repo.split("/");
+      return `https://${owner.toLowerCase()}.gitlab.io/${name}`;
+    }
+
+    function updateProviderUi() {
+      const gitlab = isGitLab();
+      const repo = $("repo");
+      if (repo) repo.placeholder = gitlab ? "your-group/your-lv-repo" : "your-org/your-lv-repo";
+      const hint = $("providerTopHint");
+      if (hint) hint.textContent = gitlab
+        ? "GitLab installs use the same catalog plus a generated .gitlab-ci.yml scaffold."
+        : "GitHub supports the browser pull-request install flow.";
+      const installHint = $("installHint");
+      if (installHint) installHint.innerHTML = gitlab
+        ? `GitLab support starts with a command-line or downloadable install that writes <code class="inl">.gitlab-ci.yml</code>, <code class="inl">.gitlab/labview-ci/</code>, and the shared LabVIEW CI payload.`
+        : `Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a fine-grained token; the panel walks you through creating it with the permissions pre-filled. It stays in this browser so you don&rsquo;t have to paste it again.`;
+      const githubOptions = $("githubInstallOptions");
+      if (githubOptions) githubOptions.style.display = gitlab ? "none" : "grid";
+      ["insTokPanel", "insReinstallPanel", "repoTokRow"].forEach(id => { const el = $(id); if (el && gitlab) el.style.display = "none"; });
+      const repoPick = $("repoPickHint"); if (repoPick) repoPick.style.display = gitlab ? "none" : repoPick.style.display;
+      const installBtn = $("installBtn");
+      if (installBtn) installBtn.innerHTML = gitlab ? "&#11014; Use GitLab install command" : "&#11014; Install into your repo";
+      const forget = $("insTokForget"); if (forget) forget.style.display = gitlab ? "none" : (getInsTok() ? "" : "none");
+      const finish = $("finishSteps");
+      if (finish) finish.innerHTML = gitlab ?
+        `<li>Run the generated install command from your GitLab repository, or download the bundle and unzip it at the repository root.</li>` +
+        `<li>Commit <code class="inl">.github</code>, <code class="inl">.gitlab</code>, and <code class="inl">.gitlab-ci.yml</code>, then push to GitLab.</li>` +
+        `<li>Let the GitLab pipeline publish the <strong>Pages</strong> artifact from the <code class="inl">pages</code> job.</li>` +
+        `<li id="varsStep">Optional GitLab CI/CD variables can override installer defaults later.</li>` +
+        `<li>Full Windows LabVIEW worker parity requires a registered Windows Docker GitLab Runner; the first scaffold publishes the dashboard payload.</li>`
+        : `<li>Merge the install pull request — the <strong>dashboard publishes itself</strong> from that merge (no CI run required), and the README link lands in the same merge.</li>` +
+          `<li>Enable <strong>GitHub Pages</strong> from the <code class="inl">gh-pages</code> branch (Settings &rsaquo; Pages).</li>` +
+          `<li>Set <strong>Workflow permissions</strong> to <em>Read and write</em> (Settings &rsaquo; Actions &rsaquo; General).</li>` +
+          `<li id="varsStep">Optionally pin settings as Actions variables (shown after you choose options).</li>` +
+          `<li>Open a pull request that changes a VI whenever you want the analysis columns (VI Analyzer, VIDiff, Mass Compile) to fill in — a failing check never keeps the dashboard from publishing.</li>`;
     }
 
     function update() {
+      updateProviderUi();
       $("cmd").textContent = commandText();
       varsHint();
       const noneReal = [...selected].filter(id => { const c = byId(id); return c && c.status !== "planned"; }).length === 0;
@@ -576,12 +639,141 @@
       return [
         "# LabVIEW CI install manifest - generated by the configurator",
         `schemaVersion: ${catalog.schemaVersion || 1}`,
+        `installedVersion: ${catalog.version || ""}`,
         `installedAt: ${now}`,
+        `provider: ${provider()}`,
         "source:", `  repo: ${s.repo}`, `  ref: ${s.ref}`,
         "config:", `  labviewVersion: "${ver}"`, `  os: [${osList.join(", ")}]`,
         "activities:", ...acts.map(a => `  - ${a}`), ""
       ].join("\n");
     }
+
+      function gitlabRootCi() {
+        return "# LabVIEW CI - GitLab entrypoint. Installed by the LabVIEW CI configurator.\n" +
+        "include:\n" +
+        "  - local: '.gitlab/labview-ci/pipeline.yml'\n";
+      }
+
+      function gitlabPipelineYaml() {
+        return "# LabVIEW CI - GitLab pipeline scaffold.\n" +
+        "# Publishes the dashboard payload to GitLab Pages. Windows LabVIEW workers require a registered Windows Docker runner.\n" +
+        "stages:\n" +
+        "  - dashboard\n" +
+        "  - pages\n\n" +
+        "variables:\n" +
+        "  LVCI_PROVIDER: gitlab\n" +
+        "  LVCI_TARGET_SHA: $CI_COMMIT_SHA\n\n" +
+        "lvci:dashboard:\n" +
+        "  stage: dashboard\n" +
+        "  image: python:3.12-alpine\n" +
+        "  rules:\n" +
+        "    - if: '$CI_COMMIT_BRANCH == \"main\"'\n" +
+        "    - if: '$CI_PIPELINE_SOURCE == \"web\"'\n" +
+        "    - if: '$CI_PIPELINE_SOURCE == \"schedule\"'\n" +
+        "  script:\n" +
+        "    - python .gitlab/labview-ci/build-dashboard.py\n" +
+        "  artifacts:\n" +
+        "    paths:\n" +
+        "      - public\n" +
+        "    expire_in: 1 week\n\n" +
+        "pages:\n" +
+        "  stage: pages\n" +
+        "  needs:\n" +
+        "    - job: lvci:dashboard\n" +
+        "      artifacts: true\n" +
+        "  rules:\n" +
+        "    - if: '$CI_COMMIT_BRANCH == \"main\"'\n" +
+        "    - if: '$CI_PIPELINE_SOURCE == \"web\"'\n" +
+        "  script:\n" +
+        "    - test -d public\n" +
+        "  artifacts:\n" +
+        "    paths:\n" +
+        "      - public\n";
+      }
+
+      function gitlabDashboardBuilderPy() {
+        const fallbackRepo = $("repo").value.trim() || "namespace/project";
+        return `#!/usr/bin/env python3
+    from __future__ import annotations
+
+    import html
+    import json
+    import os
+    import shutil
+    from pathlib import Path
+
+    ROOT = Path.cwd()
+    PUBLIC = ROOT / "public"
+    PAGES_SRC = ROOT / ".github" / "pages"
+    CATALOG = ROOT / ".github" / "labview-ci" / "catalog.json"
+    MANIFEST = ROOT / ".github" / "labview-ci.yml"
+
+    def copy_pages() -> None:
+      PUBLIC.mkdir(parents=True, exist_ok=True)
+      if PAGES_SRC.is_dir():
+        for child in PAGES_SRC.iterdir():
+          dst = PUBLIC / child.name
+          if child.is_dir():
+            if dst.exists():
+              shutil.rmtree(dst)
+            shutil.copytree(child, dst)
+          else:
+            shutil.copy2(child, dst)
+      if CATALOG.is_file():
+        shutil.copy2(CATALOG, PUBLIC / "catalog.json")
+
+    def read_catalog() -> dict:
+      if CATALOG.is_file():
+        return json.loads(CATALOG.read_text(encoding="utf-8"))
+      return {"version": "${esc(catalog.version || "")}"}
+
+    def selected_activities() -> list[str]:
+      if not MANIFEST.is_file():
+        return []
+      activities = []
+      in_activities = False
+      for raw in MANIFEST.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if line == "activities:":
+          in_activities = True
+          continue
+        if in_activities and line.startswith("- "):
+          activities.append(line[2:].strip())
+        elif in_activities and line and not raw.startswith(" "):
+          break
+      return activities
+
+    def main() -> None:
+      copy_pages()
+      cat = read_catalog()
+      repo = html.escape(os.environ.get("CI_PROJECT_PATH", "${esc(fallbackRepo)}"))
+      version = html.escape(str(cat.get("version", "${esc(catalog.version || "")}")))
+      sha = html.escape(os.environ.get("CI_COMMIT_SHA", "")[:12])
+      pages = html.escape(os.environ.get("CI_PAGES_URL", "${esc(gitlabPagesUrl())}"))
+      activities = selected_activities() or ["dashboard"]
+      activity_html = "".join("<li>" + html.escape(a) + "</li>" for a in activities)
+      (PUBLIC / "index.html").write_text("""<!doctype html>
+    <html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    <title>LabVIEW CI - GitLab</title>
+    <style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#f6f8fa;color:#24292f}main{max-width:920px;margin:0 auto;padding:42px 20px}.panel{background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:24px}code{background:#afb8c133;border-radius:6px;padding:.16em .38em}</style></head>
+    <body><main><div class=\"panel\"><h1>LabVIEW CI for GitLab</h1>
+    <p>This repository has the first GitLab provider scaffold for LabVIEW CI installed. Shared dashboard assets and catalog metadata stay versioned with the GitHub provider while GitLab-specific CI templates publish this Pages site.</p>
+    <p><strong>Project:</strong> <code>""" + repo + """</code><br><strong>Tooling version:</strong> <code>""" + version + """</code><br><strong>Pages URL:</strong> <code>""" + pages + """</code><br><strong>Commit:</strong> <code>""" + sha + """</code></p>
+    <h2>Installed Activities</h2><ul>""" + activity_html + """</ul>
+    <p>Full Windows LabVIEW worker parity requires a registered Windows Docker GitLab Runner.</p>
+    </div></main></body></html>\n""", encoding="utf-8")
+
+    if __name__ == "__main__":
+      main()
+    `;
+      }
+
+      function gitlabReadme() {
+        return "# LabVIEW CI for GitLab\n\n" +
+        "This directory contains the GitLab CI provider adapter generated by the LabVIEW CI configurator. " +
+        "The shared catalog, dashboard assets, and LabVIEW scripts remain versioned with the GitHub provider so both integrations stay in one release stream.\n\n" +
+        "Full Windows LabVIEW worker parity requires a registered Windows Docker GitLab Runner. The initial scaffold publishes the dashboard payload to GitLab Pages and reserves the provider boundary for worker jobs.\n";
+      }
 
     async function buildBundle() {
       const status = $("dlStatus");
@@ -589,7 +781,7 @@
       status.className = "status"; status.textContent = "Preparing bundle…";
       const JSZip = await loadJSZip();
       const osList = [...osSel];
-      const wanted = resolveFiles([...selected], osList);
+      const wanted = providerFiles(resolveFiles([...selected], osList));
       const subs = buildSubs();
 
       // Enumerate the repo tree once so directory entries (trailing /) expand.
@@ -616,8 +808,15 @@
           zip.file(path, await resp.arrayBuffer());
         }
       }
-      zip.file(".github/labview-ci.yml", manifestYaml([...selected], osList, $("version").value));      // Same thin-dashboard substitution as the one-click install (see installToRepo).
-      if ([...paths].some(p => p.endsWith(".github/workflows/dashboard-pages.yml"))) {
+      zip.file(".github/labview-ci.yml", manifestYaml([...selected], osList, $("version").value));
+      if (isGitLab()) {
+        zip.file(".gitlab-ci.yml", gitlabRootCi());
+        zip.file(".gitlab/labview-ci/pipeline.yml", gitlabPipelineYaml());
+        zip.file(".gitlab/labview-ci/build-dashboard.py", gitlabDashboardBuilderPy());
+        zip.file(".gitlab/labview-ci/README.md", gitlabReadme());
+      }
+      // Same thin-dashboard substitution as the one-click install (see installToRepo).
+      if (!isGitLab() && [...paths].some(p => p.endsWith(".github/workflows/dashboard-pages.yml"))) {
         zip.file(".github/workflows/dashboard-pages.yml", dashboardWorkflowYaml());
       }
       status.textContent = "Compressing…";
@@ -749,6 +948,7 @@
     // an "All repositories" token lists them all. Bounded to 1000 to stay cheap.
     async function loadRepoList(force) {
       const dl = $("repoList"); if (!dl) return;
+      if (isGitLab()) { dl.innerHTML = ""; repoListToken = null; renderRepoPick(); return; }
       const tok = getInsTok();
       if (!tok) { dl.innerHTML = ""; repoListToken = null; renderRepoPick(); return; }
       if (!force && repoListToken === tok) return;   // already built for this token
@@ -1911,11 +2111,25 @@
       installToRepo();
     }
 
+    async function providerInstall() {
+      if (!isGitLab()) { await installToRepo(); return; }
+      const details = document.querySelector("details.altinstall");
+      if (details) details.open = true;
+      try {
+        await navigator.clipboard.writeText($("cmd").textContent);
+        setInsStatus("GitLab install command copied. Run it from your GitLab repository root, or download the bundle below.", "ok");
+      } catch (_) {
+        setInsStatus("Run the GitLab install command below from your repository root, or download the bundle.", null);
+      }
+    }
+
     // ---- wiring ----------------------------------------------------------
     function wire() {
       document.querySelectorAll("#osToggle input").forEach(cb => {
         cb.addEventListener("change", () => { cb.checked ? osSel.add(cb.value) : osSel.delete(cb.value); update(); });
       });
+      const providerTop = $("providerTop");
+      if (providerTop) providerTop.addEventListener("change", () => { hideInsTokPanel(); hideReinstallPanel(); renderRepoPick(); loadRepoList(true); update(); });
       $("repo").addEventListener("input", update);
       $("version").addEventListener("change", update);
       ["optReadme", "optPages", "optUpdateToken"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", update); });
@@ -1936,7 +2150,7 @@
         catch (e) { const st = $("dlStatus"); st.className = "status err"; st.textContent = e.message || String(e); }
         finally { $("download").disabled = false; }
       });
-      $("installBtn").addEventListener("click", installToRepo);
+      $("installBtn").addEventListener("click", providerInstall);
       $("insTokSave").addEventListener("click", saveInsTokAndInstall);
       $("insTokCancel").addEventListener("click", hideInsTokPanel);
       $("insTokForget").addEventListener("click", () => { clearInsTok(); refreshInsForget(); const _dl = $("repoList"); if (_dl) _dl.innerHTML = ""; repoListToken = null; renderRepoPick(); setInsStatus("Token removed from this browser.", null); });

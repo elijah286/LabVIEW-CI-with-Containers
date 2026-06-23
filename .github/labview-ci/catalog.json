@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.0",
+  "version": "3.46.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.1",
+        "date": "2026-06-23",
+        "title": "Apply flow shows the GitLab install target",
+        "type": "patch",
+        "summary": "Restores the GitHub/GitLab install target selector on the current 3.46 Apply page and wires GitLab selection through the command-line installer, download bundle, and provider scaffold. GitLab mode hides GitHub-only pull-request options, copies the GitLab install command from the green action, omits GitHub workflows, and writes the initial .gitlab-ci.yml plus .gitlab/labview-ci/ Pages scaffold.",
+        "highlights": [
+          "Adds a visible Install target dropdown at the top of Step 1 in Apply to a new repository.",
+          "Selecting GitLab updates the command with --provider gitlab and changes the green action to the GitLab command path.",
+          "The installer now supports --provider gitlab, records provider: gitlab, omits .github/workflows, and writes the GitLab CI/Pages scaffold."
+        ]
+      },
       {
         "version": "3.46.0",
         "date": "2026-06-23",
