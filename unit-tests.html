@@ -57,6 +57,8 @@
     .projnone{font-size:.84em;color:var(--muted);background:var(--surface2);border:1px dashed var(--border);border-radius:6px;padding:9px 11px}
     .projnone code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .projnote{font-size:.8em;color:var(--muted);margin:8px 0 2px}
+    .revsel{width:100%;margin:2px 0 10px;padding:8px 10px;background:var(--surface2);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.84em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .projwarn{font-size:.8em;color:var(--warn);margin:6px 0 2px}
     .disablednote{color:var(--muted);font-size:.86em;font-style:italic}
     .codebox{position:relative;background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px}
     pre{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre-wrap;word-break:break-word;color:var(--fg);max-height:300px;overflow:auto}
@@ -151,7 +153,7 @@
         conv: "VI Tester tests are <b>TestCase classes</b> (<code>.lvclass</code> inheriting from <code>TestCase</code>). The runner discovers and runs every TestCase within the locations below.",
         ph: "e.g. tests/  or  source/**/*.lvclass" },
       { id: "utf",       name: "Unit Test Framework",
-        conv: "NI Unit Test Framework tests are <code>.lvtest</code> files inside a project, each targeting one VI. Tick the <code>.lvproj</code> project(s) to run above; the runner opens each one headlessly and runs every <code>.lvtest</code> it contains, reporting pass/fail. Use the locations below only to point at extra folders or globs.",
+        conv: "NI Unit Test Framework tests are <code>.lvtest</code> files inside a project, each targeting one VI. By default CI runs every project it finds; switch to choosing specific projects above if you want to control exactly which <code>.lvproj</code> run. The runner opens each project headlessly and runs every <code>.lvtest</code> it contains, reporting pass/fail.",
         ph: "e.g. tests/  or  source/**" },
     ];
     const DEFAULTS = () => TOOLS.reduce((o,t)=>(o[t.id]={enabled:false,locations:[]},o),{});
@@ -160,28 +162,74 @@
     let state = DEFAULTS();
     let thresholds = DEFAULT_THRESHOLDS();
     let activeTab = "caraya";
-    let discoveredProjects = [];   // .lvproj paths found in the repo (UTF tab)
+    let discoveredProjects = [];   // .lvproj paths at the configured ref (UTF tab)
+    let utfExplicit = false;       // false = "run every project"; true = pick specific projects
+    let utfProjLoaded = false;     // discovered the ref's projects yet?
+    let utfRevisions = [];         // [{sha, short, msg}] recent commits for the revision picker
+    let utfRevsLoaded = false;
+    let utfRevSha = "";            // selected revision in explicit mode ("" = latest / configured ref)
+    const utfRevProjects = {};     // cache: sha -> sorted .lvproj path list
 
     const $ = (id) => document.getElementById(id);
     const rawUrl = (repo, ref, path) => `https://raw.githubusercontent.com/${repo}/${ref}/${path}`;
     async function fetchText(u){ const r=await fetch(u,{cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); }
 
     // Best-effort discovery of the repo's .lvproj projects for the UTF tab
-    // (unauthenticated; silent on failure / rate-limit). Tooling/build dirs are
-    // excluded so only real project files surface.
+    // (silent on failure / rate-limit). Tooling/build dirs are excluded so only
+    // real project files surface. Uses the dashboard token if present for a
+    // higher rate limit. The configured ref's list is cached under key "".
+    const ghHeaders = ()=>{ const h={ "Accept":"application/vnd.github+json" }; const t=token(); if (t) h["Authorization"]="Bearer "+t; return h; };
+    const isToolingPath = (p)=>/^(\.github|ci-out|build)\//i.test(p);
+    const lvprojsFromTree = (data)=>(data && data.tree || [])
+      .filter(t=>t.type==="blob" && /\.lvproj$/i.test(t.path) && !isToolingPath(t.path))
+      .map(t=>t.path).sort((a,b)=>a.localeCompare(b));
+    function utfProjectsForRev(){ return utfRevSha ? (utfRevProjects[utfRevSha] || []) : discoveredProjects; }
+
     async function discoverProjects(repo, ref){
+      if (utfProjLoaded) { renderPanels(); update(); return; }
+      utfProjLoaded = true;
       try{
         if (!repo || !repo.includes("/")) return;
         const url = "https://api.github.com/repos/" + repo + "/git/trees/" + encodeURIComponent(ref || "main") + "?recursive=1";
-        const r = await fetch(url, { cache:"no-store" });
-        if (!r.ok) return;
-        const data = await r.json();
-        const isTooling = (p)=>/^(\.github|ci-out|build)\//i.test(p);
-        discoveredProjects = (data.tree || [])
-          .filter(t=>t.type==="blob" && /\.lvproj$/i.test(t.path) && !isTooling(t.path))
-          .map(t=>t.path).sort((a,b)=>a.localeCompare(b));
+        const r = await fetch(url, { headers: ghHeaders(), cache:"no-store" });
+        if (!r.ok) { utfProjLoaded = false; return; }
+        discoveredProjects = lvprojsFromTree(await r.json());
+        utfRevProjects[""] = discoveredProjects;
         renderPanels(); update();
-      }catch(_){}
+      }catch(_){ utfProjLoaded = false; }
+    }
+
+    // Explicit mode: load recent revisions so the user can reach a project that
+    // only exists in an older revision (one tree fetch per chosen revision).
+    async function ensureUtfRevisions(){
+      if (utfRevsLoaded) return;
+      utfRevsLoaded = true;
+      const repo = $("repo").value, ref = $("branch").value || "main";
+      try{
+        if (!repo.includes("/")) return;
+        const url = "https://api.github.com/repos/" + repo + "/commits?sha=" + encodeURIComponent(ref) + "&per_page=100";
+        const r = await fetch(url, { headers: ghHeaders(), cache:"no-store" });
+        if (!r.ok) { utfRevsLoaded = false; return; }
+        const data = await r.json();
+        utfRevisions = (Array.isArray(data) ? data : []).map(c=>({
+          sha: c.sha,
+          short: (c.sha || "").slice(0,7),
+          msg: ((c.commit && c.commit.message || "").split("\n")[0]).slice(0,56)
+        }));
+        renderPanels(); update();
+      }catch(_){ utfRevsLoaded = false; }
+    }
+
+    async function loadUtfRevProjects(repo, sha){
+      if (!sha) { renderPanels(); update(); return; }              // "" -> discoveredProjects
+      if (utfRevProjects[sha]) { renderPanels(); update(); return; }
+      try{
+        if (!repo.includes("/")) return;
+        const url = "https://api.github.com/repos/" + repo + "/git/trees/" + encodeURIComponent(sha) + "?recursive=1";
+        const r = await fetch(url, { headers: ghHeaders(), cache:"no-store" });
+        utfRevProjects[sha] = r.ok ? lvprojsFromTree(await r.json()) : [];
+      }catch(_){ utfRevProjects[sha] = []; }
+      renderPanels(); update();
     }
 
     // ---- minimal labview-ci.yml unitTests parser (our own simple format) -----
@@ -309,7 +357,7 @@
         const locLabel = t.id==="utf"
           ? 'Other test locations <span style="text-transform:none">(folders or globs; blank = whole project)</span>'
           : 'Test locations <span style="text-transform:none">(project folders or globs; blank = whole project)</span>';
-        const locRows = t.soon ? "" : `
+        const locRows = (t.soon || (t.id==="utf" && !utfExplicit)) ? "" : `
           <label class="fl">${locLabel}</label>
           <div class="locs" id="locs-${t.id}">
             ${rowIdx.map(idx=>`<div class="loc">
@@ -318,22 +366,33 @@
           </div>
           <button class="addloc" data-add="${t.id}">+ Add location</button>`;
         const projRows = (t.id!=="utf" || t.soon) ? "" : (()=>{
-          const universe = Array.from(new Set([].concat(
-            discoveredProjects,
-            allLocs.filter(isProj).map(p=>String(p).trim())
-          ))).sort((a,b)=>a.localeCompare(b));
-          const checked = (p)=>allLocs.some(l=>String(l==null?"":l).trim()===p);
-          const known = (p)=>discoveredProjects.indexOf(p)>=0;
+          const runAllRow = `
+          <label class="enable" style="margin:8px 0 4px"><input type="checkbox" id="utf-runall" ${utfExplicit?"":"checked"}><span class="nm">Run every LabVIEW project found in each revision</span></label>
+          <div class="projnote" style="margin-top:0">CI discovers and runs every <code>.lvproj</code> that contains tests in whatever revision is being tested &mdash; so re-running an older revision runs the projects it had then, and new projects are picked up automatically. Uncheck to choose specific projects instead.</div>`;
+          if (!utfExplicit) return runAllRow;
+
+          const revProjects = utfProjectsForRev();
+          const selectedProjs = allLocs.filter(isProj).map(p=>String(p).trim());
+          const universe = Array.from(new Set([].concat(revProjects, selectedProjs))).sort((a,b)=>a.localeCompare(b));
+          const checked = (p)=>selectedProjs.indexOf(p)>=0;
+          const inRev = (p)=>revProjects.indexOf(p)>=0;
+          const revOpts = '<option value=""' + (utfRevSha==="" ? " selected" : "") + '>Latest revision</option>'
+            + utfRevisions.map(r=>`<option value="${esc(r.sha)}" ${r.sha===utfRevSha?"selected":""}>${esc(r.short)} - ${esc(r.msg)}</option>`).join("");
           const rows = universe.length
             ? universe.map(p=>`<label class="proj">
                 <input type="checkbox" data-proj="${esc(p)}" ${checked(p)?"checked":""}>
                 <code>${esc(p)}</code>
-                ${known(p)?"":'<span class="projmiss">not in this revision</span>'}</label>`).join("")
-            : '<div class="projnone">No <code>.lvproj</code> files discovered yet. Once a project is committed it appears here, or add its path under "Other test locations" below.</div>';
+                ${inRev(p)?"":'<span class="projmiss">not in this revision</span>'}</label>`).join("")
+            : '<div class="projnone">No <code>.lvproj</code> files in this revision. Pick another revision above, or add a path under "Other test locations".</div>';
+          const warn = selectedProjs.length ? "" : '<div class="projwarn">Nothing selected yet &mdash; until you tick a project, CI runs <b>every</b> project (same as the option above).</div>';
           return `
-          <label class="fl">Projects to run <span style="text-transform:none">(.lvproj files; tick the ones to run)</span></label>
+          ${runAllRow}
+          <label class="fl">Show projects from revision <span style="text-transform:none">(pick an older revision to select a project that is no longer in the latest)</span></label>
+          <select id="utf-rev" class="revsel">${revOpts}</select>
+          <label class="fl">Projects to run <span style="text-transform:none">(only ticked projects run; each is skipped in revisions that lack it)</span></label>
           <div class="projs" id="projs-utf">${rows}</div>
-          <div class="projnote">These are the LabVIEW projects found in this repository. A ticked project runs when it is present in the revision being tested; if it is not part of a past or future revision it is simply skipped &mdash; so it is safe to tick every project you might ever test.</div>`;
+          ${warn}
+          <div class="projnote">Only the projects you tick are run, in any revision where they exist. New projects added in future revisions are <b>not</b> run until you tick them &mdash; turn "Run every project" back on to include everything automatically.</div>`;
         })();
         const enableRow = t.soon
           ? `<div class="disablednote">Headless ${esc(t.name)} support is coming soon — this tab is a placeholder so it's ready to enable later.</div>`
@@ -367,6 +426,19 @@
         else if (i>=0){ locs.splice(i,1); }
         renderPanels(); update();
       }));
+      // UTF "run every project" toggle: checked = empty locations (runtime runs all).
+      const utfRunAll = $("utf-runall");
+      if (utfRunAll) utfRunAll.addEventListener("change",()=>{
+        if (utfRunAll.checked){ state.utf.locations = []; utfExplicit = false; }
+        else { utfExplicit = true; discoverProjects($("repo").value, $("branch").value); ensureUtfRevisions(); }
+        renderTabs(); renderPanels(); update();
+      });
+      // UTF revision picker: load the chosen revision's .lvproj files.
+      const utfRev = $("utf-rev");
+      if (utfRev) utfRev.addEventListener("change",()=>{
+        utfRevSha = utfRev.value;
+        loadUtfRevProjects($("repo").value, utfRevSha);
+      });
     }
     function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -474,8 +546,12 @@
       }catch(_){
         st.className="status"; st.textContent = "No existing config found — showing defaults to download & commit.";
       }
+      // UTF mode follows the saved config: any explicit project/location -> explicit mode.
+      const utfLocs = ((state.utf && state.utf.locations) || []).map(x=>String(x).trim()).filter(Boolean);
+      utfExplicit = utfLocs.length > 0;
+      utfRevSha = "";
       renderTabs(); renderPanels(); update();
-      discoverProjects(repo, ref);
+      if (utfExplicit){ discoverProjects(repo, ref); ensureUtfRevisions(); }
     }
 
     (function init(){

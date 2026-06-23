@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "7cfebacf8050b6ea26e3081894d4ed982db254cc",
+  "sha": "ca126e13554817001bf2490c260d5b0dc004b4be",
   "revisions": [
+    {
+      "sha": "ca126e13554817001bf2490c260d5b0dc004b4be",
+      "short": "ca126e1",
+      "message": "Unit Test Framework config: run all projects by default, or pick specific ones by revision (v3.46.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T12:48:44Z"
+    },
     {
       "sha": "7cfebacf8050b6ea26e3081894d4ed982db254cc",
       "short": "7cfebac",
@@ -695,13 +702,6 @@
       "message": "VIPM: stop forcing Community Edition (it enables the public-repo gate), refresh --force, install .vipc file directly",
       "author": "Elijah Kerry",
       "date": "2026-06-20T22:06:38Z"
-    },
-    {
-      "sha": "199463e5718aa6a02ebd14819b7023476cc62ca0",
-      "short": "199463e",
-      "message": "Fix PowerShell quoting in MinGit install step (parens in double-quoted string broke vipm git probe)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T21:10:43Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
