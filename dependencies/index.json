@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "e503f67c17926105153edc031020c953713ec582",
+  "sha": "7cfebacf8050b6ea26e3081894d4ed982db254cc",
   "revisions": [
+    {
+      "sha": "7cfebacf8050b6ea26e3081894d4ed982db254cc",
+      "short": "7cfebac",
+      "message": "VI Browser: mobile-friendly layout \u2014 off-canvas VI tree drawer + compact toolbar (v3.45.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T12:23:42Z"
+    },
     {
       "sha": "e503f67c17926105153edc031020c953713ec582",
       "short": "e503f67",
@@ -695,13 +702,6 @@
       "message": "Fix PowerShell quoting in MinGit install step (parens in double-quoted string broke vipm git probe)",
       "author": "Elijah Kerry",
       "date": "2026-06-20T21:10:43Z"
-    },
-    {
-      "sha": "f3816445fee5ef504419dd1ca400e9b1c293f403",
-      "short": "f381644",
-      "message": "Restore the Activity switcher's Snapshots entry and the in-VI-Browser picker (v3.28.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T21:03:42Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
