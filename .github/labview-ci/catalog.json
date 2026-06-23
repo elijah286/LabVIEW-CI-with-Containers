@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.1",
+  "version": "3.46.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.2",
+        "date": "2026-06-23",
+        "title": "Capability changes warn before long worker image builds",
+        "type": "patch",
+        "summary": "Apply to a new repository now keeps the capability picker collapsed by default and warns before edited choices trigger a custom Windows LabVIEW worker image build, which can add 60-90 minutes to first-time setup. Fresh worker image builds also skip Unit-Test-only VIPM package requirements when the Unit Tests capability is not installed, while Unit Tests installs still require the UTF/JUnit packages they need.",
+        "highlights": [
+          "Collapses the Apply page capability chooser behind a Defaults are recommended control.",
+          "Warns and confirms when edited capability choices still include the custom Windows LabVIEW worker image build path.",
+          "Lets fresh custom Windows worker images build without Unit-Test-only VIPM requirements unless Unit Tests are selected."
+        ]
+      },
       {
         "version": "3.46.1",
         "date": "2026-06-23",

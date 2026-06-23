@@ -434,6 +434,21 @@ jobs:
           $ver   = '${{ env.DEFAULT_TAG }}'
           $date  = '${{ steps.date.outputs.date }}'
           $wv    = '${{ steps.ver.outputs.version }}'
+          $unitTestsInstalled = $false
+          $inActivities = $false
+          if (Test-Path '.github/labview-ci.yml') {
+            foreach ($line in (Get-Content '.github/labview-ci.yml')) {
+              if ($line -match '^\s*activities:\s*$') { $inActivities = $true; continue }
+              if ($inActivities) {
+                if ($line -match '^\s*-\s*unit-tests\s*$') { $unitTestsInstalled = $true; break }
+                if ($line -match '^\S') { $inActivities = $false }
+              }
+            }
+          }
+          $unitTestsArg = if ($unitTestsInstalled) { 'true' } else { 'false' }
+          if (-not $unitTestsInstalled) {
+            Write-Host "::notice::Unit Tests capability is not installed; UTF/JUnit-only VIPM essentials will be skipped for this worker build. Project VIPC dependencies remain required."
+          }
           # The immutable per-content tag ($wv) sits alongside the moving tags.
           # :latest is always published so the Configure dialog's default "Latest"
           # container selection reliably resolves to the newest build.
@@ -448,7 +463,8 @@ jobs:
           docker build -f .github/docker/labview-vipc-layer.Dockerfile `
             --build-arg VIPM_BASE_IMAGE=$vipmBase `
             --build-arg CI_WORKER_VERSION=$wv `
-            --build-arg VIPM_PUBLIC_REPO_URL=$repoUrl @tagFlags .
+            --build-arg VIPM_PUBLIC_REPO_URL=$repoUrl `
+            --build-arg LVCI_UNIT_TESTS_INSTALLED=$unitTestsArg @tagFlags .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           foreach ($tag in $tags) {

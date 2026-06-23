@@ -47,6 +47,16 @@
     .toggle{display:flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--border);
          border-radius:6px;background:var(--surface2);cursor:pointer;font-size:.9em;user-select:none}
     .toggle input{accent-color:var(--accent);margin:0}
+        .capbox{border:1px solid var(--border);border-radius:8px;background:var(--surface2);overflow:hidden}
+        .capbox summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer;user-select:none;list-style:none}
+        .capbox summary::-webkit-details-marker{display:none}
+        .capbox summary::after{content:"+";font-weight:700;color:var(--fg-muted);font-size:1.1em}
+        .capbox[open] summary::after{content:"-"}
+        .capbox-title{font-weight:600}
+        .capbox-sub{display:block;color:var(--fg-muted);font-size:.84em;font-weight:400;margin-top:2px}
+        .capbox-body{border-top:1px solid var(--border);padding:12px;background:var(--surface)}
+        .capwarn{border:1px solid #bf8700;border-radius:8px;background:rgba(191,135,0,.12);color:var(--fg);font-size:.84em;padding:10px 12px;margin:0 0 10px}
+        .capwarn strong{color:#bf8700}
     .caps{display:grid;grid-template-columns:1fr;gap:10px}
     .cap{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:12px 14px;border:1px solid var(--border);
          border-radius:8px;background:var(--surface2)}
@@ -191,8 +201,19 @@
 
     <section>
       <h2>2. Capabilities</h2>
-      <p class="hint">Stable and advanced capabilities are selected by default. Experimental features are off unless you opt in. Dependencies are added automatically.</p>
-      <div class="caps" id="caps"></div>
+      <details class="capbox" id="capChooser">
+        <summary>
+          <span>
+            <span class="capbox-title">Customize capabilities</span>
+            <span class="capbox-sub">Defaults are recommended</span>
+          </span>
+        </summary>
+        <div class="capbox-body">
+          <p class="capwarn" id="capWarn" style="display:none"><strong>Heads up:</strong> these choices include a custom LabVIEW worker container. Building or rebuilding that container can add 60-90 minutes to the installation before container-based checks are ready.</p>
+          <p class="hint">Stable and advanced capabilities are selected by default. Experimental features are off unless you opt in. Dependencies are added automatically.</p>
+          <div class="caps" id="caps"></div>
+        </div>
+      </details>
     </section>
 
     <section>
@@ -317,6 +338,9 @@
     const osSel = new Set(["windows", "linux"]);   // Stable Windows + Linux jobs are selected by default; experimental lanes stay opt-in below.
     let priorState = null;        // set by detectPriorInstall when re-installing over an existing setup
     let insRunId = 0;             // bumped per install run; guards the async publish-wait UI against a newer install
+    let capabilityChoicesChanged = false;
+    let capabilityEditNoticeShown = false;
+    let workerBuildConfirmAccepted = false;
 
     const $ = (id) => document.getElementById(id);
     const csv = (set) => [...set].join(",");
@@ -422,6 +446,7 @@
         cb.checked = !planned;
         if (cb.checked) selected.add(cap.id);
         cb.addEventListener("change", () => {
+          markCapabilityChoicesChanged();
           if (cb.checked) { selected.add(cap.id); addRequires(cap.id); }
           else selected.delete(cap.id);
           syncChecks(); update();
@@ -454,6 +479,7 @@
       const cb = document.createElement("input");
       cb.type = "checkbox"; cb.value = "__experimental"; cb.checked = false;
       cb.addEventListener("change", () => {
+        markCapabilityChoicesChanged();
         caps.forEach(cap => {
           if (cb.checked) { selected.add(cap.id); addRequires(cap.id); }
           else selected.delete(cap.id);
@@ -490,6 +516,38 @@
           cb.checked = selected.has(el.dataset.id);
         }
       });
+    }
+
+    function usesWorkerImage(activities, osList) {
+      return (activities || []).includes("custom-image") && (osList || []).includes("windows");
+    }
+
+    function effectiveUsesWorkerImage(opts) {
+      const eff = effectiveValues(opts && opts.keepSettings);
+      return usesWorkerImage(eff.activities, eff.osList);
+    }
+
+    function markCapabilityChoicesChanged() {
+      capabilityChoicesChanged = true;
+      workerBuildConfirmAccepted = false;
+      if (!capabilityEditNoticeShown) {
+        capabilityEditNoticeShown = true;
+        window.alert("Changing these capability options can require a custom LabVIEW worker container build. If the shared LabVIEW container image stays selected, budget 60-90 minutes during first-time installation while GitHub builds and publishes the image.");
+      }
+    }
+
+    function updateCapabilityWarning() {
+      const warn = $("capWarn");
+      if (!warn) return;
+      warn.style.display = usesWorkerImage([...selected], [...osSel]) ? "" : "none";
+    }
+
+    function confirmWorkerBuildIfNeeded(opts) {
+      if (!capabilityChoicesChanged || !effectiveUsesWorkerImage(opts) || workerBuildConfirmAccepted) return true;
+      const ok = window.confirm("These capability choices will build a custom LabVIEW worker container. That can add 60-90 minutes to first-time installation before the container-based activities are ready. Continue?");
+      if (ok) workerBuildConfirmAccepted = true;
+      else setInsStatus("Install cancelled - capability choices were left unchanged.", null);
+      return ok;
     }
 
     // ---- file resolution (mirrors install.py) ----------------------------
@@ -605,6 +663,7 @@
       updateProviderUi();
       $("cmd").textContent = commandText();
       varsHint();
+      updateCapabilityWarning();
       const noneReal = [...selected].filter(id => { const c = byId(id); return c && c.status !== "planned"; }).length === 0;
       $("download").disabled = noneReal;
       const ib = $("installBtn"); if (ib) ib.disabled = noneReal;
@@ -1896,6 +1955,7 @@
       const keepWrap = $("optKeepWrap"), delWrap = $("optDeleteWrap");
       const keepSettings = !!($("optKeep") && keepWrap && keepWrap.style.display !== "none" && $("optKeep").checked);
       const deleteStale = !!($("optDeleteStale") && delWrap && delWrap.style.display !== "none" && $("optDeleteStale").checked);
+      if (!confirmWorkerBuildIfNeeded({ keepSettings, deleteStale })) return;
       hideReinstallPanel();
       await proceedInstall($("repo").value.trim(), { keepSettings, deleteStale });
     }
@@ -1915,6 +1975,7 @@
           installBusy(false);
           return;
         }
+        if (!confirmWorkerBuildIfNeeded({ keepSettings: false, deleteStale: false })) { installBusy(false); return; }
         await proceedInstall(repo, { keepSettings: false, deleteStale: false });
       } catch (e) {
         setInsStatus(installError(e, repo), "err");
@@ -2126,7 +2187,7 @@
     // ---- wiring ----------------------------------------------------------
     function wire() {
       document.querySelectorAll("#osToggle input").forEach(cb => {
-        cb.addEventListener("change", () => { cb.checked ? osSel.add(cb.value) : osSel.delete(cb.value); update(); });
+        cb.addEventListener("change", () => { cb.checked ? osSel.add(cb.value) : osSel.delete(cb.value); workerBuildConfirmAccepted = false; update(); });
       });
       const providerTop = $("providerTop");
       if (providerTop) providerTop.addEventListener("change", () => { hideInsTokPanel(); hideReinstallPanel(); renderRepoPick(); loadRepoList(true); update(); });

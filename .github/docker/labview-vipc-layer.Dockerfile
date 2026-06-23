@@ -13,11 +13,16 @@ SHELL ["powershell", "-NoLogo", "-NoProfile", "-Command", "$ErrorActionPreferenc
 
 ARG CI_WORKER_VERSION=dev
 ARG VIPM_PUBLIC_REPO_URL=https://github.com/elijah286/LabVIEW-CI-with-Containers.git
+ARG LVCI_UNIT_TESTS_INSTALLED=false
 
 COPY .github/labview/vipm/ C:/vipm/
 
 RUN $vipmExe = 'C:\Program Files\JKI\VI Package Manager\support\vipm.exe'; `
     if (-not (Test-Path $vipmExe)) { throw "VIPM was not found at $vipmExe. Rebuild the VIPM base image before applying the VIPC layer." }; `
+    if ($env:LVCI_UNIT_TESTS_INSTALLED -ne 'true' -and -not $env:VIPM_REQUIRED_PACKAGES) { `
+      $env:VIPM_REQUIRED_PACKAGES = '-'; `
+      Write-Host 'Unit Tests capability is not installed; skipping UTF/JUnit-only required VIPM essentials.' `
+    }; `
     $vipcFiles = Get-ChildItem -Path 'C:\vipm' -Filter '*.vipc' -Recurse -ErrorAction SilentlyContinue; `
     if ($vipcFiles -and $vipcFiles.Count -gt 0) { `
       if (Test-Path 'C:\vipm\install-vipc.ps1') { `
