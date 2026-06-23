@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.15",
+  "version": "3.46.16",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.16",
+        "date": "2026-06-23",
+        "title": "Registry-native base copy makes no-dependency installs fast",
+        "type": "patch",
+        "summary": "A fresh repository with no selected VIPC dependencies now copies the public LCWC base image into its own GHCR worker package at the registry level (docker buildx imagetools create) instead of pulling the multi-gigabyte image down to the runner and pushing it back up. The base digest is resolved with imagetools inspect (no pull), and the worker manifest skips the container run on the copy path. A no-dependency worker is now ready in a couple of minutes instead of fifteen-plus.",
+        "highlights": [
+          "Copies the base image server-side with imagetools create, so the runner never transfers the multi-gigabyte layers.",
+          "Resolves the base digest via imagetools inspect with no docker pull.",
+          "Skips the nipkg container run for seed-only copies to avoid an extra multi-gigabyte pull."
+        ]
+      },
       {
         "version": "3.46.15",
         "date": "2026-06-23",
