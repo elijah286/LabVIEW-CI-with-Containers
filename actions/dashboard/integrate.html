@@ -271,6 +271,22 @@
         </div>
       </div>
 
+      <div class="tokpanel" id="glTokPanel" style="display:none">
+        <h3>One-time setup &mdash; a GitLab token to open the install merge request</h3>
+        <ol>
+          <li>In GitLab, open <strong>User settings &rsaquo; Access tokens</strong>, then create a token with the <strong>api</strong> scope.</li>
+          <li>Confirm <strong>Target repo</strong> above is the GitLab project path, for example <code class="inl">group/subgroup/project</code>.</li>
+          <li>Paste the token below. The browser uses it to create a branch, commit the generated files, and open a merge request.</li>
+        </ol>
+        <p class="note">Stored in this browser only (localStorage) and sent only to the GitLab host below. For GitLab.com use <code class="inl">https://gitlab.com</code>; for a company GitLab server, paste that server URL.</p>
+        <div class="tokrow">
+          <input id="glHostInput" type="url" autocomplete="off" placeholder="https://gitlab.com">
+          <input id="glTokInput" type="password" autocomplete="off" placeholder="glpat-&hellip;">
+          <button type="button" class="primary" id="glTokSave">Save &amp; install</button>
+          <button type="button" class="ghost" id="glTokCancel">Cancel</button>
+        </div>
+      </div>
+
       <div class="actions">
         <button class="primary" id="installBtn">&#11014; Install into your repo</button>
         <button class="ghost" id="insTokForget" style="display:none" title="Remove the saved token from this browser">Forget token</button>
@@ -292,7 +308,14 @@
       <details class="altinstall">
         <summary>Other ways to install (command line or download)</summary>
         <div style="margin-top:12px">
-          <p class="hint">Run this from the root of your repository. It only writes files into your working tree &mdash; review with <code class="inl">git diff</code> before committing.</p>
+          <p class="hint" id="altInstallHint">Run this in a local terminal on your computer, from the root folder of a cloned repository. It only writes files into your working tree &mdash; review with <code class="inl">git diff</code> before committing.</p>
+          <ol class="steps" id="altInstallSteps">
+            <li>In GitLab or GitHub, copy the repository clone URL.</li>
+            <li>On your computer, open Terminal, Git Bash, or PowerShell.</li>
+            <li>Run <code class="inl">git clone &lt;clone-url&gt;</code>, then <code class="inl">cd &lt;repo-folder&gt;</code>.</li>
+            <li>Paste the command below in that terminal window.</li>
+            <li>Review with <code class="inl">git diff</code>, then commit and push.</li>
+          </ol>
           <div class="tabs" id="tabs">
             <div class="tab active" data-tab="bash">macOS / Linux / Git Bash</div>
             <div class="tab" data-tab="pwsh">Windows PowerShell</div>
@@ -623,8 +646,8 @@
     function gitlabPagesUrl() {
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) return "https://<namespace>.gitlab.io/<project>";
-      const [owner, name] = repo.split("/");
-      return `https://${owner.toLowerCase()}.gitlab.io/${name}`;
+      const parts = repo.split("/").filter(Boolean);
+      return `https://${parts[0].toLowerCase()}.gitlab.io/${parts.slice(1).join("/")}`;
     }
 
     function updateProviderUi() {
@@ -637,20 +660,25 @@
         : "GitHub supports the browser pull-request install flow.";
       const installHint = $("installHint");
       if (installHint) installHint.innerHTML = gitlab
-        ? `GitLab support starts with a command-line or downloadable install that writes <code class="inl">.gitlab-ci.yml</code>, <code class="inl">.gitlab/labview-ci/</code>, and the shared LabVIEW CI payload.`
+        ? `Use a GitLab token to let this browser create an install branch and merge request that adds <code class="inl">.gitlab-ci.yml</code>, <code class="inl">.gitlab/labview-ci/</code>, and the shared LabVIEW CI payload. If your GitLab server blocks browser API calls, use the command-line fallback below from a local clone.`
         : `Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a fine-grained token; the panel walks you through creating it with the permissions pre-filled. It stays in this browser so you don&rsquo;t have to paste it again.`;
       const githubOptions = $("githubInstallOptions");
       if (githubOptions) githubOptions.style.display = gitlab ? "none" : "grid";
       ["insTokPanel", "insReinstallPanel", "repoTokRow"].forEach(id => { const el = $(id); if (el && gitlab) el.style.display = "none"; });
+      const glPanel = $("glTokPanel"); if (glPanel && !gitlab) glPanel.style.display = "none";
       const repoPick = $("repoPickHint"); if (repoPick) repoPick.style.display = gitlab ? "none" : repoPick.style.display;
       const installBtn = $("installBtn");
-      if (installBtn) installBtn.innerHTML = gitlab ? "&#11014; Use GitLab install command" : "&#11014; Install into your repo";
-      const forget = $("insTokForget"); if (forget) forget.style.display = gitlab ? "none" : (getInsTok() ? "" : "none");
+      if (installBtn) installBtn.innerHTML = gitlab ? "&#11014; Install into GitLab" : "&#11014; Install into your repo";
+      const forget = $("insTokForget"); if (forget) forget.style.display = gitlab ? (getGitLabTok() ? "" : "none") : (getInsTok() ? "" : "none");
+      const altHint = $("altInstallHint");
+      if (altHint) altHint.innerHTML = gitlab
+        ? `Command-line fallback: run this in Terminal, Git Bash, or PowerShell from a local clone of your GitLab repository. It is not pasted anywhere in the GitLab web UI.`
+        : `Run this in a local terminal on your computer, from the root folder of a cloned repository. It only writes files into your working tree &mdash; review with <code class="inl">git diff</code> before committing.`;
       const finish = $("finishSteps");
       if (finish) finish.innerHTML = gitlab ?
-        `<li>Run the generated install command from your GitLab repository, or download the bundle and unzip it at the repository root.</li>` +
-        `<li>Commit <code class="inl">.github</code>, <code class="inl">.gitlab</code>, and <code class="inl">.gitlab-ci.yml</code>, then push to GitLab.</li>` +
-        `<li>Let the GitLab pipeline publish the <strong>Pages</strong> artifact from the <code class="inl">pages</code> job.</li>` +
+        `<li>Use the browser install above to open a GitLab merge request, then review and merge it.</li>` +
+        `<li>If you use the command-line fallback, first clone the GitLab repository locally, <code class="inl">cd</code> into that folder, then run the generated command there.</li>` +
+        `<li>After merge or push, let the GitLab pipeline publish the <strong>Pages</strong> artifact from the <code class="inl">pages</code> job.</li>` +
         `<li id="varsStep">Optional GitLab CI/CD variables can override installer defaults later.</li>` +
         `<li>Full Windows LabVIEW worker parity requires a registered Windows Docker GitLab Runner; the first scaffold publishes the dashboard payload.</li>`
         : `<li>Merge the install pull request — the <strong>dashboard publishes itself</strong> from that merge (no CI run required), and the README link lands in the same merge.</li>` +
@@ -671,6 +699,7 @@
       const tl = $("insTokLink"); if (tl) tl.href = tokenUrl();
       const rtc = $("repoTokCreate"); if (rtc) rtc.href = tokenUrl();
       const tr = $("insTokRepo"); if (tr) tr.textContent = $("repo").value.trim() || "your-org/your-repo";
+      renderGitLabTokPanel();
       renderTokPanel();
     }
 
@@ -898,6 +927,8 @@
     // Workflows (write): the workflow files require the Workflows permission.
     const INSTALL_TOK_KEY = "lvci_install_token";
     const INSTALL_BRANCH = "ci/install-labview-ci";
+    const GITLAB_TOK_KEY = "lvci_gitlab_token";
+    const GITLAB_HOST_KEY = "lvci_gitlab_host";
     // Persisted in this browser only (localStorage): scoped to this origin + browser
     // profile + device, so it survives across installs but is never reachable by
     // another machine or visitor. It is only ever sent to api.github.com via gh() —
@@ -906,6 +937,11 @@
     const getInsTok = () => { try { return localStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
     const setInsTok = (v) => { try { localStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
     const clearInsTok = () => { try { localStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
+    const getGitLabTok = () => { try { return localStorage.getItem(GITLAB_TOK_KEY) || ""; } catch (_) { return ""; } };
+    const setGitLabTok = (v) => { try { localStorage.setItem(GITLAB_TOK_KEY, v); } catch (_) {} };
+    const clearGitLabTok = () => { try { localStorage.removeItem(GITLAB_TOK_KEY); } catch (_) {} };
+    const getGitLabHostStored = () => { try { return localStorage.getItem(GITLAB_HOST_KEY) || "https://gitlab.com"; } catch (_) { return "https://gitlab.com"; } };
+    const setGitLabHostStored = (v) => { try { localStorage.setItem(GITLAB_HOST_KEY, v); } catch (_) {} };
 
     // Pre-filled fine-grained token creation link (GitHub honours these query
     // params), so the user lands on the form with the right scopes selected.
@@ -938,6 +974,11 @@
       li.innerHTML = html + `.`;
     }
 
+    function renderGitLabTokPanel() {
+      const h = $("glHostInput");
+      if (h && !h.value) h.value = getGitLabHostStored();
+    }
+
     function setInsStatus(html, kind) {
       const s = $("insStatus"); if (!s) return;
       s.className = "status" + (kind ? " " + kind : "");
@@ -947,23 +988,25 @@
       const wrap = $("insBar"); if (!wrap || wrap.hidden) return;
       if (kind === "err") { setInsBar(null, "err"); return; }
       const t = String(html || ""); let f = null, m;
-      if (/^Checking your repository/.test(t)) f = 0.05;
+      if (/^Checking your repository/.test(t) || /^Checking your GitLab project/.test(t)) f = 0.05;
       else if (/^Preparing the README/.test(t)) f = 0.58;
       else if (/^Preparing/.test(t)) f = 0.08;
       else if (/^Listing tooling files/.test(t)) f = 0.12;
       else if ((m = t.match(/^Fetching (\d+)\/(\d+)/))) f = 0.12 + 0.45 * (+m[1] / Math.max(1, +m[2]));
-      else if (/^Reading your repository/.test(t)) f = 0.62;
+      else if (/^Reading your repository/.test(t) || /^Reading your GitLab repository/.test(t)) f = 0.62;
       else if ((m = t.match(/^Uploading asset (\d+)\/(\d+)/))) f = 0.62 + 0.16 * (+m[1] / Math.max(1, +m[2]));
-      else if (/^Creating the commit/.test(t)) f = 0.80;
+      else if (/^Creating the commit/.test(t) || /^Creating the GitLab commit/.test(t)) f = 0.80;
       else if (/^Pushing the install branch/.test(t)) f = 0.88;
-      else if (/^Opening the pull request/.test(t)) f = 0.93;
+      else if (/^Opening the pull request/.test(t) || /^Opening the GitLab merge request/.test(t)) f = 0.93;
       else if (/^Configuring repository settings/.test(t)) f = 0.97;
       else if (/^Saving the update token/.test(t)) f = 0.985;
       if (f != null) setInsBar(f);
     }
-    function refreshInsForget() { const f = $("insTokForget"); if (f) f.style.display = getInsTok() ? "" : "none"; }
+    function refreshInsForget() { const f = $("insTokForget"); if (f) f.style.display = isGitLab() ? (getGitLabTok() ? "" : "none") : (getInsTok() ? "" : "none"); }
     function showInsTokPanel() { const p = $("insTokPanel"); if (p) { p.style.display = ""; const i = $("insTokInput"); if (i) i.focus(); } }
     function hideInsTokPanel() { const p = $("insTokPanel"); if (p) p.style.display = "none"; }
+    function showGitLabTokPanel() { const p = $("glTokPanel"); if (p) { p.style.display = ""; renderGitLabTokPanel(); const i = $("glTokInput"); if (i) i.focus(); } }
+    function hideGitLabTokPanel() { const p = $("glTokPanel"); if (p) p.style.display = "none"; }
 
     // ---- target-repo picker (datalist) -----------------------------------
     // If an install token is already saved, list the repos it can see and offer
@@ -1067,6 +1110,53 @@
       let body = opts.body;
       if (body && typeof body !== "string") { body = JSON.stringify(body); headers["Content-Type"] = "application/json"; }
       return fetchNet("https://api.github.com" + path, { method: opts.method || "GET", headers, body, cache: "no-store" });
+    }
+
+    function gitlabHost() {
+      let h = (($("glHostInput") && $("glHostInput").value) || getGitLabHostStored() || "https://gitlab.com").trim();
+      if (!h) h = "https://gitlab.com";
+      if (!/^https?:\/\//i.test(h)) h = "https://" + h;
+      return h.replace(/\/+$/, "");
+    }
+    function gitlabProjectPath() {
+      return $("repo").value.trim().replace(/^\/+|\/+$/g, "").replace(/\/+/g, "/");
+    }
+    function gitlabProjectKey(projectPath) { return encodeURIComponent(projectPath); }
+    function gl(path, opts) {
+      opts = opts || {};
+      const headers = Object.assign({ "Accept": "application/json" }, opts.headers || {});
+      const tok = getGitLabTok();
+      if (tok) headers["PRIVATE-TOKEN"] = tok;
+      let body = opts.body;
+      if (body && typeof body !== "string") { body = JSON.stringify(body); headers["Content-Type"] = "application/json"; }
+      return fetchNet(gitlabHost() + "/api/v4" + path, { method: opts.method || "GET", headers, body, cache: "no-store" });
+    }
+    async function glJson(resp) {
+      if (resp.ok) return resp.status === 204 ? null : resp.json();
+      let msg = "";
+      try {
+        const j = await resp.json();
+        msg = j.message || j.error || "";
+        if (typeof msg !== "string") msg = JSON.stringify(msg);
+      } catch (_) {}
+      const err = new Error(msg || ("HTTP " + resp.status));
+      err.status = resp.status; err.glMessage = msg;
+      throw err;
+    }
+    async function glWrite(path, opts, label) {
+      let wait = 1200;
+      for (let attempt = 0; ; attempt++) {
+        let resp;
+        try { resp = await gl(path, opts); }
+        catch (e) {
+          if (attempt < 4) { await sleep(wait); wait *= 2; continue; }
+          const err = new Error("Couldn't " + (label || "reach GitLab") + " from this browser. GitLab.com allows this, but some self-managed GitLab servers block browser API calls. Use the command-line fallback below from a local clone.");
+          err.network = true; throw err;
+        }
+        if (resp.ok) return resp.status === 204 ? null : resp.json();
+        if ((resp.status >= 500 || resp.status === 429) && attempt < 4) { await sleep(wait); wait *= 2; continue; }
+        return glJson(resp);
+      }
     }
     async function ghJson(resp) {
       if (resp.ok) return resp.status === 204 ? null : resp.json();
@@ -1453,7 +1543,7 @@
       const ib = $("installBtn"); if (!ib) return;
       const noneReal = [...selected].filter(id => { const c = byId(id); return c && c.status !== "planned"; }).length === 0;
       ib.disabled = b || noneReal;
-      ib.innerHTML = b ? "Installing&hellip;" : "&#11014; Install into your repo";
+      ib.innerHTML = b ? "Installing&hellip;" : (isGitLab() ? "&#11014; Install into GitLab" : "&#11014; Install into your repo");
       lockInstallForm(b);
     }
 
@@ -1791,6 +1881,21 @@
       if (st === 404) return `<strong>404</strong> \u2014 the token cannot see <code class="inl">${esc(repo)}</code>. On the token, set <strong>Repository access &rarr; Only select repositories</strong> and add this repo.` + gm;
       if (st === 422 && /workflow/i.test((e && e.ghMessage) || "")) return `The commit was refused because the token lacks the <strong>Workflows</strong> permission (required to add files under <code class="inl">.github/workflows/</code>). Add <strong>Workflows: Read and write</strong> to the token, then retry.` + gm;
       return (e && e.message ? esc(e.message) : "Install failed.") + gm;
+    }
+
+    function gitlabInstallError(e, projectPath) {
+      const st = e && e.status;
+      const gm = e && e.glMessage ? ` <span style="opacity:.8">(${esc(e.glMessage)})</span>` : "";
+      if (!st) {
+        const m = (e && e.message) || "";
+        if ((e && e.network) || /load failed|failed to fetch|networkerror|network request|cors/i.test(m))
+          return (e && e.network && m ? esc(m) : "Couldn&rsquo;t reach GitLab from this browser. GitLab.com works with this flow, but some self-managed servers block browser API calls. Use the command-line fallback below from a local clone.");
+      }
+      if (st === 401) { clearGitLabTok(); refreshInsForget(); showGitLabTokPanel(); return "That GitLab token was rejected (401). Create a token with the <strong>api</strong> scope and paste it above."; }
+      if (st === 403) return `<strong>403</strong> &mdash; the token cannot push a branch or open a merge request in <code class="inl">${esc(projectPath)}</code>. Use a token with the <strong>api</strong> scope and write access to this project.` + gm;
+      if (st === 404) return `<strong>404</strong> &mdash; the token cannot see <code class="inl">${esc(projectPath)}</code>. Check the namespace/project path in step 1, or use a token with access to that GitLab project.` + gm;
+      if (st === 409 || st === 400) return `GitLab refused the install branch or merge request. Check whether an earlier LabVIEW CI install merge request is already open, or use the command-line fallback below.` + gm;
+      return (e && e.message ? esc(e.message) : "GitLab install failed.") + gm;
     }
 
     // ---- detecting + reconciling a previous installation -----------------
@@ -2166,6 +2271,155 @@
       }
     }
 
+    async function collectGitLabInstallFiles() {
+      const s = source();
+      const activities = [...selected], osList = [...osSel], version = $("version").value;
+      const wanted = providerFiles(resolveFiles(activities, osList));
+      const subs = buildSubs();
+
+      setInsStatus("Listing tooling files&hellip;", null);
+      const treeResp = await getResilient(`https://api.github.com/repos/${s.repo}/git/trees/${s.ref}?recursive=1`, "list the tooling files");
+      if (!treeResp.ok) throw new Error("Could not list the tooling files — GitHub's unauthenticated API rate limit (60/hour per IP) looks exhausted. Wait a few minutes, or use the command-line install below.");
+      const tree = await treeResp.json();
+      const allPaths = (tree.tree || []).filter(t => t.type === "blob").map(t => t.path);
+      const paths = new Set();
+      wanted.forEach(entry => {
+        if (entry.endsWith("/")) allPaths.filter(p => p.startsWith(entry)).forEach(p => paths.add(p));
+        else if (allPaths.includes(entry)) paths.add(entry);
+      });
+      if (!paths.size) throw new Error("No files resolved for the selected capabilities.");
+
+      const files = [];
+      let n = 0; const total = paths.size;
+      for (const path of paths) {
+        setInsStatus(`Fetching ${++n}/${total}: ${esc(path.split("/").pop())}`, null);
+        const resp = await getResilient(rawUrl(path), "fetch " + path.split("/").pop());
+        if (!resp.ok) continue;
+        if (TEXT_EXTS.has(ext(path))) {
+          const text = await resp.text();
+          files.push({ path, content: shouldSub(path) ? applySubs(text, subs) : text, isText: true });
+        } else {
+          files.push({ path, bytes: new Uint8Array(await resp.arrayBuffer()), isText: false });
+        }
+      }
+      files.push({ path: ".github/labview-ci.yml", content: manifestYaml(activities, osList, version), isText: true });
+      files.push({ path: ".gitlab-ci.yml", content: gitlabRootCi(), isText: true });
+      files.push({ path: ".gitlab/labview-ci/pipeline.yml", content: gitlabPipelineYaml(), isText: true });
+      files.push({ path: ".gitlab/labview-ci/build-dashboard.py", content: gitlabDashboardBuilderPy(), isText: true });
+      files.push({ path: ".gitlab/labview-ci/README.md", content: gitlabReadme(), isText: true });
+      return { files, activities, osList, version };
+    }
+
+    async function gitlabExistingPaths(projectKey, branch) {
+      const paths = new Set();
+      for (let page = 1; page <= 20; page++) {
+        const tree = await glWrite(`/projects/${projectKey}/repository/tree?ref=${encodeURIComponent(branch)}&recursive=true&per_page=100&page=${page}`, null, "list your GitLab repository files");
+        if (!Array.isArray(tree) || !tree.length) break;
+        tree.filter(t => t && t.type === "blob" && t.path).forEach(t => paths.add(t.path));
+        if (tree.length < 100) break;
+      }
+      return paths;
+    }
+
+    function gitlabCommitActions(files, existingPaths) {
+      return files.map(f => {
+        const action = existingPaths && existingPaths.has(f.path) ? "update" : "create";
+        if (f.isText) return { action, file_path: f.path, content: f.content };
+        return { action, file_path: f.path, content: b64bytes(f.bytes), encoding: "base64" };
+      });
+    }
+
+    function gitlabMrBody(acts, osList, ver, fileCount) {
+      const s = source();
+      return [
+        "## LabVIEW CI pipeline", "",
+        "Opened by the **LabVIEW CI configurator** to add the GitLab provider scaffold to this repository.", "",
+        "| | |", "|---|---|",
+        "| LabVIEW version | `" + ver + "` |",
+        "| Platforms | " + (osList.join(", ") || "windows, linux") + " |",
+        "| Capabilities | " + (acts.join(", ") || "dashboard") + " |",
+        "| Files added | " + fileCount + " |",
+        "| Tooling source | `" + s.repo + "@" + s.ref + "` |", "",
+        "### After you merge", "",
+        "1. GitLab runs the `pages` job to publish the dashboard payload.",
+        "2. Full Windows LabVIEW worker parity requires a registered Windows Docker GitLab Runner.",
+        "3. Optional GitLab CI/CD variables can override the installer defaults later.", ""
+      ].join("\n");
+    }
+
+    function gitlabInstallSuccess(mr, projectPath, branchName, fileCount) {
+      setInsBar(1, "done");
+      const url = gitlabPagesUrl();
+      const mrLink = mr.web_url || "#";
+      const mrNum = mr.iid || mr.id || "";
+      setInsStatus(`&#10003; Done &mdash; opened GitLab merge request <a href="${esc(mrLink)}" target="_blank" rel="noopener">!${esc(mrNum)}</a> in <code class="inl">${esc(projectPath)}</code>.`, "ok");
+      const done = [
+        `Created branch <code class="inl">${esc(branchName)}</code>.`,
+        `Added ${fileCount} LabVIEW CI file${fileCount === 1 ? "" : "s"}, including <code class="inl">.gitlab-ci.yml</code> and <code class="inl">.gitlab/labview-ci/</code>.`,
+        `After the merge, GitLab Pages will publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job runs.`
+      ];
+      const doneEl = $("insDone");
+      if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = ""; }
+      const steps = [
+        `Review and merge the GitLab merge request.`,
+        `Open <strong>Build &rsaquo; Pipelines</strong> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `If you instead use the command-line fallback later, run it from a local clone: <code class="inl">git clone</code>, <code class="inl">cd</code> into the repo, paste the command, then commit and push.`
+      ];
+      const nextEl = $("insNext");
+      if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
+      const note = $("insNote");
+      if (note) { note.innerHTML = `Full Windows LabVIEW jobs need a Windows Docker GitLab Runner registered to this project or group. The first scaffold focuses on the dashboard and provider boundary.`; note.style.display = ""; }
+    }
+
+    async function gitlabInstallToRepo() {
+      const projectPath = gitlabProjectPath();
+      if (!projectPath.includes("/")) { setInsStatus("Enter your GitLab project path (group/project) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
+      if (!getGitLabTok()) { showGitLabTokPanel(); return; }
+      setGitLabHostStored(gitlabHost());
+      installBusy(true);
+      showInsBar();
+      ++insRunId;
+      { const dl0 = $("insDashLink"); if (dl0) dl0.style.display = "none"; }
+      setInsStatus("Checking your GitLab project&hellip;", null);
+      try {
+        const projectKey = gitlabProjectKey(projectPath);
+        const project = await glWrite(`/projects/${projectKey}`, null, "read your GitLab project");
+        const defaultBranch = project.default_branch;
+        if (!defaultBranch) throw new Error("Your GitLab project has no default branch yet. Create an initial commit or README in GitLab first, then install.");
+        const branchName = INSTALL_BRANCH + "-" + Date.now().toString(36);
+        const built = await collectGitLabInstallFiles();
+
+        setInsStatus("Reading your GitLab repository&hellip;", null);
+        const existingPaths = await gitlabExistingPaths(projectKey, defaultBranch);
+        const acts = built.activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
+        const commitMessage = `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})`;
+        const actions = gitlabCommitActions(built.files, existingPaths);
+
+        setInsStatus("Creating the GitLab commit&hellip;", null);
+        await glWrite(`/projects/${projectKey}/repository/commits`, { method: "POST", body: {
+          branch: branchName,
+          start_branch: defaultBranch,
+          commit_message: commitMessage,
+          actions
+        } }, "create the GitLab install commit");
+
+        setInsStatus("Opening the GitLab merge request&hellip;", null);
+        const mr = await glWrite(`/projects/${projectKey}/merge_requests`, { method: "POST", body: {
+          source_branch: branchName,
+          target_branch: defaultBranch,
+          title: "Add LabVIEW CI pipeline",
+          description: gitlabMrBody(acts, built.osList, built.version, built.files.length),
+          remove_source_branch: true
+        } }, "open the GitLab merge request");
+        gitlabInstallSuccess(mr, projectPath, branchName, built.files.length);
+      } catch (e) {
+        setInsBar(null, "err");
+        setInsStatus(gitlabInstallError(e, projectPath), "err");
+      } finally {
+        installBusy(false);
+      }
+    }
+
     function saveInsTokAndInstall() {
       const i = $("insTokInput"); const v = (i && i.value || "").trim();
       if (!v) { if (i) i.focus(); return; }
@@ -2173,16 +2427,19 @@
       installToRepo();
     }
 
+    function saveGitLabTokAndInstall() {
+      const h = $("glHostInput"), i = $("glTokInput");
+      const v = (i && i.value || "").trim();
+      if (!v) { if (i) i.focus(); return; }
+      if (h) setGitLabHostStored(gitlabHost());
+      setGitLabTok(v); refreshInsForget(); hideGitLabTokPanel(); if (i) i.value = "";
+      gitlabInstallToRepo();
+    }
+
     async function providerInstall() {
       if (!isGitLab()) { await installToRepo(); return; }
-      const details = document.querySelector("details.altinstall");
-      if (details) details.open = true;
-      try {
-        await navigator.clipboard.writeText($("cmd").textContent);
-        setInsStatus("GitLab install command copied. Run it from your GitLab repository root, or download the bundle below.", "ok");
-      } catch (_) {
-        setInsStatus("Run the GitLab install command below from your repository root, or download the bundle.", null);
-      }
+      if (!getGitLabTok()) { showGitLabTokPanel(); setInsStatus("Paste a GitLab token to open the install merge request from this browser, or use the command-line fallback below from a local clone.", null); return; }
+      await gitlabInstallToRepo();
     }
 
     // ---- wiring ----------------------------------------------------------
@@ -2191,7 +2448,7 @@
         cb.addEventListener("change", () => { cb.checked ? osSel.add(cb.value) : osSel.delete(cb.value); workerBuildConfirmAccepted = false; update(); });
       });
       const providerTop = $("providerTop");
-      if (providerTop) providerTop.addEventListener("change", () => { hideInsTokPanel(); hideReinstallPanel(); renderRepoPick(); loadRepoList(true); update(); });
+      if (providerTop) providerTop.addEventListener("change", () => { hideInsTokPanel(); hideGitLabTokPanel(); hideReinstallPanel(); renderRepoPick(); loadRepoList(true); update(); });
       $("repo").addEventListener("input", update);
       $("version").addEventListener("change", update);
       ["optReadme", "optPages", "optUpdateToken"].forEach(id => { const el = $(id); if (el) el.addEventListener("change", update); });
@@ -2215,8 +2472,14 @@
       $("installBtn").addEventListener("click", providerInstall);
       $("insTokSave").addEventListener("click", saveInsTokAndInstall);
       $("insTokCancel").addEventListener("click", hideInsTokPanel);
-      $("insTokForget").addEventListener("click", () => { clearInsTok(); refreshInsForget(); const _dl = $("repoList"); if (_dl) _dl.innerHTML = ""; repoListToken = null; renderRepoPick(); setInsStatus("Token removed from this browser.", null); });
+      const _gts = $("glTokSave"); if (_gts) _gts.addEventListener("click", saveGitLabTokAndInstall);
+      const _gtc = $("glTokCancel"); if (_gtc) _gtc.addEventListener("click", hideGitLabTokPanel);
+      $("insTokForget").addEventListener("click", () => {
+        if (isGitLab()) { clearGitLabTok(); refreshInsForget(); setInsStatus("GitLab token removed from this browser.", null); return; }
+        clearInsTok(); refreshInsForget(); const _dl = $("repoList"); if (_dl) _dl.innerHTML = ""; repoListToken = null; renderRepoPick(); setInsStatus("Token removed from this browser.", null);
+      });
       const _iti = $("insTokInput"); if (_iti) _iti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveInsTokAndInstall(); } });
+      const _gti = $("glTokInput"); if (_gti) _gti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveGitLabTokAndInstall(); } });
       const _rtu = $("repoTokUse"); if (_rtu) _rtu.addEventListener("click", useRepoTokFromRow);
       const _rti = $("repoTokInput"); if (_rti) _rti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); useRepoTokFromRow(); } });
       const _rg = $("insReinstallGo"); if (_rg) _rg.addEventListener("click", confirmReinstall);
