@@ -1,16 +1,27 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.13",
+  "version": "3.46.14",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
     "comment": "Toggle to block new installs from the Apply page. Set enabled=true (and optionally a message) to show a pause banner instead of installing; set enabled=false to re-enable. Used during in-progress tooling/base-image updates.",
-    "enabled": true,
+    "enabled": false,
     "message": "Installation is temporarily unavailable due to an in-progress update. Please check back in about 30 minutes."
   },
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.14",
+        "date": "2026-06-23",
+        "title": "Re-enable installs after the base-image rollout",
+        "type": "patch",
+        "summary": "The public LCWC Windows base image is published, so new installs are re-enabled: the Apply-page install pause is turned off. Fresh repositories with no selected VIPC dependencies now seed their worker image by copying the public base in seconds instead of rebuilding the shared LabVIEW tooling.",
+        "highlights": [
+          "Turns off the toggleable Apply-page install pause now that the LCWC base image is public.",
+          "No-dependency repositories use the fast base-copy path on their first worker build."
+        ]
+      },
       {
         "version": "3.46.13",
         "date": "2026-06-23",
