@@ -366,7 +366,7 @@ jobs:
                   print('Capability VIPC present but capability not installed (skipping):', vipc_path)
           if not staged:
               print('No VIPC files to stage.')
-            with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
               out.write(f'count={staged}\n')
           PY
 
