@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "3.39.3",
+  "version": "3.39.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.39.4",
+        "date": "2026-06-22",
+        "title": "Dependencies page: declutter the header and link workers to GHCR",
+        "summary": "The Dependencies page drops the Worker summary card and the two informational notes (the config.container summary and the 'columns resolve to worker manifests' line) that did not add value during normal use. Each worker column header (Windows, Linux) is now a link straight to that worker's image in the GitHub Container Registry. The status line is kept only for real errors (no repository, no revisions).",
+        "highlights": [
+          "Removes the Worker card and the config-summary / status info boxes from the top of the Dependencies page",
+          "Windows and Linux column headers link to the worker image package in GHCR"
+        ]
+      },
       {
         "version": "3.39.3",
         "date": "2026-06-22",
