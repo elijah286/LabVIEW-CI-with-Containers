@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "881baadbe4953b1daf4dcc1d63ae725861bed330",
+  "sha": "2efcb33789c7f6a3a1ca577778c50115d58eedb7",
   "revisions": [
+    {
+      "sha": "2efcb33789c7f6a3a1ca577778c50115d58eedb7",
+      "short": "2efcb33",
+      "message": "Windows workers copy the LCWC base image; add toggleable install pause + catalog/source sync check (v3.46.12)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T20:19:07Z"
+    },
     {
       "sha": "881baadbe4953b1daf4dcc1d63ae725861bed330",
       "short": "881baad",
@@ -695,13 +702,6 @@
       "message": "unit-tests(diag): dump LabVIEW CLI operations folder + probe RunUnitTests without -JUnitReportPath (isolate -350053)",
       "author": "Elijah Kerry",
       "date": "2026-06-21T13:45:01Z"
-    },
-    {
-      "sha": "f108724ee786c59c43e5e65f57b29200ad6e7054",
-      "short": "f108724",
-      "message": "VI Browser: show generate prompt for missing 2.0 diagrams",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T13:36:04Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
