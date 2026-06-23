@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.44.1",
+  "version": "3.45.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.45.0",
+        "date": "2026-06-23",
+        "title": "Consistent sub-item navigation in the shared sub-header",
+        "summary": "Every page now navigates its sub-views from the same sub-header strip instead of a mix of sub-header tabs (Settings) and in-body tabs (Dependencies). A page declares its tabs via window.LVCI.subnav and the shared header renders them in the context bar next to the Settings nav, so sub-item navigation looks and works the same across all documents.",
+        "highlights": [
+          "New header subnav API (window.LVCI.subnav + lvci:subnav event + lvciSetSubnavActive) renders page sub-views in the same context-bar strip the Settings sections use",
+          "The Dependencies page moves its VIPM / NI Packages / System Components tabs from the page body into the shared sub-header",
+          "One consistent place to switch sub-views on every document; panels stay in the body and switch via the shared event"
+        ]
+      },
       {
         "version": "3.44.1",
         "date": "2026-06-23",
