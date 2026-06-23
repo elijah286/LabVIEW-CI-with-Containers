@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "dd8daf3028f64728ca25b27ec0f06b725564bcf7",
+  "sha": "d5d758cc1868458237275f7a4dc331703cfd320d",
   "revisions": [
+    {
+      "sha": "d5d758cc1868458237275f7a4dc331703cfd320d",
+      "short": "d5d758c",
+      "message": "Improve install progress visibility",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T17:41:52Z"
+    },
     {
       "sha": "dd8daf3028f64728ca25b27ec0f06b725564bcf7",
       "short": "dd8daf3",
@@ -695,13 +702,6 @@
       "message": "Settings consolidation: a shared Settings sub-navigation on the config pages (v3.32.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-21T01:56:32Z"
-    },
-    {
-      "sha": "335b2cb7eebb9fc0ccab4df7a0fd996a59f95619",
-      "short": "335b2cb",
-      "message": "fix(vipm): fall through to by-name install when engine rejects .vipc file (Code 42), only skip fallback on genuine startup timeout",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T01:39:06Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
