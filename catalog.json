@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.5",
+  "version": "3.46.6",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.6",
+        "date": "2026-06-23",
+        "title": "Installer shows honest end-to-end setup progress",
+        "type": "patch",
+        "summary": "Apply to a new repository now tracks the full install after the pull request is created: merge, dashboard publishing, worker container image builds, and final CI readiness. The progress bar no longer turns green while background image builds are still running, and installed GitHub Actions workflows now use clear run names so users can tell dashboard, Windows, and Linux work apart in the Actions list.",
+        "highlights": [
+          "Adds an overall setup progress panel with step status and expected durations for merge, dashboard publishing, image builds, and CI readiness.",
+          "Keeps watching Windows and Linux worker image workflows after install merge and explains why image builds can take 5-90 minutes.",
+          "Adds descriptive GitHub Actions run names for dashboard publishing, image builds, snapshots, mass compile, VI Analyzer, VIDiff, unit tests, Antidoc, update, release, and diagnostic workflows."
+        ]
+      },
       {
         "version": "3.46.5",
         "date": "2026-06-23",

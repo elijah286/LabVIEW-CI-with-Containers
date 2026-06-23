@@ -139,6 +139,26 @@
        Pages isn't enabled). Amber and deliberately short of 100% so it never reads
        as the green "done"/live success. */
     .ins-bar.warn .ins-bar-fill{background:#bf8700;width:88%;transition:none;animation:none;left:0}
+    .ins-plan{border:1px solid var(--border);border-radius:8px;background:var(--surface2);padding:12px 14px;margin:10px 0 8px}
+    .ins-plan[hidden]{display:none}
+    .ins-plan-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}
+    .ins-plan-title{font-weight:700;font-size:.9em}
+    .ins-plan-sub{font-size:.78em;color:var(--fg-muted);text-align:right}
+    .ins-plan-list{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+    .ins-step{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:start;font-size:.84em;color:var(--fg-muted)}
+    .ins-step strong{display:block;color:var(--fg);font-size:.98em;margin-bottom:1px}
+    .ins-step small{display:block;color:var(--fg-muted);line-height:1.35}
+    .ins-step .eta{font-size:.74em;color:var(--fg-muted);white-space:nowrap;margin-top:1px}
+    .ins-step .dot{width:16px;height:16px;border-radius:50%;border:1px solid var(--border);display:inline-grid;place-items:center;font-size:.72em;background:var(--surface);color:var(--fg-muted);margin-top:1px}
+    .ins-step.active .dot{border-color:var(--link);background:var(--link);color:#fff;animation:insPulse 1.2s ease-in-out infinite}
+    .ins-step.done .dot{border-color:var(--accent);background:var(--accent);color:#fff;animation:none}
+    .ins-step.warn .dot{border-color:#bf8700;background:#bf8700;color:#fff;animation:none}
+    .ins-step.err .dot{border-color:#cf222e;background:#cf222e;color:#fff;animation:none}
+    .ins-step.active strong{color:var(--link)}
+    .ins-step.warn strong{color:#9a6700}
+    .ins-step.err strong{color:#cf222e}
+    @keyframes insPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.82);opacity:.75}}
+    @media (max-width:620px){.ins-plan-head{display:block}.ins-plan-sub{text-align:left;margin-top:3px}.ins-step{grid-template-columns:20px 1fr}.ins-step .eta{grid-column:2}}
     .locked-area{opacity:.5;pointer-events:none;filter:saturate(.55)}
     .dashlink{display:inline-block;margin:10px 0 4px;padding:9px 16px;background:var(--accent);color:var(--accent-fg);border-radius:7px;font-weight:600;font-size:.9em;text-decoration:none}
     .dashlink:hover{filter:brightness(1.06)}
@@ -299,6 +319,7 @@
            the form above locks (see lockInstallForm) so the choices can't change
            mid-flight and a duplicate install can't start. -->
       <div class="ins-bar" id="insBar" hidden aria-hidden="true"><div class="ins-bar-fill" id="insBarFill"></div></div>
+      <div class="ins-plan" id="insPlan" hidden aria-live="polite"></div>
 
       <a class="dashlink" id="insDashLink" target="_blank" rel="noopener" style="display:none"></a>
       <ul class="insdone" id="insDone" style="display:none"></ul>
@@ -1000,8 +1021,40 @@
       else if (/^Opening the pull request/.test(t) || /^Opening the GitLab merge request/.test(t)) f = 0.93;
       else if (/^Configuring repository settings/.test(t)) f = 0.97;
       else if (/^Saving the update token/.test(t)) f = 0.985;
-      if (f != null) setInsBar(f);
+      if (f != null) setInsBar(installPlanSteps.length ? Math.min(0.48, f * 0.48) : f);
     }
+
+    let installPlanSteps = [];
+    function renderInstallPlan() {
+      const host = $("insPlan"); if (!host) return;
+      if (!installPlanSteps.length) { host.hidden = true; host.innerHTML = ""; return; }
+      host.hidden = false;
+      const active = installPlanSteps.find(s => s.state === "active") || installPlanSteps.find(s => s.state === "warn") || installPlanSteps.find(s => s.state === "err") || installPlanSteps[installPlanSteps.length - 1];
+      const icon = (s) => s.state === "done" ? "&#10003;" : (s.state === "warn" || s.state === "err" ? "!" : "");
+      host.innerHTML = `<div class="ins-plan-head"><div><div class="ins-plan-title">Overall setup progress</div><div class="note" style="margin-top:2px">The browser keeps watching the setup workflows so you do not have to read the Actions tab.</div></div><div class="ins-plan-sub">Now: ${esc(active && active.title || "Starting")}</div></div>` +
+        `<ol class="ins-plan-list">` + installPlanSteps.map(s => `<li class="ins-step ${esc(s.state || "pending")}"><span class="dot">${icon(s)}</span><span><strong>${esc(s.title)}</strong><small>${s.detail || ""}</small></span><span class="eta">${esc(s.eta || "")}</span></li>`).join("") + `</ol>`;
+    }
+    function startInstallPlan(opts) {
+      opts = opts || {};
+      const imgs = [];
+      if (opts.buildWindowsImage) imgs.push("Windows");
+      if (opts.buildLinuxImage) imgs.push("Linux");
+      installPlanSteps = [
+        { id: "prepare", title: "Prepare install pull request", eta: "~1 min", state: "active", detail: "Reading the repo, fetching the selected tooling, and opening the install PR." },
+        { id: "merge", title: "Merge install pull request", eta: opts.autoMerge ? "seconds" : "your review", state: "pending", detail: opts.autoMerge ? "The configurator will squash-merge it after the branch is ready." : "Review and merge the PR when you are ready; setup continues after the merge." }
+      ];
+      if (opts.hasDashboard !== false) installPlanSteps.push({ id: "dashboard", title: "Publish dashboard", eta: "1-3 min", state: "pending", detail: "GitHub Pages builds the dashboard and this page waits until the link is live." });
+      if (imgs.length) installPlanSteps.push({ id: "image", title: "Build worker container image" + (imgs.length > 1 ? "s" : ""), eta: "5-90 min", state: "pending", detail: `${esc(imgs.join(" + "))} container workflow${imgs.length > 1 ? "s" : ""} may run for a while; CI waits for the image instead of failing.` });
+      installPlanSteps.push({ id: "ready", title: "Ready for CI runs", eta: "done", state: "pending", detail: "Dashboard link works and selected container workers are available." });
+      renderInstallPlan();
+    }
+    function setInstallStep(id, state, detail) {
+      const s = installPlanSteps.find(x => x.id === id); if (!s) return;
+      s.state = state || s.state;
+      if (detail != null) s.detail = detail;
+      renderInstallPlan();
+    }
+    function clearInstallPlan() { installPlanSteps = []; renderInstallPlan(); }
     function refreshInsForget() { const f = $("insTokForget"); if (f) f.style.display = isGitLab() ? (getGitLabTok() ? "" : "none") : (getInsTok() ? "" : "none"); }
     function showInsTokPanel() { const p = $("insTokPanel"); if (p) { p.style.display = ""; const i = $("insTokInput"); if (i) i.focus(); } }
     function hideInsTokPanel() { const p = $("insTokPanel"); if (p) p.style.display = "none"; }
@@ -1315,6 +1368,7 @@
         "# runtime \u2014 so this repo keeps no copy of the generator and the dashboard updates only",
         "# when you opt in. Owns the triggers + the Pages deploy.",
         "name: CI Dashboard \u2014 GitHub Pages",
+        "run-name: Publish CI dashboard - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}",
         "",
         "on:",
         "  # Build on the install merge + whenever the config changes, so the dashboard",
@@ -1617,6 +1671,82 @@
       return false;
     }
 
+    async function dispatchWorkflow(repo, workflowFile, branch) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await gh(`/repos/${repo}/actions/workflows/${workflowFile}/dispatches`,
+            { method: "POST", body: { ref: branch } });
+          if (r.ok || r.status === 204) return true;
+          if (r.status !== 404) return false;
+        } catch (_) { /* transient network -- retry */ }
+        await sleep(3000);
+      }
+      return false;
+    }
+
+    async function latestWorkflowRun(repo, workflowFile, branch, sinceMs) {
+      try {
+        const r = await gh(`/repos/${repo}/actions/workflows/${workflowFile}/runs?branch=${encodeURIComponent(branch)}&per_page=10`);
+        if (!r.ok) return null;
+        const cutoff = (sinceMs || 0) - 60000;
+        const runs = ((await r.json()).workflow_runs || []).filter(x => x && x.created_at);
+        return runs.find(x => Date.parse(x.created_at) >= cutoff) || null;
+      } catch (_) { return null; }
+    }
+
+    async function waitForWorkflowRun(repo, workflowFile, branch, sinceMs, onTick, opts) {
+      opts = opts || {};
+      const cap = opts.cap || 95 * 60 * 1000;
+      const interval = opts.interval || 8000;
+      const t0 = Date.now();
+      for (;;) {
+        const run = await latestWorkflowRun(repo, workflowFile, branch, sinceMs || t0);
+        const elapsed = Date.now() - t0;
+        if (onTick) { try { onTick(run, elapsed); } catch (_) {} }
+        if (run && run.status === "completed") return run;
+        if (elapsed >= cap) return run || { status: "timed_out", conclusion: "timed_out" };
+        await sleep(interval);
+      }
+    }
+
+    async function watchInstallImageBuilds(repo, branch, setup, sinceMs) {
+      const targets = [];
+      if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "build-labview-image.yml", dispatch: true });
+      if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "build-labview-linux-image.yml", dispatch: false });
+      if (!targets.length) return "skipped";
+      const states = {};
+      const render = () => {
+        const text = targets.map(t => `${esc(t.label)}: ${states[t.label] || "waiting"}`).join("; ");
+        setInstallStep("image", "active", text + ". You can leave this page open; the dashboard workers wait for these images instead of failing.");
+      };
+      render();
+      const results = await Promise.all(targets.map(async t => {
+        const startedAt = Date.now();
+        if (t.dispatch) {
+          states[t.label] = "queuing"; render();
+          const queued = await dispatchWorkflow(repo, t.workflow, branch);
+          if (!queued) { states[t.label] = "could not queue automatically"; render(); return "warn"; }
+        } else {
+          states[t.label] = "waiting for GitHub to start it from the install merge"; render();
+        }
+        const run = await waitForWorkflowRun(repo, t.workflow, branch, t.dispatch ? startedAt : sinceMs, (r, elapsed) => {
+          const secs = Math.round(elapsed / 1000);
+          if (!r) states[t.label] = `waiting for run (${secs}s)`;
+          else if (r.status === "completed") states[t.label] = r.conclusion === "success" ? "finished" : `finished with ${esc(r.conclusion || "failure")}`;
+          else states[t.label] = `${esc(r.status || "running")}${r.html_url ? ` (<a href="${esc(r.html_url)}" target="_blank" rel="noopener">open run</a>)` : ""}`;
+          render();
+        });
+        if (run && run.status === "completed" && run.conclusion === "success") return "success";
+        return "warn";
+      }));
+      if (results.every(r => r === "success")) {
+        setInstallStep("image", "done", "Worker container image build finished; container CI activities can start immediately.");
+        return "success";
+      }
+      setInstallStep("image", "warn", "At least one worker image did not finish successfully from this browser. Open the linked run or rebuild from Configure Workers.");
+      return "warn";
+    }
+
     // Kick off the worker container IMAGE build the moment the install merges, when
     // the custom-image capability is installed. Every Windows container activity (mass
     // compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) runs inside
@@ -1628,16 +1758,7 @@
     // we briefly retry, then fall back silently (the dashboard's Build worker image
     // button and the first CI run's wait-for-image both cover it).
     async function buildWorkerImageNow(repo, branch) {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const r = await gh(`/repos/${repo}/actions/workflows/build-labview-image.yml/dispatches`,
-            { method: "POST", body: { ref: branch } });
-          if (r.ok || r.status === 204) return true;
-          if (r.status !== 404) return false;   // real error (e.g. perms) — stop retrying
-        } catch (_) { /* transient network — retry */ }
-        await sleep(3000);                       // workflow not on the default branch yet
-      }
-      return false;
+      return dispatchWorkflow(repo, "build-labview-image.yml", branch);
     }
 
     // Semver-ish compare (major.minor.patch). Returns >0 when a>b, <0 when a<b.
@@ -1753,7 +1874,7 @@
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
       if (setup.toolingToken === "done") done.push(`Saved a one-time <strong>update token</strong> &mdash; future <em>Update now</em> clicks open their pull request automatically.`);
-      if (setup.buildImage && autoMerge) done.push(`Started building your <strong>worker container image</strong> &mdash; the container CI activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) become available once it finishes (a few minutes). Running one before then waits for the build rather than failing.`);
+      if (setup.buildImages && autoMerge) done.push(`Watching your <strong>worker container image build${setup.buildImage && setup.buildLinuxImage ? "s" : ""}</strong> &mdash; Windows and Linux image workflows are tracked separately below so it is clear which background work is still running.`);
       // Show the dashboard URL as PLAIN TEXT until Pages is confirmed serving it
       // (revealLiveLink upgrades #insLiveUrl to a real link) so we never present a
       // link that 404s. When Pages already existed it's almost certainly live, so
@@ -1793,28 +1914,59 @@
       if (!autoMerge) {
         // The install itself is done; the dashboard publishes when the user merges,
         // so we can't confirm a live link yet (the URL stays plain text above).
-        setInsBar(1, "done");
+        setInstallStep("merge", "active", `Review and merge pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>; dashboard publishing${setup.buildImages ? " and image builds" : ""} start after that.`);
+        setInstallStep("ready", "pending", "Waiting for the install pull request to be merged.");
+        setInsBar(0.55);
         return;
       }
 
+      setInstallStep("merge", "active", "Squash-merging the install pull request now.");
+      setInsBar(0.55);
       mergeInstallPr(pr, repo).then(success => {
         if (insRunId !== myGen) return;     // a newer install took over the UI
         if (!success) {
-          setInsBar(1, "done");
+          setInstallStep("merge", "warn", "Auto-merge failed; merge the pull request manually to continue setup.");
+          setInstallStep("ready", "pending", "Setup continues after the install pull request is merged.");
+          setInsBar(null, "warn");
           setInsStatus(`&#10003; Opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but auto-merge failed (check the link above to merge manually). The dashboard publishes itself the moment you merge \u2014 no CI run required.`, "ok");
           return;
         }
+        setInstallStep("merge", "done", `Merged pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>.`);
+        setInsBar(0.62);
         const nx = $("insNext"); if (nx) nx.style.display = "none";
 
-        // Build the worker container image now so the container CI activities have an
-        // image to run in (it never builds itself on the install merge). Best-effort.
-        if (setup.buildImage) buildWorkerImageNow(repo, setup.branch);
+        // Build/watch worker container images now so the container CI activities have
+        // an image to run in. Windows is dispatched here; Linux starts from the merge
+        // push because its workflow file is part of the install. Both are tracked.
+        const mergeAt = Date.now();
+        const imagePromise = setup.buildImages ? watchInstallImageBuilds(repo, setup.branch, setup, mergeAt) : Promise.resolve("skipped");
+        async function finishAfterImages(kind, message) {
+          if (!setup.buildImages) {
+            setInstallStep("ready", kind === "warn" ? "warn" : "done", kind === "warn" ? "Dashboard publishing still needs attention above." : "Dashboard is live and setup is complete.");
+            setInsBar(kind === "warn" ? null : 1, kind === "warn" ? "warn" : "done");
+            setInsStatus(message, kind);
+            return;
+          }
+          setInsBar(null, "working");
+          setInsStatus(message + ` Worker image build${setup.buildImage && setup.buildLinuxImage ? "s are" : " is"} still running; this can take 5-90 minutes depending on VIPC dependencies.`, kind);
+          const imgState = await imagePromise;
+          if (insRunId !== myGen) return;
+          if (imgState === "success") {
+            setInstallStep("ready", kind === "warn" ? "warn" : "done", kind === "warn" ? "Worker images finished, but dashboard publishing still needs attention above." : "Dashboard is live and worker container images are ready.");
+            setInsBar(kind === "warn" ? null : 1, kind === "warn" ? "warn" : "done");
+            setInsStatus(kind === "warn" ? message + " Worker images finished." : message + " Worker images finished; container CI is ready.", kind);
+          } else {
+            setInstallStep("ready", "warn", "Dashboard setup completed, but at least one worker image needs attention before container CI is fully ready.");
+            setInsBar(null, "warn");
+            setInsStatus(message + " One worker image did not finish successfully; open the linked run above or rebuild from Configure Workers.", "warn");
+          }
+        }
 
         const mergedDashboard = setup.hasDashboard && !!setup.branch;
         if (!mergedDashboard) {
           // No dashboard to publish in this install — the merge is the whole story.
-          setInsBar(1, "done");
-          setInsStatus(`&#10003; Done \u2014 pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`, "ok");
+          setInstallStep("dashboard", "done", "No dashboard workflow was selected for this install.");
+          finishAfterImages("ok", `&#10003; Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`);
           return;
         }
 
@@ -1823,8 +1975,9 @@
         // can't be live — say so honestly with what to do, never a green "done".
         const pagesConfirmed = setup.pages === "done" || setup.pages === "exists";
         if (!pagesConfirmed) {
+          setInstallStep("dashboard", "warn", "GitHub Pages is not enabled yet; follow the guidance below to turn it on.");
           setInsBar(null, "warn");
-          setInsStatus(`&#9888; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but your dashboard isn&rsquo;t live yet. ${pagesHelp()}`, "warn");
+          finishAfterImages("warn", `&#9888; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but your dashboard isn&rsquo;t live yet. ${pagesHelp()}`);
           return;
         }
 
@@ -1832,6 +1985,7 @@
         // bar working and only finish (green "done") + reveal the link once GitHub
         // Pages actually serves the page, so the link is never a 404.
         setInsBar(null, "working");
+        setInstallStep("dashboard", "active", "Dispatching the dashboard publish workflow and waiting for GitHub Pages to serve the new dashboard.");
         setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026 this takes about a minute.`, "ok");
         publishDashboardNow(repo, setup.branch).then(() =>
           waitForPagesLive(url, (elapsed) => {
@@ -1842,25 +1996,27 @@
         ).then(state => {
           if (insRunId !== myGen) return;
           if (state === "live" || state === "placeholder") {
-            setInsBar(1, "done");
+            setInstallStep("dashboard", "done", state === "live" ? "GitHub Pages is serving the dashboard." : "GitHub Pages is serving the setup placeholder; it auto-refreshes into the dashboard.");
             revealLiveLink();
             showDashLink();
-            setInsStatus(state === "live"
+            finishAfterImages("ok", state === "live"
               ? `&#10003; Done \u2014 your dashboard is live: <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`
-              : `&#10003; Done \u2014 your dashboard is publishing at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> and finishes rendering within a minute (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`, "ok");
+              : `&#10003; Your dashboard is publishing at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a> and finishes rendering within a minute (merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>).`);
             return;
           }
           // Not "live"/"placeholder": either "pending" (Pages never served in time) or
           // "stale" (a real page serves but still the PREVIOUS version -- the new build
           // hasn't published yet). Never claim done; say honestly what's left.
           setInsBar(null, "warn");
-          setInsStatus(state === "stale"
+          setInstallStep("dashboard", "warn", state === "stale" ? "GitHub Pages is still serving the previous dashboard version." : "GitHub Pages is taking longer than usual to publish.");
+          finishAfterImages("warn", state === "stale"
             ? `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is updating to <strong>v${esc((catalog && catalog.version) || "")}</strong>, but GitHub Pages is still serving the previous build. It refreshes at <code class="inl">${esc(url)}</code> within a minute or two \u2014 reload to confirm the new version.`
-            : `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`, "warn");
+            : `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`);
         }).catch(() => {
           if (insRunId !== myGen) return;
           setInsBar(null, "warn");
-          setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`, "warn");
+          setInstallStep("dashboard", "warn", "GitHub Pages is taking longer than usual to publish.");
+          finishAfterImages("warn", `&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 your dashboard is taking longer than usual to publish. It will appear at <code class="inl">${esc(url)}</code> once GitHub Pages finishes building; refresh in a minute.`);
         });
       });
     }
@@ -2101,6 +2257,12 @@
         const setup = {};
         const eff = effectiveValues(opts.keepSettings);
         const activities = eff.activities, osList = eff.osList, version = eff.version;
+        startInstallPlan({
+          autoMerge: !!($("optAutoMerge") && $("optAutoMerge").checked),
+          hasDashboard: activities.includes("dashboard"),
+          buildWindowsImage: activities.includes("custom-image") && osList.includes("windows"),
+          buildLinuxImage: activities.includes("custom-image") && osList.includes("linux")
+        });
         if (opts.keepSettings && priorState && priorState.canKeep) {
           setup.kept = activities.map(actLabel).join(", ") + " \u00b7 LabVIEW " + version + " \u00b7 " + osList.join(", ");
         }
@@ -2154,6 +2316,8 @@
         // every Windows container activity runs in, and it does NOT exist until it is
         // built — so a fresh install must build it once. Remember whether to do that.
         setup.buildImage = activities.includes("custom-image") && osList.includes("windows");
+        setup.buildLinuxImage = activities.includes("custom-image") && osList.includes("linux");
+        setup.buildImages = setup.buildImage || setup.buildLinuxImage;
 
         if ($("optReadme") && $("optReadme").checked && setup.hasDashboard) {
           setInsStatus("Preparing the README link&hellip;", null);
@@ -2246,6 +2410,7 @@
           }
           if (!pr) await ghJson(prResp); // still nothing -> throw a typed error
         }
+        setInstallStep("prepare", "done", `Opened install pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>.`);
 
         // Best-effort: optionally flip Workflow permissions to write and enable
         // Pages so the dashboard publishes with no manual settings. Never fails the
@@ -2265,6 +2430,7 @@
         // dashboard (then it flips to "done" and reveals the live link).
         installSuccess(pr, repo, setup);
       } catch (e) {
+        setInstallStep("prepare", "err", "Install setup stopped before the pull request could finish.");
         setInsStatus(installError(e, repo), "err");
       } finally {
         installBusy(false);
