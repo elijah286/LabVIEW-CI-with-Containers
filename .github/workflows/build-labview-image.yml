@@ -412,18 +412,22 @@ jobs:
 
           # Resolve the base image's manifest digest WITHOUT pulling the multi-GB
           # image down to the runner -- imagetools talks to the registry directly.
-          # Only the VIPC-layer path (docker build FROM the base) needs the image
-          # locally, and docker build pulls it then; the no-VIPC copy path never
-          # downloads it at all.
-          $digest = (docker buildx imagetools inspect $baseImage --format '{{.Manifest.Digest}}' 2>$null)
-          if (-not $digest) {
+          # Parse the digest from the default inspect output (the --format flag is
+          # not available on the older buildx shipped on the Windows runner). Only
+          # the VIPC-layer path (docker build FROM the base) needs the image locally,
+          # and docker build pulls it then; the no-VIPC copy path never downloads it.
+          $inspectText = (docker buildx imagetools inspect $baseImage 2>$null | Out-String)
+          if ([string]::IsNullOrWhiteSpace($inspectText)) {
             throw "Could not read the LCWC base image '$baseImage' from the registry. Confirm the source GHCR package is public/readable or set the LCWC_BASE_IMAGE repository variable to a readable base image."
           }
-          $repoDigest = "${baseRepo}@${digest}"
+          $digest = ''
+          $m = [regex]::Match($inspectText, 'Digest:\s*(sha256:[0-9a-f]+)')
+          if ($m.Success) { $digest = $m.Groups[1].Value }
+          $repoDigest = if ($digest) { "${baseRepo}@${digest}" } else { '' }
           "image=$baseImage" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "repo_digest=$repoDigest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "digest=$digest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          Write-Host "LCWC base digest: $repoDigest"
+          Write-Host "LCWC base image: $baseImage  digest: $digest"
 
       # Worker version = short SHA-256 over the LCWC seed image plus any staged
       # repo VIPC layer inputs. Same inputs -> same immutable worker tag.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.16",
+  "version": "3.46.17",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.17",
+        "date": "2026-06-23",
+        "title": "Read the base digest without the unsupported buildx flag",
+        "type": "patch",
+        "summary": "The registry-native base copy resolved the base image digest with 'docker buildx imagetools inspect --format', but the buildx shipped on the Windows runner does not support the --format flag, so the Prepare base step failed instantly. It now parses the digest from the standard inspect output and treats a missing digest as best-effort, so the fast no-download copy path proceeds.",
+        "highlights": [
+          "Parses the base image digest from the default imagetools inspect output (no --format flag).",
+          "Treats a missing digest as best-effort so the registry-native copy still runs."
+        ]
+      },
       {
         "version": "3.46.16",
         "date": "2026-06-23",
