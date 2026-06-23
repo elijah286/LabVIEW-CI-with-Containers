@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.19",
+  "version": "3.46.20",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,21 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.20",
+        "date": "2026-06-23",
+        "title": "Explicit, opt-in dependency container updates",
+        "type": "patch",
+        "summary": "Makes it clear and explicit when worker containers need to be updated to add VIPC/Dragon dependencies. A persistent dashboard banner appears whenever a declared project dependency is not yet baked into the current worker container. The Dependencies page gains an update panel that lists the new/changed dependencies, names the containers that need updating, sets expectations that this is a long, exclusive procedure, and lets you replace the existing containers (default) or create new ones. Newly-created dependency containers are selectable per action on the Configure page.",
+        "highlights": [
+          "Persistent amber banner across the dashboard when project dependencies are pending (driven by deps-pending.json).",
+          "Dependencies page update panel: shows pending packages/Dragon items, which containers need updating, a long-operation / no-other-actions warning, and Replace (default) vs Create-new options.",
+          "Worker-image workflow gains an update_mode input (replace|new): 'new' publishes a <year>-deps-<date> tag instead of moving the year/latest tags.",
+          "Configure page surfaces newly-created dependency-container tags so an action can be pointed at a new container; replaced containers default to the replacement.",
+          "Detection is conservative: only fires for a configured, cleanly-parsed project VIPC (or declared Dragon item) whose packages are missing from the current worker manifest."
+        ],
+        "breaking": false
+      },
       {
         "version": "3.46.19",
         "date": "2026-06-23",
