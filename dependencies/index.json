@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "0344cda25a672743ce55724a220b3605abaa6d06",
+  "sha": "2d14ca994b75ebc2d33729d73b49fd0a25714a48",
   "revisions": [
+    {
+      "sha": "2d14ca994b75ebc2d33729d73b49fd0a25714a48",
+      "short": "2d14ca9",
+      "message": "docs: render the architecture diagram (section 2) with Mermaid",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T22:10:00Z"
+    },
     {
       "sha": "0344cda25a672743ce55724a220b3605abaa6d06",
       "short": "0344cda",
@@ -695,13 +702,6 @@
       "message": "unit-tests: use built-in LabVIEW RunUnitTests CLI",
       "author": "Elijah Kerry",
       "date": "2026-06-21T15:21:55Z"
-    },
-    {
-      "sha": "6a17ccafa5d26af2ced63607232e1a73c085f5bc",
-      "short": "6a17cca",
-      "message": "Fallback when VIPM accepts VIPC but installs nothing",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T15:13:00Z"
     },
     {
       "sha": "eb2240d106503d2e207374ae8e0c7119af656a45",
