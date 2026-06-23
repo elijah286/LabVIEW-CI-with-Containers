@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ef03546c9befb9c73caaf9c4827ea62a1498bc3a",
+  "sha": "7d7cd3923620578e0f2a2653c339fef53d9b7aa3",
   "revisions": [
+    {
+      "sha": "7d7cd3923620578e0f2a2653c339fef53d9b7aa3",
+      "short": "7d7cd39",
+      "message": "Discover and surface JKI Dragon (.dragon) dependencies (v3.42.0)",
+      "author": "lcwc",
+      "date": "2026-06-23T03:43:39Z"
+    },
+    {
+      "sha": "dbb2a5e876a1d1c38659a6b25be2f2a77adfbc57",
+      "short": "dbb2a5e",
+      "message": "Parse NIPM worker manifests from package columns (v3.41.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T02:42:10Z"
+    },
     {
       "sha": "ef03546c9befb9c73caaf9c4827ea62a1498bc3a",
       "short": "ef03546",
@@ -690,20 +704,6 @@
       "date": "2026-06-20T18:42:11Z"
     },
     {
-      "sha": "cfd12bb62b0a3fdbc08045ca445b5603cf81f8ee",
-      "short": "cfd12bb",
-      "message": "Fix headless vipm install for VIPM 26.3 CLI (drop --refresh, use vipm refresh + global LabVIEW flags)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T18:32:16Z"
-    },
-    {
-      "sha": "77bdeb6bf92f6aae7975ece78ed9cf9f8d1d01d9",
-      "short": "77bdeb6",
-      "message": "worker: upgrade VIPM to 2026 Q3 (26.3.3954) for headless container installs (catalog 3.24.5)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T16:24:14Z"
-    },
-    {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
@@ -912,6 +912,77 @@
       "details": "NI-published Windows VIPM package that enables VIPC application during worker builds. Linux installs VIPM from the native Debian package during its worker build."
     }
   ],
+  "dragon": {
+    "available": true,
+    "column": "winExp",
+    "ready": false,
+    "health": "",
+    "manifest_version": "",
+    "files": [
+      {
+        "source_file": "example/Example.dragon",
+        "labview_version": "2026",
+        "feeds": {},
+        "dependencies": [
+          {
+            "manager": "vipm",
+            "package_id": "oglib_array",
+            "declared_version": "6.0.1.20",
+            "feed_name": null,
+            "source_file": "example/Example.dragon",
+            "status": "pending",
+            "installed_version": "",
+            "message": ""
+          },
+          {
+            "manager": "vipm",
+            "package_id": "oglib_boolean",
+            "declared_version": "6.0.0.9",
+            "feed_name": null,
+            "source_file": "example/Example.dragon",
+            "status": "pending",
+            "installed_version": "",
+            "message": ""
+          }
+        ]
+      }
+    ],
+    "install_set": [
+      {
+        "manager": "vipm",
+        "package_id": "oglib_array",
+        "declared_version": "6.0.1.20",
+        "declared_versions": [
+          "6.0.1.20"
+        ],
+        "feed_name": null,
+        "source_files": [
+          "example/Example.dragon"
+        ],
+        "conflict": false,
+        "status": "pending",
+        "installed_version": "",
+        "message": ""
+      },
+      {
+        "manager": "vipm",
+        "package_id": "oglib_boolean",
+        "declared_version": "6.0.0.9",
+        "declared_versions": [
+          "6.0.0.9"
+        ],
+        "feed_name": null,
+        "source_files": [
+          "example/Example.dragon"
+        ],
+        "conflict": false,
+        "status": "pending",
+        "installed_version": "",
+        "message": ""
+      }
+    ],
+    "conflicts": []
+  },
   "system": [
     {
       "name": "VI Browser 2.0 toimages runner",
