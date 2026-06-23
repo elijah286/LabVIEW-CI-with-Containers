@@ -4,11 +4,11 @@
   "version": "linux-beta-90a3109bc81e",
   "labview_version": "2026",
   "base_image": "nationalinstruments/labview:latest-linux",
-  "base_digest": "ghcr.io/elijah286/labview-ci-with-containers-labview@sha256:515815905db7d55c4637df14c3114d3c8335e2e98b4027d144a1b8eeeb6685b7",
+  "base_digest": "ghcr.io/elijah286/labview-ci-with-containers-labview@sha256:89f89209e4177d01c6a7f1479e4dfeb3e177f24404d8acb02cddaeb53c3458b9",
   "image_ref": "ghcr.io/elijah286/labview-ci-with-containers-labview:linux-beta-90a3109bc81e",
-  "build_date": "2026-06-23T12:09:33Z",
-  "git_sha": "a691be2738887333d8b3481022426de6b8ac1550",
-  "run_url": "https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/28024488930",
+  "build_date": "2026-06-23T17:50:43Z",
+  "git_sha": "d5d758cc1868458237275f7a4dc331703cfd320d",
+  "run_url": "https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/28045232054",
   "vipc": [
     {
       "file": "Dependencies.vipc",
