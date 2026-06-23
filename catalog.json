@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.41.4",
+  "version": "3.42.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.42.0",
+        "date": "2026-06-22",
+        "title": "Discover and surface JKI Dragon (.dragon) dependencies",
+        "type": "minor",
+        "summary": "Repository JKI Dragon dependency files (.dragon, plain-text TOML) are now parsed and shown on a new Dragon tab of the Dependencies page, grouped per file with each declared package's install status in the Win Beta container. This is the first step of NIPM/Dragon dependency management; applying .dragon files inside the Win Beta worker (and reporting per-item install results) follows. The feature is experimental and Win-Beta-only, and degrades gracefully where no .dragon files exist.",
+        "highlights": [
+          "Adds a shared TOML parser (.github/labview/dragon_deps.py) that reads both the string and inline-table dependency forms, the hyphen and underscore labview-version spellings, integer or string years, NIPM feeds, and unknown future fields.",
+          "New Dragon tab lists each .dragon file's VIPM and NIPM dependencies with declared versions, NIPM feed names, and a Win Beta install status (installed, wrong version, missing, unsupported, conflict, or pending).",
+          "Detects cross-file conflicts (same package different versions, conflicting NIPM feed URLs, differing LabVIEW years) and ships an example/Example.dragon fixture."
+        ]
+      },
       {
         "version": "3.41.4",
         "date": "2026-06-22",
