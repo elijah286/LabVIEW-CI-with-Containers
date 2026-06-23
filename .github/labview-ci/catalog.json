@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.18",
+  "version": "3.46.19",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.19",
+        "date": "2026-06-23",
+        "title": "Install no longer implies a long container build",
+        "type": "patch",
+        "summary": "Removes the 5-90 minute estimates from the Apply page. Installing now only copies the shared LabVIEW container into the repository's registry (about a minute) and never bakes project dependencies. The capability chooser explains that VIPC/Dragon dependencies are applied later via a separate, opt-in action rather than during install.",
+        "highlights": [
+          "Drops the 60-90 / 5-90 minute install-time warnings and confirmation prompts.",
+          "Reframes the install plan step as a quick container copy, not a long build.",
+          "Clarifies that project dependency baking is a separate, opt-in operation after install."
+        ]
+      },
       {
         "version": "3.46.18",
         "date": "2026-06-23",

@@ -231,7 +231,7 @@
           </span>
         </summary>
         <div class="capbox-body">
-          <p class="capwarn" id="capWarn" style="display:none"><strong>Heads up:</strong> these choices include a custom LabVIEW worker container. Building or rebuilding that container can add 60-90 minutes to the installation before container-based checks are ready.</p>
+          <p class="capwarn" id="capWarn" style="display:none"><strong>Note:</strong> installing copies the shared LabVIEW worker container into your repository's registry &mdash; about a minute. Your project's VIPC/Dragon dependencies are <strong>not</strong> baked in during install; applying them is a separate, opt-in step you run afterward.</p>
           <p class="hint">Stable and advanced capabilities are selected by default. Experimental features are off unless you opt in. Dependencies are added automatically.</p>
           <div class="caps" id="caps"></div>
         </div>
@@ -578,7 +578,9 @@
       workerBuildConfirmAccepted = false;
       if (!capabilityEditNoticeShown) {
         capabilityEditNoticeShown = true;
-        window.alert("Changing these capability options can require a custom LabVIEW worker container build. If the shared LabVIEW container image stays selected, budget 60-90 minutes during first-time installation while GitHub builds and publishes the image.");
+        // Install only copies the shared container into the repo's registry (about
+        // a minute); project VIPC/Dragon dependencies are applied later via a
+        // separate, opt-in action, so there is no long install-time build.
       }
     }
 
@@ -590,10 +592,11 @@
 
     function confirmWorkerBuildIfNeeded(opts) {
       if (!capabilityChoicesChanged || !effectiveUsesWorkerImage(opts) || workerBuildConfirmAccepted) return true;
-      const ok = window.confirm("These capability choices will build a custom LabVIEW worker container. That can add 60-90 minutes to first-time installation before the container-based activities are ready. Continue?");
-      if (ok) workerBuildConfirmAccepted = true;
-      else setInsStatus("Install cancelled - capability choices were left unchanged.", null);
-      return ok;
+      // Install only copies the shared LabVIEW container into the repo's registry
+      // (about a minute); project VIPC/Dragon dependencies are applied later via a
+      // separate, opt-in action, so there is no long build to confirm here.
+      workerBuildConfirmAccepted = true;
+      return true;
     }
 
     // ---- file resolution (mirrors install.py) ----------------------------
@@ -1049,7 +1052,7 @@
         { id: "merge", title: "Merge install pull request", eta: opts.autoMerge ? "seconds" : "your review", state: "pending", detail: opts.autoMerge ? "The configurator will squash-merge it after the branch is ready." : "Review and merge the PR when you are ready; setup continues after the merge." }
       ];
       if (opts.hasDashboard !== false) installPlanSteps.push({ id: "dashboard", title: "Publish dashboard", eta: "1-3 min", state: "pending", detail: "GitHub Pages builds the dashboard and this page waits until the link is live." });
-      if (imgs.length) installPlanSteps.push({ id: "image", title: "Build worker container image" + (imgs.length > 1 ? "s" : ""), eta: "5-90 min", state: "pending", detail: `${esc(imgs.join(" + "))} container workflow${imgs.length > 1 ? "s" : ""} may run for a while; CI waits for the image instead of failing.` });
+      if (imgs.length) installPlanSteps.push({ id: "image", title: "Copy worker container image" + (imgs.length > 1 ? "s" : ""), eta: "~1 min", state: "pending", detail: `Copies the shared LabVIEW container into ${esc(imgs.join(" + "))}; your project's VIPC/Dragon dependencies are applied later via a separate, opt-in action.` });
       installPlanSteps.push({ id: "ready", title: "Ready for CI runs", eta: "done", state: "pending", detail: "Dashboard link works and selected container workers are available." });
       renderInstallPlan();
     }
@@ -1959,7 +1962,7 @@
             return;
           }
           setInsBar(null, "working");
-          setInsStatus(message + ` Worker image build${setup.buildImage && setup.buildLinuxImage ? "s are" : " is"} still running; this can take 5-90 minutes depending on VIPC dependencies.`, kind);
+          setInsStatus(message + ` Worker container${setup.buildImage && setup.buildLinuxImage ? "s are" : " is"} being copied into your registry; this takes about a minute.`, kind);
           const imgState = await imagePromise;
           if (insRunId !== myGen) return;
           if (imgState === "success") {
