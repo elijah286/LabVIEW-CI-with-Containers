@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "1941eb35dda9c273d63d9fd5542a42bceba08302",
+  "sha": "c0de54f6ffa994a0197898f856fdcbd100776555",
   "revisions": [
+    {
+      "sha": "c0de54f6ffa994a0197898f856fdcbd100776555",
+      "short": "c0de54f",
+      "message": "Optional dependency-change CI + a dashboard filter for dependency-only revisions (v3.41.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T01:36:25Z"
+    },
     {
       "sha": "1941eb35dda9c273d63d9fd5542a42bceba08302",
       "short": "1941eb3",
@@ -695,13 +702,6 @@
       "message": "worker: seed VIPM Settings.ini so vipm install works in a fresh image",
       "author": "Elijah Kerry",
       "date": "2026-06-20T14:56:03Z"
-    },
-    {
-      "sha": "282afea22438c0dd4800594c730e4cce4ec1a58e",
-      "short": "282afea",
-      "message": "worker: use correct vipm CLI flags (--refresh global option, drop invalid -y)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T14:19:03Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",

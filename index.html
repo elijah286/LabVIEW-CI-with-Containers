@@ -1417,7 +1417,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-23 01:05 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-23 01:38 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -1438,6 +1438,10 @@
       <input type="checkbox" id="show-nonproject">
       Include CI-only revisions
     </label>
+    <label class="cidash-check" for="show-deponly" title="Revisions whose only change is an external dependency (.vipc/.vip). They get CI results only when dependency-change CI is enabled.">
+      <input type="checkbox" id="show-deponly">
+      Include dependency-only revisions
+    </label>
     <div class="cidash-colmenu">
       <button type="button" id="cidash-colbtn" class="cidash-colbtn" aria-haspopup="true" aria-expanded="false">&#9783; Columns &#9662;</button>
       <div id="cidash-colpanel" class="cidash-colpanel" role="menu" hidden></div>
@@ -1457,7 +1461,25 @@
       </tr>
     </thead>
     <tbody>
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c0de54f6ffa994a0197898f856fdcbd100776555" class="cidash-rev-msg" title="Optional dependency-change CI + a dashboard filter for dependency-only revisions">Optional dependency-change CI + a dashboard filter for dependency-only revisions</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c0de54f6ffa994a0197898f856fdcbd100776555" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">c0de54f</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1475,7 +1497,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1493,7 +1515,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1511,7 +1533,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="true">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1529,7 +1551,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="00839e49ffd3f8c73e18bb4b4d67a6df69433359" data-parent="87482e2bb0ee7084a21cf5814f4f5081e862fc4e" data-short="00839e4" title="Run Antidoc for commit 00839e4">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="true">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1547,7 +1569,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="87482e2bb0ee7084a21cf5814f4f5081e862fc4e" data-parent="d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5" data-short="87482e2" title="Run Antidoc for commit 87482e2">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="true">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1565,7 +1587,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5" data-parent="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-short="d56ded4" title="Run Antidoc for commit d56ded4">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="true">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1583,7 +1605,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-parent="c4e815ef45d2cecdd6b579e1a87b45e8da7d70da" data-short="197c1be" title="Run Antidoc for commit 197c1be">&#9655;</a></td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1601,7 +1623,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1619,7 +1641,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1637,7 +1659,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1655,7 +1677,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1673,7 +1695,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1691,7 +1713,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1709,7 +1731,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1727,7 +1749,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1745,7 +1767,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1763,7 +1785,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1781,7 +1803,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1799,7 +1821,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1817,7 +1839,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1835,7 +1857,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1853,7 +1875,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1871,7 +1893,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1889,7 +1911,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1907,7 +1929,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1925,7 +1947,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1943,7 +1965,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1961,7 +1983,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1979,7 +2001,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -1997,7 +2019,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2015,7 +2037,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2033,7 +2055,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2051,7 +2073,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2069,7 +2091,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2087,7 +2109,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2105,7 +2127,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2123,7 +2145,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2141,7 +2163,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2159,7 +2181,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2177,7 +2199,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2195,7 +2217,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2213,7 +2235,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2231,7 +2253,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2249,7 +2271,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2267,7 +2289,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2285,7 +2307,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2303,7 +2325,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2321,7 +2343,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2339,7 +2361,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2357,7 +2379,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2375,7 +2397,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2393,7 +2415,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2411,7 +2433,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2429,7 +2451,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2447,7 +2469,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2465,7 +2487,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2483,7 +2505,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2501,7 +2523,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2519,7 +2541,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2537,7 +2559,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2555,7 +2577,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="true">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2573,7 +2595,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="590495f94bf466cf7803e75e075177dd95b19f08" data-parent="662b0dc53f8b4ce44a5ae0072c1cc79042fa0146" data-short="590495f" title="Run Antidoc for commit 590495f">&#9655;</a></td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2591,7 +2613,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2609,7 +2631,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2627,7 +2649,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2645,7 +2667,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2663,7 +2685,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2681,7 +2703,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2699,7 +2721,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="eb2240d106503d2e207374ae8e0c7119af656a45" data-parent="7cb07731bb4ac55f2f82389cf7eb339e7389e88b" data-short="eb2240d" title="Run Antidoc for commit eb2240d">&#9655;</a></td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2717,7 +2739,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2735,7 +2757,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="true">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2753,7 +2775,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf" data-parent="e75a9b1b629966d995033fcf74d461ff36ae6d63" data-short="3d67c5a" title="Run Antidoc for commit 3d67c5a">&#9655;</a></td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2771,7 +2793,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2789,7 +2811,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2807,7 +2829,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2825,7 +2847,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2843,7 +2865,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2861,7 +2883,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2879,7 +2901,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2897,7 +2919,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2915,7 +2937,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2933,7 +2955,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2951,7 +2973,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2969,7 +2991,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -2987,7 +3009,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3005,7 +3027,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3023,7 +3045,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3041,7 +3063,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3059,7 +3081,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3077,7 +3099,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3095,7 +3117,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3113,7 +3135,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3131,7 +3153,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3149,7 +3171,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3167,7 +3189,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3185,7 +3207,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3203,7 +3225,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3221,7 +3243,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
+    <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3239,25 +3261,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=282afea22438c0dd4800594c730e4cce4ec1a58e" class="cidash-rev-msg" title="worker: use correct vipm CLI flags (--refresh global option, drop invalid -y)">worker: use correct vipm CLI flags (--refresh global option, drop invalid -y)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=282afea22438c0dd4800594c730e4cce4ec1a58e" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">282afea</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-20</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3275,7 +3279,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="12553d67f22d02885acfd455c1d68381e8702aca" data-parent="f4a0d5af8fd7ce5690e0a52af239926b496d0e6d" data-short="12553d6" title="Run Antidoc for commit 12553d6">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3293,7 +3297,7 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="antidoc" data-sha="df868ea07cef49f7ed721442b627ec78ba306e7f" data-parent="c433e9e5e28492955ffa4d83f0434159b64d3fb7" data-short="df868ea" data-ts="2026-06-18T14:53:05Z"><span class="cidash-chip cc-fail"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></svg><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=antidoc-report&sha=df868ea07cef49f7ed721442b627ec78ba306e7f&short=df868ea&src=..%2Fantidoc%2Fdf868ea07cef49f7ed721442b627ec78ba306e7f%2Findex.html&title=Antidoc%20%C2%B7%20df868ea" style="color:inherit">docs</a></span></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3311,7 +3315,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="c433e9e5e28492955ffa4d83f0434159b64d3fb7" data-parent="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-short="c433e9e" title="Run Antidoc for commit c433e9e">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3329,7 +3333,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1" data-parent="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-short="d1705cb" title="Run Antidoc for commit d1705cb">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3347,7 +3351,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="d1a86a8741bec13cfa11446d0e72d12479a209ae" data-parent="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-short="d1a86a8" title="Run Antidoc for commit d1a86a8">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3365,7 +3369,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6" data-parent="3d513473c8dce75e22b08294b87de2fb37fd9798" data-short="2b5f1aa" title="Run Antidoc for commit 2b5f1aa">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3383,7 +3387,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="3d513473c8dce75e22b08294b87de2fb37fd9798" data-parent="1b00b2d59dd388f8fb93de6661d429025e320a6b" data-short="3d51347" title="Run Antidoc for commit 3d51347">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3401,7 +3405,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="1b00b2d59dd388f8fb93de6661d429025e320a6b" data-parent="f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5" data-short="1b00b2d" title="Run Antidoc for commit 1b00b2d">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3419,7 +3423,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5" data-parent="f96842dc7fd776c01e186bb089eb7079444390f1" data-short="f4640da" title="Run Antidoc for commit f4640da">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3437,7 +3441,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="f96842dc7fd776c01e186bb089eb7079444390f1" data-parent="e2ee064d41e45456d7d51afd63c3fce28713fc94" data-short="f96842d" title="Run Antidoc for commit f96842d">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3455,7 +3459,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="e2ee064d41e45456d7d51afd63c3fce28713fc94" data-parent="abb3a165d423dff26829fa296e1039bbc3903ece" data-short="e2ee064" title="Run Antidoc for commit e2ee064">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3473,7 +3477,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="abb3a165d423dff26829fa296e1039bbc3903ece" data-parent="7599b047409f6801f226b06159da3036986c5bb8" data-short="abb3a16" title="Run Antidoc for commit abb3a16">&#9655;</a></td>
     </tr>
 
-    <tr data-project="true">
+    <tr data-project="true" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
@@ -3521,6 +3525,7 @@
   <script>
     (() => {
       const checkbox = document.getElementById('show-nonproject');
+      const depCheckbox = document.getElementById('show-deponly');
       const rows = document.querySelectorAll('tbody tr[data-project]');
       const emptyState = document.getElementById('empty-state');
       const noresults = document.getElementById('cidash-noresults');
@@ -3536,13 +3541,18 @@
         if (row.querySelector('.cidash-chip')) return 'pass';
         return 'none';
       };
-      // A row shows when it passes the CI-only toggle AND the search text AND the
-      // status filter (composed, so the three controls stack).
+      // A row shows when it passes the CI-only toggle AND the dependency-only
+      // toggle AND the search text AND the status filter (composed, so all the
+      // controls stack). Dependency-only revisions (only .vipc/.vip changed) are
+      // hidden unless their toggle is on — its default follows whether
+      // dependency-change CI is enabled.
       const applyFilter = () => {
         let visible = 0;
         rows.forEach((row) => {
           const isProject = row.getAttribute('data-project') === 'true';
+          const isDepOnly = row.getAttribute('data-deponly') === 'true';
           let show = isProject || checkbox.checked;
+          if (show && isDepOnly && depCheckbox && !depCheckbox.checked) show = false;
           if (show && term) show = row.textContent.toLowerCase().includes(term);
           if (show && statusFilter !== 'all') show = rowStatus(row) === statusFilter;
           row.style.display = show ? '' : 'none';
@@ -3553,6 +3563,7 @@
         if (noresults)  noresults.style.display  = (!visible &&  filtering) ? '' : 'none';
       };
       checkbox.addEventListener('change', applyFilter);
+      if (depCheckbox) depCheckbox.addEventListener('change', applyFilter);
       if (search) search.addEventListener('input', () => { term = search.value.trim().toLowerCase(); applyFilter(); });
       segBtns.forEach((b) => b.addEventListener('click', () => {
         segBtns.forEach((x) => x.classList.remove('on'));
