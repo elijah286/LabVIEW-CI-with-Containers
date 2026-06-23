@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ca126e13554817001bf2490c260d5b0dc004b4be",
+  "sha": "2d13949522d3c7aea63abf01a398e8ff0714f986",
   "revisions": [
+    {
+      "sha": "2d13949522d3c7aea63abf01a398e8ff0714f986",
+      "short": "2d13949",
+      "message": "Apply flow: show GitLab install target (v3.46.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T16:59:15Z"
+    },
     {
       "sha": "ca126e13554817001bf2490c260d5b0dc004b4be",
       "short": "ca126e1",
@@ -695,13 +702,6 @@
       "message": "VI Browser: frame a revision's reports in the pane (unified Activity switcher, v3.29.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-20T22:54:44Z"
-    },
-    {
-      "sha": "0bc320cc7cb0310ba953fcb2f616d48419284ad5",
-      "short": "0bc320c",
-      "message": "VIPM: stop forcing Community Edition (it enables the public-repo gate), refresh --force, install .vipc file directly",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T22:06:38Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
