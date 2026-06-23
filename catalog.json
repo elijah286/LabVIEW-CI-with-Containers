@@ -1,11 +1,22 @@
 {
   "schemaVersion": 1,
-  "version": "3.42.1",
+  "version": "3.43.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.43.0",
+        "date": "2026-06-23",
+        "title": "Consistent menu everywhere + Populate history / Re-run from any page",
+        "summary": "The Settings and Tools menus are now identical on every page (dashboard, VI Browser, reports, config). Populate history is reachable from any page, and a report's Re-run button opens the Populate history dialog pre-selected to re-run that exact revision and activity.",
+        "highlights": [
+          "Unified Settings/Tools navigation across the dashboard and all content pages",
+          "Populate history is available everywhere - off the dashboard it opens the dialog on the dashboard automatically",
+          "Re-run on a report now opens Populate history pre-scoped to that revision, activity, and platform instead of a silent dispatch"
+        ]
+      },
       {
         "version": "3.42.1",
         "date": "2026-06-23",
