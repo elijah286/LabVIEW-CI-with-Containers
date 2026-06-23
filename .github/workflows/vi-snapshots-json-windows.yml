@@ -1,4 +1,5 @@
 name: VI Browser 2.0 render (Windows container)
+run-name: VI Browser 2.0 Windows ${{ github.event.inputs.target_sha || github.sha }}${{ github.event.inputs.vi && ' single VI' || '' }}${{ github.event.inputs.force == 'true' && ' force' || '' }}
 
 # Generates the position-aware VI Browser 2.0 "frames" JSON on WINDOWS, using the
 # stock NI LabVIEW Windows container and the SAME cross-platform render engine the
@@ -48,7 +49,7 @@ env:
   LABVIEW_CONTAINER_IMAGE: ''
 
 concurrency:
-  group: vi-snapshots-json-windows
+  group: vi-snapshots-json-windows-${{ github.event.inputs.target_sha || github.sha }}-${{ github.event.inputs.vi || 'all' }}
   cancel-in-progress: true
 
 jobs:

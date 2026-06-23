@@ -23,6 +23,7 @@
 #            (no JSON => that VI simply stays on the 1.0 view).
 
 name: VI Snapshots JSON
+run-name: VI Browser 2.0 Linux ${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}${{ github.event.inputs.force == 'true' && ' force' || '' }}
 
 on:
   workflow_dispatch:
@@ -45,7 +46,7 @@ on:
     types: [completed]
 
 concurrency:
-  group: vi-snapshots-json-${{ github.ref }}
+  group: vi-snapshots-json-${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: true
 
 permissions:
