@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.7",
+  "version": "3.46.8",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.8",
+        "date": "2026-06-23",
+        "title": "Private GitHub repo installs get setup guidance",
+        "type": "patch",
+        "summary": "Adds detailed private GitHub repository install documentation and links it from the Apply to New Repo repository field and the installer README. The guide explains token repository access, required and optional fine-grained permissions, GitHub Pages behavior for private repositories, and what happens after the install PR is merged.",
+        "highlights": [
+          "Documents private GitHub repo prerequisites and fine-grained token permissions in the installer guide.",
+          "Links the Apply to New Repo page near the --repo owner/name flag for users specifying a target repository.",
+          "Adds a private-repo setup link beside the Apply page target repo field before users create a token."
+        ]
+      },
       {
         "version": "3.46.7",
         "date": "2026-06-23",
