@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
+  "sha": "c067715b82d9cb202ae19b48abd30809fa210a6f",
   "revisions": [
+    {
+      "sha": "c067715b82d9cb202ae19b48abd30809fa210a6f",
+      "short": "c067715",
+      "message": "Dependencies page: declutter the header and link workers to GHCR (v3.39.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T00:04:43Z"
+    },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
@@ -695,13 +702,6 @@
       "message": "header: Activity picker to switch a revision's reports in place (v3.24.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-20T12:58:37Z"
-    },
-    {
-      "sha": "579ef102d488bc9ad3e344cd570de6d2afbd3de2",
-      "short": "579ef10",
-      "message": "config pages: drop the redundant \"Back to dashboard\" link (v3.23.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T05:54:17Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
