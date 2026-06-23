@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2e465879d80741af5162746c5f718d3480bf7348",
+  "sha": "07e31994c075e720625030e28f359829e3db07e0",
   "revisions": [
+    {
+      "sha": "07e31994c075e720625030e28f359829e3db07e0",
+      "short": "07e3199",
+      "message": "docs: explain private repository installs",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T18:01:38Z"
+    },
     {
       "sha": "2e465879d80741af5162746c5f718d3480bf7348",
       "short": "2e46587",
@@ -695,13 +702,6 @@
       "message": "VI Browser: make missing 2.0 platform renders actionable",
       "author": "Elijah Kerry",
       "date": "2026-06-21T03:00:50Z"
-    },
-    {
-      "sha": "601c2372776769e1caca103e74b22454d3bff510",
-      "short": "601c237",
-      "message": "fix(vipm): install full Git for Windows (winget->silent installer->MinGit) per JKI so VIPM CE can reach the community package index",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T02:43:42Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
