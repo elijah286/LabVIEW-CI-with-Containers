@@ -718,45 +718,22 @@
     return (A[ctx] || []).filter(Boolean);
   }
   function buildSecondaryActions() {
-    // The per-repo configuration + Help entries, shared by every primary-chrome
-    // context so the Settings / Tools nav is consistent across pages (incl. the
-    // config pages themselves, where the current section also highlights).
-    var cfgMenu = [
+    // One canonical Settings/Tools menu, IDENTICAL across every primary-chrome
+    // context so navigation is consistent everywhere - not just on the dashboard.
+    // The Settings vs Tools split is applied later by the nav renderer
+    // (SETTINGS_KINDS); Populate history + VI Browser renders fall under Tools.
+    // "Populate history" works from any page: on the dashboard it opens the
+    // dialog inline; on every other page runHistory() routes to the dashboard and
+    // opens it there (see runHistory()).
+    return [
+      { label: 'Populate history', svg: ICON.history, kind: 'runhistory' },
       { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
       { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
       { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
+      { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
       { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
       { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
-    ];
-    var A = {
-      'dashboard': [
-        { label: 'Populate history', svg: ICON.history, kind: 'runhistory' },
-        { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
-        { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
-        { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
-        { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
-        { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-        { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
-      ],
-      'worker-manifest': cfgMenu,
-      'vi-browser': [
-        { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
-        { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
-        { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
-        { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
-        { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-        { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
-      ],
-      'report-viewer': cfgMenu,
-      'configure': cfgMenu,
-      'vianalyzer': cfgMenu,
-      'unit-tests-config': cfgMenu,
-      'integrate': cfgMenu,
-      'whats-new': cfgMenu,
-      'faq': cfgMenu,
-      'documentation': cfgMenu
-    };
-    return (A[ctx] || cfgMenu).filter(Boolean);
+    ].filter(Boolean);
   }
   function buildDashboardNavItems() {
     return [
@@ -852,9 +829,18 @@
   //    generator, which exposes window.lvciRunHistory; this menu item is only
   //    offered on the dashboard context, where that hook is present. The guard
   //    keeps it inert anywhere the hook is absent (e.g. an older dashboard). ────
-  function runHistory() {
-    if (typeof window.lvciRunHistory === 'function') window.lvciRunHistory();
-    else window.location.href = base + '/';   // fall back to the dashboard
+  function runHistory(opts) {
+    // On the dashboard the dialog lives inline (window.lvciRunHistory); pass the
+    // optional {cap, sha, platform} straight through so it can open pre-selected
+    // to re-run a single document. On every OTHER page that hook is absent, so
+    // route to the dashboard and let it auto-open the dialog from the URL (the
+    // dashboard reads ?lvci-populate=1[&cap&sha&platform]).
+    if (typeof window.lvciRunHistory === 'function') { window.lvciRunHistory(opts || undefined); return; }
+    var u = base + '/?lvci-populate=1';
+    if (opts && opts.cap) u += '&cap=' + encodeURIComponent(opts.cap);
+    if (opts && opts.sha) u += '&sha=' + encodeURIComponent(opts.sha);
+    if (opts && opts.platform) u += '&platform=' + encodeURIComponent(opts.platform);
+    window.location.href = u;
   }
 
   // Settings sub-navigation: the per-repo configuration sections as a tab strip in
@@ -965,9 +951,14 @@
     });
   }
   function rerun() {
-    if (!repo || !cfg.sha) { setStatus('Regenerating needs a repository and commit.', 'err'); return; }
-    if (!tok()) { showTokenPanel(); setStatus('Paste a token to dispatch the run.', null); return; }
-    doDispatch();
+    // Re-running a per-revision report now goes through the dashboard's
+    // "Populate history" dialog, pre-selected to re-run THIS document (this
+    // revision + this activity), so every re-run shares one consistent flow and
+    // the user can confirm scope/platform before queuing. (The inline dispatch
+    // path - doDispatch + the header token panel - remains for any surface that
+    // still calls it directly; the report Re-run button now routes here.)
+    if (DOC && cfg.sha) { runHistory({ cap: DOC.cap, sha: cfg.sha, platform: cfg.platform }); return; }
+    runHistory();
   }
 
   // ── Action button factory ─────────────────────────────────────────────────

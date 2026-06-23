@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "be6f1618a3c724f73bead145f8ce1dc740256fc8",
+  "sha": "7e5323d598804df53fa2ca1df61af24eb8d7f990",
   "revisions": [
+    {
+      "sha": "7e5323d598804df53fa2ca1df61af24eb8d7f990",
+      "short": "7e5323d",
+      "message": "Apply to New Repo: verify token write access before installing (v3.43.1)",
+      "author": "elijahkerry",
+      "date": "2026-06-23T11:49:01Z"
+    },
+    {
+      "sha": "0c45453810833fa489819a6ba5b1ea8c9ad06e15",
+      "short": "0c45453",
+      "message": "Unify Settings/Tools nav everywhere + Populate history / Re-run from any page (v3.43.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T11:47:53Z"
+    },
     {
       "sha": "be6f1618a3c724f73bead145f8ce1dc740256fc8",
       "short": "be6f161",
@@ -688,20 +702,6 @@
       "message": "Catalog 3.26.1: worker bakes .vipc deps under VIPM 26.3 Community Edition (public-repo fix)",
       "author": "Elijah Kerry",
       "date": "2026-06-20T19:05:49Z"
-    },
-    {
-      "sha": "58bc9c6ccd3e344b630641853fd0f7964ae7ecb1",
-      "short": "58bc9c6",
-      "message": "Run worker vipm install from a public-repo context (fixes VIPM 26.3 Community Edition exit 6)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T19:04:38Z"
-    },
-    {
-      "sha": "51bcd260a110be8b32e753fa590cc5d3be7cafbc",
-      "short": "51bcd26",
-      "message": "dashboard: surface the Activity picker inside the VI Browser (v3.26.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T18:56:34Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
