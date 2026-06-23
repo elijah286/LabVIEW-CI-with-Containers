@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "920ae7aac2bf16480a2fa4929dba6cad3d27aa55",
+  "sha": "881baadbe4953b1daf4dcc1d63ae725861bed330",
   "revisions": [
+    {
+      "sha": "881baadbe4953b1daf4dcc1d63ae725861bed330",
+      "short": "881baad",
+      "message": "Apply flow: repair failed GitLab installs",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T19:10:33Z"
+    },
     {
       "sha": "920ae7aac2bf16480a2fa4929dba6cad3d27aa55",
       "short": "920ae7a",
@@ -695,13 +702,6 @@
       "message": "VI Browser: show generate prompt for missing 2.0 diagrams",
       "author": "Elijah Kerry",
       "date": "2026-06-21T13:36:04Z"
-    },
-    {
-      "sha": "cb7e4c00660ffafc19ca4b5e3f5b9593329be9db",
-      "short": "cb7e4c0",
-      "message": "vipm: log git status/remote in vipm cwd + set GitHub env for public-repo detection (per JKI)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T04:41:45Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
