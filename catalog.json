@@ -1,11 +1,29 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.11",
+  "version": "3.46.12",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
+  "installPause": {
+    "comment": "Toggle to block new installs from the Apply page. Set enabled=true (and optionally a message) to show a pause banner instead of installing; set enabled=false to re-enable. Used during in-progress tooling/base-image updates.",
+    "enabled": true,
+    "message": "Installation is temporarily unavailable due to an in-progress update. Please check back in about 30 minutes."
+  },
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.12",
+        "date": "2026-06-23",
+        "title": "Windows workers copy the LCWC base image",
+        "type": "patch",
+        "summary": "Fresh Windows container installs now seed each repository's GHCR worker image from the source-owned LCWC base image instead of rebuilding a repo-owned LabVIEW+VIPM base. Repositories with no selected VIPC dependencies use a fast pull/tag/push path; repositories with selected VIPC dependencies build only the repo-specific dependency layer and clearly warn that dependency application can take longer. Adds a toggleable Apply-page install pause so new installs can be blocked with a banner during an in-progress update.",
+        "highlights": [
+          "Publishes and consumes the source-owned LCWC Windows base image for shared LabVIEW/VIPM tooling layers.",
+          "Copies/tags the LCWC base into the client repository worker package when no selected VIPC dependencies exist.",
+          "Adds a toggleable install pause (catalog.installPause) that shows a banner instead of installing when enabled.",
+          "Adds release-time catalog/source sync validation so installer file lists cannot drift from the source-owned worker files again."
+        ]
+      },
       {
         "version": "3.46.11",
         "date": "2026-06-23",
@@ -3249,9 +3267,8 @@
         ],
         "windows": [
           ".github/workflows/build-labview-image.yml",
+          ".github/docker/labview-ci-base.Dockerfile",
           ".github/docker/labview-ci.Dockerfile",
-          ".github/docker/labview-vipm-base.Dockerfile",
-          ".github/docker/labview-vipc-layer.Dockerfile",
           ".github/labview/vipm/"
         ],
         "linux": [
