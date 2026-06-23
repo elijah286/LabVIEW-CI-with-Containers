@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.14",
+  "version": "3.46.15",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.15",
+        "date": "2026-06-23",
+        "title": "Clients copy the base image instead of rebuilding it",
+        "type": "patch",
+        "summary": "Fixes the Windows worker build so fresh client repositories actually copy the public LCWC base image instead of rebuilding their own. The previous release detected the source repository from a hardcoded slug in the workflow, but the installer's branding substitution rewrote that slug to the client's own repository, so every client incorrectly thought it was the source and rebuilt the whole base (the slow path the base-copy design is meant to avoid). The source repository is now derived at runtime from the base image name, which the substitution cannot rewrite.",
+        "highlights": [
+          "Derives the source repository from the LCWC base image name so the install-time branding rewrite can't flip a client into source mode.",
+          "No-dependency client repositories now reliably copy the published base image in seconds instead of rebuilding it."
+        ]
+      },
       {
         "version": "3.46.14",
         "date": "2026-06-23",
