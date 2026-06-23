@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "version": "3.43.0",
+  "version": "3.43.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.43.1",
+        "date": "2026-06-23",
+        "title": "Apply to New Repo checks your token before it starts",
+        "summary": "When you click Install into your repo, the configurator now verifies up front that your token can actually write to the target repository, before it lists, downloads and uploads any tooling files. Previously an under-scoped or read-only token was only caught at the very end -- after the progress bar had nearly finished -- when the install branch push finally returned a 403. Now an insufficient token is reported immediately with the same clear guidance (it needs Contents, Pull requests, and Workflows set to Read and write), so you can fix the token and retry without sitting through a near-complete install that was always going to fail.",
+        "highlights": [
+          "The token write-permission check runs first, so a read-only or under-scoped token fails instantly instead of after an almost-finished progress bar.",
+          "The early failure shows the same actionable 403 message naming the exact permissions the install needs."
+        ]
+      },
       {
         "version": "3.43.0",
         "date": "2026-06-23",
