@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.10",
+  "version": "3.46.11",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.11",
+        "date": "2026-06-23",
+        "title": "GitLab reinstall repairs prior scaffold attempts",
+        "type": "patch",
+        "summary": "GitLab browser installs now repair known-owned scaffold files when recovering from a previous generated install branch. If an earlier attempt left only a ci/install branch with broken generated files, rerunning the installer creates main from that branch and immediately commits the current fixed scaffold on top so the project is left in a working state.",
+        "highlights": [
+          "Commits the current GitLab scaffold after creating main from a previous generated install branch.",
+          "Updates existing scaffold files instead of preserving corrupted generated files from earlier attempts.",
+          "Keeps reruns focused on the LabVIEW CI-owned GitLab files while preserving the normal merge request path for established projects."
+        ]
+      },
       {
         "version": "3.46.10",
         "date": "2026-06-23",
