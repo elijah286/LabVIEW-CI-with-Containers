@@ -19,7 +19,7 @@ false "no unit tests found".
 | File | Role |
 | --- | --- |
 | `install-vipc.ps1` | Build-time hook. Uses the VIPM CLI already present in the shared VIPM base image, launches headless LabVIEW, then installs the packages listed in every staged `*.vipc`. A failed bake fails the image build unless `VIPM_ALLOW_MISSING_PACKAGES=1` is explicitly set. |
-| `ci-tooling.vipc` | The default CI-tooling configuration (Antidoc CLI, Caraya, VI Tester, UTF JUnit Report). Generated from the two JSON files below. |
+| `ci-tooling.vipc` | The default CI-tooling configuration (Caraya, VI Tester, UTF JUnit Report, G Image, and base LUnit + the LUnit CLI). Generated from the two JSON files below. |
 | `ci-tooling.packages.json` / `ci-tooling.defaults.json` | Inputs used by `build-tooling-vipc.py` to (re)generate `ci-tooling.vipc`. |
 | `build-tooling-vipc.py` | Regenerates `ci-tooling.vipc` from the JSON inputs. |
 
@@ -74,11 +74,12 @@ add-on must never be able to break the whole worker:
    domain dependencies the project's VIs load against) must install or the build
    fails.
 3. **Tooling VIPCs (`ci-tooling*.vipc`) are best-effort.** Their add-ons
-   (Antidoc, Caraya, VI Tester) are opportunistic: if one wedges the headless VIPM
-   engine — Antidoc's large dependency tree is the known offender — the script
-   warns and continues, and the image is still published. The required essentials
-   above are already installed, so UTF still works. Bake a wedge-prone add-on from
-   its own dedicated VIPC if you need it guaranteed in the worker.
+   (Antidoc, Caraya, LUnit base + CLI, VI Tester) are opportunistic: if one
+   wedges the headless VIPM engine — Antidoc's large dependency tree is the known
+   offender — the script warns and continues, and the image is still published. The
+   required essentials above are already installed, so UTF still works. Bake a
+   wedge-prone add-on from its own dedicated VIPC if you need it guaranteed in the
+   worker.
 
 This ordering is why the main `build-labview-image.yml` produces a working,
 UTF-capable image even when Antidoc cannot currently be baked headless.

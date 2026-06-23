@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 build-unittest-report.py — Turn the JUnit XML produced by one or more LabVIEW
-unit-test frameworks (JKI Caraya, JKI VI Tester, and — later — NI Unit Test
+unit-test frameworks (JKI Caraya, JKI VI Tester, Astemes LUnit, and NI Unit Test
 Framework) into ONE friendly, navigable report, exactly like the Mass Compile /
 VI Analyzer reports: it groups results by tool → suite → test, surfaces failures
 first, and lets you open the test VI's rendered snapshot (and, when derivable,
@@ -18,7 +18,8 @@ WHY A SHARED REPORT
 INPUTS
     --results <dir>   directory of JUnit XML files. The tool for each file is
                       inferred from its name: caraya*.xml → Caraya,
-                      vi-tester*/vitester* → VI Tester, utf*/unit-test* → UTF.
+                      vi-tester*/vitester* → VI Tester, lunit*.xml → LUnit,
+                      utf*/unit-test* → UTF.
                       (Override per file with --junit TOOL:PATH, repeatable.)
     --workspace <dir> repo checkout — used to resolve a test's VI name to its
                       repo-relative path (for snapshots) and to derive the VI
@@ -50,6 +51,7 @@ from urllib.parse import quote
 TOOLS = {
     "caraya":    {"id": "caraya",    "label": "Caraya"},
     "vi-tester": {"id": "vi-tester", "label": "VI Tester"},
+    "lunit":     {"id": "lunit",     "label": "LUnit"},
     "utf":       {"id": "utf",       "label": "Unit Test Framework"},
 }
 STATUS_ORDER = ["failed", "error", "skipped", "passed"]
@@ -67,6 +69,8 @@ def tool_for_filename(name: str) -> str:
         return "caraya"
     if "vitester" in n or "vi-tester" in n or "vi_tester" in n:
         return "vi-tester"
+    if n.startswith("lunit"):
+        return "lunit"
     if n.startswith("utf") or "unit-test-framework" in n or "lvtest" in n:
         return "utf"
     return "caraya"  # safe default; most hand-rolled JUnit looks like Caraya's

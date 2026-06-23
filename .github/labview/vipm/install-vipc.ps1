@@ -499,7 +499,7 @@ function Get-LocalVipFilesForSpecs([string[]] $Specs) {
     $visited = @{}
     $visitedPackageIds = @{}
 
-    function Resolve-One($Request) {
+    function Resolve-One($Request, [bool]$IsDependency = $false) {
         if ($Request.Minimum -and $exactByName.ContainsKey($Request.Name)) {
             $Request = $exactByName[$Request.Name]
         }
@@ -509,22 +509,34 @@ function Get-LocalVipFilesForSpecs([string[]] $Specs) {
         $visiting[$key] = $true
         $pkg = Select-PublicVipmPackage $Request $repoPackages
         if (-not $pkg) {
-            if ($Request.Version) { throw "Package '$($Request.Name)' version '$($Request.Version)' was not found in the public VIPM indexes." }
-            throw "Package '$($Request.Name)' was not found in the public VIPM indexes."
+            $vtext = if ($Request.Version) { " version '$($Request.Version)'" } else { '' }
+            # A ROOT request that can't be resolved is fatal. A transitive
+            # DEPENDENCY that isn't in any reachable index is skipped with a warning:
+            # some packages declare a dependency whose content is bundled inside the
+            # parent .vip and is never published standalone (e.g. the LUnit CLI lists
+            # astemes_lib_lunit_cli_system, which ships inside the CLI package). VIPM
+            # installs the parent fine without a separate file for it.
+            if ($IsDependency) {
+                Write-Warning ("  Skipping dependency '$($Request.Name)'$vtext" + ": not in the reachable public VIPM indexes (assumed bundled in its parent package).")
+                $visited[$key] = $true
+                $visiting.Remove($key)
+                return
+            }
+            throw "Package '$($Request.Name)'$vtext was not found in the public VIPM indexes."
         }
         if ($visitedPackageIds.ContainsKey($pkg.Id)) {
             $visited[$key] = $true
             $visiting.Remove($key)
             return
         }
-        foreach ($dep in (Get-PublicVipmDependencyRequests $pkg)) { Resolve-One $dep }
+        foreach ($dep in (Get-PublicVipmDependencyRequests $pkg)) { Resolve-One $dep $true }
         $resolved.Add($pkg)
         $visitedPackageIds[$pkg.Id] = $true
         $visited[$key] = $true
         $visiting.Remove($key)
     }
 
-    foreach ($root in $rootRequests) { Resolve-One $root }
+    foreach ($root in $rootRequests) { Resolve-One $root $false }
     $downloadDir = Join-Path $env:TEMP 'vipm-package-files'
     $files = New-Object System.Collections.Generic.List[string]
     foreach ($pkg in $resolved) { $files.Add((Save-PublicVipmPackage $pkg $downloadDir)) }
@@ -566,11 +578,16 @@ function Invoke-VipmInstall {
     }
     # Stash the CLI text so callers can distinguish failure causes that share exit
     # code 8 (IO_ERROR) - e.g. the engine-startup timeout vs. the engine rejecting
-    # the .vipc file itself.
-    $script:LastVipmOutput = ($out | Out-String)
+    # the .vipc file itself. Capture WIDE: Out-String wraps at the host buffer width
+    # (default 120) and can split a message mid-phrase, which previously made the
+    # detector below MISS a wrapped 'wait for VIPM startup' line - so the build kept
+    # stacking 900s timeouts for every remaining package instead of bailing once.
+    $script:LastVipmOutput = ($out | Out-String -Width 8192)
+    # Match against a whitespace-flattened copy so a wrap can never hide the phrase.
+    $flatVipmOutput = ($script:LastVipmOutput -replace '\s+', ' ')
     # A 'wait for VIPM startup' timeout means the engine is wedged for the rest of
     # this build; record it so callers stop hammering it (each retry costs ~900s).
-    if ($script:LastVipmOutput -match 'wait for VIPM startup') { $script:VipmEngineDead = $true }
+    if ($flatVipmOutput -match 'wait for VIPM startup') { $script:VipmEngineDead = $true }
     return $LASTEXITCODE
 }
 
@@ -713,6 +730,33 @@ try {
         } else {
             Write-Warning 'One or more REQUIRED UTF essentials failed to install; headless UTF (RunUnitTests) will fail with -350053.'
             $applyFailed = $true
+        }
+    }
+
+    # Phase A2 (EARLY, BEST-EFFORT): unit-test framework packages that only resolve
+    # through the public-index local-file fallback (the container's by-name resolver
+    # is empty, so `vipm install <name>` returns exit 3). Astemes LUnit is the case:
+    # it IS on the JKI/NI public indexes (downloadable), but must be installed HERE,
+    # right after the UTF essentials while the headless VIPM engine is still fresh.
+    # The later heavy ci-tooling.vipc local-file install (Caraya + VI Tester + their
+    # OpenG dependency closures) can wedge the engine ('wait for VIPM startup'), and
+    # once wedged nothing else installs - so LUnit, if left to that phase, never gets
+    # a healthy engine. Installing it early mirrors how the (now-removed) local .vip
+    # bundle made LUnit survive. Best-effort: a failure warns but does not fail the
+    # build. Gated to unit-tests builds: defaults to empty when the required UTF
+    # essentials are disabled (VIPM_REQUIRED_PACKAGES='-', i.e. Unit Tests capability
+    # not installed). Override with VIPM_EARLY_PACKAGES ('-' disables).
+    $earlyRaw = if ($null -ne $Env:VIPM_EARLY_PACKAGES) { $Env:VIPM_EARLY_PACKAGES }
+                elseif ($requiredSpecs.Count -gt 0) { 'astemes_lib_lunit,astemes_lib_lunit_cli' }
+                else { '' }
+    $earlySpecs = @($earlyRaw -split '[,;]' | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne '-' })
+    if ($earlySpecs.Count -gt 0 -and -not $script:VipmEngineDead) {
+        Write-Host ("Installing EARLY best-effort framework packages (engine still fresh): " + ($earlySpecs -join ', '))
+        if (Install-VipmSpecs $earlySpecs) {
+            Write-Host 'Early framework packages installed.'
+        } else {
+            $script:bestEffortFailed = $true
+            Write-Warning 'One or more early framework packages (e.g. LUnit base/CLI) did not install; the LUnit CLI may be missing from the worker (run-unit-tests.ps1 will show the missing-tooling banner).'
         }
     }
 

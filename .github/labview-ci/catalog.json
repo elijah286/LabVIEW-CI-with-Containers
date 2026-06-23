@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.2",
+  "version": "3.47.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.47.0",
+        "date": "2026-06-23",
+        "title": "Unit Tests: add LUnit (Astemes) as a fourth framework",
+        "type": "minor",
+        "summary": "The Unit Tests capability now supports Astemes' LUnit alongside Caraya, VI Tester, and the NI Unit Test Framework. LUnit is driven exactly like NI UTF - through the native LabVIEW CLI ('LabVIEWCLI -OperationName LUnit'), which discovers Test Case classes under the configured locations and emits JUnit XML that merges into the same unified report. The Unit Testing configurator gains an LUnit tab, and the Windows worker image bakes in base LUnit and the LUnit CLI from VIPM (resolved from the VIPM Community / NI Tools Network indexes like the other frameworks). When the LUnit CLI is missing the report shows the shared missing-container-tooling banner instead of false-passing.",
+        "highlights": [
+          "Adds an LUnit tab to the Unit Testing configurator; declare where its Test Case classes live, same as the other frameworks.",
+          "run-unit-tests.ps1 runs LUnit headlessly via 'LabVIEWCLI -OperationName LUnit', reusing the NI UTF calling pattern and JUnit output.",
+          "Bakes base LUnit and the LUnit CLI into the Windows worker image from VIPM; pushing this rebuilds the worker image."
+        ]
+      },
       {
         "version": "3.46.2",
         "date": "2026-06-23",
@@ -3182,7 +3194,7 @@
     {
       "id": "unit-tests",
       "name": "Unit Tests",
-      "summary": "Run a LabVIEW unit-test framework (e.g. Caraya or VI Tester) in CI and publish pass/fail results to the dashboard.",
+      "summary": "Run a LabVIEW unit-test framework (e.g. Caraya, LUnit, or JKI VI Tester) in CI and publish pass/fail results to the dashboard.",
       "status": "stable",
       "recommended": false,
       "supportsOs": [
@@ -3204,7 +3216,7 @@
         ],
         "linux": []
       },
-      "notes": "Runs the configured LabVIEW unit-test frameworks (Caraya, JKI VI Tester) headlessly in the Windows worker via g-cli, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Windows-only because Caraya and VI Tester are VIPM packages; choose which tools run and where their tests live on the Unit Testing page. NI UTF headless execution is scaffolded (coming soon)."
+      "notes": "Runs the configured LabVIEW unit-test frameworks headlessly in the Windows worker, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Caraya runs via g-cli; NI UTF via the built-in LabVIEWCLI RunUnitTests operation; LUnit (Astemes) via the native LabVIEWCLI LUnit operation; JKI VI Tester is scaffolded (g-cli, same contract). Windows-only because the frameworks are VIPM packages; choose which tools run and where their tests live on the Unit Testing page."
     },
     {
       "id": "antidoc",

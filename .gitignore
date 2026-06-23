@@ -1,0 +1,3 @@
+# Python bytecode caches (e.g. actions/dashboard/dashboard.py)
+__pycache__/
+*.pyc
