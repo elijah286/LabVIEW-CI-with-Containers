@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "7e678a7003be76df236d8a6f0afe417bc83637d4",
+  "sha": "f950f60f08aa3445e9ef29b0e5bd2a9c0cf9a0d4",
   "revisions": [
+    {
+      "sha": "f950f60f08aa3445e9ef29b0e5bd2a9c0cf9a0d4",
+      "short": "f950f60",
+      "message": "Apply flow: add GitLab browser install",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T17:19:41Z"
+    },
     {
       "sha": "7e678a7003be76df236d8a6f0afe417bc83637d4",
       "short": "7e678a7",
@@ -695,13 +702,6 @@
       "message": "VI Browser in-pane reports: Back-to-VIs, one-click full report, loading state (v3.31.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-21T00:18:58Z"
-    },
-    {
-      "sha": "5a7ace112d2fdd4c2476b5feb554c4a59739c7ef",
-      "short": "5a7ace1",
-      "message": "VIPM: pre-launch VIPM engine before install (fix 'wait for VIPM startup' timeout); skip redundant fallback on engine-startup timeout",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T00:17:15Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
