@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "07e31994c075e720625030e28f359829e3db07e0",
+  "sha": "d651281be563f7327566c1f7c5ebf84be19950dc",
   "revisions": [
+    {
+      "sha": "d651281be563f7327566c1f7c5ebf84be19950dc",
+      "short": "d651281",
+      "message": "Apply flow: clarify GitLab Pages publishing status",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T18:33:18Z"
+    },
     {
       "sha": "07e31994c075e720625030e28f359829e3db07e0",
       "short": "07e3199",
@@ -695,13 +702,6 @@
       "message": "vipm: real git clone for CE public-repo context + VIPM_DEBUG diagnostics",
       "author": "Elijah Kerry",
       "date": "2026-06-21T03:28:39Z"
-    },
-    {
-      "sha": "9db33efa21a9d63d9f33585ca516a303621be4cb",
-      "short": "9db33ef",
-      "message": "VI Browser: make missing 2.0 platform renders actionable",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T03:00:50Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
