@@ -2,6 +2,6 @@
   "version": "linux-beta-90a3109bc81e",
   "platform": "linux-beta",
   "manifest_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/linux-beta/linux-beta-90a3109bc81e/manifest.html",
-  "build_date": "2026-06-23T00:06:25Z",
-  "git_sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359"
+  "build_date": "2026-06-23T12:09:33Z",
+  "git_sha": "a691be2738887333d8b3481022426de6b8ac1550"
 }
