@@ -1,8 +1,43 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2d14ca994b75ebc2d33729d73b49fd0a25714a48",
+  "sha": "9bf61998cf8511ddcddb050804dfd6ee196c4950",
   "revisions": [
+    {
+      "sha": "9bf61998cf8511ddcddb050804dfd6ee196c4950",
+      "short": "9bf6199",
+      "message": "apply page: remove install-time container-build estimates (v3.46.19)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T23:19:58Z"
+    },
+    {
+      "sha": "113cbc3197cdf4691f091dc9b0bc024d4266511b",
+      "short": "113cbc3",
+      "message": "worker build: use crane for registry-native base copy (v3.46.18)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T23:13:52Z"
+    },
+    {
+      "sha": "55ff116408194fbf6040161ad132d9417865f774",
+      "short": "55ff116",
+      "message": "worker build: parse base digest from imagetools inspect output (v3.46.17)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T23:10:11Z"
+    },
+    {
+      "sha": "5ec0836b44ea85c9353e606eb7cf37e6c77020cc",
+      "short": "5ec0836",
+      "message": "worker build: registry-native base copy for no-dependency repos (v3.46.16)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T23:05:40Z"
+    },
+    {
+      "sha": "ed2411260fc2ad3980b5a7abad95f869ed722e15",
+      "short": "ed24112",
+      "message": "worker build: derive source repo from base image name (v3.46.15)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T22:26:58Z"
+    },
     {
       "sha": "2d14ca994b75ebc2d33729d73b49fd0a25714a48",
       "short": "2d14ca9",
@@ -667,41 +702,6 @@
       "message": "example: add UTF JUnit reporter deps to Dependencies.vipc",
       "author": "Elijah Kerry",
       "date": "2026-06-21T16:35:54Z"
-    },
-    {
-      "sha": "662b0dc53f8b4ce44a5ae0072c1cc79042fa0146",
-      "short": "662b0dc",
-      "message": "Restore catalog 3.32.2 release history (keep VIPC file-set additions)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T16:33:51Z"
-    },
-    {
-      "sha": "d06589004193e187e0143c9a0ee43f41c60b7c37",
-      "short": "d065890",
-      "message": "Wire VIPC dependency gate and recursive discovery into pipeline",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T16:30:32Z"
-    },
-    {
-      "sha": "f50a51017bfc78d552cf4ab1505f41cc3fdd3762",
-      "short": "f50a510",
-      "message": "Document proven VIPC layering path",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T15:57:52Z"
-    },
-    {
-      "sha": "445f985270e0db5eb99fe9783e3c88be9b781220",
-      "short": "445f985",
-      "message": "Fix VIPC bake workflow summary quoting",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T15:36:29Z"
-    },
-    {
-      "sha": "4d5dfc531a96c78b7a9d3a2ba6522547a30f75ba",
-      "short": "4d5dfc5",
-      "message": "unit-tests: use built-in LabVIEW RunUnitTests CLI",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T15:21:55Z"
     },
     {
       "sha": "eb2240d106503d2e207374ae8e0c7119af656a45",
@@ -3372,7 +3372,7 @@
         }
       ],
       "labview_version": "2026",
-      "version": "win-091363be96cb"
+      "version": "win-6f1d9f40a7ca"
     },
     {
       "key": "linux",
