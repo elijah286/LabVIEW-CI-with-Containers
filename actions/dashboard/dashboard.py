@@ -3079,6 +3079,121 @@ def _known_nipm_dependencies():
     },
   ]
 
+_DRAGON_MOD = None
+
+def _load_dragon_module():
+  """Import the shared .dragon TOML parser (.github/labview/dragon_deps.py).
+
+  Returns the module, or False when it (or a TOML backend) is unavailable so the
+  dashboard still builds. Dragon dependency management is an experimental,
+  Win-Beta-only capability; a repo without the parser simply shows no Dragon
+  items."""
+  global _DRAGON_MOD
+  if _DRAGON_MOD is not None:
+    return _DRAGON_MOD
+  path = '.github/labview/dragon_deps.py'
+  if not os.path.isfile(path):
+    _DRAGON_MOD = False
+    return _DRAGON_MOD
+  try:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('dragon_deps', path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _DRAGON_MOD = mod
+  except Exception as exc:
+    print(f"WARN: dragon parser unavailable: {exc}", file=sys.stderr)
+    _DRAGON_MOD = False
+  return _DRAGON_MOD
+
+def _dragon_inventory():
+  """Parse every repository .dragon file into the normalized Dragon model.
+
+  Returns {'available', 'files', 'install_set', 'conflicts'}. Degrades to an empty
+  inventory (available False) when the parser or a TOML backend is missing."""
+  mod = _load_dragon_module()
+  if not mod or not mod.toml_available():
+    return {'available': False, 'files': [], 'install_set': [], 'conflicts': []}
+  try:
+    inv = mod.build_inventory('.')
+    inv['available'] = True
+    return inv
+  except Exception as exc:
+    print(f"WARN: could not build dragon inventory: {exc}", file=sys.stderr)
+    return {'available': False, 'files': [], 'install_set': [], 'conflicts': []}
+
+def _dragon_status_index(man):
+  """Map (manager, package_id_lower) -> the worker manifest's Dragon status item."""
+  out = {}
+  if isinstance(man, dict):
+    dragon = man.get('dragon')
+    if isinstance(dragon, dict):
+      for item in dragon.get('items') or []:
+        if isinstance(item, dict) and item.get('package_id'):
+          key = (str(item.get('manager') or 'vipm'), str(item['package_id']).lower())
+          out[key] = item
+  return out
+
+def _annotate_dragon_status(dep, status_index, have_manifest):
+  """Overlay an install status onto a declared Dragon dependency in place.
+
+  A cross-file conflict always wins; otherwise the reconciled worker-manifest
+  status is used; a missing manifest means the Win Beta image has not been built
+  yet (pending), and an item absent from a present manifest is not_attempted."""
+  if dep.get('conflict'):
+    dep['status'] = 'conflict'
+    dep.setdefault('installed_version', '')
+    dep.setdefault('message', 'declared with different versions across files')
+    return
+  st = status_index.get((dep['manager'], dep['package_id'].lower()))
+  if st:
+    dep['status'] = str(st.get('status') or 'not_attempted')
+    dep['installed_version'] = str(st.get('installed_version') or '')
+    dep['message'] = str(st.get('message') or '')
+  else:
+    dep['status'] = 'not_attempted' if have_manifest else 'pending'
+    dep.setdefault('installed_version', '')
+    dep.setdefault('message', '')
+
+def _build_dragon_section():
+  """Build the Dragon dependency block for the Dependencies index (Win Beta only).
+
+  The declared dependencies come from parsing the repo's .dragon files at this
+  revision; the per-item install status is reconciled from the windows-experimental
+  worker manifest's Dragon section (when that image has been built)."""
+  inv = _dragon_inventory()
+  if not (inv.get('files') or []):
+    # No .dragon files in this revision: skip the experimental manifest fetch.
+    return {
+      'available': inv.get('available', False),
+      'column': 'winExp',
+      'ready': False,
+      'health': '',
+      'manifest_version': '',
+      'files': [],
+      'install_set': [],
+      'conflicts': inv.get('conflicts') or [],
+    }
+  exp_man = _worker_manifest('windows-experimental', 'latest')
+  have_manifest = isinstance(exp_man, dict)
+  status_index = _dragon_status_index(exp_man)
+  exp_dragon = exp_man.get('dragon') if have_manifest else None
+  for item in inv.get('install_set') or []:
+    _annotate_dragon_status(item, status_index, have_manifest)
+  for f in inv.get('files') or []:
+    for dep in f.get('dependencies') or []:
+      _annotate_dragon_status(dep, status_index, have_manifest)
+  return {
+    'available': inv.get('available', False),
+    'column': 'winExp',
+    'ready': have_manifest,
+    'health': (exp_dragon or {}).get('health', '') if isinstance(exp_dragon, dict) else '',
+    'manifest_version': exp_man.get('version', '') if have_manifest else '',
+    'files': inv.get('files') or [],
+    'install_set': inv.get('install_set') or [],
+    'conflicts': inv.get('conflicts') or [],
+  }
+
 def _system_dependencies():
   has_toimages = os.path.isdir('.github/labview/toimages')
   if not has_toimages:
@@ -3161,6 +3276,7 @@ def _build_dependencies_index():
     'config': config,
     'vipc': vipcs,
     'nipm': _known_nipm_dependencies(),
+    'dragon': _build_dragon_section(),
     'system': _system_dependencies(),
     'columns': columns,
   }
