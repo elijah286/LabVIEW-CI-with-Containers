@@ -2931,6 +2931,9 @@ for _name, _dst in [
     ('vi-analyzer.html', 'ci-out/dashboard/vi-analyzer.html'),
     ('integrate.html', 'ci-out/dashboard/integrate.html'),
     ('unit-tests.html', 'ci-out/dashboard/unit-tests.html'),
+    # Implementation-level "How LabVIEW CI works" reference (linked from the FAQ
+    # and the site header); staged so documentation edits actually deploy.
+    ('documentation.html', 'ci-out/dashboard/documentation.html'),
     # Clients registry page (the header only surfaces it on the root repo, where
     # the discovery workflow publishes clients.json beside it).
     ('clients.html', 'ci-out/dashboard/clients.html'),
