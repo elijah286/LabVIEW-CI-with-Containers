@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.43.2",
+  "version": "3.44.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.44.0",
+        "date": "2026-06-23",
+        "title": "Pick which .lvproj projects the Unit Test Framework runs",
+        "type": "minor",
+        "summary": "The Unit Testing configurator now surfaces the .lvproj projects it finds in your repository on the Unit Test Framework tab and lets you tick the ones the headless NI Unit Test Framework runner should open. Each ticked project is run when it is present in the revision being tested and is simply skipped when it is not part of that revision, so it is safe to enable every project you might ever test - including ones that only exist in some past or future revisions.",
+        "highlights": [
+          "Unit Test Framework tab lists discovered .lvproj files as checkboxes; ticking one runs it, unticking removes it.",
+          "Explains that ticked projects run if present and are skipped when absent from a revision.",
+          "Free-text Other test locations remain for folders or globs."
+        ]
+      },
       {
         "version": "3.43.2",
         "date": "2026-06-23",
