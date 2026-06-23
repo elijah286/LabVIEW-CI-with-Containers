@@ -1,33 +1,16 @@
 # escape=`
 # =============================================================================
-# LabVIEW CI image for challenge-of-champions
+# LabVIEW CI final worker image
 # =============================================================================
-# Extends the official NI LabVIEW Windows container (LabVIEW 2026) with the VI
-# Analyzer support package (ni-viawin-labview-support), which provides the full
-# default VI Analyzer test set (~90 tests). Without this package the analyzer
-# reports "0 tests run".
-#
-# Project VIPM dependencies (OpenG — used by only a handful of VIs) are
-# intentionally NOT baked in: every project VI already loads on the bare NI base
-# image (the snapshot pipeline renders all 222 VIs there), so the analyzer can
-# load and test them without applying the .vipc, keeping the build fast and
-# reliable.
-#
-# Third-party add-ons that ARE wanted in the image (e.g. Antidoc — Wovalab's
-# LabVIEW code-documentation generator, package wovalab_lib_antidoc_cli) are
-# installed through the VIPM hook below: stage an Antidoc .vipc under
-# .github/labview/vipm/ and it is applied at image-build time. VIPM is a
-# Windows-only application, so Antidoc-based documentation CI runs on this
-# Windows image, not the Linux one.
+# Starts from the public LCWC base image, then applies only this repository's
+# optional VIPC dependency layer and worker-version labels. Repositories with no
+# selected VIPC files skip this build and simply tag/push the LCWC base image as
+# their own worker image.
 # =============================================================================
-FROM nationalinstruments/labview:latest-windows
+ARG LCWC_BASE_IMAGE=ghcr.io/elijah286/labview-ci-with-containers-labview-base:2026
+FROM ${LCWC_BASE_IMAGE}
 
 SHELL ["powershell", "-NoLogo", "-NoProfile", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-
-# Feed/package values are ARGs so they are explicit and easy to revise per LabVIEW major version.
-ARG NIPM_FEED_NAME=LV2026
-ARG NIPM_FEED_URL=https://download.ni.com/support/nipkg/products/ni-l/ni-labview-2026/26.1/released
-ARG VIA_SUPPORT_PACKAGE=ni-viawin-labview-support
 
 # Worker version: a short content hash of the build inputs (this Dockerfile +
 # install-vipc.ps1 + any applied *.vipc), computed by the build workflow and
@@ -35,6 +18,8 @@ ARG VIA_SUPPORT_PACKAGE=ni-viawin-labview-support
 # read back exactly which worker it pulled and link to that worker's manifest on
 # the dashboard. Defaults to 'dev' for local/ad-hoc builds.
 ARG CI_WORKER_VERSION=dev
+ARG VIPM_PUBLIC_REPO_URL=https://github.com/elijah286/LabVIEW-CI-with-Containers.git
+ARG LVCI_UNIT_TESTS_INSTALLED=false
 
 # VIPC automation assets. install-vipc.ps1 plus any *.vipc are staged here; the
 # build workflow also copies repo-root *.vipc (e.g. "COTC Dependencies.vipc")
@@ -42,164 +27,6 @@ ARG CI_WORKER_VERSION=dev
 # gets that configuration baked into the Windows worker automatically. With no
 # .vipc staged the VIPM hook below is a no-op.
 COPY .github/labview/vipm/ C:/vipm/
-
-# Install the VI Analyzer support package (ni-viawin-labview-support). This package
-# makes the full default VI Analyzer test configuration available to the analyzer,
-# which run-vi-analyzer.ps1 invokes in "directory mode" (passing the workspace
-# directory as -ConfigPath runs that full default suite against every VI). nipkg
-# install is idempotent — if the package is already present in the base image it
-# exits cleanly.
-RUN if (-not (Get-Command nipkg -ErrorAction SilentlyContinue)) { throw 'nipkg was not found in the LabVIEW base image.' }; `
-    nipkg feed-add --name=$env:NIPM_FEED_NAME $env:NIPM_FEED_URL; `
-    nipkg update; `
-    nipkg install --accept-eulas -y $env:VIA_SUPPORT_PACKAGE; `
-    if (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
-      Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
-    }
-
-# Install the NI Unit Test Framework (UTF) so the headless unit-test runner can
-# execute the project's .lvtest files (run-unit-tests.ps1 drives the built-in
-# 'LabVIEWCLI -OperationName RunUnitTests' operation that ships with the LabVIEW
-# command line interface). UTF is an NI add-on (not on VIPM). It is installed from
-# its OWN dedicated NI Package Manager feed (ni-labview-unit-test-framework-toolkit),
-# added here in addition to the base feed above, plus the matching released-critical
-# channel. The package is PINNED by name - ni-utf-labview-support, the UTF analog of
-# ni-viawin-labview-support. A UTF_PACKAGE build-arg overrides the name, and if the
-# pinned install fails the build falls back to discovering a unit-test-framework /
-# utf-labview-support package on the feeds. This step is BEST-EFFORT and never fails
-# the build: if UTF cannot be installed it emits a ::warning:: and the unit-test
-# runner degrades gracefully (it reports "no tests found" and the report shows the
-# "container is missing this tooling" banner).
-ARG UTF_FEED_NAME=LVUTF
-ARG UTF_FEED_URL=https://download.ni.com/support/nipkg/products/ni-l/ni-labview-unit-test-framework-toolkit/25.1/released
-ARG UTF_FEED_CRITICAL_NAME=LVUTFcritical
-ARG UTF_FEED_CRITICAL_URL=https://download.ni.com/support/nipkg/products/ni-l/ni-labview-unit-test-framework-toolkit/25.1/released-critical
-ARG UTF_SUPPORT_PACKAGE=ni-utf-labview-support
-ARG UTF_PACKAGE=
-RUN $ErrorActionPreference = 'Continue'; `
-    Write-Host "Adding NI Unit Test Framework toolkit feed: $env:UTF_FEED_URL"; `
-    nipkg feed-add --name=$env:UTF_FEED_NAME $env:UTF_FEED_URL; `
-    if ($env:UTF_FEED_CRITICAL_URL) { `
-      Write-Host "Adding NI Unit Test Framework toolkit feed (critical): $env:UTF_FEED_CRITICAL_URL"; `
-      nipkg feed-add --name=$env:UTF_FEED_CRITICAL_NAME $env:UTF_FEED_CRITICAL_URL `
-    }; `
-    nipkg update; `
-    $pkg = if ($env:UTF_PACKAGE) { $env:UTF_PACKAGE } else { $env:UTF_SUPPORT_PACKAGE }; `
-    Write-Host "Installing NI Unit Test Framework package: $pkg"; `
-    nipkg install --accept-eulas -y $pkg; `
-    if ($LASTEXITCODE -ne 0) { `
-      Write-Host "::warning::UTF package '$pkg' did not install (exit $LASTEXITCODE); searching the feed for an alternative."; `
-      $alt = @(nipkg list-available 2>$null) | Where-Object { $_ -match '(?i)(utf-labview-support|unit.?test.?framework)' } | ForEach-Object { (([string]$_).Trim() -split '\s+')[0] } | Select-Object -First 1; `
-      if ($alt) { Write-Host "Retrying with discovered package: $alt"; nipkg install --accept-eulas -y $alt } `
-    }; `
-    if ($LASTEXITCODE -ne 0) { `
-      Write-Host "::warning::NI Unit Test Framework could not be installed; the unit-test runner will report 'no tests found'. Pin the name with the UTF_PACKAGE build-arg and rebuild." `
-    } elseif (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
-      Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
-    }
-
-# Install VIPM (the JKI VI Package Manager) so the VIPC hook below can bake in
-# VIPM-distributed add-ons - Antidoc, Caraya, VI Tester, and crucially the
-# "UTF JUnit Report" library (ni_lib_utf_junit_report) that the built-in
-# 'LabVIEWCLI -OperationName RunUnitTests' operation links against to emit its
-# JUnit results file (without it RunUnitTests fails with LabVIEW CLI error -350053).
-#
-# UPGRADED to the VIPM 2026 Q3 release (26.3.3954). The NI feed's 'ni-vipm' package
-# ships an OLDER VIPM (2026.1.0) whose CLI cannot complete a headless package install
-# in a Windows container: its 'library_list' call into LabVIEW times out (~330s) and
-# the older CLI does not surface the underlying error. The 2026 Q3 build surfaces
-# underlying install errors and improves headless/container support, so we install it
-# directly from the official JKI CDN (per docs.vipm.io/latest/installation). The
-# installer is a standard InstallShield setup; '/exenoui /qn' runs it fully silent.
-# BEST-EFFORT: a failure emits a ::warning:: and leaves the core image
-# (LabVIEW + VI Analyzer + UTF) intact - only VIPM-distributed add-ons are then absent.
-ARG VIPM_INSTALLER_URL=https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe
-RUN $ErrorActionPreference = 'Continue'; `
-    $vipmSetup = Join-Path $env:TEMP 'vipm-setup.exe'; `
-    Write-Host "Downloading VIPM 2026 Q3 installer: $env:VIPM_INSTALLER_URL"; `
-    try { `
-      Invoke-WebRequest -Uri $env:VIPM_INSTALLER_URL -OutFile $vipmSetup -UseBasicParsing; `
-      Write-Host ('Downloaded {0:N1} MB; installing VIPM silently (/exenoui /qn) ...' -f ((Get-Item $vipmSetup).Length / 1MB)); `
-      $p = Start-Process -Wait -PassThru -FilePath $vipmSetup -ArgumentList '/exenoui','/qn'; `
-      Write-Host "VIPM installer exit code: $($p.ExitCode)"; `
-      if ($p.ExitCode -ne 0) { Write-Host "::warning::VIPM 2026 Q3 installer returned exit $($p.ExitCode); VIPM-distributed add-ons may not be baked in." } `
-    } catch { `
-      Write-Host "::warning::VIPM 2026 Q3 install failed ($($_.Exception.Message)); VIPM-distributed add-ons (including the UTF JUnit Report library) will not be baked in." `
-    } finally { `
-      Remove-Item $vipmSetup -Force -ErrorAction SilentlyContinue `
-    }
-
-# Install JKI Dragon from the NI Package Manager feed. Dragon is the first
-# NIPM-delivered dependency-management component baked into the Windows worker;
-# unlike optional VIPM add-ons, this is required so the worker manifest and
-# Dependencies page can prove the NIPM dependency-management lane is present.
-ARG DRAGON_PACKAGE=jki-dragon
-RUN Write-Host "Installing JKI Dragon from the NI feed: $env:DRAGON_PACKAGE"; `
-    nipkg install --accept-eulas -y $env:DRAGON_PACKAGE; `
-    if ($LASTEXITCODE -ne 0) { throw "JKI Dragon package '$($env:DRAGON_PACKAGE)' did not install (exit $LASTEXITCODE)." }; `
-    if (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
-      Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
-    }
-
-# Install Git so VIPM can verify repository visibility AND reach the community
-# package repository. VIPM 26.3 Community Edition shells out to a real `git` binary to
-# confirm the working directory is a PUBLIC Git repository before it installs anything;
-# JKI (Jim Kring) advised installing a FULL Git (not just MinGit) because the lightweight
-# MinGit build cleared the exit-6 visibility gate yet still left the install resolver's
-# package index empty (every package resolved as "not found", exit 3). The full
-# Git-for-Windows build provides the complete toolset (curl/openssl/credential helpers)
-# the CE repo check relies on.
-#
-# Order of attempts (BEST-EFFORT - a total failure only means the VIPM add-ons such as
-# the UTF JUnit Report library are absent):
-#   1. `winget install -e --id Git.Git` (Jim's suggestion) - used only if the base image
-#      actually ships the Windows Package Manager (Server Core images usually do not).
-#   2. Official Git-for-Windows SILENT installer (Inno Setup /VERYSILENT) -> installs to
-#      C:\Program Files\Git; this is what winget ultimately delivers.
-#   3. Portable MinGit unzipped to C:\git as a last resort.
-# Whichever succeeds, its `cmd` dir is prepended to the machine PATH so VIPM (and
-# install-vipc.ps1) can find git.exe.
-ARG GIT_INSTALLER_URL=https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/Git-2.54.0-64-bit.exe
-ARG GIT_MINGIT_URL=https://github.com/git-for-windows/git/releases/download/v2.54.0.windows.1/MinGit-2.54.0-64-bit.zip
-RUN $ErrorActionPreference = 'Continue'; `
-    function Add-MachinePath([string] $dir) { `
-      $mp = [Environment]::GetEnvironmentVariable('Path','Machine'); `
-      if ($mp -notlike ('*' + $dir + '*')) { [Environment]::SetEnvironmentVariable('Path', $dir + ';' + $mp, 'Machine') }; `
-      $env:Path = $dir + ';' + $env:Path `
-    }; `
-    function Test-GitOk { try { $v = & git --version 2>$null; return ($LASTEXITCODE -eq 0 -and $v) } catch { return $false } }; `
-    $ok = $false; `
-    if (Get-Command winget -ErrorAction SilentlyContinue) { `
-      Write-Host 'Installing Git via winget (Git.Git) ...'; `
-      try { `
-        & winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements --silent --disable-interactivity; `
-        Add-MachinePath 'C:\Program Files\Git\cmd'; `
-        $ok = Test-GitOk `
-      } catch { Write-Host ('winget Git install failed: ' + $_.Exception.Message) } `
-    } else { Write-Host 'winget is not available in this base image; using the Git-for-Windows installer instead.' }; `
-    if (-not $ok) { `
-      $exe = Join-Path $env:TEMP 'git-setup.exe'; `
-      try { `
-        Write-Host "Downloading Git for Windows from $env:GIT_INSTALLER_URL"; `
-        Invoke-WebRequest -Uri $env:GIT_INSTALLER_URL -OutFile $exe -UseBasicParsing; `
-        Write-Host ('Downloaded {0:N1} MB; installing silently ...' -f ((Get-Item $exe).Length / 1MB)); `
-        Start-Process -FilePath $exe -ArgumentList '/VERYSILENT','/NORESTART','/SP-','/SUPPRESSMSGBOXES','/NOCANCEL' -Wait; `
-        Add-MachinePath 'C:\Program Files\Git\cmd'; `
-        $ok = Test-GitOk `
-      } catch { Write-Host ('Git-for-Windows installer failed: ' + $_.Exception.Message) } finally { Remove-Item $exe -Force -ErrorAction SilentlyContinue } `
-    }; `
-    if (-not $ok) { `
-      $gitZip = Join-Path $env:TEMP 'mingit.zip'; `
-      try { `
-        Write-Host "Falling back to portable MinGit from $env:GIT_MINGIT_URL"; `
-        Invoke-WebRequest -Uri $env:GIT_MINGIT_URL -OutFile $gitZip -UseBasicParsing; `
-        Expand-Archive -Path $gitZip -DestinationPath 'C:\git' -Force; `
-        Add-MachinePath 'C:\git\cmd'; `
-        $ok = Test-GitOk `
-      } catch { Write-Host ('MinGit fallback failed: ' + $_.Exception.Message) } finally { Remove-Item $gitZip -Force -ErrorAction SilentlyContinue } `
-    }; `
-    if ($ok) { Write-Host ('Installed Git: ' + (& git --version)) } `
-    else { Write-Host '::warning::No Git could be installed; VIPM Community Edition cannot verify repository visibility, so the VIPM add-ons including the UTF JUnit Report library will not be baked in.' }
 
 # Optional VIPC support hook. If .vipc files exist, an installer script must be
 # present so dependencies are handled explicitly.
@@ -209,6 +36,10 @@ RUN $ErrorActionPreference = 'Continue'; `
 # build workflow passes the actual building repo's URL so forks use their own.
 ARG VIPM_PUBLIC_REPO_URL=https://github.com/elijah286/LabVIEW-CI-with-Containers.git
 RUN $vipcFiles = Get-ChildItem -Path 'C:\vipm' -Filter '*.vipc' -Recurse -ErrorAction SilentlyContinue; `
+    if ($env:LVCI_UNIT_TESTS_INSTALLED -ne 'true' -and -not $env:VIPM_REQUIRED_PACKAGES) { `
+      $env:VIPM_REQUIRED_PACKAGES = '-'; `
+      Write-Host 'Unit Tests capability is not installed; skipping UTF/JUnit-only required VIPM essentials.' `
+    }; `
     if ($vipcFiles -and $vipcFiles.Count -gt 0) { `
       if (Test-Path 'C:\vipm\install-vipc.ps1') { `
         Write-Host 'VIPC files detected. Running C:\vipm\install-vipc.ps1 ...'; `

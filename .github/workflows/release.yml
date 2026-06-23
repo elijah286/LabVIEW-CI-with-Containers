@@ -41,6 +41,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate catalog/source sync
+        run: python3 .github/labview/validate-catalog-source-sync.py
+
       - name: Tag the version and move the major/minor aliases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

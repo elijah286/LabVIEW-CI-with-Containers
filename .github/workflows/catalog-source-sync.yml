@@ -1,0 +1,32 @@
+name: Catalog Source Sync
+run-name: Catalog/source sync - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
+
+on:
+  pull_request:
+    paths:
+      - '.github/labview-ci/catalog.json'
+      - '.github/labview/validate-catalog-source-sync.py'
+      - '.github/docker/**'
+      - '.github/workflows/build-labview-image.yml'
+      - '.github/workflows/catalog-source-sync.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/labview-ci/catalog.json'
+      - '.github/labview/validate-catalog-source-sync.py'
+      - '.github/docker/**'
+      - '.github/workflows/build-labview-image.yml'
+      - '.github/workflows/catalog-source-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Validate catalog/source sync
+        run: python3 .github/labview/validate-catalog-source-sync.py

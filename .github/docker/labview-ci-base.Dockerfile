@@ -1,12 +1,11 @@
 # escape=`
 # =============================================================================
-# LabVIEW + CI tooling base image
+# LabVIEW CI Windows base image
 # =============================================================================
-# This image is the shared Windows base for LabVIEW CI worker images. It extends
-# NI's LabVIEW container with the slow-moving tools that every worker needs:
-# VI Analyzer support, optional UTF support, VIPM, and Git. Project-specific VIPC
-# dependencies are intentionally applied in a later layer so rebuilding a repo's
-# dependencies does not reinstall VIPM every time.
+# Source-owned LCWC base layer for expensive Windows LabVIEW CI tooling. Client
+# repositories copy/tag this image into their own GHCR worker package when they
+# have no repo-specific VIPC dependencies, or build only a thin VIPC layer from
+# it when they do.
 # =============================================================================
 FROM nationalinstruments/labview:latest-windows
 
@@ -110,5 +109,5 @@ RUN $ErrorActionPreference = 'Continue'; `
     if ($ok) { Write-Host ('Installed Git: ' + (& git --version)) } `
     else { Write-Host '::warning::No Git could be installed; VIPM Community Edition cannot verify repository visibility.' }
 
-LABEL com.cotc.ci-base.kind=labview-vipm `
+LABEL com.cotc.ci-base.kind=labview-ci `
       com.cotc.ci-base.platform=windows

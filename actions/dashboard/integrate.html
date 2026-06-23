@@ -2730,7 +2730,42 @@
       gitlabInstallToRepo();
     }
 
+    // ---- install pause (toggleable) -------------------------------------
+    // Flip catalog.installPause.enabled to true to block new installs (e.g.
+    // during an in-progress tooling update). The big green Install button then
+    // shows a banner instead of installing. Set it back to false to re-enable.
+    function installPauseConfig() {
+      const p = catalog && catalog.installPause;
+      return (p && typeof p === "object" && p.enabled) ? p : null;
+    }
+    function installIsPaused() { return !!installPauseConfig(); }
+    function installPauseMessage() {
+      const p = installPauseConfig();
+      return (p && p.message) ||
+        "Installation is temporarily unavailable due to an in-progress update. Please check back in about 30 minutes.";
+    }
+    function showInstallPauseBanner() {
+      const msg = installPauseMessage();
+      let b = document.getElementById("installPauseBanner");
+      if (!b) {
+        b = document.createElement("div");
+        b.id = "installPauseBanner";
+        b.className = "tokpanel reinstall";
+        const anchor = document.querySelector(".actions");
+        if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(b, anchor);
+      }
+      b.style.display = "";
+      b.innerHTML = '<h3>&#9888; Installation paused</h3><p class="note">' + esc(msg) + "</p>";
+      setInsStatus(esc(msg), "warn");
+    }
+    function refreshInstallPause() {
+      const b = document.getElementById("installPauseBanner");
+      if (installIsPaused()) { showInstallPauseBanner(); }
+      else if (b) { b.style.display = "none"; }
+    }
+
     async function providerInstall() {
+      if (installIsPaused()) { showInstallPauseBanner(); return; }
       if (!isGitLab()) { await installToRepo(); return; }
       if (!getGitLabTok()) { showGitLabTokPanel(); setInsStatus("Paste a GitLab token to open the install merge request from this browser, or use the command-line fallback below from a local clone.", null); return; }
       await gitlabInstallToRepo();
@@ -2793,6 +2828,7 @@
       renderVersions(); renderCaps();
       const chooser = $("capChooser"); if (chooser) chooser.open = false;
       wire(); update(); refreshInsForget();
+      refreshInstallPause();
       renderRepoPick(); loadRepoList();
 
       // The tooling has relocated: tell the user their install comes from the new

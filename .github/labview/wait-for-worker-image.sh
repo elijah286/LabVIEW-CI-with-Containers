@@ -24,6 +24,13 @@ before="${2:-${GITHUB_EVENT_BEFORE:-}}"
 workflow_name="${3:-Build LabVIEW CI Image}"
 appear_seconds="${4:-300}"     # if a build was expected but none shows up by now, stop with guidance
 overall_seconds="${5:-2400}"   # a cold first build (NI base pull + VIPC apply) can run long
+workflow_path=""
+
+case "$workflow_name" in
+  "Build LabVIEW CI Image") workflow_path=".github/workflows/build-labview-image.yml" ;;
+  "Build LabVIEW CI Image - Linux") workflow_path=".github/workflows/build-labview-linux-image.yml" ;;
+  "Build LabVIEW CI Image - Linux Beta") workflow_path=".github/workflows/build-labview-linux-beta-image.yml" ;;
+esac
 
 if [ -z "$repo" ] || [ -z "$sha" ]; then
   echo "No repository or target SHA; not waiting for worker image."
@@ -41,7 +48,7 @@ LR_OUT=""
 LR_OK=false
 latest_run() {
   if LR_OUT="$(gh api "$1" \
-      --jq "([.workflow_runs[]|select(.name==\"$workflow_name\")]|sort_by(.created_at)|last) as \$r
+      --jq "([.workflow_runs[]|select($run_match)]|sort_by(.created_at)|last) as \$r
             | if \$r then \"\(\$r.status) \(\$r.conclusion)\" else \"\" end" 2>/dev/null)"; then
     LR_OK=true
   else
@@ -52,12 +59,17 @@ latest_run() {
 
 api_sha="repos/${repo}/actions/runs?head_sha=${sha}&per_page=50"
 api_repo="repos/${repo}/actions/runs?per_page=50"
+if [ -n "$workflow_path" ]; then
+  run_match=".name==\"$workflow_name\" or .path==\"$workflow_path\""
+else
+  run_match=".name==\"$workflow_name\""
+fi
 
 # (1) Did this push change anything the worker image bakes in?
 changed=false
 if [ -n "${before:-}" ] && git cat-file -e "${before}^{commit}" 2>/dev/null; then
   if git diff --name-only "$before" "$sha" \
-      | grep -Eq '(\.vipc$|^\.github/docker/labview-ci\.Dockerfile$|^\.github/docker/labview-vipm-base\.Dockerfile$|^\.github/docker/labview-vipc-layer\.Dockerfile$|^\.github/docker/labview-ci-linux\.Dockerfile$|^\.github/docker/labview-ci-linux-beta\.Dockerfile$|^\.github/labview/build-worker-manifest\.py$|^\.github/labview/wait-for-worker-image\.sh$|^\.github/labview/vipm/|^\.github/workflows/build-labview-image\.yml$|^\.github/workflows/build-labview-linux-image\.yml$|^\.github/workflows/build-labview-linux-beta-image\.yml$)'; then
+      | grep -Eq '(\.vipc$|^\.github/docker/labview-ci(-base|-linux-beta)?\.Dockerfile$|^\.github/docker/labview-ci-linux\.Dockerfile$|^\.github/labview/build-worker-manifest\.py$|^\.github/labview/wait-for-worker-image\.sh$|^\.github/labview/vipm/|^\.github/workflows/build-labview-image\.yml$|^\.github/workflows/build-labview-linux-image\.yml$|^\.github/workflows/build-labview-linux-beta-image\.yml$)'; then
     changed=true
   fi
 fi
