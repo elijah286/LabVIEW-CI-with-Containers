@@ -1609,6 +1609,18 @@
     // so installError can map them (same as the main install path).
     async function detectPriorInstall(repo) {
       const meta = await ghWrite(`/repos/${repo}`, null, "read your repository");
+      // Fail fast on an under-scoped token. This is the FIRST authenticated call,
+      // and GitHub returns the credential's effective permissions on the repo, so
+      // a read-only / insufficient token is rejected right here -- before any of
+      // the file listing, fetching and blob uploads run and the branch push only
+      // 403s near the very end (an almost-finished progress bar, then an error).
+      // `push` maps to Contents: Read and write, the core permission the install
+      // needs; the 403 message also names Pull requests + Workflows.
+      if (meta && meta.permissions && meta.permissions.push === false) {
+        const err = new Error("The token can read this repository but cannot write to it.");
+        err.status = 403;
+        throw err;
+      }
       const branch = meta && meta.default_branch;
       if (!branch) return null;
       const r = await gh(`/repos/${repo}/contents/${encodeURIComponent(".github/labview-ci.yml")}?ref=${encodeURIComponent(branch)}`);
