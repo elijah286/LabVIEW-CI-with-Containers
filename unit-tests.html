@@ -49,6 +49,14 @@
     .addloc{margin-top:8px}
     .conv{margin-top:14px;font-size:.82em;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
     .conv b{color:var(--fg)}
+    .projs{display:flex;flex-direction:column;gap:6px;margin-bottom:2px}
+    .proj{display:flex;align-items:center;gap:9px;font-size:.86em;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 11px;cursor:pointer}
+    .proj input{width:15px;height:15px;accent-color:var(--accent);margin:0;flex:0 0 auto}
+    .proj code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;color:var(--fg);word-break:break-all}
+    .projmiss{margin-left:auto;font-size:.78em;color:var(--warn);font-style:italic;white-space:nowrap}
+    .projnone{font-size:.84em;color:var(--muted);background:var(--surface2);border:1px dashed var(--border);border-radius:6px;padding:9px 11px}
+    .projnone code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .projnote{font-size:.8em;color:var(--muted);margin:8px 0 2px}
     .disablednote{color:var(--muted);font-size:.86em;font-style:italic}
     .codebox{position:relative;background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px}
     pre{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre-wrap;word-break:break-word;color:var(--fg);max-height:300px;overflow:auto}
@@ -143,8 +151,8 @@
         conv: "VI Tester tests are <b>TestCase classes</b> (<code>.lvclass</code> inheriting from <code>TestCase</code>). The runner discovers and runs every TestCase within the locations below.",
         ph: "e.g. tests/  or  source/**/*.lvclass" },
       { id: "utf",       name: "Unit Test Framework",
-        conv: "NI Unit Test Framework tests are <code>.lvtest</code> files inside a project, each targeting one VI. Point the runner at the folder (or the <code>.lvproj</code>) that holds them; it runs every <code>.lvtest</code> in that project headlessly and reports pass/fail.",
-        ph: "e.g. tests/  or  source/Tests/MyTests.lvproj" },
+        conv: "NI Unit Test Framework tests are <code>.lvtest</code> files inside a project, each targeting one VI. Tick the <code>.lvproj</code> project(s) to run above; the runner opens each one headlessly and runs every <code>.lvtest</code> it contains, reporting pass/fail. Use the locations below only to point at extra folders or globs.",
+        ph: "e.g. tests/  or  source/**" },
     ];
     const DEFAULTS = () => TOOLS.reduce((o,t)=>(o[t.id]={enabled:false,locations:[]},o),{});
     const DEFAULT_THRESHOLDS = () => ({ passedPercent: { greenAtLeast: 100, yellowAtLeast: 80, redBelow: 80 } });
@@ -152,10 +160,29 @@
     let state = DEFAULTS();
     let thresholds = DEFAULT_THRESHOLDS();
     let activeTab = "caraya";
+    let discoveredProjects = [];   // .lvproj paths found in the repo (UTF tab)
 
     const $ = (id) => document.getElementById(id);
     const rawUrl = (repo, ref, path) => `https://raw.githubusercontent.com/${repo}/${ref}/${path}`;
     async function fetchText(u){ const r=await fetch(u,{cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); }
+
+    // Best-effort discovery of the repo's .lvproj projects for the UTF tab
+    // (unauthenticated; silent on failure / rate-limit). Tooling/build dirs are
+    // excluded so only real project files surface.
+    async function discoverProjects(repo, ref){
+      try{
+        if (!repo || !repo.includes("/")) return;
+        const url = "https://api.github.com/repos/" + repo + "/git/trees/" + encodeURIComponent(ref || "main") + "?recursive=1";
+        const r = await fetch(url, { cache:"no-store" });
+        if (!r.ok) return;
+        const data = await r.json();
+        const isTooling = (p)=>/^(\.github|ci-out|build)\//i.test(p);
+        discoveredProjects = (data.tree || [])
+          .filter(t=>t.type==="blob" && /\.lvproj$/i.test(t.path) && !isTooling(t.path))
+          .map(t=>t.path).sort((a,b)=>a.localeCompare(b));
+        renderPanels(); update();
+      }catch(_){}
+    }
 
     // ---- minimal labview-ci.yml unitTests parser (our own simple format) -----
     // Reads the `unitTests:` block: per-tool `enabled:` + `locations:` list, plus
@@ -272,20 +299,48 @@
     function renderPanels(){
       $("panels").innerHTML = TOOLS.map(t=>{
         const s = state[t.id];
-        const locs = s.locations && s.locations.length ? s.locations : [""];
+        const allLocs = s.locations || [];
+        const isProj = (p)=>/\.lvproj$/i.test(String(p==null?"":p).trim());
+        // For UTF the .lvproj entries are managed by the project checkboxes; the
+        // free-text rows below are for folders/globs only. Indices stay absolute
+        // into s.locations so the input/remove handlers keep working.
+        const textIdx = allLocs.map((_,i)=>i).filter(i=>!(t.id==="utf" && isProj(allLocs[i])));
+        const rowIdx = textIdx.length ? textIdx : [allLocs.length];
+        const locLabel = t.id==="utf"
+          ? 'Other test locations <span style="text-transform:none">(folders or globs; blank = whole project)</span>'
+          : 'Test locations <span style="text-transform:none">(project folders or globs; blank = whole project)</span>';
         const locRows = t.soon ? "" : `
-          <label class="fl">Test locations <span style="text-transform:none">(project folders or globs; blank = whole project)</span></label>
+          <label class="fl">${locLabel}</label>
           <div class="locs" id="locs-${t.id}">
-            ${locs.map((l,idx)=>`<div class="loc">
-              <input type="text" value="${esc(l)}" placeholder="${esc(t.ph)}" data-tool="${t.id}" data-idx="${idx}">
+            ${rowIdx.map(idx=>`<div class="loc">
+              <input type="text" value="${esc(allLocs[idx])}" placeholder="${esc(t.ph)}" data-tool="${t.id}" data-idx="${idx}">
               <button data-rm="${t.id}" data-idx="${idx}" title="Remove">✕</button></div>`).join("")}
           </div>
           <button class="addloc" data-add="${t.id}">+ Add location</button>`;
+        const projRows = (t.id!=="utf" || t.soon) ? "" : (()=>{
+          const universe = Array.from(new Set([].concat(
+            discoveredProjects,
+            allLocs.filter(isProj).map(p=>String(p).trim())
+          ))).sort((a,b)=>a.localeCompare(b));
+          const checked = (p)=>allLocs.some(l=>String(l==null?"":l).trim()===p);
+          const known = (p)=>discoveredProjects.indexOf(p)>=0;
+          const rows = universe.length
+            ? universe.map(p=>`<label class="proj">
+                <input type="checkbox" data-proj="${esc(p)}" ${checked(p)?"checked":""}>
+                <code>${esc(p)}</code>
+                ${known(p)?"":'<span class="projmiss">not in this revision</span>'}</label>`).join("")
+            : '<div class="projnone">No <code>.lvproj</code> files discovered yet. Once a project is committed it appears here, or add its path under "Other test locations" below.</div>';
+          return `
+          <label class="fl">Projects to run <span style="text-transform:none">(.lvproj files; tick the ones to run)</span></label>
+          <div class="projs" id="projs-utf">${rows}</div>
+          <div class="projnote">These are the LabVIEW projects found in this repository. A ticked project runs when it is present in the revision being tested; if it is not part of a past or future revision it is simply skipped &mdash; so it is safe to tick every project you might ever test.</div>`;
+        })();
         const enableRow = t.soon
           ? `<div class="disablednote">Headless ${esc(t.name)} support is coming soon — this tab is a placeholder so it's ready to enable later.</div>`
           : `<label class="enable"><input type="checkbox" data-en="${t.id}" ${s.enabled?"checked":""}><span class="nm">Run ${esc(t.name)} in CI</span></label>`;
         return `<div class="panel ${t.id===activeTab?"active":""}" id="panel-${t.id}">
           ${enableRow}
+          ${projRows}
           ${locRows}
           <div class="conv">${t.conv}</div>
         </div>`;
@@ -302,6 +357,15 @@
       }));
       $("panels").querySelectorAll("button[data-add]").forEach(b=>b.addEventListener("click",()=>{
         state[b.dataset.add].locations.push(""); renderPanels(); update();
+      }));
+      // UTF project checkboxes toggle the .lvproj path in the tool's locations.
+      $("panels").querySelectorAll("input[data-proj]").forEach(cb=>cb.addEventListener("change",()=>{
+        const p = cb.dataset.proj;
+        const locs = state.utf.locations = (state.utf.locations || []);
+        const i = locs.findIndex(l=>String(l==null?"":l).trim()===p);
+        if (cb.checked){ if (i<0) locs.push(p); }
+        else if (i>=0){ locs.splice(i,1); }
+        renderPanels(); update();
       }));
     }
     function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -411,6 +475,7 @@
         st.className="status"; st.textContent = "No existing config found — showing defaults to download & commit.";
       }
       renderTabs(); renderPanels(); update();
+      discoverProjects(repo, ref);
     }
 
     (function init(){

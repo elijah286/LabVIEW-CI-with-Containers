@@ -870,6 +870,52 @@
     return wrap;
   }
 
+  // ── Generic page sub-navigation: a context-bar tab strip a page declares via
+  //    window.LVCI.subnav so its in-page sub-views (e.g. the Dependencies page's
+  //    VIPM / NI Packages / System Components) navigate from the SAME shared
+  //    sub-header the Settings sections use, instead of a separate in-body tab
+  //    bar. This is what makes sub-item navigation consistent across documents.
+  //    The page keeps its panels in the body and switches them in response to
+  //    the 'lvci:subnav' event (detail.key) this fires; window.lvciSetSubnavActive
+  //    (key) lets the page reflect a programmatic change (deep link) back into
+  //    the strip. Shape: subnav = { label, active, tabs: [{ key, label }] }.
+  function makePageSubnav() {
+    var sn = cfg.subnav;
+    if (!sn || !sn.tabs || !sn.tabs.length) return null;
+    var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-settings-ctx';
+    if (sn.label) { var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = sn.label; wrap.appendChild(lbl); }
+    var subnav = document.createElement('div'); subnav.className = 'lvci-subnav'; subnav.id = 'lvci-page-subnav';
+    var active = sn.active || (sn.tabs[0] && sn.tabs[0].key);
+    sn.tabs.forEach(function (t) {
+      var a = document.createElement('a');
+      a.href = '#' + t.key;
+      a.setAttribute('role', 'tab');
+      a.setAttribute('data-subnav-key', t.key);
+      a.textContent = t.label;
+      if (t.key === active) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); }
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        lvciSetSubnavActive(t.key);
+        try { window.dispatchEvent(new CustomEvent('lvci:subnav', { detail: { key: t.key } })); } catch (err) {}
+      });
+      subnav.appendChild(a);
+    });
+    wrap.appendChild(subnav);
+    return wrap;
+  }
+  // Reflect the active sub-view back into the header strip (the page calls this
+  // when it switches sub-views itself, e.g. restoring a deep link). Inert when
+  // the strip isn't present (a page without the header, or no subnav declared).
+  function lvciSetSubnavActive(key) {
+    var strip = document.getElementById('lvci-page-subnav'); if (!strip) return;
+    Array.prototype.forEach.call(strip.querySelectorAll('a[data-subnav-key]'), function (a) {
+      var on = a.getAttribute('data-subnav-key') === key;
+      a.classList.toggle('on', on);
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+  }
+  window.lvciSetSubnavActive = lvciSetSubnavActive;
+
   // ── Regenerate this revision's report: dispatch a fresh run for THIS commit,
   //    reusing the dashboard's token + optimistic queued bridge (so the
   //    dashboard cell shows a spinner immediately). Owned here so it's one
@@ -1617,7 +1663,7 @@
     // On config pages it instead holds the Settings sub-nav (section tabs).
     var ctxbar = null;
     var isSettings = (NAV_ACTIVE[ctx] === 'settings');
-    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard' || isSettings) { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (isSettings) ctxbar.appendChild(makeSettingsNav()); }
+    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard' || isSettings || cfg.subnav) { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (isSettings) ctxbar.appendChild(makeSettingsNav()); var pageSub = makePageSubnav(); if (pageSub) ctxbar.appendChild(pageSub); }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container

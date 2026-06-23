@@ -1,8 +1,29 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "a691be2738887333d8b3481022426de6b8ac1550",
+  "sha": "e503f67c17926105153edc031020c953713ec582",
   "revisions": [
+    {
+      "sha": "e503f67c17926105153edc031020c953713ec582",
+      "short": "e503f67",
+      "message": "Consistent sub-item navigation: render page sub-views in the shared sub-header (v3.45.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T12:18:51Z"
+    },
+    {
+      "sha": "4805d20895ad3246be7cda64504551d494949055",
+      "short": "4805d20",
+      "message": "Populate history dialog: activity controls always fit and line up (v3.44.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T12:16:08Z"
+    },
+    {
+      "sha": "c5ca8ab04d83d79f64cf29ad12c8c26986b566e0",
+      "short": "c5ca8ab",
+      "message": "Unit Testing config: pick which .lvproj projects the Unit Test Framework runs (v3.44.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T12:14:40Z"
+    },
     {
       "sha": "a691be2738887333d8b3481022426de6b8ac1550",
       "short": "a691be2",
@@ -681,27 +702,6 @@
       "message": "Restore the Activity switcher's Snapshots entry and the in-VI-Browser picker (v3.28.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-20T21:03:42Z"
-    },
-    {
-      "sha": "78163147adb9fbf01931aacdd8bd2d797d6b49fd",
-      "short": "7816314",
-      "message": "dashboard: promote Documentation to a top-level nav link + fix overlapping top-bar menus (v3.27.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T20:56:09Z"
-    },
-    {
-      "sha": "96b9b5a89d73a4b818f356fa8a295070ce6b2a3e",
-      "short": "96b9b5a",
-      "message": "Bake portable Git into worker so VIPM 26.3 can verify public repo (catalog 3.26.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T19:54:58Z"
-    },
-    {
-      "sha": "a53eb5dbb781bd621d06883670971bdeb9b33f34",
-      "short": "a53eb5d",
-      "message": "docs: add developer Documentation page and maintenance rule",
-      "author": "Elijah Kerry",
-      "date": "2026-06-20T19:51:02Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",

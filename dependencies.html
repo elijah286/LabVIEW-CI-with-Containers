@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Dependencies - LabVIEW CI</title>
-  <script>window.LVCI={context:'dependencies'};</script>
+  <script>window.LVCI={context:'dependencies',subnav:{label:'Dependencies',active:'vipc',tabs:[{key:'vipc',label:'VIPM / VIPC'},{key:'nipm',label:'NI Packages'},{key:'system',label:'System Components'}]}};</script>
   <script src="lvci-header.js" defer></script>
   <style>
     :root{--bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;--chip:#21262d;--code:#010409;--warn:#9a6700;--ok:#2ea043;--bad:#f85149}
@@ -36,11 +36,6 @@
     </div>
     <div class="note hidden" id="status"></div>
     <div class="dep-tabs" id="depTabs">
-      <div class="dep-tablist" role="tablist" aria-label="Dependency source">
-        <button class="dep-tab active" id="tab-vipc" type="button" role="tab" aria-selected="true" aria-controls="panel-vipc" data-tab="vipc">VIPM / VIPC</button>
-        <button class="dep-tab" id="tab-nipm" type="button" role="tab" aria-selected="false" aria-controls="panel-nipm" data-tab="nipm">NI Packages</button>
-        <button class="dep-tab" id="tab-system" type="button" role="tab" aria-selected="false" aria-controls="panel-system" data-tab="system">System Components</button>
-      </div>
       <section class="dep-panel active" id="panel-vipc" role="tabpanel" aria-labelledby="tab-vipc">
         <h2>VIPM / VIPC Packages</h2>
         <p class="dep-caption">Repository VIPC files and the VIPM packages they request, plus VIPM dependencies requested by <code>.dragon</code> files.</p>
@@ -109,15 +104,14 @@
     async function fetchJson(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.json(); }
     async function fetchText(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.text(); }
     function selectDependencyTab(key){
-      Array.from(document.querySelectorAll('.dep-tab')).forEach(tab => {
-        const active = tab.dataset.tab === key;
-        tab.classList.toggle('active', active);
-        tab.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
       Array.from(document.querySelectorAll('.dep-panel')).forEach(panel => panel.classList.toggle('active', panel.id === 'panel-' + key));
+      if (typeof window.lvciSetSubnavActive === 'function') window.lvciSetSubnavActive(key);
     }
     function initDependencyTabs(){
-      Array.from(document.querySelectorAll('.dep-tab')).forEach(tab => tab.addEventListener('click', () => selectDependencyTab(tab.dataset.tab)));
+      // Sub-view tabs live in the shared header sub-nav (window.LVCI.subnav); the
+      // header fires 'lvci:subnav' when one is chosen so every document switches
+      // sub-items from the same consistent place instead of a separate in-body bar.
+      window.addEventListener('lvci:subnav', e => { if (e && e.detail && e.detail.key) selectDependencyTab(e.detail.key); });
     }
 
     function parseManifestYaml(text){
@@ -562,8 +556,8 @@
     }
 
     async function init(){
+      initDependencyTabs();   // wire sub-view switching regardless of repo resolution
       if (!repo) { setStatus("Could not determine repository from this Pages URL."); return; }
-      initDependencyTabs();
       initExpInfo();
       try {
         const generated = await fetchJson(base + "dependencies/index.json");
