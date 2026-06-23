@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.41.3",
+  "version": "3.41.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.41.4",
+        "date": "2026-06-22",
+        "title": "Parse NIPM worker manifests from the package columns",
+        "type": "patch",
+        "summary": "Windows worker manifests now parse `nipkg list` rows from the package-name and version columns instead of treating the final description word as the version. This keeps NIPM-delivered dependencies such as JKI Dragon in the structured manifest data used by the Dependencies table.",
+        "highlights": [
+          "Captures NIPM packages whose rows include architecture and long descriptions.",
+          "Allows the NI Packages dependency table to verify JKI Dragon from the rebuilt Windows worker manifest.",
+          "Preserves the raw `nipkg list` output for auditability while fixing the machine-readable package list."
+        ]
+      },
       {
         "version": "3.41.3",
         "date": "2026-06-22",

@@ -72,10 +72,11 @@ def parse_nipkg_list(raw: str) -> list[dict]:
     Best-effort parse of `nipkg list` output into {name, version} records.
 
     The exact columns of `nipkg list` vary by NIPM version, so this is lenient:
-    it skips header/separator/blank lines and treats the first whitespace token
-    as the package name and the last token as the version when the last token
-    looks version-like. Lines that do not fit are ignored here but remain
-    visible in the raw text preserved on the manifest.
+    it skips header/separator/blank lines and treats the first two whitespace
+    tokens as package name and version. Later columns can include architecture
+    and a wrapping description, so the final token is not a reliable version.
+    Lines that do not fit are ignored here but remain visible in the raw text
+    preserved on the manifest.
     """
     packages: list[dict] = []
     for line in raw.splitlines():
@@ -88,9 +89,9 @@ def parse_nipkg_list(raw: str) -> list[dict]:
         tokens = stripped.split()
         if len(tokens) < 2:
             continue
-        last = tokens[-1]
-        if any(ch.isdigit() for ch in last) and "." in last:
-            packages.append({"name": tokens[0], "version": last})
+        version = tokens[1]
+        if any(ch.isdigit() for ch in version):
+            packages.append({"name": tokens[0], "version": version})
     return sorted(packages, key=lambda p: p["name"].lower())
 
 
