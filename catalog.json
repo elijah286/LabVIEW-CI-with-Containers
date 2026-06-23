@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.6",
+  "version": "3.46.7",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.7",
+        "date": "2026-06-23",
+        "title": "GitLab installs initialize empty projects directly",
+        "type": "patch",
+        "summary": "GitLab browser installs now handle brand-new empty projects without requiring users to create a README or initial commit first. When no target branch exists, the installer creates the initial branch directly and reports setup as complete instead of trying to open a merge request into a missing branch. If a previous failed install left only a generated ci/install branch, retrying creates a normal main branch from it.",
+        "highlights": [
+          "Creates the first GitLab branch directly when the project has no existing target branch.",
+          "Avoids opening impossible merge requests into a missing target branch.",
+          "Recovers projects where an earlier install created only a generated ci/install branch by creating main from that branch."
+        ]
+      },
       {
         "version": "3.46.6",
         "date": "2026-06-23",

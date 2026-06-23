@@ -2485,6 +2485,15 @@
       }
     }
 
+    async function gitlabBranchInfo(projectKey, branch) {
+      try {
+        return await glWrite(`/projects/${projectKey}/repository/branches/${encodeURIComponent(branch)}`, null, "read your GitLab target branch");
+      } catch (e) {
+        if (e && e.status === 404) return null;
+        throw e;
+      }
+    }
+
     async function gitlabExistingPaths(projectKey, treeRef) {
       const paths = new Set();
       for (let page = 1; page <= 20; page++) {
@@ -2552,6 +2561,28 @@
       if (note) { note.innerHTML = `Full Windows LabVIEW jobs need a Windows Docker GitLab Runner registered to this project or group. The first scaffold focuses on the dashboard and provider boundary.`; note.style.display = ""; }
     }
 
+    function gitlabInitialBranchSuccess(projectPath, branchName, fileCount) {
+      setInsBar(1, "done");
+      const url = gitlabPagesUrl();
+      setInsStatus(`&#10003; Done &mdash; created the initial <code class="inl">${esc(branchName)}</code> branch and installed LabVIEW CI into <code class="inl">${esc(projectPath)}</code>.`, "ok");
+      const done = [
+        `Created branch <code class="inl">${esc(branchName)}</code> as the project&rsquo;s initial branch.`,
+        `Added ${fileCount} LabVIEW CI file${fileCount === 1 ? "" : "s"}, including <code class="inl">.gitlab-ci.yml</code> and <code class="inl">.gitlab/labview-ci/</code>.`,
+        `GitLab Pages will publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job runs.`
+      ];
+      const doneEl = $("insDone");
+      if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = ""; }
+      const steps = [
+        `Refresh GitLab and confirm <code class="inl">${esc(branchName)}</code> is the default branch. If GitLab does not set it automatically, open <strong>Settings &rsaquo; Repository &rsaquo; Branch defaults</strong> and choose it.`,
+        `Open <strong>Build &rsaquo; Pipelines</strong> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `Future installer runs will use the normal merge request path now that the repository has an initial branch.`
+      ];
+      const nextEl = $("insNext");
+      if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
+      const note = $("insNote");
+      if (note) { note.innerHTML = `No merge request was needed because this GitLab project did not have an existing target branch yet. Full Windows LabVIEW jobs still need a Windows Docker GitLab Runner registered to this project or group.`; note.style.display = ""; }
+    }
+
     async function gitlabInstallToRepo() {
       const projectPath = gitlabProjectPath();
       if (!projectPath.includes("/")) { setInsStatus("Enter your GitLab project path (group/project) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
@@ -2565,30 +2596,53 @@
       try {
         const projectKey = gitlabProjectKey(projectPath);
         const project = await glWrite(`/projects/${projectKey}`, null, "read your GitLab project");
-        const defaultBranch = project.default_branch;
-        if (!defaultBranch) throw new Error("Your GitLab project has no default branch yet. Create an initial commit or README in GitLab first, then install.");
-        const branchName = INSTALL_BRANCH + "-" + Date.now().toString(36);
+        let targetBranch = project.default_branch || "main";
+        let targetInfo = await gitlabBranchInfo(projectKey, targetBranch);
         const built = await collectGitLabInstallFiles();
 
-          setInsStatus("Reading your GitLab repository&hellip;", null);
-          const treeRef = await gitlabBranchTreeRef(projectKey, defaultBranch);
-          const existingPaths = await gitlabExistingPaths(projectKey, treeRef);
+        if (targetInfo && targetBranch.indexOf(INSTALL_BRANCH) === 0) {
+          const mainInfo = await gitlabBranchInfo(projectKey, "main");
+          if (mainInfo) {
+            targetBranch = "main";
+            targetInfo = mainInfo;
+          } else {
+            setInsStatus("Creating the initial GitLab branch&hellip;", null);
+            await glWrite(`/projects/${projectKey}/repository/branches`, { method: "POST", body: { branch: "main", ref: targetBranch } }, "create the initial GitLab branch");
+            try { await glWrite(`/projects/${projectKey}`, { method: "PUT", body: { default_branch: "main" } }, "set your GitLab default branch"); } catch (_) {}
+            gitlabInitialBranchSuccess(projectPath, "main", built.files.length);
+            return;
+          }
+        }
+
+        const bootstrapInitialBranch = !targetInfo;
+        const branchName = bootstrapInitialBranch ? targetBranch : INSTALL_BRANCH + "-" + Date.now().toString(36);
+
+        setInsStatus("Reading your GitLab repository&hellip;", null);
+        const treeRef = targetInfo ? ((targetInfo.commit && targetInfo.commit.id) || await gitlabBranchTreeRef(projectKey, targetBranch)) : null;
+        const existingPaths = treeRef ? await gitlabExistingPaths(projectKey, treeRef) : new Set();
         const acts = built.activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
         const commitMessage = `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})`;
         const actions = gitlabCommitActions(built.files, existingPaths);
 
         setInsStatus("Creating the GitLab commit&hellip;", null);
-        await glWrite(`/projects/${projectKey}/repository/commits`, { method: "POST", body: {
+        const commitBody = {
           branch: branchName,
-          start_branch: defaultBranch,
           commit_message: commitMessage,
           actions
-        } }, "create the GitLab install commit");
+        };
+        if (!bootstrapInitialBranch) commitBody.start_branch = targetBranch;
+        await glWrite(`/projects/${projectKey}/repository/commits`, { method: "POST", body: commitBody }, "create the GitLab install commit");
+
+        if (bootstrapInitialBranch) {
+          try { await glWrite(`/projects/${projectKey}`, { method: "PUT", body: { default_branch: branchName } }, "set your GitLab default branch"); } catch (_) {}
+          gitlabInitialBranchSuccess(projectPath, branchName, built.files.length);
+          return;
+        }
 
         setInsStatus("Opening the GitLab merge request&hellip;", null);
         const mr = await glWrite(`/projects/${projectKey}/merge_requests`, { method: "POST", body: {
           source_branch: branchName,
-          target_branch: defaultBranch,
+          target_branch: targetBranch,
           title: "Add LabVIEW CI pipeline",
           description: gitlabMrBody(acts, built.osList, built.version, built.files.length),
           remove_source_branch: true
