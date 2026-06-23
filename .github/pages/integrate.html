@@ -1216,6 +1216,12 @@
         return glJson(resp);
       }
     }
+    async function glText(path, label) {
+      const resp = await gl(path, { headers: { "Accept": "text/plain" } });
+      if (resp.ok) return resp.text();
+      if (resp.status === 404) return null;
+      return glJson(resp);
+    }
     async function ghJson(resp) {
       if (resp.ok) return resp.status === 204 ? null : resp.json();
       let msg = ""; try { msg = (await resp.json()).message || ""; } catch (_) {}
@@ -2524,6 +2530,23 @@
       });
     }
 
+    async function gitlabCommitInstallFiles(projectKey, branchName, built, existingPaths, startBranch, commitMessage) {
+      const commitBody = {
+        branch: branchName,
+        commit_message: commitMessage,
+        actions: gitlabCommitActions(built.files, existingPaths)
+      };
+      if (startBranch) commitBody.start_branch = startBranch;
+      await glWrite(`/projects/${projectKey}/repository/commits`, { method: "POST", body: commitBody }, "create the GitLab install commit");
+    }
+
+    async function gitlabNeedsDirectRepair(projectKey, targetBranch, existingPaths) {
+      if (!existingPaths || !existingPaths.has(".gitlab/labview-ci/build-dashboard.py")) return false;
+      const filePath = encodeURIComponent(".gitlab/labview-ci/build-dashboard.py");
+      const text = await glText(`/projects/${projectKey}/repository/files/${filePath}/raw?ref=${encodeURIComponent(targetBranch)}`, "read the GitLab dashboard builder");
+      return /^#![^\n]*\n {4}from __future__ import annotations/m.test(text || "");
+    }
+
     function gitlabMrBody(acts, osList, ver, fileCount) {
       const s = source();
       return [
@@ -2592,6 +2615,27 @@
       if (note) { note.innerHTML = `No merge request was needed because this GitLab project did not have an existing target branch yet. A Pages 404 after a green pipeline usually means GitLab is still publishing, Pages access is restricted, or GitLab chose a different final Pages URL; check <strong>Deploy &rsaquo; Pages</strong> for the authoritative URL. Full Windows LabVIEW jobs still need a Windows Docker GitLab Runner registered to this project or group.`; note.style.display = ""; }
     }
 
+    function gitlabRepairSuccess(projectPath, branchName, fileCount) {
+      setInsBar(null, "warn");
+      const url = gitlabPagesUrl();
+      const projectUrl = gitlabProjectUrl(projectPath);
+      setInsStatus(`&#10003; Repaired the GitLab install scaffold on <code class="inl">${esc(branchName)}</code> in <code class="inl">${esc(projectPath)}</code>. The dashboard URL can 404 until GitLab reruns the <code class="inl">pages</code> deployment.`, "warn");
+      const done = [
+        `Updated ${fileCount} LabVIEW CI file${fileCount === 1 ? "" : "s"}, including the generated <code class="inl">.gitlab/labview-ci/build-dashboard.py</code>.`,
+        `GitLab Pages should publish at <code class="inl">${esc(url)}</code> once the next <code class="inl">pages</code> job deploys it.`
+      ];
+      const doneEl = $("insDone");
+      if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = ""; }
+      const steps = [
+        `Open <a href="${esc(projectUrl + "/-/pipelines")}" target="_blank" rel="noopener"><strong>Build &rsaquo; Pipelines</strong></a> in GitLab and run or retry the pipeline on <code class="inl">${esc(branchName)}</code>.`,
+        `If the expected Pages URL still shows 404 after the job completes, open <a href="${esc(projectUrl + "/-/pages")}" target="_blank" rel="noopener"><strong>Deploy &rsaquo; Pages</strong></a> in GitLab and use the URL GitLab lists there.`
+      ];
+      const nextEl = $("insNext");
+      if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
+      const note = $("insNote");
+      if (note) { note.innerHTML = `The installer recognized an older generated GitLab scaffold and repaired the LabVIEW CI-owned files directly instead of asking you to merge a repair request.`; note.style.display = ""; }
+    }
+
     async function gitlabInstallToRepo() {
       const projectPath = gitlabProjectPath();
       if (!projectPath.includes("/")) { setInsStatus("Enter your GitLab project path (group/project) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
@@ -2618,6 +2662,10 @@
             setInsStatus("Creating the initial GitLab branch&hellip;", null);
             await glWrite(`/projects/${projectKey}/repository/branches`, { method: "POST", body: { branch: "main", ref: targetBranch } }, "create the initial GitLab branch");
             try { await glWrite(`/projects/${projectKey}`, { method: "PUT", body: { default_branch: "main" } }, "set your GitLab default branch"); } catch (_) {}
+            setInsStatus("Repairing the GitLab install scaffold&hellip;", null);
+            const treeRef = (targetInfo.commit && targetInfo.commit.id) || await gitlabBranchTreeRef(projectKey, targetBranch);
+            const existingPaths = await gitlabExistingPaths(projectKey, treeRef);
+            await gitlabCommitInstallFiles(projectKey, "main", built, existingPaths, null, "ci: repair LabVIEW CI GitLab scaffold");
             gitlabInitialBranchSuccess(projectPath, "main", built.files.length);
             return;
           }
@@ -2630,21 +2678,22 @@
         const treeRef = targetInfo ? ((targetInfo.commit && targetInfo.commit.id) || await gitlabBranchTreeRef(projectKey, targetBranch)) : null;
         const existingPaths = treeRef ? await gitlabExistingPaths(projectKey, treeRef) : new Set();
         const acts = built.activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
-        const commitMessage = `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})`;
-        const actions = gitlabCommitActions(built.files, existingPaths);
+        const repairExistingBranch = !bootstrapInitialBranch && await gitlabNeedsDirectRepair(projectKey, targetBranch, existingPaths);
+        const commitMessage = repairExistingBranch ? "ci: repair LabVIEW CI GitLab scaffold" : `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})`;
+        const commitBranchName = repairExistingBranch ? targetBranch : branchName;
+        const startBranch = bootstrapInitialBranch || repairExistingBranch ? null : targetBranch;
 
-        setInsStatus("Creating the GitLab commit&hellip;", null);
-        const commitBody = {
-          branch: branchName,
-          commit_message: commitMessage,
-          actions
-        };
-        if (!bootstrapInitialBranch) commitBody.start_branch = targetBranch;
-        await glWrite(`/projects/${projectKey}/repository/commits`, { method: "POST", body: commitBody }, "create the GitLab install commit");
+        setInsStatus(repairExistingBranch ? "Repairing the GitLab install scaffold&hellip;" : "Creating the GitLab commit&hellip;", null);
+        await gitlabCommitInstallFiles(projectKey, commitBranchName, built, existingPaths, startBranch, commitMessage);
 
         if (bootstrapInitialBranch) {
           try { await glWrite(`/projects/${projectKey}`, { method: "PUT", body: { default_branch: branchName } }, "set your GitLab default branch"); } catch (_) {}
           gitlabInitialBranchSuccess(projectPath, branchName, built.files.length);
+          return;
+        }
+
+        if (repairExistingBranch) {
+          gitlabRepairSuccess(projectPath, targetBranch, built.files.length);
           return;
         }
 
