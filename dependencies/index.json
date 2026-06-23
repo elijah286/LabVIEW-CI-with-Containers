@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "f950f60f08aa3445e9ef29b0e5bd2a9c0cf9a0d4",
+  "sha": "dd8daf3028f64728ca25b27ec0f06b725564bcf7",
   "revisions": [
+    {
+      "sha": "dd8daf3028f64728ca25b27ec0f06b725564bcf7",
+      "short": "dd8daf3",
+      "message": "Apply flow: handle GitLab tree lookup misses",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T17:35:30Z"
+    },
     {
       "sha": "f950f60f08aa3445e9ef29b0e5bd2a9c0cf9a0d4",
       "short": "f950f60",
@@ -695,13 +702,6 @@
       "message": "fix(vipm): fall through to by-name install when engine rejects .vipc file (Code 42), only skip fallback on genuine startup timeout",
       "author": "Elijah Kerry",
       "date": "2026-06-21T01:39:06Z"
-    },
-    {
-      "sha": "2712af90325d50be9fb77ba8ec0e09ddd5a6a3a6",
-      "short": "2712af9",
-      "message": "VI Browser in-pane reports: Back-to-VIs, one-click full report, loading state (v3.31.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T00:18:58Z"
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
