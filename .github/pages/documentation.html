@@ -117,6 +117,7 @@
         <li><a href="#extending">14. Extending the system</a></li>
         <li><a href="#security">15. Security model</a></li>
         <li><a href="#constraints">16. Constraints &amp; gotchas</a></li>
+        <li><a href="#runners">17. Workflow &amp; runner reference</a></li>
       </ol>
     </nav>
 
@@ -765,6 +766,136 @@ docker run --rm `
         <li><strong>Search-index lag.</strong> A brand-new install can take up to a day (plus GitHub's own indexing
           delay) to appear on the Clients page.</li>
       </ul>
+
+      <!-- 17 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="runners">17. Workflow &amp; runner reference <a class="anchor" href="#runners">#</a></h2>
+      <p>Every job in this system runs on exactly one of two GitHub-hosted runner images, and the choice is
+        mechanical: a job runs on <span class="pill win">windows-2022</span> only if it drives LabVIEW inside a
+        <strong>Windows</strong> Docker container; everything else — orchestration, gating, Pages deploys, releases,
+        Linux containers, discovery, and maintenance — runs on <span class="pill lin">ubuntu-latest</span>, which is
+        faster to start and cheaper. The lightweight decision/publishing work is deliberately kept off the Windows
+        runner so the slow, expensive Windows image only spins up for the one thing that genuinely needs it.</p>
+      <div class="warn"><span class="lbl">Why windows-2022, never windows-latest</span>
+        <code>windows-latest</code> now resolves to Windows Server 2025, whose Docker daemon is broken for these
+        LabVIEW containers. Every Windows job pins <code>windows-2022</code> explicitly.</div>
+
+      <h3>Which runner OS a job uses</h3>
+      <div class="diagram">                       a workflow job needs to run
+                                  &boxv;
+                  &boxur;───────────────&boxvl;────────────────&boxul;
+         runs LabVIEW inside a                       no ──&blacktriangleright;  ubuntu-latest
+         WINDOWS Docker container?                          orchestration &middot; config gating
+                  &boxv; yes                                         Pages deploys &middot; releases
+                  &boxv;                                           Linux containers &middot; discovery
+                  &boxvr;──&blacktriangleright;  windows-2022                          maintenance &middot; image publishing
+         (Windows containers need the Windows Docker engine)</div>
+
+      <h3>Activity fan-out — the reusable workflow gates every job</h3>
+      <p><code>labview-ci.reusable.yml</code> is where repo settings decide which jobs run. A single <code>config</code>
+        job (Ubuntu) reads <code>.github/labview-ci.yml</code> once and exposes capability + platform flags; a
+        <code>gate-images</code> job (Ubuntu) then blocks the dependency-consuming activities until the worker image
+        for this commit is rebuilt. Each activity job runs only when <em>both</em> its capability flag and its platform
+        flag are true — toggling either in <strong>Configure Workers</strong> turns the job on or off with no workflow
+        edits.</p>
+      <div class="diagram"> commit / PR / workflow_dispatch
+           &boxv;
+           &boxvr;──&blacktriangleright;  config (ubuntu-latest)        reads .github/labview-ci.yml ─&blacktriangleright; has-&lt;cap&gt;, os-windows, os-linux
+           &boxv;
+           &boxvr;──&blacktriangleright;  gate-images (ubuntu-latest)   waits for this SHA's worker-image rebuild (if any)
+           &boxv;
+           &boxv;   each activity runs ONLY when  has-&lt;cap&gt; == true  AND  os-&lt;platform&gt; == true
+           &boxvr;──&blacktriangleright;  mass-compile     windows-2022   if has-masscompile &amp; os-windows
+           &boxvr;──&blacktriangleright;  mass-compile     ubuntu-latest  if has-masscompile &amp; os-linux
+           &boxvr;──&blacktriangleright;  vi-analyzer      win / linux    if has-vi-analyzer  &amp; os-&lt;platform&gt;
+           &boxvr;──&blacktriangleright;  vidiff           win / linux    if has-vidiff       &amp; os-&lt;platform&gt;
+           &boxur;──&blacktriangleright;  snapshots        windows-2022   if has-snapshots    &amp; os-windows</div>
+
+      <h3>Image build — gate, coordinate, then the heavy lift</h3>
+      <p>The Windows worker image build (<code>build-labview-image.yml</code>) is a three-job run, and only the last
+        job is on Windows. The two Ubuntu jobs first decide <em>whether</em> to rebuild and <em>safely when</em>, so the
+        expensive Windows runner is reserved for the actual Docker build.</p>
+      <div class="diagram"> push(**.vipc) / monthly cron / workflow_dispatch
+              &boxv;
+              &boxvr;──&blacktriangleright;  gate (ubuntu-latest)         "should we rebuild?"
+              &boxv;         dispatch / cron ........... build
+              &boxv;         a worker input changed .... build
+              &boxv;         only monitor:false .vipc .. SKIP (bake-once / pin)
+              &boxv;
+              &boxvr;──&blacktriangleright;  coordinate (ubuntu-latest)   drain or cancel CI started BEFORE this build
+              &boxv;
+              &boxur;──&blacktriangleright;  build-and-push (windows-2022)
+                        Prepare LCWC base ─&blacktriangleright; no VIPC: copy/tag base (seconds)
+                                           ─&blacktriangleright; VIPC:    build dependency layer (slow)
+                        ─&blacktriangleright; push tags ─&blacktriangleright; worker manifest ─&blacktriangleright; gh-pages</div>
+      <div class="note"><span class="lbl">Linux image builds differ</span>
+        The Linux worker image (<code>build-labview-linux-image.yml</code>) keeps the gate job but builds on
+        <code>ubuntu-latest</code> — Linux containers build on a Linux runner. The Linux&nbsp;Beta and the VI&nbsp;Browser
+        2.0 render image (<code>-toimages</code>) build directly on <code>ubuntu-latest</code> with no separate gate.</div>
+
+      <h3>Complete runner inventory</h3>
+      <p>Every workflow in the repository, the runner(s) it uses, what triggers it, and the conditions under which it
+        runs or is skipped. <span class="pill win">windows-2022</span> = Windows container work;
+        <span class="pill lin">ubuntu-latest</span> = everything else.</p>
+
+      <h4>Container activities</h4>
+      <table>
+        <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
+        <tbody>
+          <tr><td>Mass Compile — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push on VI source (<code>**.vi/.ctl/.lvproj/.lvlib/.lvclass</code>, excl. <code>.github/</code>), dispatch</td><td>Compiles every VI; skipped when only tooling under <code>.github/</code> changed.</td></tr>
+          <tr><td>Mass Compile — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>same as above</td><td>Linux counterpart; deploys under <code>masscompile/&lt;sha&gt;/linux/</code>.</td></tr>
+          <tr><td>Run VI Analyzer — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push VI source, dispatch</td><td>Full <code>.viancfg</code> suite incl. per-path rule subsets.</td></tr>
+          <tr><td>Run VI Analyzer — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>PR / push VI source, dispatch</td><td>Honours only the <code>default</code> config (per-path subsets are Windows-only).</td></tr>
+          <tr><td>VIDiff Report — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push <code>**.vi/.ctl</code>, dispatch</td><td>Diffs changed VIs; runs on the bare NI image (no custom worker).</td></tr>
+          <tr><td>VIDiff Report — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>PR / push <code>**.vi/.ctl</code>, dispatch</td><td>Linux counterpart.</td></tr>
+          <tr><td>Run Unit Tests — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push (VIs, <code>**.lvtest</code>), dispatch</td><td>Windows-only (depends on baked VIPM/UTF tooling).</td></tr>
+          <tr><td>Run Antidoc — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>push to default branch, dispatch (no PR)</td><td>Windows-only; heavier doc render, so no per-PR run.</td></tr>
+          <tr><td>VI Snapshots and VI Browser</td><td><span class="pill win">windows-2022</span></td><td>push VI source, dispatch (head / backfill)</td><td>Renders HTML snapshots + Windows 2.0 frames in one warm container.</td></tr>
+          <tr><td>VI Snapshots JSON (VI Browser 2.0, Linux)</td><td><span class="pill lin">ubuntu-latest</span></td><td><code>workflow_run</code> after snapshots, dispatch</td><td>Gate job decides; auto-runs only when <code>positionAware</code> includes <code>linux</code>.</td></tr>
+          <tr><td>VI Browser 2.0 render (Windows container)</td><td><span class="pill win">windows-2022</span></td><td>dispatch only</td><td>Additive Windows frames via COM in the stock NI image.</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Image builds</h4>
+      <table>
+        <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
+        <tbody>
+          <tr><td>Build LabVIEW CI Image (Windows worker)</td><td><span class="pill lin">ubuntu-latest</span> gate + coordinate, <span class="pill win">windows-2022</span> build</td><td>push <code>**.vipc</code> (excl. <code>.github/</code>), monthly cron, dispatch</td><td>Gate skips if only <code>monitor:false</code> VIPCs changed; copies the LCWC base when no VIPC, else builds the dependency layer.</td></tr>
+          <tr><td>Build LabVIEW CI Image — Linux</td><td><span class="pill lin">ubuntu-latest</span> (gate + build)</td><td>push VIPC / Linux Dockerfile, monthly cron, dispatch</td><td>Linux worker image; same gate logic.</td></tr>
+          <tr><td>Build LabVIEW CI Image — Linux Beta</td><td><span class="pill lin">ubuntu-latest</span></td><td>push VIPC / beta Dockerfile, monthly cron, dispatch</td><td>Experimental VIPM-enabled Linux lane.</td></tr>
+          <tr><td>Build VI Browser 2.0 render image</td><td><span class="pill lin">ubuntu-latest</span></td><td>push <code>toimages/**</code>, monthly cron, dispatch</td><td>Builds the <code>-toimages</code> render engine image.</td></tr>
+          <tr><td>Bake VIPC Windows Base Image</td><td><span class="pill win">windows-2022</span></td><td>dispatch only</td><td>Proof-and-promote: verifies a VIPC installs before pushing tags.</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Publishing &amp; release</h4>
+      <table>
+        <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
+        <tbody>
+          <tr><td>CI Dashboard — GitHub Pages</td><td><span class="pill lin">ubuntu-latest</span></td><td>push page assets, <code>status</code> event, <code>workflow_run</code> completions, dispatch</td><td>Latest-wins rebuild; reacts to every capability's status with no enumeration.</td></tr>
+          <tr><td>Integrate Configurator — Pages</td><td><span class="pill lin">ubuntu-latest</span></td><td>push configurator / <code>catalog.json</code>, dispatch</td><td>Publishes Apply / Configure / What's New + catalog.</td></tr>
+          <tr><td>VIDiff Deploy — Pages + PR Comment</td><td><span class="pill lin">ubuntu-latest</span></td><td><code>workflow_run</code> after VIDiff reports</td><td>Deploys the diff and comments on the PR (runs even on failure).</td></tr>
+          <tr><td>Catalog Source Sync</td><td><span class="pill lin">ubuntu-latest</span></td><td>PR / push to catalog, docker, or build workflow; dispatch</td><td>Fails if installer file lists drift from the source-owned worker files.</td></tr>
+          <tr><td>Release</td><td><span class="pill lin">ubuntu-latest</span></td><td>push <code>catalog.json</code> on <code>main</code>, dispatch</td><td>Tags <code>v&lt;x.y.z&gt;</code> and moves the <code>v&lt;major&gt;</code>/<code>v&lt;major.minor&gt;</code> aliases.</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Maintenance &amp; diagnostics</h4>
+      <table>
+        <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
+        <tbody>
+          <tr><td>Discover Clients</td><td><span class="pill lin">ubuntu-latest</span></td><td>daily cron, dispatch</td><td>Source repo only (<code>if: github.repository == source</code>).</td></tr>
+          <tr><td>Apply LabVIEW CI update</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (the What's New "Update now")</td><td>Runs <code>install.py --update</code>; commits to default branch or opens a PR.</td></tr>
+          <tr><td>Reconfigure LabVIEW CI</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (Configure Workers)</td><td>Rewrites <code>labview-ci.yml</code> and opens a reviewable PR.</td></tr>
+          <tr><td>VIDiff Backfill — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>dispatch</td><td>Walks VI history rendering diffs through a warm container; resumable.</td></tr>
+          <tr><td>VIDiff Backfill — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch</td><td>Linux counterpart of the backfill.</td></tr>
+          <tr><td>Example project CI (composite-action demo)</td><td><span class="pill lin">ubuntu-latest</span> config + <span class="pill win">windows-2022</span> activities</td><td>dispatch</td><td>Dogfoods the local <code>./actions</code> path against the example project.</td></tr>
+          <tr><td>toimages COM probe (diagnostic)</td><td><span class="pill win">windows-2022</span></td><td>dispatch</td><td>Confirms COM-driven rendering in the stock NI image; touches nothing in production.</td></tr>
+        </tbody>
+      </table>
+      <div class="tip"><span class="lbl">Self-hosted runners</span>
+        Both runner labels default to GitHub-hosted but can be redirected to self-hosted labels via the reusable
+        workflow's <code>windows-runner</code> input or Actions variables. A self-hosted runner additionally keeps a
+        warm Docker layer cache, so the multi-gigabyte worker image is not re-pulled every job (see §16).</div>
 
       <p style="margin-top:40px"><a href="faq.html">← Back to the FAQ</a> &nbsp;·&nbsp;
         <a class="lvci-repo-link" data-show-slug href="https://github.com/elijah286/LabVIEW-CI-with-Containers" target="_blank" rel="noopener">View the source on GitHub →</a></p>
