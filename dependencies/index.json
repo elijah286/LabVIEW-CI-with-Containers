@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "3644eb3393419ef4f8e85ff5320d3f8678da5b6c",
+  "sha": "efa2a95ca3f620a6bec75f172b84b9c7aaa40edc",
   "revisions": [
+    {
+      "sha": "efa2a95ca3f620a6bec75f172b84b9c7aaa40edc",
+      "short": "efa2a95",
+      "message": "configure: simplify to a single Configure Pipeline page (3.52.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T05:15:25Z"
+    },
     {
       "sha": "3644eb3393419ef4f8e85ff5320d3f8678da5b6c",
       "short": "3644eb3",
@@ -695,13 +702,6 @@
       "message": "VI Browser: fall back from stale Linux 2.0 render image overrides",
       "author": "Elijah Kerry",
       "date": "2026-06-22T03:41:19Z"
-    },
-    {
-      "sha": "d6be42e652db712be3d41b4e378f23f1b9d51f2e",
-      "short": "d6be42e",
-      "message": "Dependencies page: enable revision selector",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T03:40:25Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
