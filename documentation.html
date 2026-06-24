@@ -392,11 +392,13 @@ mass-compile:
           (<code>.github/docker/labview-ci.Dockerfile</code>) that bakes your <code>.vipc</code> packages (and, when a
           <code>.dragon</code> file is configured, applies it through the JKI&nbsp;Dragon CLI the base image provides).
           Nothing rebuilds automatically on a <code>.vipc</code> / <code>.dragon</code> push by default &mdash; but a
-          client can opt an individual dependency file into an automatic rebuild-and-re-push by flagging it
-          <code>monitor: true</code> in <code>.github/labview-ci.yml</code> (<code>container.vipc[]</code> /
-          <code>container.dragon[]</code>); the <code>gate</code> then rebuilds whenever <em>that file</em> changes on a
-          submission. <strong>Monitor</strong> is <strong>off by default</strong>, so the &ldquo;nothing rebuilds on a
-          push&rdquo; behavior holds unless a client explicitly enables it per file.</li>
+          client can opt an individual dependency file into an automatic rebuild-and-re-push by ticking
+          <strong>Monitor</strong> for it in the <strong>pipeline configuration</strong>
+          (Configure &rarr; Automatic dependency updates), saved as <code>monitor: true</code> in
+          <code>.github/labview-ci.yml</code> (<code>container.vipc[]</code> / <code>container.dragon[]</code>); the
+          Dependencies page links to that same control. The <code>gate</code> then rebuilds whenever <em>that file</em>
+          changes on a submission. <strong>Monitor</strong> is <strong>off by default</strong>, so the &ldquo;nothing
+          rebuilds on a push&rdquo; behavior holds unless a client explicitly enables it per file.</li>
         <li><strong>Tooling upgrade is separate.</strong> Updating the LabVIEW CI tooling itself (the Update dialog /
           <code>apply-tooling-update.yml</code>) refreshes the workflow scripts and preserves your config; it does not
           rebuild containers. See <a href="#versioning">&sect;12</a>.</li>

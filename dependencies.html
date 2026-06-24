@@ -626,7 +626,8 @@
         '<label class="upd-radio"><input type="radio" name="updMode" value="new"> <span><strong>Create new containers</strong> &mdash; publish a new tagged container alongside the current one; select it per action in Configure Pipeline.</span></label>' +
         '</div>' +
         '<div class="upd-actions"><a class="upd-btn" id="updRun" target="_blank" rel="noopener" href="' + wfUrl + '">Run the container update \u2197</a>' +
-        '<span class="upd-hint">Opens the <strong>Build LabVIEW CI Image</strong> workflow. Click <strong>Run workflow</strong>, set <code>update_mode</code> = <code>replace</code>, and run it.</span></div>';
+        '<span class="upd-hint">Opens the <strong>Build LabVIEW CI Image</strong> workflow. Click <strong>Run workflow</strong>, set <code>update_mode</code> = <code>replace</code>, and run it.</span></div>' +
+        '<p class="upd-auto">Prefer this to happen automatically? Turn on <strong>Monitor</strong> for a dependency file in the <a href="' + base + 'configure.html?repo=' + encodeURIComponent(repo) + '">pipeline configuration \u2197</a> and the worker rebuilds itself whenever that file changes on a submission. <strong>Off by default</strong>, so dependency updates stay manual until you opt in.</p>';
       el.querySelectorAll('input[name=updMode]').forEach(r => r.addEventListener("change", () => {
         const mode = (el.querySelector('input[name=updMode]:checked') || {}).value || "replace";
         const hint = el.querySelector(".upd-hint");
