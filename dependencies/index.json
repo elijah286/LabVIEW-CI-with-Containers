@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "a9c241b72bbf19cc3fb8bc99b733bdace3d7510a",
+  "sha": "02f53476df9a2bc700b6f446705d2d9ae004bf77",
   "revisions": [
+    {
+      "sha": "02f53476df9a2bc700b6f446705d2d9ae004bf77",
+      "short": "02f5347",
+      "message": "feat(deps): move dependency sub-views into the page as tabs over the table (3.46.21)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T00:55:41Z"
+    },
     {
       "sha": "a9c241b72bbf19cc3fb8bc99b733bdace3d7510a",
       "short": "a9c241b",
@@ -695,13 +702,6 @@
       "message": "Reliable VIPC bake: required UTF essentials first, best-effort tooling; align gate with build triggers",
       "author": "Elijah Kerry",
       "date": "2026-06-21T19:10:58Z"
-    },
-    {
-      "sha": "506ada832fa1c99b9845a4661da5d869ebf3be49",
-      "short": "506ada8",
-      "message": "install-vipc: abort fast when VIPM engine wedges (no 900s-per-package hang)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T18:03:02Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
