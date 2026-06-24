@@ -1971,7 +1971,7 @@
 
     async function watchInstallImageBuilds(repo, branch, setup, sinceMs) {
       const targets = [];
-      if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "build-labview-image.yml", dispatch: true, inputs: { copy_only: "true" } });
+      if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "copy-labview-image.yml", dispatch: true });
       if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "build-labview-linux-image.yml", dispatch: false });
       if (setup.buildWindowsBeta) targets.push({ label: "Windows Beta worker image", workflow: "build-labview-windows-beta-image.yml", dispatch: true, inputs: { copy_only: "true" } });
       if (!targets.length) return "skipped";
@@ -2008,22 +2008,24 @@
       return "warn";
     }
 
-    // Kick off the worker container IMAGE build the moment the install merges, when
-    // the custom-image capability is installed. Every Windows container activity (mass
+    // Seed the worker container IMAGE the moment the install merges, when the
+    // custom-image capability is installed. Every Windows container activity (mass
     // compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) runs inside
-    // ghcr.io/<owner>/<repo>-labview, which is built with the baked dependency VIPC and
-    // does NOT exist until this build runs — so a fresh install must build it once.
-    // build-labview-image.yml never auto-runs on the install merge (it only adds
-    // .github/** files, which its push trigger excludes), so we dispatch it here.
+    // ghcr.io/<owner>/<repo>-labview, which is seeded by COPYING the LCWC base and
+    // does NOT exist until this copy runs — so a fresh install must seed it once.
+    // copy-labview-image.yml never auto-runs on the install merge (the install only
+    // adds .github/** files), so we dispatch it here. The separate dependency bake
+    // (build-labview-image.yml) is opt-in later from the Dependencies page.
     // Best-effort: a 404 means the workflow isn't on the default branch yet (rare), so
     // we briefly retry, then fall back silently (the dashboard's Build worker image
     // button and the first CI run's wait-for-image both cover it).
     async function buildWorkerImageNow(repo, branch) {
-      // copy_only=true: a fresh install ALWAYS just copies the LCWC base image into
-      // this repo's GHCR (seconds), never baking dependencies. Project VIPC / capability
-      // dependencies are applied afterwards from the Dependencies page, so an install
-      // can never trigger an hour-long worker rebuild.
-      return dispatchWorkflow(repo, "build-labview-image.yml", branch, { copy_only: "true" });
+      // A fresh install ALWAYS just COPIES the LCWC base image into this repo's GHCR
+      // (seconds) via the dedicated Copy workflow -- never baking dependencies. Project
+      // VIPC / capability dependencies are applied afterwards from the Dependencies page
+      // via the separate Build LabVIEW CI Image workflow, so an install can never
+      // trigger an hour-long worker rebuild.
+      return dispatchWorkflow(repo, "copy-labview-image.yml", branch);
     }
 
     // Semver-ish compare (major.minor.patch). Returns >0 when a>b, <0 when a<b.
