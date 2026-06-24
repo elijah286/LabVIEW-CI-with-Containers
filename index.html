@@ -139,14 +139,17 @@
       .lvci-tablewrap{overflow:visible}
       #cidash-table{display:block;width:100%;border:0;background:transparent}
       #cidash-table thead{display:none}
-      #cidash-table tbody,#cidash-table tr,#cidash-table td{display:block;width:auto}
-      #cidash-table tr{border:1px solid var(--border);border-radius:10px;margin:0 0 12px;padding:8px 12px;background:var(--surface)}
-      #cidash-table td{border:0;padding:6px 0}
-      #cidash-table td.cidash-rev{max-width:none;padding:2px 0 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
-      #cidash-table td:not(.cidash-rev){display:flex!important;align-items:center;justify-content:space-between;gap:12px;text-align:left!important;min-width:0}
-      #cidash-table td:not(.cidash-rev)::before{content:attr(data-label);color:var(--fg-muted);font-size:.82em;font-weight:600;flex:1 1 auto;min-width:9rem;text-align:left}
-      #cidash-table td:not(.cidash-rev)>*{flex:0 0 auto;max-width:56%;text-align:right;justify-content:flex-end}
-      .cidash-chip,.run-badge{white-space:normal;text-align:right;justify-content:flex-end}
+      #cidash-table tbody{display:block;width:auto}
+      /* Each card lays its capability cells out as a responsive grid of compact
+         tiles (label above value) so they fill the card width instead of leaving
+         a wide empty gutter between a left-aligned label and right-aligned badge. */
+      #cidash-table tr{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px 14px;border:1px solid var(--border);border-radius:10px;margin:0 0 12px;padding:12px 14px;background:var(--surface)}
+      #cidash-table td{display:block;width:auto;border:0;padding:0}
+      #cidash-table td.cidash-rev{grid-column:1/-1;max-width:none;padding:2px 0 10px;border-bottom:1px solid var(--border);margin-bottom:0}
+      #cidash-table td:not(.cidash-rev){display:flex!important;flex-direction:column;align-items:flex-start;gap:5px;text-align:left!important;min-width:0}
+      #cidash-table td:not(.cidash-rev)::before{content:attr(data-label);color:var(--fg-muted);font-size:.72em;font-weight:600;text-transform:uppercase;letter-spacing:.04em;min-width:0}
+      #cidash-table td:not(.cidash-rev)>*{max-width:100%}
+      .cidash-chip,.run-badge{white-space:normal;text-align:left;justify-content:flex-start}
     }
     @media(max-width:520px){
       .lvci-main{padding:10px}
@@ -154,10 +157,7 @@
       .lvci-ctxbar .cidash-search{padding:4px 9px}
       .lvci-ctxbar .cidash-segfilter button{padding:6px 8px}
       .lvci-ctxbar .cidash-colbtn{justify-content:flex-start;padding:7px 10px}
-      #cidash-table tr{padding:8px 10px;border-radius:8px}
-      #cidash-table td:not(.cidash-rev){gap:8px;flex-wrap:nowrap}
-      #cidash-table td:not(.cidash-rev)::before{flex:1 1 52%;min-width:0}
-      #cidash-table td:not(.cidash-rev)>*{max-width:48%}
+      #cidash-table tr{padding:10px 12px;border-radius:8px;gap:11px 12px}
       .cidash-rev{padding:8px 0}
       .cidash-rev-msg{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
       .cidash-rev-meta{flex-wrap:wrap;white-space:normal}
@@ -1494,7 +1494,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-24 19:48 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-24 21:01 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -1538,6 +1538,24 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=889d3fd3d31673b7bca8cb245019bae13e7d6918" class="cidash-rev-msg" title="dashboard: compact tile grid for mobile revision cards (4.1.24)">dashboard: compact tile grid for mobile revision cards (4.1.24)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=889d3fd3d31673b7bca8cb245019bae13e7d6918" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">889d3fd</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-24</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -3309,24 +3327,6 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ebd57b4a25dce2e72a161b79923e4322f847eb4f" class="cidash-rev-msg" title="Container CI works on non-main default branches + ship the missing worker Docker">Container CI works on non-main default branches + ship the missing worker Docker</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ebd57b4a25dce2e72a161b79923e4322f847eb4f" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">ebd57b4</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-22</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=72164b2a3eb84ba85dde4ebd6ad6b21fcb34c9f3" class="cidash-rev-msg" title="Re-install repairs a non-markdown README too (v3.36.1)">Re-install repairs a non-markdown README too (v3.36.1)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=72164b2a3eb84ba85dde4ebd6ad6b21fcb34c9f3" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">72164b2</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-22</div>
           </div>
         </div>
       </td>

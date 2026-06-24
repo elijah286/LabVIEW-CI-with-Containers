@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "e57206380f2a014c3c700007be6712d76da8e3fb",
+  "sha": "889d3fd3d31673b7bca8cb245019bae13e7d6918",
   "revisions": [
+    {
+      "sha": "889d3fd3d31673b7bca8cb245019bae13e7d6918",
+      "short": "889d3fd",
+      "message": "dashboard: compact tile grid for mobile revision cards (4.1.24)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T20:58:37Z"
+    },
     {
       "sha": "e57206380f2a014c3c700007be6712d76da8e3fb",
       "short": "e572063",
@@ -695,13 +702,6 @@
       "message": "Container CI works on non-main default branches + ship the missing worker Dockerfiles (v3.37.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T18:18:16Z"
-    },
-    {
-      "sha": "72164b2a3eb84ba85dde4ebd6ad6b21fcb34c9f3",
-      "short": "72164b2",
-      "message": "Re-install repairs a non-markdown README too (v3.36.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T16:43:05Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
