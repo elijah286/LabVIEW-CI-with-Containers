@@ -705,7 +705,9 @@ docker run --rm `
       <h3 id="cap-snapshots">9.6 VI Snapshots &amp; VI Browser <a class="anchor" href="#cap-snapshots">#</a></h3>
       <p>This is the one place that deliberately reuses a warm container. Snapshots are <strong>content-addressed by
         git blob SHA</strong>, so each unique VI is rendered exactly once — ever — and reused across every commit
-        that contains it.</p>
+        that contains it. If an older revision references a snapshot or report document that has not been published
+        yet, the VI Browser and framed report viewer show an in-page missing-document state with a Populate history
+        link instead of framing a GitHub Pages 404.</p>
       <h4>Phase 1 — HTML snapshots and Windows 2.0 frames <span class="pill win">Windows</span></h4>
       <p>Orchestrated by <code>build-snapshots.ps1</code>, which starts a single long-lived container
         (<code>docker run -d … while true sleep</code>) and renders many commits through it via

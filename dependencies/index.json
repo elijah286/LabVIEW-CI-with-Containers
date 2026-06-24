@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "b9d5fd561094d030cbb496ba7f72e815d0233690",
+  "sha": "8b8e98448b14797d575ff8cfd6b3029a79ea1611",
   "revisions": [
+    {
+      "sha": "8b8e98448b14797d575ff8cfd6b3029a79ea1611",
+      "short": "8b8e984",
+      "message": "Handle missing report documents without Pages 404",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T21:56:42Z"
+    },
     {
       "sha": "b9d5fd561094d030cbb496ba7f72e815d0233690",
       "short": "b9d5fd5",
@@ -695,13 +702,6 @@
       "message": "Fix Linux Beta image hash step (v3.38.2)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T21:06:23Z"
-    },
-    {
-      "sha": "20112324d5a261974268b66b2e85fad271070737",
-      "short": "2011232",
-      "message": "Wait for the in-progress worker image build after a fresh install instead of timing out (v3.38.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T21:00:05Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
