@@ -33,6 +33,9 @@
     .upd-hint{color:var(--fg-muted);font-size:.82em;max-width:520px}
     .upd-hint code{background:var(--chip);padding:1px 5px;border-radius:4px;font-family:ui-monospace,Menlo,monospace}
   </style>
+  <style>
+    .monitorbar{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:12px 13px;margin-bottom:16px}.monitorbar strong{display:block;font-size:.9em}.monitor-help{color:var(--fg-muted);font-size:.84em}.monitor-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.primary{border-color:transparent;background:var(--accent);color:var(--accent-fg);font-weight:700}.primary:hover{border-color:transparent;filter:brightness(1.05)}button:disabled{opacity:.55;cursor:not-allowed}.statusline{font-size:.84em;color:var(--fg-muted)}.statusline.ok{color:var(--ok)}.statusline.err{color:var(--bad)}.tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px 13px;background:var(--surface);margin:-6px 0 16px;font-size:.84em}.tokpanel[hidden]{display:none}.tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--surface2);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.monitor-label{display:inline-flex;align-items:center;gap:7px;font-size:.82em;font-weight:700;color:var(--fg);margin-left:10px;vertical-align:middle}.monitor-label input{width:16px;height:16px;accent-color:var(--ok);margin:0}.monitor-label input:disabled{opacity:.5}.monitor-label.locked{opacity:.75}
+  </style>
 </head>
 <body>
   <main class="wrap">
@@ -55,6 +58,22 @@
     </div>
     <div class="note hidden" id="status"></div>
     <div id="updatePanel" class="upd hidden" role="region" aria-label="Dependency update needed"></div>
+    <div class="monitorbar">
+      <div>
+        <strong>Monitored dependency files</strong>
+        <div class="monitor-help">Checked files produce dependency warnings and participate in dependency-file change detection. Installing or rebuilding dependencies before actions still requires automatic dependency installation.</div>
+      </div>
+      <div class="monitor-actions">
+        <button class="primary" id="saveMonitor" type="button" disabled>Save monitored files</button>
+        <span class="statusline" id="monitorStatus"></span>
+      </div>
+    </div>
+    <div class="tokpanel" id="tokPanel" hidden>
+      <div id="tokMsg">Saving needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.</div>
+      <a id="tokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a token</a>
+      <input id="tokInput" type="password" placeholder="github_pat_..." autocomplete="off" spellcheck="false">
+      <button class="primary" id="tokSave" type="button">Save monitored files</button>
+    </div>
     <div class="dep-tabs" id="depTabs">
       <div class="dep-tablist" role="tablist" aria-label="Dependency views">
         <button type="button" class="dep-tab active" id="tab-vipc" role="tab" aria-controls="panel-vipc" aria-selected="true" data-tab="vipc">VIPM / VIPC</button>
@@ -102,17 +121,26 @@
       const m = /^\.github\/labview\/([^/]+)\/[^/]+\.vipc$/.exec(path || "");
       return (m && CAP_WORKFLOW[m[1]]) ? m[1] : "";
     }
-    function classifyVipc(path, configuredSet, hasList, treePaths){
-      if (path === CORE_VIPC) return { role:"core", capability:"", configured:true };
+    function classifyVipc(path, configuredMap, hasList, treePaths){
+      const entry = configuredMap && configuredMap.get ? configuredMap.get(path) : null;
+      if (path === CORE_VIPC) return { role:"core", capability:"", configured:true, monitored:true, locked:true };
       const cap = capForVipc(path);
-      if (cap) return { role:"capability", capability:cap, configured: treePaths ? treePaths.has(CAP_WORKFLOW[cap]) : true };
-      return { role:"project", capability:"", configured: hasList ? configuredSet.has(path) : true };
+      if (cap) return { role:"capability", capability:cap, configured: treePaths ? treePaths.has(CAP_WORKFLOW[cap]) : true, monitored:true, locked:false };
+      const monitored = hasList ? !!(entry && entry.monitor === true) : true;
+      return { role:"project", capability:"", configured:monitored, monitored, locked:false };
     }
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
     const short = s => String(s || "").slice(0, 7);
     const cfg = window.LVCI || {};
+    const TOK_KEY = "lvci_dispatch_token";
     let generatedInventory = null;
+    let currentVipcs = [];
+    let currentDragonFiles = [];
+    let currentDragonData = null;
+    let currentColStates = {};
+    let currentPlatformStates = {};
+    let monitorDirty = false;
 
     function repoFromUrl(){
       if (cfg.repo) return cfg.repo;
@@ -146,19 +174,25 @@
     }
 
     function parseManifestYaml(text){
-      const out = { use:"", vipc:[], actions:{}, viBrowser:{} };
+      const out = { use:"", vipc:[], dragon:[], actions:{}, viBrowser:{}, hasVipcList:false, hasDragonList:false };
       let sec = "", cur = null;
       text.split(/\r?\n/).forEach(line => {
-        if (/^\s*container:\s*$/.test(line)) { sec = "container"; return; }
-        if (/^\s*viBrowser:\s*$/.test(line)) { sec = "viBrowser"; return; }
+        if (/^\s*container:\s*$/.test(line)) { sec = "container"; cur = null; return; }
+        if (/^\s*viBrowser:\s*$/.test(line)) { sec = "viBrowser"; cur = null; return; }
         if (/^\S/.test(line)) { sec = ""; cur = null; }
         if (sec === "container") {
           let m = line.match(/^\s{4}use:\s*"?([^"#]+)"?/); if (m) out.use = m[1].trim();
-          if (/^\s{4}vipc:\s*$/.test(line)) { sec = "vipc"; return; }
-          if (/^\s{4}actions:\s*$/.test(line)) { sec = "actions"; return; }
-        } else if (sec === "vipc") {
-          let m = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/); if (m) { cur = { path:m[1].trim(), include:true }; out.vipc.push(cur); return; }
-          if (/^\s{0,4}\S/.test(line)) sec = "container";
+          if (/^\s{4}vipc:\s*$/.test(line)) { sec = "vipc"; out.hasVipcList = true; cur = null; return; }
+          if (/^\s{4}dragon:\s*$/.test(line)) { sec = "dragon"; out.hasDragonList = true; cur = null; return; }
+          if (/^\s{4}actions:\s*$/.test(line)) { sec = "actions"; cur = null; return; }
+        } else if (sec === "vipc" || sec === "dragon") {
+          if (/^\s{4}vipc:\s*$/.test(line)) { sec = "vipc"; out.hasVipcList = true; cur = null; return; }
+          if (/^\s{4}dragon:\s*$/.test(line)) { sec = "dragon"; out.hasDragonList = true; cur = null; return; }
+          if (/^\s{4}actions:\s*$/.test(line)) { sec = "actions"; cur = null; return; }
+          const target = sec === "vipc" ? out.vipc : out.dragon;
+          let m = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/); if (m) { cur = { path:m[1].trim(), monitor:true }; target.push(cur); return; }
+          m = line.match(/^\s{8}monitor:\s*(\S+)/); if (m && cur) cur.monitor = m[1].toLowerCase() === "true";
+          if (/^\s{0,4}\S/.test(line)) { sec = "container"; cur = null; }
         } else if (sec === "actions") {
           let m = line.match(/^\s{6}([A-Za-z0-9_.-]+):\s*"?([^"#]+)"?/); if (m) out.actions[m[1]] = m[2].trim();
           if (/^\s{0,4}\S/.test(line)) sec = "container";
@@ -186,9 +220,17 @@
       return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
     }
 
-    async function listVipcs(sha){
+    async function listDependencyFiles(sha){
       const tree = await fetchJson(api("/git/trees/" + sha + "?recursive=1"));
-      return (tree.tree || []).filter(x => x.type === "blob" && /\.vipc$/i.test(x.path)).map(x => x.path).sort((a,b) => a.localeCompare(b));
+      const files = tree.tree || [];
+      return {
+        treePaths: new Set(files.map(x => x.path)),
+        vipc: files.filter(x => x.type === "blob" && /\.vipc$/i.test(x.path)).map(x => x.path).sort((a,b) => a.localeCompare(b)),
+        dragon: files.filter(x => x.type === "blob" && /\.dragon$/i.test(x.path)).map(x => x.path).sort((a,b) => a.localeCompare(b))
+      };
+    }
+    async function listVipcs(sha){
+      return (await listDependencyFiles(sha)).vipc;
     }
 
     function readU16(dv, off){ return dv.getUint16(off, true); }
@@ -304,6 +346,128 @@
     function renderConfigSummary(){
       // The container-config summary box was removed from the page; nothing to render here.
     }
+    function monitorMap(list){
+      const out = new Map();
+      (list || []).forEach(v => { const path = String(v.path || v || ""); if (path) out.set(path, { monitor:v.monitor !== false }); });
+      return out;
+    }
+    function hasConfigList(manifest, key){
+      const flag = key === "vipc" ? manifest.hasVipcList : manifest.hasDragonList;
+      if (flag === true || flag === false) return flag;
+      return Array.isArray(manifest[key]) && manifest[key].length > 0;
+    }
+    function monitorControl(kind, path, checked, locked){
+      return '<label class="monitor-label' + (locked ? ' locked' : '') + '" title="' + (locked ? 'CI tooling dependency is always monitored' : 'Monitor this dependency file') + '"><input type="checkbox" data-monitor-kind="' + esc(kind) + '" data-monitor-path="' + esc(path) + '" ' + (checked ? 'checked ' : '') + (locked ? 'disabled ' : '') + '><span>Monitored</span></label>';
+    }
+    function encodeMonitorList(list){
+      return (list || []).map(v => String(v.path || v.source_file || '').replace(/;/g, '') + '::' + (v.monitored === true ? 'true' : 'false')).join(';');
+    }
+    function monitorCounts(){
+      const all = currentVipcs.concat(currentDragonFiles);
+      return { total:all.length, monitored:all.filter(v => v.monitored === true).length };
+    }
+    function setMonitorStatus(html, kind){
+      const st = $("monitorStatus"); if (!st) return;
+      st.innerHTML = html || "";
+      st.className = "statusline" + (kind ? " " + kind : "");
+    }
+    function updateMonitorUi(){
+      const btn = $("saveMonitor");
+      const counts = monitorCounts();
+      if (btn) btn.disabled = !monitorDirty || counts.total === 0;
+      if (!counts.total) { setMonitorStatus("No dependency files found."); return; }
+      if (monitorDirty) setMonitorStatus("Save to update monitored files (" + counts.monitored + " of " + counts.total + " checked).");
+      else setMonitorStatus(counts.monitored + " of " + counts.total + " dependency files monitored.", "ok");
+    }
+    function token(){ try { return localStorage.getItem(TOK_KEY) || ""; } catch (_) { return ""; } }
+    function workflowRef(){ return (generatedInventory && (generatedInventory.ref || generatedInventory.defaultBranch)) || "main"; }
+    function workflowUrl(){ return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/reconfigure.yml" : "https://github.com/actions/workflows/reconfigure.yml"; }
+    function tokenUrl(){
+      const owner = (repo.split("/")[0]) || "";
+      const qp = new URLSearchParams();
+      qp.set("name", "LabVIEW CI dispatch");
+      qp.set("description", "Dispatch LabVIEW CI dependency monitor changes for " + repo);
+      if (owner) qp.set("target_name", owner);
+      qp.set("actions", "write");
+      return "https://github.com/settings/personal-access-tokens/new?" + qp.toString();
+    }
+    function showTokenPanel(msg){
+      const p = $("tokPanel"); if (!p) return;
+      const m = $("tokMsg"); if (m) m.innerHTML = msg || "Saving needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.";
+      const a = $("tokCreate"); if (a) a.href = tokenUrl();
+      p.hidden = false;
+      const inp = $("tokInput"); if (inp) inp.focus();
+    }
+    function hideTokenPanel(){ const p = $("tokPanel"); if (p) p.hidden = true; }
+    function monitorInputs(){ return { container_vipc:encodeMonitorList(currentVipcs), container_dragon:encodeMonitorList(currentDragonFiles) }; }
+    async function dispatchMonitor(){
+      if (!repo.includes("/")) { setMonitorStatus("Could not determine repository.", "err"); return; }
+      if (!token()) { showTokenPanel(); setMonitorStatus("Paste a token to queue Reconfigure."); return; }
+      const btn = $("saveMonitor");
+      if (btn) { btn.disabled = true; btn.textContent = "Queuing..."; }
+      setMonitorStatus("Queuing Reconfigure...");
+      try {
+        const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/reconfigure.yml/dispatches", {
+          method:"POST",
+          headers:{ "Authorization":"Bearer " + token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json" },
+          body:JSON.stringify({ ref:workflowRef(), inputs:monitorInputs() })
+        });
+        if (btn) btn.textContent = "Save monitored files";
+        if (r.status === 204) {
+          hideTokenPanel();
+          monitorDirty = false;
+          updateMonitorUi();
+          setMonitorStatus("Queued Reconfigure. It will open a pull request with the monitored-file changes. <a href=\"" + workflowUrl() + "\" target=\"_blank\" rel=\"noopener\">View runs</a>.", "ok");
+          return;
+        }
+        if (btn) btn.disabled = false;
+        if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setMonitorStatus("Token rejected (401).", "err"); return; }
+        if (r.status === 403) { showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code>" + esc(repo) + "</code>."); setMonitorStatus("Dispatch forbidden (403).", "err"); return; }
+        if (r.status === 404) { showTokenPanel("The saved token cannot see <code>" + esc(repo) + "</code>, or this repo does not have <code>reconfigure.yml</code> installed."); setMonitorStatus("Workflow not found or repo not accessible (404).", "err"); return; }
+        setMonitorStatus("Dispatch failed (HTTP " + r.status + ").", "err");
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = "Save monitored files"; }
+        setMonitorStatus("Network error: " + esc(String(e && e.message || e)), "err");
+      }
+    }
+    function setFileMonitor(kind, path, checked){
+      const list = kind === "dragon" ? currentDragonFiles : currentVipcs;
+      const item = list.find(v => String(v.path || v.source_file) === String(path));
+      if (!item || item.locked) return;
+      item.monitored = checked === true;
+      item.configured = item.monitored;
+      if (kind === "dragon" && currentDragonData && currentDragonData.files) {
+        currentDragonData.files.forEach(f => { if (f.source_file === path) f.monitored = item.monitored; });
+      }
+      monitorDirty = true;
+      renderVipc(currentVipcs, currentColStates, currentDragonData);
+      renderNipm(currentPlatformStates, currentDragonData);
+      updateMonitorUi();
+    }
+    function initMonitorControls(){
+      const btn = $("saveMonitor"); if (btn) btn.addEventListener("click", dispatchMonitor);
+      const save = $("tokSave"); if (save) save.addEventListener("click", () => {
+        const inp = $("tokInput"); const v = (inp && inp.value || "").trim();
+        if (!v) { if (inp) inp.focus(); return; }
+        try { localStorage.setItem(TOK_KEY, v); } catch (_) {}
+        dispatchMonitor();
+      });
+      const inp = $("tokInput"); if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); const b = $("tokSave"); if (b) b.click(); } });
+    }
+    function applyDragonMonitor(dragon, manifest, discoveredPaths){
+      const cfg = monitorMap(manifest.dragon || []);
+      const hasList = hasConfigList(manifest, "dragon");
+      const byPath = new Map();
+      ((dragon && dragon.files) || []).forEach(f => { if (f.source_file) byPath.set(f.source_file, Object.assign({}, f)); });
+      (discoveredPaths || []).forEach(path => { if (path && !byPath.has(path)) byPath.set(path, { source_file:path, dependencies:[] }); });
+      (manifest.dragon || []).forEach(v => { if (v.path && !byPath.has(v.path)) byPath.set(v.path, { source_file:v.path, dependencies:[] }); });
+      const files = Array.from(byPath.values()).sort((a,b) => String(a.source_file).localeCompare(String(b.source_file))).map(f => {
+        const entry = cfg.get(f.source_file);
+        f.monitored = hasList ? !!(entry && entry.monitor === true) : true;
+        return f;
+      });
+      return Object.assign({}, dragon || {}, { available: files.length ? true : !!(dragon && dragon.available), files });
+    }
     function presentCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><input class="dep-check" type="checkbox" checked disabled aria-label="Installed"></td>'; }
     function emptyCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><span class="dep-empty" aria-hidden="true"></span></td>'; }
     // Three explicit cell states for the dependency tables:
@@ -316,11 +480,15 @@
     // warning glyph as the "dependency update needed" card so the table cell is
     // visibly the cause of that banner.
     function missingCell(label){ return '<td class="cell"><span class="dep-warn" title="' + esc(label || 'Declared but not yet baked into this worker') + '" aria-label="Missing dependency">\u26A0</span></td>'; }
-    function experimentalCell(){ return naCell('Beta image pending'); }
+    function experimentalCell(){ return missingCell('Beta image pending'); }
+    function isProjectVipc(vipc){ return !!vipc && vipc.monitored !== false && vipc.tooling !== true && vipc.role !== 'core' && vipc.role !== 'capability' && vipc.configured !== false; }
     function statusCell(pkg, colState, col, vipc){
       if (!pkg) return "";
-      if (colState.experimentalPending) return naCell('Beta image pending');
+      if (vipc && vipc.monitored === false) return naCell("Dependency file is not monitored");
+      if (colState.experimentalPending) return missingCell('Beta image pending');
       if (colState.label === "base" || colState.label === "none") return naCell('NI base image - no VIPC applied');
+      if (!colState.ready && col && col.image === 'worker' && isProjectVipc(vipc))
+        return missingCell('Worker dependency manifest has not been published yet');
       if (!colState.ready) return naCell('Worker manifest not available');
       if (colState.failed && colState.failed.has(pkg)) return errorCell('Error installing this package in the worker');
       if (colState.packages.has(pkg)) return presentCell('Installed in this worker');
@@ -328,19 +496,19 @@
       // (Windows / Linux) this is exactly what the dependency-update banner is
       // about, so flag it with the warning glyph. Core / capability VIPCs and the
       // experimental lane stay neutral (N/A).
-      if (vipc && vipc.role === 'project' && vipc.configured !== false && col && col.image === 'worker')
+      if (isProjectVipc(vipc) && col && col.image === 'worker')
         return missingCell('Declared in a VIPC file but not yet baked into this worker \u2014 run the dependency update');
       return naCell('Not applied to this worker');
     }
     function simpleCell(ok, label, naLabel){
-      if (ok === null) return naCell('Worker manifest not available');
+      if (ok === null) return missingCell('Worker dependency manifest has not been published yet');
       if (ok === undefined) return naCell(naLabel || 'Not used on this platform');
       return ok ? presentCell(label || 'present') : naCell(label || 'Not found in this worker');
     }
     function nipmCell(dep, col, st){
       if (dep.platforms && !dep.platforms.includes(col.platform)) return naCell('Not used on this platform');
-      if (st && st.experimentalPending) return naCell('Beta image pending');
-      if (!st || !st.ready) return naCell('Worker manifest not available');
+      if (st && st.experimentalPending) return missingCell('Beta image pending');
+      if (!st || !st.ready) return missingCell('Worker dependency manifest has not been published yet');
       if (dep.labview) return st.labview ? presentCell('LabVIEW ' + st.labview) : naCell('LabVIEW version unknown');
       const wanted = ((dep.packages || {})[col.platform] || []).map(p => p.toLowerCase());
       const found = (st.nipkg || []).find(p => wanted.includes(String(p.name || '').toLowerCase()));
@@ -420,6 +588,7 @@
       document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeExpPop(); });
     }
     function vipcRolePill(v){
+      if (v.monitored === false) return ' <span class="pill" title="This dependency file is not monitored, so missing packages do not create warnings">unmonitored</span>';
       if (v.role === 'core') return ' <span class="pill" title="Core CI tooling - always baked into every worker image">core</span>';
       if (v.role === 'capability') {
         const cap = esc(v.capability || 'optional');
@@ -434,7 +603,9 @@
       const heads = COLS.map(headCell).join('');
       const rows = [];
       vipcs.forEach((v, idx) => {
-        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span>' + fileLink(v.path) + ' <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + vipcRolePill(v) + '</td></tr>');
+        const checked = v.monitored !== false;
+        const locked = v.locked === true;
+        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span>' + fileLink(v.path) + monitorControl('vipc', v.path, checked, locked) + ' <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + vipcRolePill(v) + '</td></tr>');
         if (v.open) {
           if (v.error) rows.push('<tr><td class="pkg" colspan="' + (COLS.length + 1) + '"><span class="why">' + esc(v.error) + '</span></td></tr>');
           else if (!(v.packages || []).length) rows.push('<tr><td class="pkg" colspan="' + (COLS.length + 1) + '"><span class="why">This file does not specify any packaged dependencies.</span></td></tr>');
@@ -448,7 +619,9 @@
         rows.push.apply(rows, dragonRows);
       }
       $("vipcWrap").innerHTML = '<table><thead><tr><th>VIPC / Package</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
-      Array.from(document.querySelectorAll('.vipc-row')).forEach((row, i) => row.addEventListener('click', (e) => { if (e.target && e.target.closest && e.target.closest('a')) return; vipcs[i].open = !vipcs[i].open; renderVipc(vipcs, colStates, dragon); }));
+      Array.from(document.querySelectorAll('.vipc-row')).forEach((row, i) => row.addEventListener('click', (e) => { if (e.target && e.target.closest && e.target.closest('a,input,.monitor-label')) return; vipcs[i].open = !vipcs[i].open; renderVipc(vipcs, colStates, dragon); }));
+      Array.from(document.querySelectorAll('input[data-monitor-kind="vipc"]')).forEach(cb => cb.addEventListener('change', e => { e.stopPropagation(); setFileMonitor('vipc', cb.getAttribute('data-monitor-path'), cb.checked); }));
+      Array.from(document.querySelectorAll('input[data-monitor-kind="dragon"]')).forEach(cb => cb.addEventListener('change', e => { e.stopPropagation(); setFileMonitor('dragon', cb.getAttribute('data-monitor-path'), cb.checked); }));
     }
     function renderNipm(platformStates, dragon){
       const heads = COLS.map(headCell).join('');
@@ -498,19 +671,14 @@
       const yaml = await fetchText(raw(".github/labview-ci.yml", sha)).catch(() => "");
       const manifest = parseManifestYaml(yaml);
       renderConfigSummary(manifest);
-      let treePaths = null, discovered;
-      try {
-        const tree = await fetchJson(api('/git/trees/' + sha + '?recursive=1'));
-        treePaths = new Set((tree.tree || []).map(x => x.path));
-        discovered = Array.from(treePaths).filter(p => /\.vipc$/i.test(p)).sort((a, b) => a.localeCompare(b));
-      } catch (_) {
-        discovered = await listVipcs(sha).catch(() => manifest.vipc.map(v => v.path));
-      }
-      const configuredSet = new Set(manifest.vipc.map(v => v.path));
-      const hasList = manifest.vipc.length > 0;
-      const vipcs = await Promise.all(discovered.map(async path => {
-        const meta = classifyVipc(path, configuredSet, hasList, treePaths);
-        const item = { path, role:meta.role, capability:meta.capability, configured:meta.configured, packages:[], open:true, error:"" };
+      let discovered = { vipc:manifest.vipc.map(v => v.path), dragon:manifest.dragon.map(v => v.path), treePaths:null };
+      try { discovered = await listDependencyFiles(sha); } catch (_) {}
+      const configuredMap = monitorMap(manifest.vipc);
+      const hasList = hasConfigList(manifest, "vipc");
+      const vipcPaths = Array.from(new Set((discovered.vipc || []).concat(manifest.vipc.map(v => v.path)))).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      const vipcs = await Promise.all(vipcPaths.map(async path => {
+        const meta = classifyVipc(path, configuredMap, hasList, discovered.treePaths);
+        const item = { path, role:meta.role, capability:meta.capability, configured:meta.configured, monitored:meta.monitored, locked:meta.locked, packages:[], open:true, error:"" };
         try { item.packages = await vipcPackages(path, sha); }
         catch (e) { item.error = "Could not parse " + path + ": " + e.message; }
         return item;
@@ -519,11 +687,18 @@
       const colStates = {};
       COLS.forEach(c => { colStates[c.key] = platformStates[c.key] || {}; });
       const system = await systemForRevision(sha);
-      $("vipcCard").textContent = String(vipcs.length);
-      const dragon = generatedInventory && generatedInventory.dragon;
+      const dragon = applyDragonMonitor(generatedInventory && generatedInventory.dragon, manifest, discovered.dragon || []);
+      currentVipcs = vipcs;
+      currentDragonData = dragon;
+      currentDragonFiles = (dragon.files || []).map(f => ({ path:f.source_file, monitored:f.monitored !== false }));
+      currentColStates = colStates;
+      currentPlatformStates = platformStates;
+      monitorDirty = (!hasList && vipcs.length > 0) || (!hasConfigList(manifest, "dragon") && currentDragonFiles.length > 0);
+      $("vipcCard").textContent = vipcs.length + " VIPC / " + currentDragonFiles.length + " Dragon";
       renderVipc(vipcs, colStates, dragon);
       renderNipm(platformStates, dragon);
       renderSystem(system, colStates);
+      updateMonitorUi();
     }
 
     const DRAGON_STATUS = {
@@ -554,6 +729,7 @@
       }
     }
     function dragonDepCell(dep, col){
+      if (dep.unmonitored) return naCell('Dependency file is not monitored');
       if (col.key !== 'winExp') return naCell('Requested by a .dragon file - applied in the Win Beta container');
       const meta = DRAGON_STATUS[dep.status] || { kind:'na' };
       const label = dragonStatusLabel(dep);
@@ -568,24 +744,39 @@
       const rows = [];
       (dragon.files || []).forEach(f => {
         const deps = (f.dependencies || []).filter(d => d.manager === manager);
-        if (!deps.length && !f.error) return;
+        if (!deps.length && !f.error && !f.source_file) return;
         const lv = f.labview_version ? (' <span class="pill" title="Declared LabVIEW year">LabVIEW ' + esc(f.labview_version) + '</span>') : '';
         const count = deps.length + ' ' + (manager === 'vipm' ? 'VIPM' : 'NIPM') + (deps.length === 1 ? ' dependency' : ' dependencies');
-        rows.push('<tr class="dragon-file"><td colspan="' + span + '">' + fileLink(f.source_file) + ' <span class="pill" title="JKI Dragon dependency file">Dragon</span> <span class="pill">' + count + '</span>' + lv + '</td></tr>');
+        rows.push('<tr class="dragon-file"><td colspan="' + span + '">' + fileLink(f.source_file) + monitorControl('dragon', f.source_file, f.monitored !== false, false) + ' <span class="pill" title="JKI Dragon dependency file">Dragon</span> <span class="pill">' + count + '</span>' + lv + (f.monitored === false ? ' <span class="pill">unmonitored</span>' : '') + '</td></tr>');
         if (f.error){ rows.push('<tr><td class="pkg" colspan="' + span + '"><span class="why">' + esc(f.error) + '</span></td></tr>'); return; }
+        if (!deps.length){ rows.push('<tr><td class="pkg" colspan="' + span + '"><span class="why">This Dragon file does not declare ' + (manager === 'vipm' ? 'VIPM' : 'NIPM') + ' dependencies.</span></td></tr>'); return; }
         deps.forEach(d => {
+          const rowDep = Object.assign({}, d, { unmonitored:f.monitored === false });
           const feed = d.feed_name ? (' <span class="pill" title="NIPM feed">' + esc(d.feed_name) + '</span>') : '';
           const ver = d.declared_version ? (' <span class="why" title="Declared version">' + esc(d.declared_version) + '</span>') : '';
-          rows.push('<tr><td class="pkg">' + esc(d.package_id) + feed + ver + '</td>' + COLS.map(c => dragonDepCell(d, c)).join('') + '</tr>');
+          rows.push('<tr><td class="pkg">' + esc(d.package_id) + feed + ver + '</td>' + COLS.map(c => dragonDepCell(rowDep, c)).join('') + '</tr>');
         });
       });
       return rows;
     }
 
     function renderGenerated(data){
-      renderConfigSummary(data.config || {});
+      const config = data.config || {};
+      renderConfigSummary(config);
       $("repoCard").textContent = data.repo || repo || "unknown";
-      $("vipcCard").textContent = String((data.vipc || []).length);
+      const vipcConfig = monitorMap(config.vipc || []);
+      const vipcHasList = hasConfigList(config, "vipc");
+      const generatedVipcs = (data.vipc || []).map(v => {
+        const meta = classifyVipc(v.path, vipcConfig, vipcHasList, null);
+        const tooling = v.tooling === true || meta.role === 'core';
+        return { path:v.path, role:v.role || (tooling ? 'core' : 'project'), capability:v.capability, tooling, configured:tooling || meta.configured, monitored:tooling || meta.monitored, locked:tooling || meta.locked, packages:v.packages || [], error:v.error || "", open:true };
+      });
+      const dragon = applyDragonMonitor(data.dragon, config, (data.dragon && data.dragon.files || []).map(f => f.source_file));
+      currentVipcs = generatedVipcs;
+      currentDragonData = dragon;
+      currentDragonFiles = (dragon.files || []).map(f => ({ path:f.source_file, monitored:f.monitored !== false }));
+      monitorDirty = (!vipcHasList && generatedVipcs.length > 0) || (!hasConfigList(config, "dragon") && currentDragonFiles.length > 0);
+      $("vipcCard").textContent = generatedVipcs.length + " VIPC / " + currentDragonFiles.length + " Dragon";
       const platformStates = {};
       (data.platforms || []).forEach(p => { platformStates[p.key] = { tag:p.tag || 'base', label:p.version || p.tag || 'base', ready:p.ready !== false, packages:new Set(p.packages || []), nipkg:p.nipkg_packages || [], nipkgNames:new Set((p.nipkg_packages || []).map(x => String(x.name || '').toLowerCase())), labview:p.labview_version || '' }; });
       platformStates.nipmDeps = data.nipm || [];
@@ -603,10 +794,13 @@
       });
       COLS.forEach(c => { if (!platformStates[c.key]) platformStates[c.key] = colStates[c.key] || (c.image === "experimental" ? markExperimentalPending({}) : { tag:'base', label:'base', ready:true, packages:new Set(), nipkg:[], nipkgNames:new Set(), labview:'' }); });
       COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = (c.image === "experimental") ? markExperimentalPending({}) : { tag:"base", label:"base", ready:true, packages:new Set(), failed:new Set() }; });
+      currentColStates = colStates;
+      currentPlatformStates = platformStates;
       setStatus("");
-      renderVipc((data.vipc || []).map(v => ({ path:v.path, role:v.role, capability:v.capability, configured:v.configured !== false, packages:v.packages || [], error:v.error || "", open:true })), colStates, data.dragon);
-      renderNipm(platformStates, data.dragon);
+      renderVipc(generatedVipcs, colStates, dragon);
+      renderNipm(platformStates, dragon);
       renderSystem(data.system || [], colStates);
+      updateMonitorUi();
     }
 
     async function renderUpdatePanel(){
@@ -627,7 +821,7 @@
         '</div>' +
         '<div class="upd-actions"><a class="upd-btn" id="updRun" target="_blank" rel="noopener" href="' + wfUrl + '">Run the container update \u2197</a>' +
         '<span class="upd-hint">Opens the <strong>Build LabVIEW CI Image</strong> workflow. Click <strong>Run workflow</strong>, set <code>update_mode</code> = <code>replace</code>, and run it.</span></div>' +
-        '<p class="upd-auto">Prefer this to happen automatically? Turn on <strong>Monitor</strong> for a dependency file in the <a href="' + base + 'configure.html?repo=' + encodeURIComponent(repo) + '">pipeline configuration \u2197</a> and the worker rebuilds itself whenever that file changes on a submission. <strong>Off by default</strong>, so dependency updates stay manual until you opt in.</p>';
+        '<p class="upd-auto">Prefer file changes to rebuild containers automatically? Keep <strong>Monitored</strong> checked for that dependency file here, click <strong>Save monitored files</strong>, and files saved with <code>monitor: true</code> will trigger a rebuild when they change on a submission.</p>';
       el.querySelectorAll('input[name=updMode]').forEach(r => r.addEventListener("change", () => {
         const mode = (el.querySelector('input[name=updMode]:checked') || {}).value || "replace";
         const hint = el.querySelector(".upd-hint");
@@ -636,7 +830,8 @@
     }
 
     async function init(){
-      initDependencyTabs();   // wire sub-view switching regardless of repo resolution
+      initDependencyTabs();
+      initMonitorControls();   // wire sub-view switching regardless of repo resolution
       if (!repo) { setStatus("Could not determine repository from this Pages URL."); return; }
       initExpInfo();
       renderUpdatePanel();

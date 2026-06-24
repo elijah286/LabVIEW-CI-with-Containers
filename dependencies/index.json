@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "889d3fd3d31673b7bca8cb245019bae13e7d6918",
+  "sha": "36e64157c17aa51726f7df725e635e51a9b1aad7",
   "revisions": [
+    {
+      "sha": "36e64157c17aa51726f7df725e635e51a9b1aad7",
+      "short": "36e6415",
+      "message": "Move dependency monitoring to Dependencies page",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T21:18:14Z"
+    },
     {
       "sha": "889d3fd3d31673b7bca8cb245019bae13e7d6918",
       "short": "889d3fd",
@@ -697,13 +704,6 @@
       "date": "2026-06-22T18:48:03Z"
     },
     {
-      "sha": "ebd57b4a25dce2e72a161b79923e4322f847eb4f",
-      "short": "ebd57b4",
-      "message": "Container CI works on non-main default branches + ship the missing worker Dockerfiles (v3.37.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T18:18:16Z"
-    },
-    {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
       "short": "590495f",
       "message": "example: add UTF JUnit reporter deps to Dependencies.vipc",
@@ -819,14 +819,20 @@
   "config": {
     "use": "",
     "actions": {},
-    "vipc": []
+    "vipc": [],
+    "dragon": [],
+    "hasVipcList": false,
+    "hasDragonList": false
   },
   "vipc": [
     {
       "path": ".github/labview/antidoc/antidoc.vipc",
       "role": "capability",
       "capability": "antidoc",
+      "tooling": false,
       "configured": true,
+      "monitored": true,
+      "locked": false,
       "packages": [
         "wovalab_lib_antidoc_cli-3.3.0.117"
       ],
@@ -836,7 +842,10 @@
       "path": ".github/labview/experimental.vipc",
       "role": "project",
       "capability": "",
+      "tooling": false,
       "configured": true,
+      "monitored": true,
+      "locked": false,
       "packages": [
         "wovalab_lib_antidoc_cli-3.3.0.117"
       ],
@@ -846,7 +855,10 @@
       "path": ".github/labview/vipm/ci-tooling.vipc",
       "role": "core",
       "capability": "",
+      "tooling": true,
       "configured": true,
+      "monitored": true,
+      "locked": true,
       "packages": [
         "dataflow_g_lib_g_image-0.5.0.1",
         "jki_lib_caraya-1.4.4.148",
@@ -860,7 +872,10 @@
       "path": "example/Dependencies.vipc",
       "role": "project",
       "capability": "",
+      "tooling": false,
       "configured": true,
+      "monitored": true,
+      "locked": false,
       "packages": [
         "dataflow_g_lib_g_image-0.5.0.1",
         "ni_lib_junit_results_api-1.0.1.6",
@@ -976,7 +991,8 @@
             "installed_version": "",
             "message": ""
           }
-        ]
+        ],
+        "monitored": true
       }
     ],
     "install_set": [
