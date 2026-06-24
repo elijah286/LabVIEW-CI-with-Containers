@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "cbe9cc942cdb31e0538ddbd63010d61342c869f1",
+  "sha": "8ee6e2953e49241b19e02641ac7e9fd851b0bbed",
   "revisions": [
+    {
+      "sha": "8ee6e2953e49241b19e02641ac7e9fd851b0bbed",
+      "short": "8ee6e29",
+      "message": "installer: repoint a stale README dashboard link to the target repo (4.1.13)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T15:56:55Z"
+    },
     {
       "sha": "cbe9cc942cdb31e0538ddbd63010d61342c869f1",
       "short": "cbe9cc9",
@@ -695,13 +702,6 @@
       "message": "Dependencies: show source tables in tabs",
       "author": "Elijah Kerry",
       "date": "2026-06-22T13:04:01Z"
-    },
-    {
-      "sha": "ffd7c07bbd35e23ade119e6163b24b7265ec2ef0",
-      "short": "ffd7c07",
-      "message": "Release v3.34.23 dashboard API timeout",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T12:55:28Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
