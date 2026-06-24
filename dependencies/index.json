@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "8ee6e2953e49241b19e02641ac7e9fd851b0bbed",
+  "sha": "63e8b72c2e9b582530744946a54957619cd6355d",
   "revisions": [
+    {
+      "sha": "63e8b72c2e9b582530744946a54957619cd6355d",
+      "short": "63e8b72",
+      "message": "dashboard: retry the gh-pages deploy on a push race (4.1.14)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T16:41:40Z"
+    },
     {
       "sha": "8ee6e2953e49241b19e02641ac7e9fd851b0bbed",
       "short": "8ee6e29",
@@ -695,13 +702,6 @@
       "message": "Dependencies: add an experimental Windows container column + opt-in render lane (v3.34.25)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T13:22:11Z"
-    },
-    {
-      "sha": "5dc779355d8583a5f3cec2663a53158319d5368c",
-      "short": "5dc7793",
-      "message": "Dependencies: show source tables in tabs",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T13:04:01Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
