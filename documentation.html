@@ -455,6 +455,11 @@ ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, o
       <p>Each build also publishes a human/machine-readable <strong>worker manifest</strong> to
         <code>/workers/&lt;platform&gt;/&lt;version&gt;/manifest.html</code> listing the exact <code>nipkg</code> and
         VIPM packages baked in, so a worker image is fully auditable.</p>
+      <p>The machine-readable <code>manifest.json</code> records installed VIPM packages in
+        <code>vipm_packages</code> (<code>name</code>, <code>version</code>, and VIPC-style <code>label</code>) plus
+        the raw <code>vipm list --installed</code> output in <code>vipm_raw</code>. The Dependencies page uses that
+        installed-package inventory as the source of truth before falling back to older <code>vipc[].packages</code>
+        manifests.</p>
 
       <h3>When images rebuild</h3>
       <p>A worker rebuild is a heavy, opt-in operation. It runs when you apply a dependency update from the dashboard's
@@ -587,6 +592,11 @@ docker run --rm `
         project together. Because each repo publishes to its own GHCR namespace, those rebuilds produce that repo's own
         unique worker image.
       </div>
+      <p>After a worker image is built locally, the publish workflow captures both <code>nipkg list</code> and
+        <code>vipm list --installed</code> from inside the image and writes them into the worker manifest. Fresh-install
+        seed copies use a fast registry copy and do not pull the multi-GB image back just to inspect it; seed manifests
+        without a captured VIPM list are treated conservatively by the dashboard, with only the known
+        Windows core tooling VIPC inferred as installed.</p>
       <div class="note"><span class="lbl">Required essentials vs. best-effort tooling</span>
         <code>install-vipc.ps1</code> installs the UTF JUnit essentials
         (<code>ni_lib_utf_junit_report</code> + its <code>ni_lib_junit_results_api</code> /
@@ -754,6 +764,7 @@ docker run --rm `
           <tr><td><code>unit-tests/&lt;sha&gt;/results.json</code></td><td>Unit-test report builder</td><td>Dashboard + report</td></tr>
           <tr><td><code>vi-snapshots/&lt;sha&gt;/manifest.json</code></td><td>Snapshot gallery builder</td><td>VI Browser</td></tr>
           <tr><td><code>dependencies/index.json</code></td><td>Dashboard publisher</td><td>Dependencies page install-time inventory</td></tr>
+          <tr><td><code>workers/&lt;platform&gt;/&lt;version&gt;/manifest.json</code></td><td>Worker image workflows</td><td>Dependencies page installed-package status</td></tr>
           <tr><td><code>catalog.json</code> (root)</td><td>Installer / integrate-deploy</td><td>Version badge, What's New</td></tr>
         </tbody>
       </table>

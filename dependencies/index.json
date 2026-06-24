@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "36e64157c17aa51726f7df725e635e51a9b1aad7",
+  "sha": "2db555e9609fd41389ad7bf3d61dd489d47582d3",
   "revisions": [
+    {
+      "sha": "2db555e9609fd41389ad7bf3d61dd489d47582d3",
+      "short": "2db555e",
+      "message": "Use installed VIPM inventory for dependency status",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T21:41:40Z"
+    },
+    {
+      "sha": "cfabf8973b77d98b21a06d6a5f4094b520c9b860",
+      "short": "cfabf89",
+      "message": "Fix Linux Beta VIPC staging directory",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T21:19:39Z"
+    },
     {
       "sha": "36e64157c17aa51726f7df725e635e51a9b1aad7",
       "short": "36e6415",
@@ -688,20 +702,6 @@
       "message": "Add experimental Linux Beta VIPM worker (v3.38.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T20:53:50Z"
-    },
-    {
-      "sha": "b7b72c42b56dc9b8fd02ae46c5fb5382af445e19",
-      "short": "b7b72c4",
-      "message": "Wait reliably for an in-progress worker-image build, even through a transient Actions-API hiccup (v3.37.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T19:20:00Z"
-    },
-    {
-      "sha": "d0d2f0f28079db300eb8cb6ae092286b0f41b280",
-      "short": "d0d2f0f",
-      "message": "Windows container jobs wait for the Docker engine instead of failing when a hosted runner starts without it (v3.37.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T18:48:03Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
