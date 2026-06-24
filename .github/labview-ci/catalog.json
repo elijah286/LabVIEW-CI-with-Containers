@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.15",
+  "version": "4.1.16",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.16",
+        "date": "2026-06-24",
+        "title": "Building dependencies and copying the worker image are now separate actions",
+        "type": "minor",
+        "summary": "Building the worker container image with baked dependencies and seeding it on a fresh install are now two distinct GitHub Actions workflows instead of one shared workflow driven by a hidden copy_only switch. A fresh install runs the new \"Copy LabVIEW CI Image\" workflow, which copies the published LCWC base image into the repository's GHCR worker package on ubuntu-latest in seconds with no LabVIEW build. Applying project VIPC or package dependencies from the Dependencies page runs the existing \"Build LabVIEW CI Image\" workflow on a Windows runner, which bakes the selected dependencies into the worker image. The Actions tab now clearly shows which action ran -- an install-time copy or a dependency build -- rather than two different operations sharing one workflow name.",
+        "highlights": [
+          "Adds a dedicated copy-labview-image.yml workflow (\"Copy LabVIEW CI Image\") that the installer dispatches to seed a fresh worker image as a fast registry copy on ubuntu-latest.",
+          "Reduces build-labview-image.yml (\"Build LabVIEW CI Image\") to dependency-bake only: it always runs on a Windows runner and no longer carries the copy_only input.",
+          "Makes the Actions history self-explanatory by giving the install copy and the dependency build separate, distinctly named workflows."
+        ]
+      },
       {
         "version": "4.1.15",
         "date": "2026-06-24",
@@ -3687,6 +3699,7 @@
         ],
         "windows": [
           ".github/workflows/build-labview-image.yml",
+          ".github/workflows/copy-labview-image.yml",
           ".github/docker/labview-ci-base.Dockerfile",
           ".github/docker/labview-ci.Dockerfile",
           ".github/labview/vipm/"

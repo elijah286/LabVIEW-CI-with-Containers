@@ -373,19 +373,22 @@ mass-compile:
       <ul>
         <li><strong>Installation always copies the base.</strong> When a repo installs LabVIEW CI, its worker is
           <em>seeded by copying</em> the shared LCWC base straight into the repo's own GHCR &mdash; there is no
-          rebuild. The build workflow uses <code>crane copy</code> / <code>crane tag</code> to copy the base into
-          <code>ghcr.io/&lt;you&gt;/&lt;repo&gt;-labview</code> at the registry level. Cross-repo blob mounting is
+          rebuild. This is its own dedicated workflow, <code>copy-labview-image.yml</code>
+          (&ldquo;Copy LabVIEW CI Image&rdquo;), kept separate from the dependency build so the Actions tab clearly shows
+          an install seed versus a dependency bake. It uses <code>crane copy</code> / <code>crane tag</code> to copy the
+          base into <code>ghcr.io/&lt;you&gt;/&lt;repo&gt;-labview</code> at the registry level. Cross-repo blob mounting is
           server-side only when the token already has access to the source package, so a client install actually
-          transfers the multi-GB layers through the runner &mdash; which is why the <code>copy_only</code> install
-          path runs on <code>ubuntu-latest</code>, whose fast network finishes the copy in a minute or two instead of
+          transfers the multi-GB layers through the runner &mdash; which is why the copy workflow always runs on
+          <code>ubuntu-latest</code>, whose fast network finishes the copy in a minute or two instead of
           the several minutes a Windows runner takes (and far quicker than a full rebuild either way). A fresh install
           bakes no project dependencies; the worker is plain NI&nbsp;+&nbsp;LabVIEW.</li>
         <li><strong>Upgrade adds or replaces dependencies.</strong> Later you add or change project
           <code>.vipc</code> / <code>.dragon</code> files that declare the add-on packages your action runners need.
           The dashboard compares those declarations against what is baked into the current worker manifest; if any are
           missing it shows a persistent <em>&ldquo;dependencies need to be installed&rdquo;</em> banner. Applying it is
-          <strong>opt-in</strong>: from the Dependencies page you dispatch the worker build, which this time starts
-          <code>FROM</code> the base and applies a thin dependency layer
+          <strong>opt-in</strong>: from the Dependencies page you dispatch the dependency build
+          (<code>build-labview-image.yml</code>, &ldquo;Build LabVIEW CI Image&rdquo;), which runs on a Windows runner and
+          this time starts <code>FROM</code> the base and applies a thin dependency layer
           (<code>.github/docker/labview-ci.Dockerfile</code>) that bakes your VIPC packages (Dragon items go into the
           Win&nbsp;Beta / <code>windows-experimental</code> container). Nothing rebuilds automatically on a
           <code>.vipc</code> push by default &mdash; but the <strong>Configure &rarr; Container &amp; Dependencies</strong>
@@ -401,7 +404,7 @@ mass-compile:
 flowchart TD
   BASE["Source repo (LCWC)&lt;br/&gt;labview-ci-base.Dockerfile&lt;br/&gt;publishes the shared -labview-base image"]
 
-  INS["Installation&lt;br/&gt;a repo onboards LabVIEW CI"] --> COPY["crane copy + crane tag on ubuntu-latest&lt;br/&gt;copy the base into&lt;br/&gt;ghcr.io/you/repo-labview&lt;br/&gt;a minute or two, no rebuild"]
+  INS["Installation&lt;br/&gt;a repo onboards LabVIEW CI"] --> COPY["copy-labview-image.yml&lt;br/&gt;crane copy + crane tag on ubuntu-latest&lt;br/&gt;copy the base into&lt;br/&gt;ghcr.io/you/repo-labview&lt;br/&gt;a minute or two, no rebuild"]
   BASE -.->|"copied from"| COPY
   COPY --> READY["Worker ready&lt;br/&gt;NI + LabVIEW, no project deps yet"]
   READY -.->|"later"| UPG
@@ -878,21 +881,25 @@ flowchart TD
 </div>
 
       <h3>Image build — gate, coordinate, then the heavy lift</h3>
-      <p>The worker image build (<code>build-labview-image.yml</code>) is a three-job run. The two Ubuntu jobs first
-        decide <em>whether</em> to rebuild and <em>safely when</em>. The final <code>build-and-push</code> job then
-        chooses its runner by what it has to do: a <code>copy_only</code> install/seed runs on
-        <code>ubuntu-latest</code> (crane only &mdash; no Docker, and a faster network for the multi-GB copy), while a
-        dependency bake that needs the Windows Docker daemon runs on <code>windows-2022</code>.</p>
+      <p>The worker image build (<code>build-labview-image.yml</code>, &ldquo;Build LabVIEW CI Image&rdquo;) is a
+        three-job run that <strong>bakes project dependencies</strong> &mdash; it is distinct from the
+        <code>copy-labview-image.yml</code> install seed described earlier, which only copies the base. The two Ubuntu
+        jobs first decide <em>whether</em> to rebuild and <em>safely when</em>. The final <code>build-and-push</code> job
+        always runs on <code>windows-2022</code> (it needs the Windows Docker daemon to bake the dependency layer); if a
+        dependency dispatch happens to declare no VIPC files at all it falls back to a plain <code>crane copy</code> of
+        the base on that same Windows runner instead of building.</p>
       <div class="mermaid">
 flowchart TD
   T["dependency update (dashboard) / monthly cron / workflow_dispatch"] --> G{"gate &middot; ubuntu-latest&lt;br/&gt;rebuild is always intended"}
   G --> CO["coordinate &middot; ubuntu-latest&lt;br/&gt;drain or cancel in-flight CI"]
-  CO --> B{"build-and-push&lt;br/&gt;copy_only install? ubuntu-latest : windows-2022"}
-  B --> P{"Prepare LCWC base"}
-  P -->|"no VIPC (install/seed) &middot; ubuntu-latest"| CP["crane copy / tag base &mdash; a minute or two"]
+  CO --> B["build-and-push &middot; windows-2022"]
+  B --> P{"Any VIPC declared?"}
   P -->|"VIPC (dependency bake) &middot; windows-2022"| BD["build dependency layer &mdash; slow"]
+  P -->|"no VIPC (fallback) &middot; windows-2022"| CP["crane copy / tag base &mdash; a minute or two"]
   CP --> PU["push tags &rarr; worker manifest &rarr; gh-pages"]
   BD --> PU
+  INS["install seed (separate workflow)"] --> CW["copy-labview-image.yml &middot; ubuntu-latest&lt;br/&gt;crane copy / tag base"]
+  CW --> PU
 </div>
       <div class="note"><span class="lbl">Linux image builds differ</span>
         The Linux worker image (<code>build-labview-linux-image.yml</code>) keeps the gate job but builds on
@@ -934,7 +941,8 @@ flowchart TD
       <table>
         <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
         <tbody>
-          <tr><td>Build LabVIEW CI Image (Windows worker)</td><td><span class="pill lin">ubuntu-latest</span> gate + coordinate, <span class="pill win">windows-2022</span> build</td><td>monthly cron, dispatch (dashboard &ldquo;Review &amp; update dependencies&rdquo; or manual)</td><td>Never auto-triggered by a project VIPC change; copies the LCWC base when no VIPC, else builds the dependency layer.</td></tr>
+          <tr><td>Build LabVIEW CI Image (Windows worker)</td><td><span class="pill lin">ubuntu-latest</span> gate + coordinate, <span class="pill win">windows-2022</span> build</td><td>monthly cron, dispatch (dashboard &ldquo;Review &amp; update dependencies&rdquo; or manual)</td><td>Dependency bake only; never auto-triggered by a project VIPC change. Always runs the build on <span class="pill win">windows-2022</span>; with no VIPC declared it falls back to a plain crane copy of the base.</td></tr>
+          <tr><td>Copy LabVIEW CI Image (install seed)</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (the installer dispatches it on a fresh install)</td><td>Seeds a fresh worker by copying the LCWC base into the repo&rsquo;s GHCR with crane &mdash; no LabVIEW build; the install-time counterpart to the dependency build above.</td></tr>
           <tr><td>Build LabVIEW CI Image &mdash; Linux</td><td><span class="pill lin">ubuntu-latest</span> (gate + build)</td><td>push to the Linux build recipe, monthly cron, dispatch</td><td>Linux worker image; not triggered by project VIPC changes.</td></tr>
           <tr><td>Build LabVIEW CI Image &mdash; Linux Beta</td><td><span class="pill lin">ubuntu-latest</span></td><td>push to the beta build recipe, monthly cron, dispatch</td><td>Experimental Linux lane &mdash; a rebase of the Linux core that diverges as experimental capabilities are baked in.</td></tr>
           <tr><td>Build LabVIEW CI Image &mdash; Windows Beta</td><td><span class="pill lin">ubuntu-latest</span> copy, <span class="pill win">windows-2022</span> source base build</td><td>monthly cron, dispatch (the installer dispatches a <code>copy_only</code> copy when an experimental Windows capability is selected)</td><td>Experimental Windows lane &mdash; the source builds the beta base, clients copy it; never rebuilt on install.</td></tr>

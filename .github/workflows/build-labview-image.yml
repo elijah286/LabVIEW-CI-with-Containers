@@ -1,5 +1,5 @@
 name: Build LabVIEW CI Image
-run-name: ${{ github.event.inputs.copy_only == 'true' && 'Copy Windows worker image (seed from LCWC base, no build)' || 'Build Windows worker image (apply dependencies)' }}
+run-name: Build Windows worker image (apply dependencies)
 
 on:
   # The image build is a heavy CI process and is NEVER auto-triggered. Adding or
@@ -30,10 +30,6 @@ on:
         type: choice
         options: [replace, new]
         default: replace
-      copy_only:
-        description: 'Seed/install only: copy the LCWC base image into this repository GHCR package WITHOUT baking any dependencies (fast). The installer sets this true so a fresh install is always a quick copy; dependency baking happens afterwards from the Dependencies page. Leave false for dependency updates.'
-        type: boolean
-        default: false
 
 env:
   # IMAGE_NAME and PAGES_URL are populated at runtime by the resolve step below
@@ -198,14 +194,11 @@ jobs:
     # always(): coordination is best-effort, so a coordinate hiccup must never
     # block the actual rebuild -- only the gate decision gates the build.
     if: always() && needs.gate.outputs.build == 'true'
-    # The dependency-bake path needs the Windows Docker daemon, so it pins to
+    # The dependency bake needs the Windows Docker daemon, so it pins to
     # windows-2022 (windows-latest = Server 2025, broken Docker daemon). The
-    # copy_only install/seed path uses ONLY crane (registry-to-registry) and
-    # Python -- no Docker -- so it runs on ubuntu-latest, whose much faster
-    # network copies the multi-GB base image in a fraction of the time. crane is
-    # OS-agnostic for registry copies: a Linux runner can copy a Windows image's
-    # manifest and blobs because it only moves bytes/refs, never runs the image.
-    runs-on: ${{ github.event.inputs.copy_only == 'true' && 'ubuntu-latest' || 'windows-2022' }}
+    # install-seed COPY is a separate workflow (copy-labview-image.yml) that runs
+    # on ubuntu-latest; this Build workflow only ever bakes dependencies, on Windows.
+    runs-on: windows-2022
 
     steps:
       - name: Checkout repository
@@ -251,21 +244,9 @@ jobs:
       - name: Stage repo VIPC files
         id: vipc
         shell: bash
-        env:
-          COPY_ONLY: ${{ github.event.inputs.copy_only || 'false' }}
         run: |
           python - <<'PY'
           import os, re, glob, shutil, pathlib
-          # Install/seed copy: never bake dependencies during an install, so a fresh
-          # install is always a fast base-image copy. Project VIPC files and capability
-          # dependencies are applied AFTER install from the Dependencies page -- so even
-          # a repo that ships a .vipc, or an install that selects extra capabilities,
-          # copies the base in seconds instead of triggering an hour-long build.
-          if os.environ.get('COPY_ONLY', '').strip().lower() == 'true':
-              print('Seed/install copy: skipping all VIPC staging (no dependency bake); the worker will be a fast copy of the LCWC base.')
-              with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
-                  out.write('count=0\n')
-              raise SystemExit(0)
           dest = pathlib.Path('.github/labview/vipm'); dest.mkdir(parents=True, exist_ok=True)
           paths = []
           cfg = pathlib.Path('.github/labview-ci.yml')
@@ -319,9 +300,6 @@ jobs:
           PY
 
       - name: Ensure Docker daemon is running
-        # Only the Windows dependency-bake path uses Docker. The ubuntu copy_only
-        # path copies at the registry level (crane) and never touches Docker.
-        if: ${{ github.event.inputs.copy_only != 'true' }}
         shell: powershell
         run: ./.github/labview/ensure-docker.ps1
 
@@ -464,7 +442,7 @@ jobs:
           }
 
           if ($vipcCount -eq 0) {
-            Write-Host "::notice::No repository VIPC dependencies are selected. Fast path: copying the LCWC base image into this repository's GHCR worker package at the REGISTRY level (crane copy). Cross-repo blob mounting only applies when the token was granted access to the source package, so a client install transfers the multi-gigabyte layers through the runner -- which is why the copy_only path runs on ubuntu-latest, whose fast network completes the copy in a couple of minutes instead of the ~8+ minutes a Windows runner takes."
+            Write-Host "::notice::No repository VIPC dependencies to bake; refreshing the worker as a registry copy of the LCWC base (crane copy). The fast fresh-install seed is the separate 'Copy LabVIEW CI Image' workflow on ubuntu-latest -- this Build workflow runs on Windows for the dependency bake."
             $immutable = "${base}:${wv}"
             crane copy $lcwcBase $immutable
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
