@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.25",
+  "version": "4.1.26",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.26",
+        "date": "2026-06-24",
+        "title": "Dependency status uses installed VIPM inventory",
+        "type": "patch",
+        "summary": "Worker manifests now capture VIPM's installed-package list and the Dependencies page uses that inventory to decide installed vs. missing. Fresh seed manifests without a captured VIPM list no longer leave the Windows core tooling VIPC empty; the dashboard infers only the known core tooling packages there and leaves project VIPCs missing until a worker manifest proves they are installed.",
+        "highlights": [
+          "Adds vipm_raw and vipm_packages to worker manifest.json, populated from vipm list --installed when a worker image is locally available.",
+          "Uses vipm_packages as the Dependencies page installed-package source of truth before falling back to older vipc[] manifest data.",
+          "Keeps fresh-install seed copies fast while avoiding all-N/A/empty Windows core tooling status when a seed manifest has no installed VIPM capture."
+        ]
+      },
       {
         "version": "4.1.25",
         "date": "2026-06-24",
