@@ -349,11 +349,14 @@ mass-compile:
         fresh-install burst (a non-fast-forward <code>cannot lock ref 'refs/heads/gh-pages'</code>); the deploy step
         therefore retries once after a short wait, and <code>peaceiris</code> re-clones <code>gh-pages</code> on the
         retry so it starts from the advanced tip.</p>
-      <p>The dashboard surfaces this line live. It reads GitHub's in-progress and queued runs and shows each enqueued
-        activity as a spinning <em>Queued</em> cell on the revision it targets. Because a manual re-run is dispatched
-        with <code>inputs.commit_sha</code>, the dashboard keys an active run on the commit named in its run title
-        (<code>rev &lt;sha&gt;</code>) rather than the dispatch ref, so the cell lands on the right row instead of on
-        the branch head. When several activities wait behind each other in the <code>report-pages-deploy</code> line,
+      <p>The dashboard surfaces this line live. It reads GitHub's in-progress, pending, waiting/requested, and queued
+        runs and shows each enqueued activity as a spinning <em>Queued</em> cell on the revision it targets. Because
+        a manual re-run is dispatched on the default branch ref, the run's <code>head_sha</code> is the workflow-file
+        commit, not necessarily the revision being analyzed. Per-revision dispatch workflows therefore include the
+        target SHA (<code>inputs.commit_sha</code>, or <code>inputs.head_sha</code> for VIDiff) in their run name, and
+        <code>dashboard.py</code> keys active runs on that target SHA rather than the dispatch ref. Snapshot backfills
+        are one global run, so they are treated as active for every snapshot cell still awaiting coverage. When several
+        activities wait behind each other in the <code>report-pages-deploy</code> line,
         each queued cell also reports how many jobs are ahead of it (for example <em>Queued &middot; 1 ahead</em>).</p>
       <p>A capability that runs on two platforms (Windows and Linux) writes a single shared result for the commit, so
         the faster platform finishes first. The dashboard checks for an active run on the commit&nbsp;+ capability
@@ -750,8 +753,9 @@ docker run --rm `
         <strong>Populate the dashboard with your history</strong> card above the table. The card opens the Populate
         history chooser, can be dismissed per repository in local storage, and hides as soon as that dashboard has
         queued one of its own runnable cells or a later dashboard rebuild sees a running/finished activity from a
-        revision or pull request. Queued-run state is matched against the current table's cells so another repository
-        on the same Pages origin cannot suppress the fresh-install card.</p>
+        revision or pull request. Queued-run state is matched against the current table's cells by capability and
+        target revision (or globally for the all-history snapshot backfill) so another repository on the same Pages
+        origin cannot suppress the fresh-install card.</p>
       <p>The shared site-wide header is <code>lvci-header.js</code>: every page declares a tiny
         <code>window.LVCI</code> config and loads the script, which injects a consistent navigation chrome
         (Dashboard / VI Browser nav, Settings &amp; Help menus, version badge, live activity pill, theme toggle).

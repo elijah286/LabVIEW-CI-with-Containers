@@ -1,5 +1,5 @@
 name: Run VI Analyzer — Windows Container
-run-name: VI Analyzer Windows container - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.event.pull_request.head.sha || github.sha }}
+run-name: VI Analyzer Windows container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 on:
   pull_request:

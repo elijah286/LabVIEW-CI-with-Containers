@@ -431,15 +431,27 @@ for _cap, _d in RUN_TARGETS.items():
 _CAP_RUN_LABEL = {'masscompile': 'compile', 'vi-analyzer': 'analyze', 'vidiff': 'diff',
                   'snapshots': 'snapshots', 'snapshots2': '2.0 snapshots',
                   'unit-tests': 'tests', 'antidoc': 'docs'}
+_WAITING_RUN_STATUSES = {'queued', 'requested', 'waiting', 'pending'}
+
+def _target_sha_for_run(run, cap):
+    if cap == 'snapshots' and run.get('event') == 'workflow_dispatch':
+        return '*'
+    if run.get('event') == 'workflow_dispatch':
+        text = ' '.join(str(run.get(k) or '') for k in ('display_title', 'name'))
+        m = re.search(r'\b[0-9a-f]{40}\b', text, re.I)
+        if m:
+            return m.group(0).lower()
+        return ''
+    return run.get('head_sha') or ''
 
 def fetch_active_runs():
     by_sha = {}
-    for _st in ('in_progress', 'queued'):   # in_progress first so it wins over a stale 'queued'
+    for _st in ('in_progress', 'pending', 'waiting', 'requested', 'queued'):   # in_progress first so it wins over a stale queued state
         data = gh_get(f'actions/runs?status={_st}&per_page=100')
         for run in ((data or {}).get('workflow_runs') or []):
             wf = (run.get('path') or '').rsplit('/', 1)[-1]
             cap = _WF_TO_CAP.get(wf)
-            sha_ = run.get('head_sha')
+            sha_ = _target_sha_for_run(run, cap) if cap else ''
             if not cap or not sha_:
                 continue
             by_sha.setdefault(sha_, {}).setdefault(cap, run)
@@ -657,10 +669,10 @@ for c in commits_data:
         # THIS commit (it just auto-started on push), surface it as Queued/Running
         # instead of an idle run arrow - it posts its first commit status only
         # part-way through, so the live run fills that gap until then.
-        ar = active_runs.get(sha, {}).get(cap)
+        ar = active_runs.get(sha, {}).get(cap) or active_runs.get('*', {}).get(cap)
         if ar is not None:
             caps_ran.add(cap)
-            if ar.get('status') == 'queued':
+            if ar.get('status') in _WAITING_RUN_STATUSES:
                 return queued_cell(ar.get('html_url', ''))
             return running_cell(_CAP_RUN_LABEL.get(cap, cap), ar.get('html_url', ''))
         run_count['n'] += 1

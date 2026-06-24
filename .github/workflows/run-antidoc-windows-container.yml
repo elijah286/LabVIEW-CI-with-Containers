@@ -1,5 +1,5 @@
 name: Run Antidoc — Windows Container
-run-name: Antidoc Windows container - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.event.pull_request.head.sha || github.sha }}
+run-name: Antidoc Windows container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 # Generates project documentation with Antidoc (Wovalab) inside the custom CI
 # worker image, publishes it to the caller's Pages, and posts the "CI / Antidoc"

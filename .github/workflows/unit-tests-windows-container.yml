@@ -1,5 +1,5 @@
 name: Run Unit Tests — Windows Container
-run-name: Unit Tests Windows container - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.event.pull_request.head.sha || github.sha }}
+run-name: Unit Tests Windows container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 # Runs the configured LabVIEW unit-test frameworks (Caraya / VI Tester / UTF)
 # headlessly inside the project's CI worker image, normalises their JUnit XML into

@@ -1,5 +1,5 @@
 name: VI Snapshots and VI Browser
-run-name: VI Snapshots and Browser - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
+run-name: VI Snapshots and Browser - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'backfill' && 'backfill' || github.sha }}
 
 on:
   # Auto-runs only on real LabVIEW source changes — never on the tooling files an
