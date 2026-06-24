@@ -353,16 +353,57 @@ mass-compile:
 
       <!-- 6 ───────────────────────────────────────────────────────────────── -->
       <h2 id="images">6. Worker container images <a class="anchor" href="#images">#</a></h2>
-      <p>The worker image is where LabVIEW and your baked-in dependencies live. Windows builds use a two-layer model:
-        <code>.github/docker/labview-vipm-base.Dockerfile</code> creates a reusable LabVIEW+VIPM base image with VI
-        Analyzer support, optional UTF support, VIPM, and Git; then
-        <code>.github/docker/labview-vipc-layer.Dockerfile</code> starts from that base and applies only the staged
-        project <code>.vipc</code> files. This keeps routine dependency rebuilds from reinstalling VIPM. Linux builds
-        are handled by <code>build-labview-linux-image.yml</code>. Images are pushed to <strong>your</strong> GitHub
-        Container Registry (GHCR) as packages attached to your repo:</p>
-      <pre><code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview-vipm-base  # shared Windows base with VIPM installed
-ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview            # the LabVIEW worker
-ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware renderer (Linux)</code></pre>
+      <p>The worker image is where LabVIEW and your baked-in dependencies live. The <strong>source/template repo
+        (LCWC)</strong> owns and publishes one shared base image from
+        <code>.github/docker/labview-ci-base.Dockerfile</code> &mdash; LabVIEW with VI Analyzer support, optional UTF
+        support, VIPM, and Git already installed. Every client repo gets its worker from that base in one of two ways,
+        and which one runs is the key distinction between <em>installation</em> and an <em>upgrade</em>.</p>
+
+      <h3>Installation vs. upgrade &mdash; how containers are managed</h3>
+      <ul>
+        <li><strong>Installation always copies the base.</strong> When a repo installs LabVIEW CI, its worker is
+          <em>seeded by copying</em> the shared LCWC base straight into the repo's own GHCR &mdash; there is no
+          rebuild. The build workflow uses <code>crane copy</code> / <code>crane tag</code> to blob-mount the base
+          layers server-side into <code>ghcr.io/&lt;you&gt;/&lt;repo&gt;-labview</code> in seconds. A fresh install
+          bakes no project dependencies; the worker is plain NI&nbsp;+&nbsp;LabVIEW.</li>
+        <li><strong>Upgrade adds or replaces dependencies.</strong> Later you add or change project
+          <code>.vipc</code> / <code>.dragon</code> files that declare the add-on packages your action runners need.
+          The dashboard compares those declarations against what is baked into the current worker manifest; if any are
+          missing it shows a persistent <em>&ldquo;dependencies need to be installed&rdquo;</em> banner. Applying it is
+          <strong>opt-in</strong>: from the Dependencies page you dispatch the worker build, which this time starts
+          <code>FROM</code> the base and applies a thin dependency layer
+          (<code>.github/docker/labview-ci.Dockerfile</code>) that bakes your VIPC packages (Dragon items go into the
+          Win&nbsp;Beta / <code>windows-experimental</code> container). Nothing rebuilds automatically on a
+          <code>.vipc</code> push.</li>
+        <li><strong>Tooling upgrade is separate.</strong> Updating the LabVIEW CI tooling itself (the Update dialog /
+          <code>apply-tooling-update.yml</code>) refreshes the workflow scripts and preserves your config; it does not
+          rebuild containers. See <a href="#versioning">&sect;12</a>.</li>
+      </ul>
+
+      <div class="mermaid">
+flowchart TD
+  BASE["Source repo (LCWC)&lt;br/&gt;labview-ci-base.Dockerfile&lt;br/&gt;publishes the shared -labview-base image"]
+
+  INS["Installation&lt;br/&gt;a repo onboards LabVIEW CI"] --> COPY["crane copy + crane tag&lt;br/&gt;blob-mount the base into&lt;br/&gt;ghcr.io/you/repo-labview&lt;br/&gt;seconds, no rebuild"]
+  BASE -.->|"copied from"| COPY
+  COPY --> READY["Worker ready&lt;br/&gt;NI + LabVIEW, no project deps yet"]
+  READY -.->|"later"| UPG
+
+  UPG["Upgrade&lt;br/&gt;add or replace .vipc / .dragon files"] --> CHK{"Declared deps already&lt;br/&gt;baked into the current&lt;br/&gt;worker manifest?"}
+  CHK -->|"yes"| OK["Nothing to do"]
+  CHK -->|"no, some missing"| BAN["Dashboard banner&lt;br/&gt;dependencies need to be installed"]
+  BAN --> APPLY["You open Review and update&lt;br/&gt;opt-in workflow dispatch"]
+  APPLY --> BUILD["build-labview-image.yml&lt;br/&gt;FROM base + thin labview-ci.Dockerfile&lt;br/&gt;bakes your VIPC / Dragon packages"]
+  BUILD --> MODE{"Update mode"}
+  MODE -->|"replace (default)"| REP["Rebuild current tags in place&lt;br/&gt;actions pick it up automatically"]
+  MODE -->|"new"| NEW["Publish dated tag year-deps-date&lt;br/&gt;select per action in Configure"]
+</div>
+
+      <p>Linux builds are handled by <code>build-labview-linux-image.yml</code> on the same model. Images are pushed to
+        <strong>your</strong> GitHub Container Registry (GHCR) as packages attached to your repo:</p>
+      <pre><code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview      # your LabVIEW worker (copied from the base, or base + your deps)
+ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware renderer (Linux)
+ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, owned &amp; published by the source repo</code></pre>
       <p>The image inherits your repository's visibility and is authenticated with the job's built-in
         <code>GITHUB_TOKEN</code>. GHCR rejects uppercase names, so the owner/repo are lowercased at build time.</p>
 
