@@ -541,6 +541,10 @@ docker run --rm `
         navigation chrome, and writing the machine-readable <code>summary.json</code>/<code>problems.json</code>
         that the dashboard reads. The report is then uploaded as an artifact <em>and</em> deployed to
         <code>gh-pages</code> under its per-SHA path, and a commit status is posted with the report URL.</p>
+      <p>When a report workflow is manually dispatched for an older commit, it checks out that target revision but
+        restores the current CI runtime from the repository default branch before running: <code>.github/labview</code>,
+        <code>.github/workflows</code>, and the local <code>.github/actions/publish-gh-pages</code> action. That keeps
+        history backfills compatible with commits that predate the current report builders or shared Pages publisher.</p>
 
       <!-- 8 ───────────────────────────────────────────────────────────────── -->
       <h2 id="vipm">8. VIPM dependency baking <a class="anchor" href="#vipm">#</a></h2>

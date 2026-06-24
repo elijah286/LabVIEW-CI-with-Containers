@@ -90,7 +90,7 @@ jobs:
         shell: bash
         run: |
           git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
-          git checkout FETCH_HEAD -- .github/labview .github/workflows
+          git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
 
       # GHCR rejects upper-case repository names. config.container.actions.antidoc
       # wins, then the project-wide config.container.use; with neither set Antidoc

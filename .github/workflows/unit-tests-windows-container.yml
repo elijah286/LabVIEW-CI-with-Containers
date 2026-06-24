@@ -100,7 +100,7 @@ jobs:
         shell: bash
         run: |
           git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
-          git checkout FETCH_HEAD -- .github/labview .github/workflows
+          git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
 
       # Per-action container selection: config.container.actions.unit-tests wins,
       # then config.container.use. With neither set, default to the shared custom
