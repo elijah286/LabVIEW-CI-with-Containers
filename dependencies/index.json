@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "8c2f0498ec7eabe98f6648ac53cc27cf3e985315",
+  "sha": "aa86909f40e4d343507db2df2b26de2721b698a6",
   "revisions": [
+    {
+      "sha": "aa86909f40e4d343507db2df2b26de2721b698a6",
+      "short": "aa86909",
+      "message": "installer: always copy the worker image, never bake at install (4.1.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T12:17:15Z"
+    },
     {
       "sha": "8c2f0498ec7eabe98f6648ac53cc27cf3e985315",
       "short": "8c2f049",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.14: time out stuck Windows Go renders",
       "author": "Elijah Kerry",
       "date": "2026-06-22T11:38:12Z"
-    },
-    {
-      "sha": "b6f4d7df30ae773c5afe52cb868a4426c69b6786",
-      "short": "b6f4d7d",
-      "message": "Release v3.34.13: fail empty Go render batches",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T11:25:31Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
