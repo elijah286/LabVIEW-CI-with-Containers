@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.17",
+  "version": "4.1.18",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.18",
+        "date": "2026-06-24",
+        "title": "Turn on automatic dependency updates from the pipeline configuration",
+        "type": "minor",
+        "summary": "The pipeline configuration (Configure) now has an Automatic dependency updates section that lists the project's VIPC and Dragon dependency files, each with a per-file Monitor toggle that is off by default. Turning on Monitor opts that file into an automatic worker rebuild whenever it changes on a submission -- the control that powers the opt-in restored in 4.1.17. To avoid configuring the same thing in two places, the Dependencies page's update banner now links to that single control for automatic updates while keeping its manual, on-demand container update. Saving in Configure sends container_vipc and container_dragon to the Reconfigure workflow, which now round-trips per-file Dragon monitor flags alongside VIPC.",
+        "highlights": [
+          "Adds an Automatic dependency updates section to the Configure (pipeline configuration) page: choose which .vipc/.dragon files are baked and tick Monitor per file to auto-rebuild the worker when that file changes (off by default).",
+          "The Dependencies page update banner links to that pipeline-configuration control for automatic updates instead of duplicating it, keeping the manual on-demand update in place.",
+          "reconfigure.yml round-trips config.container.dragon[] (path::monitor) like config.container.vipc[], so saved Monitor flags persist."
+        ]
+      },
       {
         "version": "4.1.17",
         "date": "2026-06-24",

@@ -225,12 +225,28 @@
         <div id="trigMatrix"></div>
         <p class="hint" style="margin-top:10px">Saved to your configuration and included in the pull request. Activities already run on the sources ticked by default; custom per-source rules are recorded here and take effect as each workflow is wired to honor them &mdash; the same way <strong>Max concurrent runners</strong> is stored today. Pull requests from forks run sandboxed by GitHub &mdash; read-only and without access to your secrets.</p>
       </section>
+
+      <section>
+        <h2>Automatic dependency updates
+          <span class="infowrap">
+            <button type="button" class="infobtn" aria-expanded="false" aria-label="About automatic dependency updates">i</button>
+            <span class="infopop" hidden role="note">Rebuilding the worker container with your project dependencies takes a while, so it never runs automatically by default &mdash; you update dependencies on demand from the Dependencies page. Turn on <strong>Monitor</strong> for a dependency file here to opt <em>that file</em> into an automatic rebuild-and-re-push whenever it changes on a submission. A file must be <strong>included</strong> (baked) before it can be monitored.</span>
+          </span>
+        </h2>
+        <p class="hint">Choose which <code class="inl">.vipc</code> (VIPM) and <code class="inl">.dragon</code> (NIPM) dependency files are baked into the worker container, and tick <strong>Monitor</strong> to rebuild the container automatically whenever that file changes on a submission. <strong>Off by default</strong> &mdash; with nothing monitored, the worker only updates when you run it on demand from the <strong>Dependencies</strong> page.</p>
+        <div class="subhead">VIPC files (VIPM)</div>
+        <div id="vipcs"></div>
+        <p class="hint" id="vipcNote"></p>
+        <div class="subhead">Dragon files (NIPM)</div>
+        <div id="dragons"></div>
+        <p class="hint" id="dragonNote"></p>
+      </section>
     </div><!-- /pane-pipeline -->
 
     <!-- ========================= SAVE & APPLY ========================= -->
     <section id="saveApply">
       <h2>Save and apply</h2>
-      <p class="hint">Save these settings by queuing a reviewable <code class="inl">Reconfigure</code> workflow run with the dashboard token. It opens a pull request before anything changes on your default branch. Worker dependencies are managed on the <strong>Dependencies</strong> page and are left unchanged here.</p>
+      <p class="hint">Save these settings by queuing a reviewable <code class="inl">Reconfigure</code> workflow run with the dashboard token. It opens a pull request before anything changes on your default branch. Automatic dependency-update monitoring is configured above; manual dependency installation and status stay on the <strong>Dependencies</strong> page.</p>
       <div class="actions">
         <button class="primary" id="applyCfg" type="button">Save and apply</button>
         <a id="wfLink" href="https://github.com/actions/workflows/reconfigure.yml" target="_blank" rel="noopener">View workflow</a>
@@ -274,7 +290,9 @@
     let winLatest = null;                    // workers/windows/latest.json (current build)
     let containerUse = "latest";             // config.container.use (default tag activities pull)
     let vipcList = [];                       // [{ path, include, monitor }] repo VIPC files; only `include` ones are baked
+    let dragonList = [];                     // [{ path, include, monitor }] repo .dragon files; only `include` ones are baked
     let vipcFoundCount = 0;                  // how many .vipc files discovery found in the repo
+    let dragonFoundCount = 0;                // how many .dragon files discovery found in the repo
     const actionContainer = new Map();       // activity id -> container tag override (absent = inherit `use`)
     const triggerSel = new Map();            // activity id -> Set of submission sources that run it
     // VI Browser render matrix: which render generations run on each OS on a new
@@ -363,8 +381,8 @@
       return out;
     }
     function parseManifest(text) {
-      const out = { version: "", os: [], activities: [], runners: null, containerUse: "", vipc: [], actions: {}, triggers: {}, viBrowser: {}, actionOs: {}, dependencyPolicy: {}, viAnalyzer: { default: "", rules: [] } };
-      let inActs = false, inContainer = false, inVipc = false, inActions = false, inTriggers = false, inViBrowser = false, inActionOs = false, inDepPolicy = false, curVipc = null;
+      const out = { version: "", os: [], activities: [], runners: null, containerUse: "", vipc: [], dragon: [], actions: {}, triggers: {}, viBrowser: {}, actionOs: {}, dependencyPolicy: {}, viAnalyzer: { default: "", rules: [] } };
+      let inActs = false, inContainer = false, inVipc = false, inDragon = false, inActions = false, inTriggers = false, inViBrowser = false, inActionOs = false, inDepPolicy = false, curVipc = null, curDragon = null;
       for (const line of text.split(/\r?\n/)) {
         if (/^\s*activities:\s*$/.test(line)) { inActs = true; inContainer = false; inVipc = false; inActions = false; inTriggers = false; inViBrowser = false; inActionOs = false; inDepPolicy = false; continue; }
         if (/^\s*container:\s*$/.test(line)) { inContainer = true; inActs = false; inVipc = false; inActions = false; inTriggers = false; inViBrowser = false; inActionOs = false; inDepPolicy = false; continue; }
@@ -399,17 +417,22 @@
         }
         if (inContainer) {
           let mc;
-          if ((mc = line.match(/^\s{4}use:\s*"?([^"\s]+)"?/))) { out.containerUse = mc[1]; inVipc = false; inActions = false; continue; }
-          if (/^\s{4}vipc:\s*$/.test(line)) { inVipc = true; inActions = false; continue; }
-          if (/^\s{4}actions:\s*$/.test(line)) { inActions = true; inVipc = false; continue; }
+          if ((mc = line.match(/^\s{4}use:\s*"?([^"\s]+)"?/))) { out.containerUse = mc[1]; inVipc = false; inDragon = false; inActions = false; continue; }
+          if (/^\s{4}vipc:\s*$/.test(line)) { inVipc = true; inDragon = false; inActions = false; continue; }
+          if (/^\s{4}dragon:\s*$/.test(line)) { inDragon = true; inVipc = false; inActions = false; continue; }
+          if (/^\s{4}actions:\s*$/.test(line)) { inActions = true; inVipc = false; inDragon = false; continue; }
           if (inVipc) {
             if ((mc = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/))) { curVipc = { path: mc[1].trim(), monitor: false }; out.vipc.push(curVipc); continue; }
             if (curVipc && (mc = line.match(/^\s{8}monitor:\s*(\S+)/))) { curVipc.monitor = mc[1].trim().toLowerCase() === "true"; continue; }
           }
+          if (inDragon) {
+            if ((mc = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/))) { curDragon = { path: mc[1].trim(), monitor: false }; out.dragon.push(curDragon); continue; }
+            if (curDragon && (mc = line.match(/^\s{8}monitor:\s*(\S+)/))) { curDragon.monitor = mc[1].trim().toLowerCase() === "true"; continue; }
+          }
           if (inActions) {
             if ((mc = line.match(/^\s{6}([A-Za-z0-9_.\-]+):\s*"?([^"\s]+)"?\s*$/))) { out.actions[mc[1]] = mc[2]; continue; }
           }
-          if (/^\s{0,3}\S/.test(line)) { inContainer = false; inVipc = false; inActions = false; }
+          if (/^\s{0,3}\S/.test(line)) { inContainer = false; inVipc = false; inDragon = false; inActions = false; }
         }
         let m;
         if ((m = line.match(/^\s*labviewVersion:\s*"?([^"\s]+)"?/))) out.version = m[1];
@@ -633,7 +656,53 @@
         host.appendChild(row);
       });
     }
-    function renderContainer() { renderContainerUse(); renderVipcs(); }
+    function renderDragons() {
+      const host = $("dragons"); if (!host) return; host.innerHTML = "";
+      updateDragonNote();
+      if (!dragonList.length) {
+        host.innerHTML = '<div class="hint">No <code class="inl">.dragon</code> (NIPM) files found in this repository. Add a <code class="inl">.dragon</code> file to bake NIPM dependencies into the container.</div>';
+        return;
+      }
+      dragonList.forEach((v, i) => {
+        const included = v.include === true;
+        const row = document.createElement("div"); row.className = "pkg";
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = included;
+        cb.title = "Include this Dragon file in the worker container";
+        cb.addEventListener("change", () => { v.include = cb.checked; if (!cb.checked) v.monitor = false; renderDragons(); update(); });
+        const mid = document.createElement("div");
+        mid.innerHTML = '<span class="pname">' + escapeHtml(v.path) + "</span>" +
+          '<div class="psum">' + (included
+            ? (v.monitor === true
+                ? "Included \u2014 monitored, rebuilds &amp; re-pushes the container when this file changes"
+                : "Included \u2014 baked once, not monitored for changes")
+            : "Not included \u2014 tick to bake this file into the container") + "</div>";
+        const ctl = document.createElement("div"); ctl.className = "pkgctl";
+        if (included) {
+          const ml = document.createElement("label"); ml.className = "pkgmon";
+          ml.title = "Monitor this file and rebuild the container automatically when it changes";
+          const mcb = document.createElement("input"); mcb.type = "checkbox"; mcb.checked = v.monitor === true;
+          mcb.addEventListener("change", () => { v.monitor = mcb.checked; renderDragons(); update(); });
+          ml.appendChild(mcb); ml.appendChild(document.createTextNode("Monitor"));
+          ctl.appendChild(ml);
+        }
+        const rm = document.createElement("button"); rm.type = "button"; rm.className = "ghost"; rm.textContent = "Remove";
+        rm.addEventListener("click", () => { dragonList.splice(i, 1); renderDragons(); update(); });
+        ctl.appendChild(rm);
+        row.appendChild(cb); row.appendChild(mid); row.appendChild(ctl);
+        host.appendChild(row);
+      });
+    }
+    function updateDragonNote() {
+      const el = $("dragonNote"); if (!el) return;
+      const parts = [];
+      if (dragonFoundCount) parts.push("Found " + dragonFoundCount + " Dragon file" + (dragonFoundCount === 1 ? "" : "s") + " in the repository.");
+      if (dragonList.length) {
+        const sel = dragonList.filter(v => v.include === true).length;
+        parts.push(sel ? (sel + " selected to bake into the container.") : "None selected \u2014 tick a file to bake it in, then enable Monitor for auto-rebuild.");
+      }
+      el.textContent = parts.join(" ");
+    }
+    function renderContainer() { renderContainerUse(); renderVipcs(); renderDragons(); }
     function updateVipcNote() {
       const el = $("vipcNote"); if (!el) return;
       const parts = [];
@@ -1015,12 +1084,26 @@
       return { def, rules };
     }
 
+    function containerVipcInputEnc() {
+      return vipcList.filter(v => v.include === true).map(v => String(v.path).replace(/;/g, "") + "::" + (v.monitor === true ? "true" : "false")).join(";");
+    }
+    function containerDragonInputEnc() {
+      return dragonList.filter(v => v.include === true).map(v => String(v.path).replace(/;/g, "") + "::" + (v.monitor === true ? "true" : "false")).join(";");
+    }
     function containerYamlLines() {
       const lines = ["  container:", "    use: " + (containerUseValue() || "latest")];
       const baked = vipcList.filter(v => v.include === true);
       if (baked.length) {
         lines.push("    vipc:");
         baked.forEach(v => {
+          lines.push('      - path: "' + String(v.path).replace(/"/g, "") + '"');
+          lines.push("        monitor: " + (v.monitor === true ? "true" : "false"));
+        });
+      }
+      const bakedDragon = dragonList.filter(v => v.include === true);
+      if (bakedDragon.length) {
+        lines.push("    dragon:");
+        bakedDragon.forEach(v => {
           lines.push('      - path: "' + String(v.path).replace(/"/g, "") + '"');
           lines.push("        monitor: " + (v.monitor === true ? "true" : "false"));
         });
@@ -1048,7 +1131,11 @@
         let added = false;
         // Pre-populate every discovered file, de-selected by default — the user picks which to bake.
         found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: false, include: false }); added = true; } });
-        renderVipcs();
+        const foundDragon = (data.tree || []).filter(t => t.type === "blob" && /\.dragon$/i.test(t.path)).map(t => t.path);
+        dragonFoundCount = foundDragon.length;
+        const haveD = new Set(dragonList.map(v => v.path));
+        foundDragon.forEach(p => { if (!haveD.has(p)) { dragonList.push({ path: p, monitor: false, include: false }); added = true; } });
+        renderVipcs(); renderDragons();
         if (added) update();
         // VI Analyzer: discover .viancfg configs + folder/VI path suggestions from
         // the same tree (single API call). Skip CI-tooling paths the analyzer ignores.
@@ -1117,11 +1204,15 @@
       const cTrig = triggerInputEnc();
       const cVia = viAnalyzerInputEnc();
       const cActionOs = actionOsInputEnc();
-      // Worker dependencies (container image, baked VIPC, Antidoc) and the VI Browser
-      // render matrix are managed elsewhere, so this leaves them unchanged: antidoc=keep
-      // and no container_use / container_vipc / vi_browser. Per-action container routing
-      // is set in the Actions table and travels as container_actions.
+      // Per-action container routing travels as container_actions; the baked VIPC /
+      // Dragon dependency files (with Monitor) travel as container_vipc/container_dragon.
+      // The container image tag and VI Browser render matrix are managed elsewhere, so
+      // this leaves them unchanged: antidoc=keep and no container_use / vi_browser.
+      const cVipc = containerVipcInputEnc();
+      const cDragon = containerDragonInputEnc();
       const cLine =
+        (cVipc ? ` \\\n  -f container_vipc="${cVipc}"` : "") +
+        (cDragon ? ` \\\n  -f container_dragon="${cDragon}"` : "") +
         (cActs ? ` \\\n  -f container_actions="${cActs}"` : "") +
         (cVia.def ? ` \\\n  -f via_default="${cVia.def}"` : "") +
         (cVia.rules ? ` \\\n  -f via_rules="${cVia.rules}"` : "") +
@@ -1140,8 +1231,10 @@
     function reconfigureInputs() {
       const cActs = containerActionEntries().map(([id, t]) => `${id}::${t}`).join(";");
       const cVia = viAnalyzerInputEnc();
-      // Worker dependencies and the VI Browser render matrix are managed on their own
-      // pages, so leave them unchanged on save (blank / keep = "leave as-is").
+      // Worker container dependencies: send the baked VIPC / Dragon files with their
+      // Monitor flags so the per-file auto-rebuild opt-in is saved. The container image
+      // tag and the VI Browser render matrix are managed elsewhere, so leave those
+      // unchanged on save (blank / keep = "leave as-is").
       return {
         labview_version: $("version").value,
         operating_systems: osChoice(),
@@ -1149,7 +1242,8 @@
         concurrent_runners: String(parseInt($("runners").value, 10) || 1),
         activities: csv(actSel) || "dashboard",
         container_use: "",
-        container_vipc: "",
+        container_vipc: containerVipcInputEnc(),
+        container_dragon: containerDragonInputEnc(),
         container_actions: cActs,
         action_triggers: triggerInputEnc(),
         vi_browser: "",
@@ -1313,6 +1407,7 @@
         if (m.runners) $("runners").value = m.runners;
         containerUse = m.containerUse || "latest";
         vipcList = (m.vipc || []).map(v => ({ path: v.path, monitor: v.monitor === true, include: true }));
+        dragonList = (m.dragon || []).map(v => ({ path: v.path, monitor: v.monitor === true, include: true }));
         actionContainer.clear();
         Object.keys(m.actions || {}).forEach(id => actionContainer.set(id, m.actions[id]));
         // Triggers: reset to per-activity defaults, then apply any saved overrides.
@@ -1340,6 +1435,7 @@
         viaDefaultTouched = false;
         renderTriggers();
         renderViAnalyzer();
+        renderContainer();
         loadedAny = true;
       } catch (_) { /* not installed yet */ }
       try {
@@ -1351,6 +1447,7 @@
         ? "Loaded current settings from " + repo + "@" + ref + "."
         : "No existing config found (repo may not have the pipeline yet) — showing defaults to download & commit.";
       update();
+      renderContainer();
       discoverVipc(repo, ref);
     }
 
