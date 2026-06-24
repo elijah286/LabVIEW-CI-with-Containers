@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.22",
+  "version": "3.47.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.47.0",
+        "date": "2026-06-23",
+        "title": "Configure Actions table: per-action platforms + dependency policy",
+        "type": "minor",
+        "summary": "The Configure page Activities list is now a table of the actions installed in the repository, with separate Linux and Windows columns. A checkbox appears in a cell only where an action supports that platform, so per-action platform selection lives in one place and config.os is the union of the chosen platforms. Two repository-wide options sit above the table, both off by default: require all dependencies to be installed before running, and automatically install missing dependencies and rebuild containers before running actions. The Reconfigure workflow persists the new config.actionOs and config.dependencyPolicy fields.",
+        "highlights": [
+          "Replaces the flat activity checklist with an Actions table that lists only installed actions and hides ones that are not installed (for example Antidoc when it is not enabled).",
+          "Adds per-action Linux and Windows checkboxes, shown only for the platforms each action supports.",
+          "Adds off-by-default require-dependencies and auto-install-dependencies options saved to config.dependencyPolicy, plus per-action platforms saved to config.actionOs, via the Reconfigure workflow."
+        ]
+      },
       {
         "version": "3.46.22",
         "date": "2026-06-23",
