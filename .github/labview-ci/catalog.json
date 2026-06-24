@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.28",
+  "version": "4.1.29",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.29",
+        "date": "2026-06-24",
+        "title": "VI Analyzer runs on Windows only",
+        "type": "patch",
+        "summary": "VI Analyzer is now treated as a Windows-only capability everywhere the tooling resolves, installs, dispatches, or backfills it. The Linux VI Analyzer workflow and shell runner are retired, Populate history no longer offers a Linux VI Analyzer platform, and update cleanup can remove the old Linux workflow from existing installs.",
+        "highlights": [
+          "Removes Linux from the VI Analyzer catalog support matrix and stops installing the Linux workflow/script for new or updated repositories.",
+          "Routes dashboard Run, Populate history, report re-run, and missing-document recovery for VI Analyzer to the Windows workflow only.",
+          "Updates documentation, installer-generated dashboard triggers, and dependency status so they no longer suggest VI Analyzer runs on Linux."
+        ]
+      },
       {
         "version": "4.1.28",
         "date": "2026-06-24",
@@ -3730,8 +3742,7 @@
       "status": "stable",
       "recommended": true,
       "supportsOs": [
-        "windows",
-        "linux"
+        "windows"
       ],
       "requires": [],
       "recommends": [
@@ -3741,19 +3752,15 @@
       "statusContext": "CI / VI Analyzer",
       "files": {
         "any": [
-          ".github/labview/build-analyzer-report.py"
+          ".github/labview/build-analyzer-report.py",
+          ".github/labview/via-configs/"
         ],
         "windows": [
           ".github/workflows/run-vi-analyzer-windows-container.yml",
           ".github/labview/run-vi-analyzer.ps1"
-        ],
-        "linux": [
-          ".github/workflows/run-vi-analyzer-linux-container.yml",
-          ".github/labview/run-vi-analyzer.sh",
-          ".github/labview/via-configs/"
         ]
       },
-      "notes": "The full default test set (~90 tests) requires the custom image (enable “Shared LabVIEW image”). On the bare NI base image the analyzer reports “0 tests run”."
+      "notes": "Runs on Windows only. The full default test set (~90 tests) requires the custom image (enable “Shared LabVIEW image”). On the bare NI base image the analyzer reports “0 tests run”."
     },
     {
       "id": "vidiff",

@@ -8,7 +8,7 @@
     (function () {
       var DOCS = {
         'vi-analyzer': { context: 'vi-analyzer-report', label: 'VI Analyzer', workflow: { windows: 'run-vi-analyzer-windows-container.yml' }, statuses: ['CI / VI Analyzer'] },
-        'vi-analyzer-linux': { context: 'vi-analyzer-report', label: 'VI Analyzer', platform: 'linux', workflow: { linux: 'run-vi-analyzer-linux-container.yml', windows: 'run-vi-analyzer-windows-container.yml' }, statuses: ['CI / VI Analyzer (Linux)', 'CI / VI Analyzer'] },
+        'vi-analyzer-linux': { context: 'vi-analyzer-report', label: 'VI Analyzer', workflow: { windows: 'run-vi-analyzer-windows-container.yml' }, statuses: ['CI / VI Analyzer'] },
         'masscompile': { context: 'masscompile-report', label: 'Mass Compile', workflow: { windows: 'masscompile-windows-container.yml', linux: 'masscompile-linux-container.yml' }, statuses: ['CI / Mass Compile'] },
         'unit-tests': { context: 'unit-tests-report', label: 'Unit Tests', workflow: { windows: 'unit-tests-windows-container.yml' }, statuses: ['CI / Unit Tests'] },
         'antidoc': { context: 'antidoc-report', label: 'Antidoc', workflow: { windows: 'run-antidoc-windows-container.yml' }, statuses: ['CI / Antidoc'] }

@@ -41,8 +41,8 @@ permissions:
   statuses: write
   packages: read
 
-# No shared concurrency group: this mirrors run-vi-analyzer-linux-container.yml,
-# which deploys to gh-pages directly with no group. The Windows report workflows
+# No shared concurrency group: this Linux report deploys to gh-pages directly
+# with no group. The Windows report workflows
 # share `report-pages-deploy` (cancel-in-progress:false) to serialize their pushes,
 # but GitHub keeps only one *pending* run per group — so adding a third member
 # would make a normal push cancel one of the three. The Linux job writes to a

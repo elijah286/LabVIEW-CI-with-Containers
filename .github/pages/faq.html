@@ -147,7 +147,7 @@
         <p>What that means in practice:</p>
         <ul>
           <li><strong>Across files in one revision — shared.</strong> When an action runs (say Mass Compile), it starts <em>one</em> container and processes <em>every</em> VI in that revision inside a single LabVIEW session, then tears the container down. You never get a container per VI.</li>
-          <li><strong>Across actions — not shared.</strong> Each capability (Mass Compile, VI Analyzer, VIDiff, Unit Tests, Antidoc) is its own workflow on its own runner. A push that triggers three actions spins up three separate containers — more if both Windows and Linux are enabled — each created and destroyed independently, usually in parallel.</li>
+          <li><strong>Across actions — not shared.</strong> Each capability (Mass Compile, VI Analyzer, VIDiff, Unit Tests, Antidoc) is its own workflow on its own runner. A push that triggers three actions spins up three separate containers — more for capabilities that run on both Windows and Linux — each created and destroyed independently, usually in parallel.</li>
           <li><strong>Across revisions / commits — not shared.</strong> Every new commit triggers fresh workflow runs and therefore fresh containers. Nothing carries over from the previous revision.</li>
           <li><strong>The image is reused; the container is not.</strong> The prebuilt worker <em>image</em> (with your baked-in VIPC dependencies) is pulled once per job and cached on the runner, but each job runs a brand-new container instance from it and discards that instance when the job ends. Your repository files are bind-mounted in from the runner, so nothing changed inside a container is ever persisted.</li>
         </ul>

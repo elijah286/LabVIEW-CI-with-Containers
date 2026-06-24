@@ -740,7 +740,6 @@ def consumer_dashboard_workflow(catalog: dict, branch: str = "main") -> str:
         '      - "Mass Compile \u2014 Windows Container"\n'
         '      - "Mass Compile Backfill \u2014 Windows Container"\n'
         '      - "Run VI Analyzer \u2014 Windows Container"\n'
-        '      - "Run VI Analyzer \u2014 Linux Container"\n'
         '      - "VIDiff Report \u2014 Windows Container"\n'
         '      - "VIDiff Report \u2014 Linux Container"\n'
         '      - "VIDiff Deploy \u2014 Pages + PR Comment"\n'

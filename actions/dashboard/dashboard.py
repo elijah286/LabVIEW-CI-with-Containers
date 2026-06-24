@@ -356,8 +356,7 @@ RUN_TARGETS = {
         'windows': {'wf': 'masscompile-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}},
         'linux':   {'wf': 'masscompile-linux-container.yml',   'inputs': {'commit_sha': '{sha}'}}}},
     'vi-analyzer': {'label': 'VI Analyzer', 'platforms': {
-        'windows': {'wf': 'run-vi-analyzer-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}},
-        'linux':   {'wf': 'run-vi-analyzer-linux-container.yml',   'inputs': {'commit_sha': '{sha}'}}}},
+        'windows': {'wf': 'run-vi-analyzer-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
     'vidiff': {'label': 'VIDiff', 'platforms': {
         'windows': {'wf': 'vidiff-windows-container.yml', 'inputs': {'head_sha': '{sha}', 'base_sha': '{parent}'}},
         'linux':   {'wf': 'vidiff-linux-container.yml',   'inputs': {'head_sha': '{sha}', 'base_sha': '{parent}'}}}},
@@ -804,10 +803,7 @@ for c in commits_data:
                         f'{_chip(_kind, f"{_pct}%", _url, f"{_ok}/{_tot} project VIs compiled")}</td>')
         else:
             mc_badge = badge('compile', 'CI / Mass Compile', cap='masscompile', doc=('masscompile-report', 'masscompile'))
-    # Consider both analyzer platforms (mirrors the diff badge): a revision
-    # analyzed only on Linux still surfaces its VI Analyzer result instead of
-    # showing nothing because the Windows-only context is absent.
-    via_badge = badge('analyze',   'CI / VI Analyzer', 'CI / VI Analyzer (Linux)', cap='vi-analyzer',
+    via_badge = badge('analyze',   'CI / VI Analyzer', cap='vi-analyzer',
                       doc=('vi-analyzer-report', 'vi-analyzer'))
     # VIDiff column: rather than a single "diff" badge, show the SHAPE of the
     # revision — how many VIs are different / new / deleted versus its parent —

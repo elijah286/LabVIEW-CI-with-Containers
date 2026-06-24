@@ -590,8 +590,7 @@
     'vi-analyzer-report': {
       prefix: 'vi-analyzer', cap: 'vi-analyzer', label: 'VI Analyzer',
       regenLabel: 'Re-run analysis', rawLabel: 'Native report', rawName: 'raw.html',
-      workflow: { windows: 'run-vi-analyzer-windows-container.yml',
-                  linux:   'run-vi-analyzer-linux-container.yml' }
+      workflow: { windows: 'run-vi-analyzer-windows-container.yml' }
     },
     'masscompile-report': {
       prefix: 'masscompile', cap: 'masscompile', label: 'Mass Compile',

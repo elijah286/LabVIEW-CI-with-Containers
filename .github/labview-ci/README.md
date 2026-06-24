@@ -8,7 +8,7 @@ installed into any LabVIEW repository — from the command line or from the
 |---|---|---|
 | **Dashboard** | GitHub Pages dashboard aggregating every commit's CI status + the configurator | Linux runner |
 | **Mass Compile** | Compiles every VI to catch broken/mutated code; reports % compiled | Windows |
-| **VI Analyzer** | Runs the VI Analyzer test suite; native + friendly report | Windows / Linux |
+| **VI Analyzer** | Runs the VI Analyzer test suite; native + friendly report | Windows |
 | **VIDiff** | Side-by-side visual diff reports per changed VI; PR comments | Windows / Linux |
 | **VI Snapshots** | Browseable gallery of every VI's block diagram (the VI Browser) | Windows |
 | **Shared image** | Builds the LabVIEW CI container image to GHCR | Windows / Linux |

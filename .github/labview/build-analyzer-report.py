@@ -1008,7 +1008,7 @@ document.addEventListener('click',e=>{
 // ── re-run a single VI with a chosen .viancfg configuration ────────────────────
 const RR_TOK = 'lvci_dispatch_token';
 let rrConfigs = null, rrVi = '', rrPollTimer = null;
-function rrWorkflow(){ return META.platform==='linux' ? 'run-vi-analyzer-linux-container.yml' : 'run-vi-analyzer-windows-container.yml'; }
+function rrWorkflow(){ return 'run-vi-analyzer-windows-container.yml'; }
 function rrTok(){ try { return localStorage.getItem(RR_TOK)||''; } catch(e){ return ''; } }
 // Slug must match the runner's deterministic re-run output path (PowerShell/bash).
 function rrSlug(cfg, vi){ return (cfg+'__'+vi).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80); }
