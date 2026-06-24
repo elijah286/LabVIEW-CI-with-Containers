@@ -389,12 +389,14 @@ mass-compile:
           <strong>opt-in</strong>: from the Dependencies page you dispatch the dependency build
           (<code>build-labview-image.yml</code>, &ldquo;Build LabVIEW CI Image&rdquo;), which runs on a Windows runner and
           this time starts <code>FROM</code> the base and applies a thin dependency layer
-          (<code>.github/docker/labview-ci.Dockerfile</code>) that bakes your VIPC packages (Dragon items go into the
-          Win&nbsp;Beta / <code>windows-experimental</code> container). Nothing rebuilds automatically on a
-          <code>.vipc</code> push by default &mdash; but the <strong>Configure &rarr; Container &amp; Dependencies</strong>
-          tab lets a client tick <strong>Monitor</strong> on an individual baked VIPC file to opt <em>that file</em> into an
-          automatic rebuild-and-re-push whenever it changes on a submission. Monitor is <strong>off by default</strong>, so the
-          &ldquo;nothing rebuilds on a push&rdquo; behavior holds unless a client explicitly enables it per file.</li>
+          (<code>.github/docker/labview-ci.Dockerfile</code>) that bakes your <code>.vipc</code> packages (and, when a
+          <code>.dragon</code> file is configured, applies it through the JKI&nbsp;Dragon CLI the base image provides).
+          Nothing rebuilds automatically on a <code>.vipc</code> / <code>.dragon</code> push by default &mdash; but a
+          client can opt an individual dependency file into an automatic rebuild-and-re-push by flagging it
+          <code>monitor: true</code> in <code>.github/labview-ci.yml</code> (<code>container.vipc[]</code> /
+          <code>container.dragon[]</code>); the <code>gate</code> then rebuilds whenever <em>that file</em> changes on a
+          submission. <strong>Monitor</strong> is <strong>off by default</strong>, so the &ldquo;nothing rebuilds on a
+          push&rdquo; behavior holds unless a client explicitly enables it per file.</li>
         <li><strong>Tooling upgrade is separate.</strong> Updating the LabVIEW CI tooling itself (the Update dialog /
           <code>apply-tooling-update.yml</code>) refreshes the workflow scripts and preserves your config; it does not
           rebuild containers. See <a href="#versioning">&sect;12</a>.</li>
@@ -883,19 +885,25 @@ flowchart TD
       <h3>Image build — gate, coordinate, then the heavy lift</h3>
       <p>The worker image build (<code>build-labview-image.yml</code>, &ldquo;Build LabVIEW CI Image&rdquo;) is a
         three-job run that <strong>bakes project dependencies</strong> &mdash; it is distinct from the
-        <code>copy-labview-image.yml</code> install seed described earlier, which only copies the base. The two Ubuntu
-        jobs first decide <em>whether</em> to rebuild and <em>safely when</em>. The final <code>build-and-push</code> job
-        always runs on <code>windows-2022</code> (it needs the Windows Docker daemon to bake the dependency layer); if a
-        dependency dispatch happens to declare no VIPC files at all it falls back to a plain <code>crane copy</code> of
-        the base on that same Windows runner instead of building.</p>
+        <code>copy-labview-image.yml</code> install seed described earlier, which only copies the base. It runs on an
+        explicit dispatch (the dashboard&rsquo;s &ldquo;Review &amp; update dependencies&rdquo; dialog or a manual run),
+        the monthly base-image cron, or &mdash; only when a project has opted in &mdash; a push that changes a
+        <strong>monitored</strong> <code>.vipc</code> / <code>.dragon</code> file. The <code>gate</code> job enforces this
+        opt-in: on a push it rebuilds only if a changed dependency file is flagged <code>monitor: true</code> in
+        <code>.github/labview-ci.yml</code> (off by default), and skips otherwise. The two Ubuntu jobs decide
+        <em>whether</em> to rebuild and <em>safely when</em>; the final <code>build-and-push</code> job always runs on
+        <code>windows-2022</code> (it needs the Windows Docker daemon to bake the dependency layer), falling back to a
+        plain <code>crane copy</code> of the base on that same runner if a dispatch declares no dependencies at all.</p>
       <div class="mermaid">
 flowchart TD
-  T["dependency update (dashboard) / monthly cron / workflow_dispatch"] --> G{"gate &middot; ubuntu-latest&lt;br/&gt;rebuild is always intended"}
-  G --> CO["coordinate &middot; ubuntu-latest&lt;br/&gt;drain or cancel in-flight CI"]
+  T["dispatch (dashboard 'update dependencies') / monthly cron"] --> G
+  PUSH["push to a .vipc / .dragon"] --> G{"gate &middot; ubuntu-latest&lt;br/&gt;dispatch/cron: rebuild&lt;br/&gt;push: only if a MONITORED file changed&lt;br/&gt;(opt-in, off by default)"}
+  G -->|"rebuild"| CO["coordinate &middot; ubuntu-latest&lt;br/&gt;drain or cancel in-flight CI"]
+  G -->|"push, nothing monitored"| SKIP["skip &mdash; no rebuild"]
   CO --> B["build-and-push &middot; windows-2022"]
-  B --> P{"Any VIPC declared?"}
-  P -->|"VIPC (dependency bake) &middot; windows-2022"| BD["build dependency layer &mdash; slow"]
-  P -->|"no VIPC (fallback) &middot; windows-2022"| CP["crane copy / tag base &mdash; a minute or two"]
+  B --> P{"Any dependency to bake?"}
+  P -->|"vipc/dragon (bake) &middot; windows-2022"| BD["build dependency layer &mdash; slow"]
+  P -->|"none (fallback) &middot; windows-2022"| CP["crane copy / tag base &mdash; a minute or two"]
   CP --> PU["push tags &rarr; worker manifest &rarr; gh-pages"]
   BD --> PU
   INS["install seed (separate workflow)"] --> CW["copy-labview-image.yml &middot; ubuntu-latest&lt;br/&gt;crane copy / tag base"]
@@ -941,7 +949,7 @@ flowchart TD
       <table>
         <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
         <tbody>
-          <tr><td>Build LabVIEW CI Image (Windows worker)</td><td><span class="pill lin">ubuntu-latest</span> gate + coordinate, <span class="pill win">windows-2022</span> build</td><td>monthly cron, dispatch (dashboard &ldquo;Review &amp; update dependencies&rdquo; or manual)</td><td>Dependency bake only; never auto-triggered by a project VIPC change. Always runs the build on <span class="pill win">windows-2022</span>; with no VIPC declared it falls back to a plain crane copy of the base.</td></tr>
+          <tr><td>Build LabVIEW CI Image (Windows worker)</td><td><span class="pill lin">ubuntu-latest</span> gate + coordinate, <span class="pill win">windows-2022</span> build</td><td>dispatch (dashboard &ldquo;Review &amp; update dependencies&rdquo; or manual), monthly cron, and a push that changes a <strong>monitored</strong> <code>.vipc</code>/<code>.dragon</code> (opt-in, off by default)</td><td>Dependency bake. On a push the gate rebuilds only if a changed dependency file is <code>monitor: true</code>; otherwise it skips. Always builds on <span class="pill win">windows-2022</span>; with no dependencies declared it falls back to a plain crane copy of the base.</td></tr>
           <tr><td>Copy LabVIEW CI Image (install seed)</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (the installer dispatches it on a fresh install)</td><td>Seeds a fresh worker by copying the LCWC base into the repo&rsquo;s GHCR with crane &mdash; no LabVIEW build; the install-time counterpart to the dependency build above.</td></tr>
           <tr><td>Build LabVIEW CI Image &mdash; Linux</td><td><span class="pill lin">ubuntu-latest</span> (gate + build)</td><td>push to the Linux build recipe, monthly cron, dispatch</td><td>Linux worker image; not triggered by project VIPC changes.</td></tr>
           <tr><td>Build LabVIEW CI Image &mdash; Linux Beta</td><td><span class="pill lin">ubuntu-latest</span></td><td>push to the beta build recipe, monthly cron, dispatch</td><td>Experimental Linux lane &mdash; a rebase of the Linux core that diverges as experimental capabilities are baked in.</td></tr>

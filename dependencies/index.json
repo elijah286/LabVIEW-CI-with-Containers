@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "8f62e6141cc7e019f08dd0ba210c8c1185dc9bb1",
+  "sha": "526ae3cedaa11537f19f5faca77206c24924a50f",
   "revisions": [
+    {
+      "sha": "526ae3cedaa11537f19f5faca77206c24924a50f",
+      "short": "526ae3c",
+      "message": "Restore opt-in monitored auto-rebuild for the worker (4.1.17)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T17:42:29Z"
+    },
     {
       "sha": "8f62e6141cc7e019f08dd0ba210c8c1185dc9bb1",
       "short": "8f62e61",
@@ -695,13 +702,6 @@
       "message": "Fix dashboard mobile card layout",
       "author": "Elijah Kerry",
       "date": "2026-06-22T14:01:17Z"
-    },
-    {
-      "sha": "be23282470cef49ec12b21cf75cb4ec5784b875b",
-      "short": "be23282",
-      "message": "Dependencies: rename experimental column to \"Win Beta\" + click-to-explain note (v3.35.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T13:43:03Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
