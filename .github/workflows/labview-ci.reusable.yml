@@ -159,12 +159,10 @@ jobs:
 
       - name: Deploy report to GitHub Pages
         if: steps.compile.outputs.report-exists == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/masscompile
           destination_dir: masscompile/${{ github.sha }}
-          keep_files: true
 
       - name: Post commit status
         if: always()
@@ -293,12 +291,10 @@ jobs:
 
       - name: Deploy report to GitHub Pages
         if: steps.analyze.outputs.report-exists == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/vi-analyzer
           destination_dir: vi-analyzer/${{ github.sha }}
-          keep_files: true
 
       - name: Post commit status
         if: always()
@@ -437,12 +433,10 @@ jobs:
 
       - name: Deploy VIDiff report to GitHub Pages
         if: steps.diff.outputs.report-exists == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: head/ci-out/vidiff
           destination_dir: ${{ steps.pages.outputs.dest }}
-          keep_files: true
 
       - name: Post commit status
         if: always()
@@ -538,12 +532,10 @@ jobs:
 
       - name: Deploy snapshots to GitHub Pages
         if: steps.snap.outputs.gallery-ok == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/vi-snapshots
           destination_dir: vi-snapshots
-          keep_files: true
 
       - name: Post commit status
         if: always()

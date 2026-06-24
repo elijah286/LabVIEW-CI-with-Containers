@@ -91,31 +91,11 @@ jobs:
           pages-url: ${{ env.PAGES_URL }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Publish the dashboard to gh-pages. The shared publish action retries on a
+      # concurrent-push conflict (gh-pages is a single branch many jobs push to),
+      # so it no longer needs the manual wait-and-retry this step used to carry.
       - name: Deploy dashboard to GitHub Pages
-        id: deploy
-        continue-on-error: true
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/dashboard
-          destination_dir: .
-          keep_files: true
-
-      # The dashboard keeps its own latest-wins group (dashboard-pages) rather than
-      # the serialised report-pages-deploy group, so its push can race another job
-      # publishing to gh-pages in the same burst (configurator site, VI snapshots,
-      # report deploys) -> a non-fast-forward "cannot lock ref 'refs/heads/gh-pages'".
-      # peaceiris does not retry, so wait out the burst and try once more (it
-      # re-clones gh-pages each run, starting from the advanced tip).
-      - name: Wait out a gh-pages push race
-        if: steps.deploy.outcome == 'failure'
-        run: sleep 30
-
-      - name: Deploy dashboard to GitHub Pages (retry)
-        if: steps.deploy.outcome == 'failure'
-        uses: peaceiris/actions-gh-pages@v4.1.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ci-out/dashboard
-          destination_dir: .
-          keep_files: true
+          commit_message: Publish dashboard

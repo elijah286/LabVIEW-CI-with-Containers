@@ -386,57 +386,10 @@ jobs:
           JSON
 
       - name: Publish worker manifest to GitHub Pages
-        shell: bash
-        env:
-          PUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WORKER_VERSION: ${{ steps.ver.outputs.version }}
-        run: |
-          set -euo pipefail
-          src="$(pwd)/ci-out/workers-pages"
-          if [ ! -d "$src" ]; then echo "Nothing to publish."; exit 0; fi
-          remote="https://x-access-token:${PUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          # Worker-image workflows can push the manifest to gh-pages concurrently (the
-          # monthly cron rebuilds Windows + Linux together, or a build races an install
-          # copy), so a plain push can lose the race with a non-fast-forward rejection.
-          # Re-fetch the latest gh-pages, re-apply our files (keep_files semantics:
-          # add/overwrite ours, never delete others), and push -- retrying on conflict.
-          published=0
-          for attempt in 1 2 3 4 5 6; do
-            work="$(mktemp -d)"
-            if (
-              cd "$work"
-              git init -q
-              git config user.email 'github-actions[bot]@users.noreply.github.com'
-              git config user.name 'github-actions[bot]'
-              git remote add origin "$remote"
-              if git fetch -q origin gh-pages 2>/dev/null; then
-                git checkout -q -B gh-pages FETCH_HEAD
-              else
-                git checkout -q --orphan gh-pages
-                git reset -q
-              fi
-              cp -R "$src"/. .
-              touch .nojekyll
-              git add -A
-              if git diff --cached --quiet; then
-                echo "No manifest changes to publish."
-              else
-                git commit -q -m "Publish Linux worker manifest ${WORKER_VERSION}"
-                git push -q origin gh-pages
-              fi
-            ); then
-              published=1; rm -rf "$work"; break
-            fi
-            rm -rf "$work"
-            echo "::notice::gh-pages publish attempt ${attempt} failed (likely a concurrent push); retrying."
-            sleep $(( (RANDOM % 5) + attempt ))
-          done
-          if [ "$published" != "1" ]; then
-            echo "::error::Could not publish the worker manifest to gh-pages after several retries."
-            exit 1
-          fi
-          echo "Published worker manifest to gh-pages."
-
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: ci-out/workers-pages
+          commit_message: Publish Linux worker manifest
       - name: Summary
         run: |
           echo "### Docker image published" >> "$GITHUB_STEP_SUMMARY"

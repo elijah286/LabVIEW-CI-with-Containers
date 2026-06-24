@@ -253,12 +253,10 @@ jobs:
 
       - name: Deploy report to GitHub Pages
         if: steps.report.outputs.exists == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/unit-tests
           destination_dir: unit-tests/${{ steps.sha.outputs.sha }}
-          keep_files: true
 
       - name: Post commit status
         if: always()

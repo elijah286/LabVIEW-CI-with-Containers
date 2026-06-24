@@ -1,0 +1,104 @@
+name: Publish to GitHub Pages (retry-safe)
+description: >-
+  Publish a directory's contents into the gh-pages branch with keep_files
+  semantics, retrying on concurrent-push conflicts so that parallel publishes
+  from different workflows all land instead of one losing a non-fast-forward
+  push. A drop-in replacement for peaceiris/actions-gh-pages (keep_files: true)
+  used across the LabVIEW CI workflows. Runs in Python so the same logic works on
+  Windows and Linux runners (publish_dir may be a Windows or POSIX path).
+inputs:
+  publish_dir:
+    description: Directory whose contents are published. Relative or absolute.
+    required: true
+  destination_dir:
+    description: Subdirectory within gh-pages to publish into. Empty / "." = root.
+    required: false
+    default: ''
+  commit_message:
+    description: Commit message for the publish.
+    required: false
+    default: 'Publish to GitHub Pages'
+  github_token:
+    description: Token with contents:write on this repository.
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - name: Publish to gh-pages (retry-safe)
+      shell: python
+      env:
+        PUBLISH_DIR: ${{ inputs.publish_dir }}
+        DEST_DIR: ${{ inputs.destination_dir }}
+        COMMIT_MSG: ${{ inputs.commit_message }}
+        PUB_TOKEN: ${{ inputs.github_token }}
+      run: |
+        import os, sys, time, random, shutil, tempfile, subprocess
+        from pathlib import Path
+
+        pub = os.environ.get("PUBLISH_DIR", "")
+        dest = (os.environ.get("DEST_DIR", "") or "").strip().strip("/")
+        if dest in ("", "."):
+            dest = ""
+        msg = os.environ.get("COMMIT_MSG", "Publish to GitHub Pages") or "Publish to GitHub Pages"
+        token = os.environ["PUB_TOKEN"]
+        repo = os.environ["GITHUB_REPOSITORY"]
+
+        src = Path(pub)
+        if not src.is_dir():
+            print(f"publish_dir '{pub}' does not exist; nothing to publish.")
+            sys.exit(0)
+        src = src.resolve()
+        remote = f"https://x-access-token:{token}@github.com/{repo}.git"
+
+        def git(args, cwd, check=True):
+            return subprocess.run(["git", *args], cwd=cwd, check=check,
+                                  capture_output=True, text=True)
+
+        published = False
+        last_err = ""
+        for attempt in range(1, 7):
+            work = tempfile.mkdtemp()
+            try:
+                git(["init", "-q"], work)
+                git(["config", "core.longpaths", "true"], work)  # deep VIDiff paths on Windows
+                git(["config", "user.email", "github-actions[bot]@users.noreply.github.com"], work)
+                git(["config", "user.name", "github-actions[bot]"], work)
+                git(["remote", "add", "origin", remote], work)
+                fetched = subprocess.run(["git", "fetch", "-q", "origin", "gh-pages"],
+                                         cwd=work, capture_output=True, text=True)
+                if fetched.returncode == 0:
+                    git(["checkout", "-q", "-B", "gh-pages", "FETCH_HEAD"], work)
+                else:
+                    git(["checkout", "-q", "--orphan", "gh-pages"], work)
+                    subprocess.run(["git", "reset", "-q"], cwd=work)
+                # keep_files semantics: overlay our files, never delete others.
+                target = Path(work) / dest if dest else Path(work)
+                target.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(src, target, dirs_exist_ok=True)
+                (Path(work) / ".nojekyll").touch()
+                git(["add", "-A"], work)
+                if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=work).returncode == 0:
+                    print("No changes to publish.")
+                    published = True
+                    break
+                git(["commit", "-q", "-m", msg], work)
+                pushed = subprocess.run(["git", "push", "-q", "origin", "gh-pages"],
+                                        cwd=work, capture_output=True, text=True)
+                if pushed.returncode == 0:
+                    published = True
+                    break
+                last_err = (pushed.stderr or "").strip()
+                print(f"::notice::gh-pages push attempt {attempt} failed "
+                      f"(likely a concurrent push); retrying. {last_err[:200]}")
+            except subprocess.CalledProcessError as exc:
+                last_err = (exc.stderr or str(exc)).strip()
+                print(f"::notice::gh-pages publish attempt {attempt} errored; retrying. {last_err[:200]}")
+            finally:
+                shutil.rmtree(work, ignore_errors=True)
+            time.sleep(random.randint(2, 5) + attempt)
+
+        if not published:
+            print(f"::error::Could not publish to gh-pages after several retries. {last_err[:300]}")
+            sys.exit(1)
+        print(f"Published to gh-pages{(' into ' + dest) if dest else ''}.")

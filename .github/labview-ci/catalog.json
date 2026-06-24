@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.20",
+  "version": "4.1.21",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.21",
+        "date": "2026-06-24",
+        "title": "Centralize the gh-pages publish into one retry-safe action for every workflow",
+        "type": "minor",
+        "summary": "Every workflow that publishes to the gh-pages branch -- worker images, the dashboard, mass compile, VI Analyzer, VIDiff, VI snapshots, unit tests, Antidoc, and the configurator/client deploys -- now goes through a single reusable composite action, .github/actions/publish-gh-pages, that re-fetches gh-pages and retries on a concurrent-push conflict. This replaces ~26 separate single-shot peaceiris publishes (and a couple of hand-rolled retry loops) with one implementation, so any two jobs publishing to gh-pages at the same time both land instead of the loser failing with a non-fast-forward rejection. The action is written in Python so the same logic runs on Windows and Linux runners, preserves keep_files semantics and per-report destination subdirectories, and is installed on every repo as part of the always-present base tooling.",
+        "highlights": [
+          "Adds .github/actions/publish-gh-pages: a drop-in, retry-on-conflict replacement for peaceiris/actions-gh-pages (keep_files) used by every gh-pages publisher.",
+          "Migrates all ~26 publish steps across the worker, dashboard, report, snapshot, and deploy workflows to the shared action, removing the duplicated single-shot publishes and ad-hoc retry loops.",
+          "Makes the whole system race-safe (not just the worker images), so concurrent publishes from different workflows no longer drop a report or manifest."
+        ]
+      },
       {
         "version": "4.1.20",
         "date": "2026-06-24",
@@ -3561,7 +3573,8 @@
       ".github/labview-ci/install.ps1",
       ".github/labview-ci/README.md",
       ".github/labview/wait-for-worker-image.sh",
-      ".github/labview/ensure-docker.ps1"
+      ".github/labview/ensure-docker.ps1",
+    ".github/actions/publish-gh-pages/action.yml"
     ]
   },
   "capabilities": [

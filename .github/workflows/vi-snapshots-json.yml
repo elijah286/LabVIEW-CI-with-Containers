@@ -174,9 +174,7 @@ jobs:
 
       - name: Deploy JSON to GitHub Pages (preserves existing HTML + JSON)
         if: steps.pull.outputs.ok == 'true' && steps.verify.outputs.ok == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vi-snapshots
           destination_dir: vi-snapshots
-          keep_files: true

@@ -199,21 +199,17 @@ jobs:
           if-no-files-found: warn
 
       - name: Deploy report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
           destination_dir: vi-analyzer-linux/${{ steps.sha.outputs.sha }}
-          keep_files: true
 
       - name: Publish worker manifest to GitHub Pages
         if: steps.worker.outputs.version != ''
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/workers-pages
           destination_dir: .
-          keep_files: true
 
       - name: Post worker version status
         if: always() && steps.worker.outputs.version != ''
