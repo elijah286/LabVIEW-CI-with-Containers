@@ -478,7 +478,7 @@
       const hasToimages = Array.from(paths).some(p => p.startsWith('.github/labview/toimages/'));
       const version = goVersion ? 'Go ' + goVersion : 'Go toolchain';
       const out = [];
-      if (hasToimages) out.push({ key:'toimages', name:'VI Browser 2.0 toimages renderer', source:'.github/labview/toimages', windows:has('.github/workflows/vi-snapshots-json-windows.yml') ? 'built in workflow' : '', linux:has('.github/workflows/vi-snapshots-json.yml') && has('.github/workflows/build-toimages-image.yml') ? 'toimages image' : '' });
+      if (hasToimages) out.push({ key:'toimages', name:'VI Browser 2.0 toimages renderer', source:'.github/labview/toimages', windows:has('.github/workflows/vi-snapshots-json-windows.yml') ? 'built in workflow' : '', linux:has('.github/workflows/vi-snapshots-json.yml') ? 'baked into Linux worker' : '' });
       if (hasToimages) out.push({ key:'go', name:version, source:'Go build/runtime for toimages', windows:has('.github/workflows/vi-snapshots-json-windows.yml') ? 'actions/setup-go' : '', linux:has('.github/labview/toimages/Dockerfile') ? 'Docker build stage' : '' });
       return out;
     }

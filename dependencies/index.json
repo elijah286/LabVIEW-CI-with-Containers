@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "4eda8af4a0d3a6c16ecc35b0fb727b9d7d02d5fe",
+  "sha": "e57206380f2a014c3c700007be6712d76da8e3fb",
   "revisions": [
+    {
+      "sha": "e57206380f2a014c3c700007be6712d76da8e3fb",
+      "short": "e572063",
+      "message": "Bake VI Browser 2.0 render engine into the Linux worker (4.1.23)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T19:45:28Z"
+    },
     {
       "sha": "4eda8af4a0d3a6c16ecc35b0fb727b9d7d02d5fe",
       "short": "4eda8af",
@@ -695,13 +702,6 @@
       "message": "Re-install repairs a non-markdown README too (v3.36.1)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T16:43:05Z"
-    },
-    {
-      "sha": "497ba76eb8285e398eed71cd0b5a6cf2a6409f44",
-      "short": "497ba76",
-      "message": "Robust fresh install: auto-build the worker image, wait for it, fix non-markdown README (v3.36.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T16:28:45Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
