@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "18271f46b5105b5adb297abfc13a1181a6d830a9",
+  "sha": "29cf6897f88beb4c3645725690051cf76c7e1894",
   "revisions": [
+    {
+      "sha": "29cf6897f88beb4c3645725690051cf76c7e1894",
+      "short": "29cf689",
+      "message": "deps table: link VIPC/.dragon file names to GitHub (latest) (3.47.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T03:46:13Z"
+    },
     {
       "sha": "18271f46b5105b5adb297abfc13a1181a6d830a9",
       "short": "18271f4",
@@ -695,13 +702,6 @@
       "message": "ci: fix corrupted YAML indentation in build-labview-linux-image.yml",
       "author": "Elijah Kerry",
       "date": "2026-06-21T20:52:46Z"
-    },
-    {
-      "sha": "b896b29f59a964925c13ac4b6c424202d7f22315",
-      "short": "b896b29",
-      "message": "dashboard: key active runs to targeted revision and show queued position",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T20:34:41Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",

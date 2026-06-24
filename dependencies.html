@@ -350,6 +350,18 @@
       if (!repo || repo.indexOf("/") < 0) return "";
       return "https://github.com/" + repo + "/pkgs/container/" + repo.split("/")[1].toLowerCase() + "-labview";
     }
+    // Link a repository file (VIPC / .dragon) to its latest version on GitHub
+    // (the default branch tip via the HEAD ref) so it opens in the browser.
+    function fileUrl(path){
+      if (!repo || repo.indexOf("/") < 0 || !path) return "";
+      return "https://github.com/" + repo + "/blob/HEAD/" + String(path).split("/").map(encodeURIComponent).join("/");
+    }
+    function fileLink(path){
+      const u = fileUrl(path);
+      return u
+        ? '<a class="vipc-path file-link" href="' + esc(u) + '" target="_blank" rel="noopener" title="View ' + esc(path) + ' on GitHub (latest on the default branch)">' + esc(path) + '</a>'
+        : '<span class="vipc-path">' + esc(path) + '</span>';
+    }
     function colName(c){
       const url = (c.image === "worker") ? ghcrPkgUrl() : "";
       return url
@@ -422,7 +434,7 @@
       const heads = COLS.map(headCell).join('');
       const rows = [];
       vipcs.forEach((v, idx) => {
-        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span> <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + vipcRolePill(v) + '</td></tr>');
+        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span>' + fileLink(v.path) + ' <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + vipcRolePill(v) + '</td></tr>');
         if (v.open) {
           if (v.error) rows.push('<tr><td class="pkg" colspan="' + (COLS.length + 1) + '"><span class="why">' + esc(v.error) + '</span></td></tr>');
           else if (!(v.packages || []).length) rows.push('<tr><td class="pkg" colspan="' + (COLS.length + 1) + '"><span class="why">This file does not specify any packaged dependencies.</span></td></tr>');
@@ -436,7 +448,7 @@
         rows.push.apply(rows, dragonRows);
       }
       $("vipcWrap").innerHTML = '<table><thead><tr><th>VIPC / Package</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
-      Array.from(document.querySelectorAll('.vipc-row')).forEach((row, i) => row.addEventListener('click', () => { vipcs[i].open = !vipcs[i].open; renderVipc(vipcs, colStates, dragon); }));
+      Array.from(document.querySelectorAll('.vipc-row')).forEach((row, i) => row.addEventListener('click', (e) => { if (e.target && e.target.closest && e.target.closest('a')) return; vipcs[i].open = !vipcs[i].open; renderVipc(vipcs, colStates, dragon); }));
     }
     function renderNipm(platformStates, dragon){
       const heads = COLS.map(headCell).join('');
@@ -559,7 +571,7 @@
         if (!deps.length && !f.error) return;
         const lv = f.labview_version ? (' <span class="pill" title="Declared LabVIEW year">LabVIEW ' + esc(f.labview_version) + '</span>') : '';
         const count = deps.length + ' ' + (manager === 'vipm' ? 'VIPM' : 'NIPM') + (deps.length === 1 ? ' dependency' : ' dependencies');
-        rows.push('<tr class="dragon-file"><td colspan="' + span + '"><span class="vipc-path">' + esc(f.source_file) + '</span> <span class="pill" title="JKI Dragon dependency file">Dragon</span> <span class="pill">' + count + '</span>' + lv + '</td></tr>');
+        rows.push('<tr class="dragon-file"><td colspan="' + span + '">' + fileLink(f.source_file) + ' <span class="pill" title="JKI Dragon dependency file">Dragon</span> <span class="pill">' + count + '</span>' + lv + '</td></tr>');
         if (f.error){ rows.push('<tr><td class="pkg" colspan="' + span + '"><span class="why">' + esc(f.error) + '</span></td></tr>'); return; }
         deps.forEach(d => {
           const feed = d.feed_name ? (' <span class="pill" title="NIPM feed">' + esc(d.feed_name) + '</span>') : '';
