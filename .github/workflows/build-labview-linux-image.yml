@@ -1,5 +1,5 @@
 name: Build LabVIEW CI Image - Linux
-run-name: Build Linux worker image - ${{ github.event_name == 'workflow_dispatch' && 'manual setup' || github.sha }}
+run-name: ${{ github.event_name == 'push' && 'Copy Linux worker image (seed from LCWC base, no build)' || 'Build Linux worker image (apply dependencies)' }}
 
 on:
   # The image build is a heavy CI process and is NEVER auto-triggered by a project

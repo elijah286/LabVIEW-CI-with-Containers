@@ -1,5 +1,5 @@
 name: Build LabVIEW CI Image - Linux Beta
-run-name: Build Linux beta worker image - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
+run-name: ${{ github.event_name == 'push' && 'Copy Linux Beta worker image (seed from LCWC base, no build)' || 'Build Linux Beta worker image (apply dependencies)' }}
 
 on:
   # Never auto-triggered by a project dependency change: adding/changing a project
