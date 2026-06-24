@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "8b8e98448b14797d575ff8cfd6b3029a79ea1611",
+  "sha": "195e779f3ca648882d5ffe014cf4f3784ac6c816",
   "revisions": [
+    {
+      "sha": "195e779f3ca648882d5ffe014cf4f3784ac6c816",
+      "short": "195e779",
+      "message": "Make VI Analyzer Windows-only",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T22:04:16Z"
+    },
     {
       "sha": "8b8e98448b14797d575ff8cfd6b3029a79ea1611",
       "short": "8b8e984",
@@ -695,13 +702,6 @@
       "message": "Find nipkg in Linux Beta image build (v3.38.3)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T21:17:57Z"
-    },
-    {
-      "sha": "0ea9069aaf58c43968ff9867bfb5af8797d6cce7",
-      "short": "0ea9069",
-      "message": "Fix Linux Beta image hash step (v3.38.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T21:06:23Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
