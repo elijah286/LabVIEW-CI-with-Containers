@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "4c4046338834c65b7b22679e15b209c69ea2dc4d",
+  "sha": "8aa49525cb2fed574d5777a2034f129a0cb39c9a",
   "revisions": [
+    {
+      "sha": "8aa49525cb2fed574d5777a2034f129a0cb39c9a",
+      "short": "8aa4952",
+      "message": "One-time reset: rebase Beta container recipes onto Core (4.1.10)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T15:00:04Z"
+    },
     {
       "sha": "4c4046338834c65b7b22679e15b209c69ea2dc4d",
       "short": "4c40463",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.21 dependency source tables",
       "author": "Elijah Kerry",
       "date": "2026-06-22T12:49:13Z"
-    },
-    {
-      "sha": "1dcb2e36dda3000f511eedf7d48805417f6e0441",
-      "short": "1dcb2e3",
-      "message": "Dependencies: split dependency source tables",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T12:48:09Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
