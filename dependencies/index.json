@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2db555e9609fd41389ad7bf3d61dd489d47582d3",
+  "sha": "b9d5fd561094d030cbb496ba7f72e815d0233690",
   "revisions": [
+    {
+      "sha": "b9d5fd561094d030cbb496ba7f72e815d0233690",
+      "short": "b9d5fd5",
+      "message": "Restore Pages publisher for history backfills",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T21:47:43Z"
+    },
     {
       "sha": "2db555e9609fd41389ad7bf3d61dd489d47582d3",
       "short": "2db555e",
@@ -695,13 +702,6 @@
       "message": "Wait for the in-progress worker image build after a fresh install instead of timing out (v3.38.1)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T21:00:05Z"
-    },
-    {
-      "sha": "0af6b39219efd3ff72613e2289872af3e25bcb20",
-      "short": "0af6b39",
-      "message": "Add experimental Linux Beta VIPM worker (v3.38.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T20:53:50Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
