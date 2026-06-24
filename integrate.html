@@ -1685,6 +1685,20 @@
       return section + "\n" + existing;
     }
 
+    // The dashboard URL the README's marked section currently points at — the
+    // first non-shields.io link inside the labview-ci:dashboard section — or null.
+    // Used to detect a section copied/forked/templated from another repo (or left
+    // behind after a rename), whose badge still links that other repo's dashboard.
+    function markedDashboardUrl(text) {
+      const at = text.indexOf("<!-- labview-ci:dashboard -->");
+      if (at < 0) return null;
+      const seg = text.slice(at, at + 800);
+      const re = /\]\((https?:\/\/[^)\s]+)\)/g;
+      let m;
+      while ((m = re.exec(seg))) { if (!/img\.shields\.io/.test(m[1])) return m[1]; }
+      return null;
+    }
+
     // Fetch the repo's README (if any) and return a {path, content} that adds the
     // dashboard section near the top — or null when it already links the dashboard.
     async function buildReadmeFile(repo) {
@@ -1695,9 +1709,21 @@
       if (existing != null) {
         const hasMarker = /labview-ci:dashboard/.test(existing);
         const isMarkdown = /\.(md|markdown|mdown|mkdn?)$/i.test(path);
-        // Already linked from a real MARKDOWN README -> nothing to do (the badge
-        // and links render there, so a re-install must not duplicate the section).
-        if (hasMarker && isMarkdown) return null;
+        // Already linked from a real MARKDOWN README. A re-install must not
+        // duplicate the section -- BUT if the linked dashboard belongs to a
+        // DIFFERENT repo (the README was copied, forked, or templated from another
+        // repo, or the repo was renamed after a prior install) the badge and link
+        // still point at that other repo's dashboard. Rewrite the stale URL to THIS
+        // repo's dashboard in place; only when it already matches is there nothing
+        // to do (so a genuine re-install stays idempotent).
+        if (hasMarker && isMarkdown) {
+          const want = dashboardUrl(repo);
+          const have = markedDashboardUrl(existing);
+          if (have && have !== want) {
+            return { path, content: existing.split(have).join(want), isText: true };
+          }
+          return null;
+        }
         if (isMarkdown) {
           return { path, content: insertReadmeSection(existing, repo), isText: true };
         }
