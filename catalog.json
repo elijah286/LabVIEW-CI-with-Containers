@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.11",
+  "version": "4.1.12",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,19 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.12",
+        "date": "2026-06-25",
+        "title": "Wire the experimental-gated Windows Beta container copy + dashboard lane",
+        "type": "minor",
+        "summary": "Completes the four-container model. The Windows Beta worker container is now copied into a client's GHCR only when an experimental Windows capability (Antidoc today) is selected: its build files are owned by the antidoc capability, so they install only then, and the installer dispatches build-labview-windows-beta-image.yml with copy_only=true during install (it runs on ubuntu-latest and crane-copies the LCWC beta base, never rebuilds). The dashboard's Win Beta dependency lane now reads the windows-beta worker manifest (renamed from windows-experimental). VI Snapshots 2.0 is core; Antidoc is the sole experimental capability and the only thing that pulls in the Beta lane.",
+        "highlights": [
+          "Install copies the Windows Beta container only when an experimental Windows capability is selected; never rebuilt.",
+          "antidoc capability owns the Windows Beta build files, so they install only with Antidoc.",
+          "Dashboard Win Beta lane now reads the windows-beta worker manifest.",
+          "Four independent LCWC containers are fully wired end-to-end (build + install + dashboard + docs)."
+        ]
+      },
       {
         "version": "4.1.11",
         "date": "2026-06-25",
@@ -3743,7 +3756,9 @@
         ],
         "windows": [
           ".github/workflows/run-antidoc-windows-container.yml",
-          ".github/labview/run-antidoc.ps1"
+          ".github/labview/run-antidoc.ps1",
+          ".github/workflows/build-labview-windows-beta-image.yml",
+          ".github/docker/labview-ci-windows-beta.Dockerfile"
         ],
         "linux": []
       },

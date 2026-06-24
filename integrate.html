@@ -1249,6 +1249,7 @@
       const imgs = [];
       if (opts.buildWindowsImage) imgs.push("Windows");
       if (opts.buildLinuxImage) imgs.push("Linux");
+      if (opts.buildWindowsBeta) imgs.push("Windows Beta");
       installPlanSteps = [
         { id: "prepare", title: "Prepare install pull request", eta: "~1 min", state: "active", detail: "Reading the repo, fetching the selected tooling, and opening the install PR." },
         { id: "merge", title: "Merge install pull request", eta: opts.autoMerge ? "seconds" : "your review", state: "pending", detail: opts.autoMerge ? "The configurator will squash-merge it after the branch is ready." : "Review and merge the PR when you are ready; setup continues after the merge." }
@@ -1930,6 +1931,7 @@
       const targets = [];
       if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "build-labview-image.yml", dispatch: true, inputs: { copy_only: "true" } });
       if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "build-labview-linux-image.yml", dispatch: false });
+      if (setup.buildWindowsBeta) targets.push({ label: "Windows Beta worker image", workflow: "build-labview-windows-beta-image.yml", dispatch: true, inputs: { copy_only: "true" } });
       if (!targets.length) return "skipped";
       const states = {};
       const render = () => {
@@ -2479,7 +2481,8 @@
           autoMerge: !!($("optAutoMerge") && $("optAutoMerge").checked),
           hasDashboard: activities.includes("dashboard"),
           buildWindowsImage: activities.includes("custom-image") && osList.includes("windows"),
-          buildLinuxImage: activities.includes("custom-image") && osList.includes("linux")
+          buildLinuxImage: activities.includes("custom-image") && osList.includes("linux"),
+          buildWindowsBeta: osList.includes("windows") && (catalog.capabilities || []).some(c => isExperimental(c) && (c.supportsOs || []).includes("windows") && activities.includes(c.id))
         });
         if (opts.keepSettings && priorState && priorState.canKeep) {
           setup.kept = activities.map(actLabel).join(", ") + " \u00b7 LabVIEW " + version + " \u00b7 " + osList.join(", ");
@@ -2535,7 +2538,12 @@
         // built — so a fresh install must build it once. Remember whether to do that.
         setup.buildImage = activities.includes("custom-image") && osList.includes("windows");
         setup.buildLinuxImage = activities.includes("custom-image") && osList.includes("linux");
-        setup.buildImages = setup.buildImage || setup.buildLinuxImage;
+        // The Windows Beta (experimental) worker container is copied only when an
+        // experimental Windows capability (e.g. Antidoc) is selected. Its build files
+        // are owned by that capability, so they are only present when it is installed.
+        setup.buildWindowsBeta = osList.includes("windows") && (catalog.capabilities || []).some(c =>
+          isExperimental(c) && (c.supportsOs || []).includes("windows") && activities.includes(c.id));
+        setup.buildImages = setup.buildImage || setup.buildLinuxImage || setup.buildWindowsBeta;
 
         if ($("optReadme") && $("optReadme").checked && setup.hasDashboard) {
           setInsStatus("Preparing the README link&hellip;", null);
