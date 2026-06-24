@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "09e3368e9c6cc19c367321b224938a4a063125cf",
+  "sha": "cf88c13aa243e84c0a7b4e518a226038532c7f3e",
   "revisions": [
+    {
+      "sha": "cf88c13aa243e84c0a7b4e518a226038532c7f3e",
+      "short": "cf88c13",
+      "message": "Linux installs copy the shared LCWC base (source/client split) like Windows (4.1.6)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T13:43:41Z"
+    },
     {
       "sha": "09e3368e9c6cc19c367321b224938a4a063125cf",
       "short": "09e3368",
@@ -695,13 +702,6 @@
       "message": "Dependencies: mark Linux VIPC coverage pending (v3.34.17)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T11:57:15Z"
-    },
-    {
-      "sha": "7a7d6a226fb85361eb5f24c88111aba21d84e921",
-      "short": "7a7d6a2",
-      "message": "Release v3.34.16: preserve Windows timeout logs",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T11:47:01Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",

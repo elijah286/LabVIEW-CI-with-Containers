@@ -894,13 +894,14 @@ flowchart TD
         The Linux worker image (<code>build-labview-linux-image.yml</code>) keeps the gate job but builds on
         <code>ubuntu-latest</code> — Linux containers build on a Linux runner. The Linux&nbsp;Beta and the VI&nbsp;Browser
         2.0 render image (<code>-toimages</code>) build directly on <code>ubuntu-latest</code> with no separate gate.
-        Like the Windows worker, a Linux <strong>install/seed never bakes project dependencies</strong>: the Linux
-        builds are auto-triggered by the install merge (a <code>push</code>), and on a push they skip all project
-        <code>.vipc</code> staging and seed a plain NI&nbsp;+&nbsp;LabVIEW base — so install time is constant no matter
-        how many <code>.vipc</code> / <code>.dragon</code> files the repo ships. Project dependencies are baked only on
-        an explicit dependency rebuild (a manual <code>workflow_dispatch</code> from the Dependencies page or the
-        monthly base-image rebuild), exactly as the dashboard's &ldquo;dependencies need to be installed&rdquo; banner
-        prompts.</div>
+        Linux now follows the <strong>same source/client copy model as Windows</strong>: the source repo builds the
+        shared Linux base and publishes it (<code>…-labview:linux-2026</code>, and the Beta <code>:linux-beta-2026</code>),
+        and every <strong>client install copies that base</strong> with <code>crane</code> into the client's own
+        package — a fast registry copy, not a rebuild — so a Linux install is as quick as a Windows install and never
+        scales with the number of <code>.vipc</code> / <code>.dragon</code> files. A Linux <strong>install/seed never
+        bakes project dependencies</strong>; baking happens only on an explicit dependency rebuild (a
+        <code>workflow_dispatch</code> from the Dependencies page or the monthly base-image rebuild), exactly as the
+        dashboard's &ldquo;dependencies need to be installed&rdquo; banner prompts.</div>
 
       <h3>Complete runner inventory</h3>
       <p>Every workflow in the repository, the runner(s) it uses, what triggers it, and the conditions under which it
