@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "62ff9987faa4a028b0a9ddbaf09fed8e953b9d3a",
+  "sha": "0c62d04394d8a6c1eb3af891bbb8f601820afb2d",
   "revisions": [
+    {
+      "sha": "0c62d04394d8a6c1eb3af891bbb8f601820afb2d",
+      "short": "0c62d04",
+      "message": "configure: Actions table with per-action Linux/Windows platforms + dependency-policy options (3.47.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T01:21:44Z"
+    },
     {
       "sha": "62ff9987faa4a028b0a9ddbaf09fed8e953b9d3a",
       "short": "62ff998",
@@ -695,13 +702,6 @@
       "message": "Release 3.33.0: VIPC/UTF milestone + VI Browser 2.0 platform dispatch",
       "author": "Elijah Kerry",
       "date": "2026-06-21T19:19:15Z"
-    },
-    {
-      "sha": "1ce885c0b4d6e3131298765b739a947a2e166055",
-      "short": "1ce885c",
-      "message": "install-vipc: apply required project VIPCs before best-effort tooling",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T19:12:00Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
