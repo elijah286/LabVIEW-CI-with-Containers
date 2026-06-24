@@ -1928,7 +1928,7 @@
 
     async function watchInstallImageBuilds(repo, branch, setup, sinceMs) {
       const targets = [];
-      if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "build-labview-image.yml", dispatch: true });
+      if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "build-labview-image.yml", dispatch: true, inputs: { copy_only: "true" } });
       if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "build-labview-linux-image.yml", dispatch: false });
       if (!targets.length) return "skipped";
       const states = {};
@@ -1941,7 +1941,7 @@
         const startedAt = Date.now();
         if (t.dispatch) {
           states[t.label] = "queuing"; render();
-          const queued = await dispatchWorkflow(repo, t.workflow, branch);
+          const queued = await dispatchWorkflow(repo, t.workflow, branch, t.inputs);
           if (!queued) { states[t.label] = "could not queue automatically"; render(); return "warn"; }
         } else {
           states[t.label] = "waiting for GitHub to start it from the install merge"; render();

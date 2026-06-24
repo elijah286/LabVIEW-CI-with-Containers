@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.6",
+  "version": "4.1.7",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,19 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.7",
+        "date": "2026-06-25",
+        "title": "Install now actually dispatches the Windows worker build as a copy (not a build)",
+        "type": "patch",
+        "summary": "Fixes the install flow so the Windows worker image is copied, not rebuilt. The copy_only=true plumbing (4.1.3/4.1.4) was added to a helper (buildWorkerImageNow) that the install flow never called: the actual installer path (watchInstallImageBuilds) dispatched build-labview-image.yml with NO inputs, so copy_only defaulted to false. That made the Windows build run on windows-2022 and -- for any repo shipping a project VIPC (e.g. COTC Dependencies.vipc) -- docker-build/bake the dependencies at install time (the slow path), exactly the build the install is supposed to avoid. The installer now dispatches the Windows build with copy_only=true, so it runs on ubuntu-latest and crane-copies the LCWC base in a couple of minutes. (The Linux build was already correct: it is push-triggered and uses the event-based seed gate, so it copied.)",
+        "highlights": [
+          "Install dispatches the Windows worker build with copy_only=true, so it copies on ubuntu-latest instead of building/baking on windows-2022.",
+          "Root cause: the copy_only dispatch lived in an unused helper; the real install path sent no inputs.",
+          "Repos that ship a project VIPC no longer trigger a ~90-min dependency bake during install.",
+          "Linux/Beta installs were already copying (push-triggered seed gate); only the Windows dispatch was affected."
+        ]
+      },
       {
         "version": "4.1.6",
         "date": "2026-06-25",
