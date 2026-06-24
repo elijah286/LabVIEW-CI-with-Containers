@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "909dea81a9b89e587ef37e0209f58346d67d3ec3",
+  "sha": "63bb4b9da14710d38ff337b59c9facd1c79f9d83",
   "revisions": [
+    {
+      "sha": "63bb4b9da14710d38ff337b59c9facd1c79f9d83",
+      "short": "63bb4b9",
+      "message": "Make the Linux worker symmetric with Windows: opt-in bake, separate install copy (4.1.19)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T18:21:56Z"
+    },
     {
       "sha": "909dea81a9b89e587ef37e0209f58346d67d3ec3",
       "short": "909dea8",
@@ -695,13 +702,6 @@
       "message": "Dependencies: Linux note becomes a column info popover; fix squeezed Win Beta popover (v3.35.4)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T15:54:44Z"
-    },
-    {
-      "sha": "4a6eaa53e8ed855408b3cf46413c0c92ae67006d",
-      "short": "4a6eaa5",
-      "message": "Fix dependency table alignment and checkbox status",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T14:11:06Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
