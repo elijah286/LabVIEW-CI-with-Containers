@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "70f406ffdf36f7869e8704e945e34ef9e14b9414",
+  "sha": "09e3368e9c6cc19c367321b224938a4a063125cf",
   "revisions": [
+    {
+      "sha": "09e3368e9c6cc19c367321b224938a4a063125cf",
+      "short": "09e3368",
+      "message": "Linux installs seed without baking project deps; constant install time (4.1.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T13:13:16Z"
+    },
     {
       "sha": "70f406ffdf36f7869e8704e945e34ef9e14b9414",
       "short": "70f406f",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.16: preserve Windows timeout logs",
       "author": "Elijah Kerry",
       "date": "2026-06-22T11:47:01Z"
-    },
-    {
-      "sha": "6c2c6629baf2f627da10b993f405f32c3d59229f",
-      "short": "6c2c662",
-      "message": "Release v3.34.15: cancel superseded Windows renders",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T11:39:40Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
