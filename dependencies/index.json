@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "65aff5dc69883236c65a2a225367b5c2e4c66b66",
+  "sha": "ced05c23599837fe9f3406a066086a60a5a54bbf",
   "revisions": [
+    {
+      "sha": "ced05c23599837fe9f3406a066086a60a5a54bbf",
+      "short": "ced05c2",
+      "message": "configure: Container & Dependencies tab; auto-rebuild Monitor opt-in, OFF by default (3.50.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T04:31:59Z"
+    },
     {
       "sha": "65aff5dc69883236c65a2a225367b5c2e4c66b66",
       "short": "65aff5d",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.3: fix VI Browser 2.0 dispatch target refs",
       "author": "Elijah Kerry",
       "date": "2026-06-22T03:12:03Z"
-    },
-    {
-      "sha": "5019c35ccba6faf7620685449cc995b8c24ff263",
-      "short": "5019c35",
-      "message": "Release v3.34.2: Windows VI Browser 2.0 renders and dashboard tooling updates",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T02:56:38Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
