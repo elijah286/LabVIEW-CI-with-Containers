@@ -51,6 +51,20 @@ on:
         description: 'VI Browser render matrix as classic::<oses>;positionAware::<oses> (oses joined by +, e.g. positionAware::windows+linux; "none" to disable a generation; blank = keep current)'
         required: false
         default: ''
+      action_os:
+        description: 'Per-action platforms as id::oses pairs separated by ; (oses joined by +, e.g. masscompile::windows+linux;snapshots::windows; "none" to run nowhere; blank = keep current)'
+        required: false
+        default: ''
+      require_dependencies:
+        description: 'Require all dependencies to be installed before running actions (keep = leave unchanged)'
+        type: choice
+        options: [keep, 'true', 'false']
+        default: keep
+      auto_install_dependencies:
+        description: 'Automatically install missing dependencies and rebuild containers before running actions (keep = leave unchanged)'
+        type: choice
+        options: [keep, 'true', 'false']
+        default: keep
       via_default:
         description: 'VI Analyzer default test configuration: builtin (full suite), none (skip unmatched VIs), or a committed .viancfg path (blank = keep current)'
         required: false
@@ -96,6 +110,9 @@ jobs:
           IN_CONTAINER_ACTIONS: ${{ inputs.container_actions }}
           IN_ACTION_TRIGGERS: ${{ inputs.action_triggers }}
           IN_VI_BROWSER: ${{ inputs.vi_browser }}
+          IN_ACTION_OS: ${{ inputs.action_os }}
+          IN_REQUIRE_DEPS: ${{ inputs.require_dependencies }}
+          IN_AUTO_INSTALL_DEPS: ${{ inputs.auto_install_dependencies }}
           IN_VIA_DEFAULT: ${{ inputs.via_default }}
           IN_VIA_RULES: ${{ inputs.via_rules }}
           IN_UNIT_TESTS: ${{ inputs.unit_tests }}
@@ -113,6 +130,9 @@ jobs:
           container_actions_in = os.environ.get('IN_CONTAINER_ACTIONS', '').strip()
           action_triggers_in = os.environ.get('IN_ACTION_TRIGGERS', '').strip()
           vi_browser_in = os.environ.get('IN_VI_BROWSER', '').strip()
+          action_os_in = os.environ.get('IN_ACTION_OS', '').strip()
+          require_deps_in = os.environ.get('IN_REQUIRE_DEPS', '').strip().lower()
+          auto_install_in = os.environ.get('IN_AUTO_INSTALL_DEPS', '').strip().lower()
           via_default_in = os.environ.get('IN_VIA_DEFAULT', '').strip()
           via_rules_in = os.environ.get('IN_VIA_RULES', '').strip()
           unit_tests_in = os.environ.get('IN_UNIT_TESTS', '').strip()
@@ -120,19 +140,23 @@ jobs:
           # Preserve provenance fields from any existing manifest.
           mpath = pathlib.Path('.github/labview-ci.yml')
           prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main',
-                  'container_use': '', 'vipc': [], 'actions': {}, 'triggers': {}, 'viBrowser': {}, 'unitTests_block': [],
+                  'container_use': '', 'vipc': [], 'actions': {}, 'triggers': {}, 'viBrowser': {}, 'actionOs': {}, 'dependencyPolicy': {}, 'unitTests_block': [],
                   'labviewVersion': '', 'os': [], 'maxParallel': None}
           if mpath.exists():
-              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_ut = False; cur_vipc = None
+              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_action_os = False; in_dep_policy = False; in_ut = False; cur_vipc = None
               for line in mpath.read_text(encoding='utf-8').splitlines():
                   if re.match(r'^\s*activities:\s*$', line):
-                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
+                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_action_os = False; in_dep_policy = False; continue
                   if re.match(r'^\s*container:\s*$', line):
-                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
+                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_action_os = False; in_dep_policy = False; continue
                   if re.match(r'^\s*triggers:\s*$', line):
-                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_vibrowser = False; continue
+                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_vibrowser = False; in_action_os = False; in_dep_policy = False; continue
                   if re.match(r'^\s*viBrowser:\s*$', line):
-                      in_vibrowser = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; continue
+                      in_vibrowser = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_action_os = False; in_dep_policy = False; continue
+                  if re.match(r'^\s*actionOs:\s*$', line):
+                      in_action_os = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_dep_policy = False; continue
+                  if re.match(r'^\s*dependencyPolicy:\s*$', line):
+                      in_dep_policy = True; in_action_os = False; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
                   if re.match(r'^unitTests:\s*$', line):
                       in_ut = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False
                       prev['unitTests_block'] = [line]; continue
@@ -152,6 +176,14 @@ jobs:
                       m = re.match(r'^\s{4}(classic|positionAware):\s*(\S+)', line)
                       if m: prev['viBrowser'][m.group(1)] = m.group(2); continue
                       if re.match(r'^\s{0,3}\S', line): in_vibrowser = False
+                  if in_action_os:
+                      m = re.match(r'^\s{4}([A-Za-z0-9_.\-]+):\s*(\S+)', line)
+                      if m: prev['actionOs'][m.group(1)] = m.group(2); continue
+                      if re.match(r'^\s{0,3}\S', line): in_action_os = False
+                  if in_dep_policy:
+                      m = re.match(r'^\s{4}(requireInstalled|autoInstall):\s*(\S+)', line)
+                      if m: prev['dependencyPolicy'][m.group(1)] = m.group(2); continue
+                      if re.match(r'^\s{0,3}\S', line): in_dep_policy = False
                   if in_container:
                       m = re.match(r'^\s{4}use:\s*"?([^"\s]+)"?', line)
                       if m: prev['container_use'] = m.group(1); in_vipc = False; in_actions = False; continue
@@ -245,6 +277,18 @@ jobs:
                   if k and v: out[k] = v
               return out
           vi_browser = _parse_vibrowser(vi_browser_in) if vi_browser_in else prev['viBrowser']
+
+          # Per-action platforms (config.actionOs): same id::oses;.. shape as the
+          # VI Browser matrix. Explicit input wins; blank keeps the manifest's.
+          action_os = _parse_vibrowser(action_os_in) if action_os_in else prev['actionOs']
+
+          # Dependency policy: explicit input wins; "keep"/blank preserves.
+          def _dep_bool(in_val, key):
+              if in_val in ('', 'keep'):
+                  return str(prev['dependencyPolicy'].get(key, '')).lower() == 'true'
+              return in_val == 'true'
+          require_installed = _dep_bool(require_deps_in, 'requireInstalled')
+          auto_install = _dep_bool(auto_install_in, 'autoInstall')
 
           # VI Analyzer: which .viancfg test config runs on which code. Explicit
           # inputs win; blank keeps the manifest's. Parsed on its own (nested rules).
@@ -347,6 +391,14 @@ jobs:
               lines.append('  triggers:')
               for _id in sorted(triggers):
                   lines.append(f'    {_id}: {triggers[_id]}')
+          if action_os:
+              lines.append('  actionOs:')
+              for _id in sorted(action_os):
+                  lines.append(f'    {_id}: {action_os[_id]}')
+          if require_installed or auto_install:
+              lines.append('  dependencyPolicy:')
+              lines.append(f"    requireInstalled: {'true' if require_installed else 'false'}")
+              lines.append(f"    autoInstall: {'true' if auto_install else 'false'}")
           lines += ['activities:'] + [f'  - {a}' for a in acts] + ['']
           def _unit_tests_block_from_json(s):
               data = json.loads(s)
