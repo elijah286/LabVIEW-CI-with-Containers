@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "b1ddf9344568b8406bd6da89cfb2ecfe5fcbb8e6",
+  "sha": "9accee13f65d68296e28bbe4269e1e2fd13d758f",
   "revisions": [
+    {
+      "sha": "9accee13f65d68296e28bbe4269e1e2fd13d758f",
+      "short": "9accee1",
+      "message": "Name worker-image runs Copy vs Build to reflect what they do (4.1.8)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T14:17:20Z"
+    },
     {
       "sha": "b1ddf9344568b8406bd6da89cfb2ecfe5fcbb8e6",
       "short": "b1ddf93",
@@ -695,13 +702,6 @@
       "message": "Make Windows runners use shared worker by default",
       "author": "Elijah Kerry",
       "date": "2026-06-22T12:30:41Z"
-    },
-    {
-      "sha": "4d6ac8dcd5d5fb2a1b25016f9449917dc1dc0f53",
-      "short": "4d6ac8d",
-      "message": "Release v3.34.18: fail Windows zero-frame renders",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T12:22:56Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
