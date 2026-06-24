@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.18",
+  "version": "4.1.19",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.19",
+        "date": "2026-06-24",
+        "title": "Linux worker matches Windows: dependency updates are opt-in, with a separate install copy",
+        "type": "minor",
+        "summary": "The Linux worker now behaves identically to the Windows worker. It no longer treats a push as an install seed: the install seed is a dedicated copy-labview-linux-image.yml (a fast crane copy of the shared LCWC Linux base, dispatched once on install, mirroring copy-labview-image.yml), and build-labview-linux-image.yml is now bake-only. A project dependency change does NOT rebuild the Linux worker by default -- the user is notified by the dashboard banner and applies the update on demand -- unless the .vipc is flagged Monitor (the per-file opt-in, off by default), in which case a push that changes it rebuilds and re-pushes the worker, exactly like Windows.",
+        "highlights": [
+          "Adds copy-labview-linux-image.yml (the Linux install seed) and makes the installer dispatch it, mirroring the Windows Build/Copy split.",
+          "build-labview-linux-image.yml is now bake-only: it no longer seeds on a push; its push trigger watches monitored project *.vipc only, and the gate rebuilds only on a monitored change or an explicit dispatch / monthly cron.",
+          "Linux and Windows now share the same opt-in monitored auto-rebuild behavior (off by default), so the Build operation is symmetric across platforms."
+        ]
+      },
       {
         "version": "4.1.18",
         "date": "2026-06-24",
@@ -3730,6 +3742,7 @@
         ],
         "linux": [
           ".github/workflows/build-labview-linux-image.yml",
+          ".github/workflows/copy-labview-linux-image.yml",
           ".github/docker/labview-ci-linux.Dockerfile",
           ".github/labview/vipm/install-vipc-linux.sh"
         ]

@@ -1972,7 +1972,7 @@
     async function watchInstallImageBuilds(repo, branch, setup, sinceMs) {
       const targets = [];
       if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "copy-labview-image.yml", dispatch: true });
-      if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "build-labview-linux-image.yml", dispatch: false });
+      if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "copy-labview-linux-image.yml", dispatch: true });
       if (setup.buildWindowsBeta) targets.push({ label: "Windows Beta worker image", workflow: "build-labview-windows-beta-image.yml", dispatch: true, inputs: { copy_only: "true" } });
       if (!targets.length) return "skipped";
       const states = {};
@@ -2204,9 +2204,10 @@
         setInsBar(0.62);
         const nx = $("insNext"); if (nx) nx.style.display = "none";
 
-        // Build/watch worker container images now so the container CI activities have
-        // an image to run in. Windows is dispatched here; Linux starts from the merge
-        // push because its workflow file is part of the install. Both are tracked.
+        // Seed the worker container images now so the container CI activities have an
+        // image to run in. Windows and Linux each dispatch their dedicated Copy workflow
+        // (copy-labview-image.yml / copy-labview-linux-image.yml) -- a fast registry copy
+        // of the shared LCWC base, no dependency build. Both are tracked.
         const mergeAt = Date.now();
         const imagePromise = setup.buildImages ? watchInstallImageBuilds(repo, setup.branch, setup, mergeAt) : Promise.resolve("skipped");
         async function finishAfterImages(kind, message) {
