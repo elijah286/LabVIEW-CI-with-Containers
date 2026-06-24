@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "f103d9ae882510ae9cc9bf3c30afa72e237eaf8a",
+  "sha": "4eda8af4a0d3a6c16ecc35b0fb727b9d7d02d5fe",
   "revisions": [
+    {
+      "sha": "4eda8af4a0d3a6c16ecc35b0fb727b9d7d02d5fe",
+      "short": "4eda8af",
+      "message": "Don't run VI Snapshots when installing the pipeline (4.1.22)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T19:15:09Z"
+    },
     {
       "sha": "f103d9ae882510ae9cc9bf3c30afa72e237eaf8a",
       "short": "f103d9a",
@@ -695,13 +702,6 @@
       "message": "Robust fresh install: auto-build the worker image, wait for it, fix non-markdown README (v3.36.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T16:28:45Z"
-    },
-    {
-      "sha": "ef19a2650ed701376267b7eaf8ae5e38db085283",
-      "short": "ef19a26",
-      "message": "Dashboard: don't reload (and destroy an open dialog) mid-install (v3.35.6)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T16:00:19Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
