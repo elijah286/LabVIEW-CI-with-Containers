@@ -1251,11 +1251,11 @@
       if (opts.buildLinuxImage) imgs.push("Linux");
       if (opts.buildWindowsBeta) imgs.push("Windows Beta");
       installPlanSteps = [
-        { id: "prepare", title: "Prepare install pull request", eta: "~1 min", state: "active", detail: "Reading the repo, fetching the selected tooling, and opening the install PR." },
-        { id: "merge", title: "Merge install pull request", eta: opts.autoMerge ? "seconds" : "your review", state: "pending", detail: opts.autoMerge ? "The configurator will squash-merge it after the branch is ready." : "Review and merge the PR when you are ready; setup continues after the merge." }
+        { id: "prepare", title: "Prepare install pull request", eta: "under 1 min", state: "active", detail: "Reading the repo, fetching the selected tooling, and opening the install PR." },
+        { id: "merge", title: "Merge install pull request", eta: opts.autoMerge ? "a few seconds" : "your review", state: "pending", detail: opts.autoMerge ? "The configurator will squash-merge it after the branch is ready." : "Review and merge the PR when you are ready; setup continues after the merge." }
       ];
-      if (opts.hasDashboard !== false) installPlanSteps.push({ id: "dashboard", title: "Publish dashboard", eta: "1-3 min", state: "pending", detail: "GitHub Pages builds the dashboard and this page waits until the link is live." });
-      if (imgs.length) installPlanSteps.push({ id: "image", title: "Copy worker container image" + (imgs.length > 1 ? "s" : ""), eta: "~1 min", state: "pending", detail: `Copies the shared LabVIEW container into ${esc(imgs.join(" + "))}; your project's VIPC/Dragon dependencies are applied later via a separate, opt-in action.` });
+      if (opts.hasDashboard !== false) installPlanSteps.push({ id: "dashboard", title: "Publish dashboard", eta: "5-8 min", state: "pending", detail: "GitHub Pages builds the dashboard and this page waits until the link is live." });
+      if (imgs.length) installPlanSteps.push({ id: "image", title: "Copy worker container image" + (imgs.length > 1 ? "s" : ""), eta: "30-60 sec", state: "pending", detail: `Copies the shared LabVIEW container into ${esc(imgs.join(" + "))}; your project's VIPC/Dragon dependencies are applied later via a separate, opt-in action.` });
       installPlanSteps.push({ id: "ready", title: "Ready for CI runs", eta: "done", state: "pending", detail: "Dashboard link works and selected container workers are available." });
       renderInstallPlan();
     }
