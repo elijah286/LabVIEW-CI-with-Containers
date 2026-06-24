@@ -198,9 +198,14 @@ jobs:
     # always(): coordination is best-effort, so a coordinate hiccup must never
     # block the actual rebuild -- only the gate decision gates the build.
     if: always() && needs.gate.outputs.build == 'true'
-    # IMPORTANT: windows-latest resolves to Server 2025 which has a broken
-    # Docker daemon. Always pin to windows-2022.
-    runs-on: windows-2022
+    # The dependency-bake path needs the Windows Docker daemon, so it pins to
+    # windows-2022 (windows-latest = Server 2025, broken Docker daemon). The
+    # copy_only install/seed path uses ONLY crane (registry-to-registry) and
+    # Python -- no Docker -- so it runs on ubuntu-latest, whose much faster
+    # network copies the multi-GB base image in a fraction of the time. crane is
+    # OS-agnostic for registry copies: a Linux runner can copy a Windows image's
+    # manifest and blobs because it only moves bytes/refs, never runs the image.
+    runs-on: ${{ github.event.inputs.copy_only == 'true' && 'ubuntu-latest' || 'windows-2022' }}
 
     steps:
       - name: Checkout repository
@@ -314,6 +319,9 @@ jobs:
           PY
 
       - name: Ensure Docker daemon is running
+        # Only the Windows dependency-bake path uses Docker. The ubuntu copy_only
+        # path copies at the registry level (crane) and never touches Docker.
+        if: ${{ github.event.inputs.copy_only != 'true' }}
         shell: powershell
         run: ./.github/labview/ensure-docker.ps1
 
@@ -322,21 +330,27 @@ jobs:
       # no dependency on docker buildx (which is not installed on the Windows
       # runner). It authenticates from the docker config written by docker/login.
       - name: Set up crane (registry copy tool)
-        shell: powershell
+        # pwsh (PowerShell 7) is preinstalled on BOTH windows-2022 and
+        # ubuntu-latest, so this one step provisions crane for the Windows bake
+        # path and the ubuntu copy path. The release asset and binary name differ
+        # per OS, so pick them from $RUNNER_OS.
+        shell: pwsh
         run: |
           $ver = 'v0.20.2'
-          $url = "https://github.com/google/go-containerregistry/releases/download/$ver/go-containerregistry_Windows_x86_64.tar.gz"
+          $osName = if ($env:RUNNER_OS -eq 'Windows') { 'Windows' } else { 'Linux' }
+          $url = "https://github.com/google/go-containerregistry/releases/download/$ver/go-containerregistry_${osName}_x86_64.tar.gz"
           $tgz = Join-Path $env:RUNNER_TEMP 'crane.tar.gz'
           $dir = Join-Path $env:RUNNER_TEMP 'crane'
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
           Invoke-WebRequest -Uri $url -OutFile $tgz -UseBasicParsing
           tar -xzf $tgz -C $dir
           "$dir" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-          & "$dir\crane.exe" version
+          $craneExe = if ($env:RUNNER_OS -eq 'Windows') { Join-Path $dir 'crane.exe' } else { Join-Path $dir 'crane' }
+          & $craneExe version
 
       - name: Prepare LCWC base image
         id: base
-        shell: powershell
+        shell: pwsh
         run: |
           $baseImage = '${{ env.LCWC_BASE_IMAGE }}'
           if (-not $baseImage.Contains(':')) { $baseImage = "${baseImage}:${{ env.DEFAULT_TAG }}" }
@@ -384,7 +398,7 @@ jobs:
       # repo VIPC layer inputs. Same inputs -> same immutable worker tag.
       - name: Compute worker version
         id: ver
-        shell: powershell
+        shell: pwsh
         run: |
           $vipcFiles = @(Get-ChildItem '.github/labview/vipm' -Filter *.vipc -File | Sort-Object Name)
           $files = @()
@@ -412,7 +426,7 @@ jobs:
           Write-Host "Worker version: $version"
 
       - name: Build and push LabVIEW CI image
-        shell: powershell
+        shell: pwsh
         run: |
           $base  = '${{ env.IMAGE_NAME }}'
           $ver   = '${{ env.DEFAULT_TAG }}'
@@ -450,7 +464,7 @@ jobs:
           }
 
           if ($vipcCount -eq 0) {
-            Write-Host "::notice::No repository VIPC dependencies are selected. Fast path: copying the LCWC base image into this repository's GHCR worker package at the REGISTRY level (crane copy) -- the multi-gigabyte layers are blob-mounted server-side, never downloaded to or re-uploaded from the runner, so this takes seconds, not minutes."
+            Write-Host "::notice::No repository VIPC dependencies are selected. Fast path: copying the LCWC base image into this repository's GHCR worker package at the REGISTRY level (crane copy). Cross-repo blob mounting only applies when the token was granted access to the source package, so a client install transfers the multi-gigabyte layers through the runner -- which is why the copy_only path runs on ubuntu-latest, whose fast network completes the copy in a couple of minutes instead of the ~8+ minutes a Windows runner takes."
             $immutable = "${base}:${wv}"
             crane copy $lcwcBase $immutable
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -484,7 +498,7 @@ jobs:
       # All of this is best-effort: a hiccup here must not fail an otherwise good
       # image build (the image is already pushed by this point).
       - name: Generate worker manifest
-        shell: powershell
+        shell: pwsh
         run: |
           $base   = '${{ env.IMAGE_NAME }}'
           $wv     = '${{ steps.ver.outputs.version }}'
