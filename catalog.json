@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.49.0",
+  "version": "3.50.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.50.0",
+        "date": "2026-06-23",
+        "title": "Configure: Container & Dependencies tab with opt-in auto-rebuild",
+        "type": "minor",
+        "summary": "The Configure tool gains a Container & Dependencies tab for choosing the default worker container, picking which repository VIPC files are baked into it, and editing the VIPM tooling packages -- with live previews of labview-ci.yml and ci-tooling.packages.json and an on-demand build/update command. VIPC files are de-selected by default, and a per-file Monitor toggle that auto-rebuilds and re-pushes the container when that file changes is OFF by default: the container is only ever rebuilt when a client explicitly opts in, never as a side effect of a commit. Clients who want the container to track a dependency file automatically can turn Monitor on per file.",
+        "highlights": [
+          "Adds a Container & Dependencies tab to Configure (default container, baked VIPC selection, VIPM packages, on-demand build command, and file previews).",
+          "Per-file Monitor (auto-rebuild and re-push the container on change) is opt-in and OFF by default, preserving the existing 'never auto-rebuild on commit' behavior unless a client enables it.",
+          "Stores the monitor choice as a path::monitor pair through reconfigure.yml and as a monitor flag in labview-ci.yml; bare paths default to monitor off."
+        ]
+      },
       {
         "version": "3.49.0",
         "date": "2026-06-23",
