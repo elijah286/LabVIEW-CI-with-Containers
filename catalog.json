@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.5",
+  "version": "4.1.6",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,19 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.6",
+        "date": "2026-06-25",
+        "title": "Linux installs copy the shared LCWC base too -- as fast as Windows",
+        "type": "patch",
+        "summary": "Linux now uses the same source/client copy model as Windows. Previously every client rebuilt its Linux worker from the public NI image (a full docker buildx build, ~10-20 min); now the source repo builds and publishes the shared Linux base (ghcr.io/<lcwc>/...-labview:linux-2026, and the Beta :linux-beta-2026) and every client install just crane-copies that base into its own GHCR package -- a fast registry-to-registry copy on ubuntu-latest, no rebuild. The copy produces an independent, client-owned image (verified the LCWC Linux images are public and pullable); the lowercase GHCR reference is immune to the installer's branding rewrite so it keeps pointing at LCWC. Both build-labview-linux-image.yml and build-labview-linux-beta-image.yml gained the source-vs-client split, a crane setup step, copy-aware worker-version and manifest generation, and the docker build path is kept only for the source base build and the opt-in dependency bake. Also fixed a stray heredoc-terminator (PY) in the Linux gate step that made its build-and-push job evaluate as skipped.",
+        "highlights": [
+          "Linux + Linux-beta client installs now crane-copy the shared LCWC base instead of rebuilding from the NI image -- a fast registry copy, like Windows.",
+          "Source repo builds and publishes the shared Linux base; clients duplicate it into their own package as an independent, customizable image.",
+          "Fixed a stray 'PY' artifact in the Linux gate that had been skipping the Linux build-and-push job.",
+          "Dependency baking on Linux stays the opt-in docker build path; install never bakes and never scales with .vipc/.dragon count."
+        ]
+      },
       {
         "version": "4.1.5",
         "date": "2026-06-25",
