@@ -291,7 +291,7 @@ config:
   container:
     use: latest           # tag every action uses by default
     vipc:
-      - { path: Dependencies.vipc, monitor: true }
+      - { path: Dependencies.vipc }
     actions:              # per-action image overrides
       masscompile: base   # bare NI image
       vidiff: "2026"      # pinned tag
@@ -384,15 +384,15 @@ ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware 
         VIPM packages baked in, so a worker image is fully auditable.</p>
 
       <h3>When images rebuild</h3>
-      <p>The build is triggered by a push that changes a monitored <code>.vipc</code> file, by the monthly cron
-        (to pick up base-image updates), or by manual dispatch. A gate job deliberately <em>skips</em> rebuilds when
-        the only changed <code>.vipc</code> files are marked <code>monitor: false</code> — that is the "bake once,
-        pin forever" path.</p>
+      <p>A worker rebuild is a heavy, opt-in operation. It runs when you apply a dependency update from the dashboard's
+        <em>Review &amp; update dependencies</em> dialog, on the monthly cron (to pick up base-image security updates),
+        or by manual dispatch. Adding or changing a project <code>.vipc</code> never triggers a rebuild on its own &mdash;
+        the dashboard simply flags that dependencies need installing until you choose to run the update.</p>
 
       <h3>Dependency gate (activities wait for the rebuild)</h3>
       <p>VIPC files are the source of truth for a repo's project dependencies, so the container-based activities must
-        never run against a worker image that predates a dependency change. When a push changes a monitored
-        <code>.vipc</code> (or any other worker input), the activity workflows — VI Analyzer, Mass Compile, Unit Tests,
+        never run against a worker image that predates a dependency update. While a worker rebuild is in progress, the
+        activity workflows &mdash; VI Analyzer, Mass Compile, Unit Tests,
         Antidoc, and VIDiff — call <code>.github/labview/wait-for-worker-images.sh</code> before they pull the image
         and <strong>block</strong> until the worker image build(s) for that revision finish. In the reusable workflow a
         single <code>gate-images</code> job does this and the dependency-consuming jobs <code>need</code> it. If the
@@ -502,11 +502,10 @@ docker run --rm `
           <code>No packages were installed</code>. The hook treats that text as a failed apply and continues to the
           package-spec and local-file fallback paths.</li>
       </ol>
-      <div class="note"><span class="lbl">Discovery, monitoring &amp; the base/project stack</span>
+      <div class="note"><span class="lbl">Discovery &amp; the base/project stack</span>
         Every <code>.vipc</code> in the repo (discovered recursively, outside <code>.github/</code>) is treated as
-        project dependency source-of-truth and baked into the worker by default; the Configure dialog lists them all
-        <em>selected</em> and <em>monitored</em>, and you can un-tick or stop monitoring individual files (written back
-        as <code>config.container.vipc</code> entries with <code>monitor: true|false</code>). The tooling also ships a
+        project dependency source-of-truth; the Configure dialog lists them all and you pick which to bake into the
+        worker (written back as <code>config.container.vipc</code> entries). The tooling also ships a
         base configuration — <code>.github/labview/vipm/ci-tooling.vipc</code> — that is always applied first; a
         project's own discovered VIPC files stack on top of it. When this template repo updates that base, consumers
         receive the new base on their next tooling update and the next container rebuild re-applies base + project
@@ -816,9 +815,8 @@ flowchart TD
         expensive Windows runner is reserved for the actual Docker build.</p>
       <div class="mermaid">
 flowchart TD
-  T["push **.vipc / monthly cron / workflow_dispatch"] --> G{"gate &middot; ubuntu-latest&lt;br/&gt;should we rebuild?"}
-  G -->|"only monitor:false .vipc"| SK["skip &mdash; bake-once / pin"]
-  G -->|"dispatch / cron / worker input changed"| CO["coordinate &middot; ubuntu-latest&lt;br/&gt;drain or cancel in-flight CI"]
+  T["dependency update (dashboard) / monthly cron / workflow_dispatch"] --> G{"gate &middot; ubuntu-latest&lt;br/&gt;rebuild is always intended"}
+  G --> CO["coordinate &middot; ubuntu-latest&lt;br/&gt;drain or cancel in-flight CI"]
   CO --> B["build-and-push &middot; windows-2022"]
   B --> P{"Prepare LCWC base"}
   P -->|"no VIPC"| CP["copy / tag base &mdash; seconds"]
@@ -858,9 +856,9 @@ flowchart TD
       <table>
         <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
         <tbody>
-          <tr><td>Build LabVIEW CI Image (Windows worker)</td><td><span class="pill lin">ubuntu-latest</span> gate + coordinate, <span class="pill win">windows-2022</span> build</td><td>push <code>**.vipc</code> (excl. <code>.github/</code>), monthly cron, dispatch</td><td>Gate skips if only <code>monitor:false</code> VIPCs changed; copies the LCWC base when no VIPC, else builds the dependency layer.</td></tr>
-          <tr><td>Build LabVIEW CI Image — Linux</td><td><span class="pill lin">ubuntu-latest</span> (gate + build)</td><td>push VIPC / Linux Dockerfile, monthly cron, dispatch</td><td>Linux worker image; same gate logic.</td></tr>
-          <tr><td>Build LabVIEW CI Image — Linux Beta</td><td><span class="pill lin">ubuntu-latest</span></td><td>push VIPC / beta Dockerfile, monthly cron, dispatch</td><td>Experimental VIPM-enabled Linux lane.</td></tr>
+          <tr><td>Build LabVIEW CI Image (Windows worker)</td><td><span class="pill lin">ubuntu-latest</span> gate + coordinate, <span class="pill win">windows-2022</span> build</td><td>monthly cron, dispatch (dashboard &ldquo;Review &amp; update dependencies&rdquo; or manual)</td><td>Never auto-triggered by a project VIPC change; copies the LCWC base when no VIPC, else builds the dependency layer.</td></tr>
+          <tr><td>Build LabVIEW CI Image &mdash; Linux</td><td><span class="pill lin">ubuntu-latest</span> (gate + build)</td><td>push to the Linux build recipe, monthly cron, dispatch</td><td>Linux worker image; not triggered by project VIPC changes.</td></tr>
+          <tr><td>Build LabVIEW CI Image &mdash; Linux Beta</td><td><span class="pill lin">ubuntu-latest</span></td><td>push to the beta build recipe, monthly cron, dispatch</td><td>Experimental VIPM-enabled Linux lane.</td></tr>
           <tr><td>Build VI Browser 2.0 render image</td><td><span class="pill lin">ubuntu-latest</span></td><td>push <code>toimages/**</code>, monthly cron, dispatch</td><td>Builds the <code>-toimages</code> render engine image.</td></tr>
           <tr><td>Bake VIPC Windows Base Image</td><td><span class="pill win">windows-2022</span></td><td>dispatch only</td><td>Proof-and-promote: verifies a VIPC installs before pushing tags.</td></tr>
         </tbody>

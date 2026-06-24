@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "02f53476df9a2bc700b6f446705d2d9ae004bf77",
+  "sha": "62ff9987faa4a028b0a9ddbaf09fed8e953b9d3a",
   "revisions": [
+    {
+      "sha": "62ff9987faa4a028b0a9ddbaf09fed8e953b9d3a",
+      "short": "62ff998",
+      "message": "feat(deps): adding a VIPC never auto-rebuilds the worker (3.46.22)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T01:05:01Z"
+    },
     {
       "sha": "02f53476df9a2bc700b6f446705d2d9ae004bf77",
       "short": "02f5347",
@@ -695,13 +702,6 @@
       "message": "install-vipc: apply required project VIPCs before best-effort tooling",
       "author": "Elijah Kerry",
       "date": "2026-06-21T19:12:00Z"
-    },
-    {
-      "sha": "c09fcaf874f98d99aee232604134b2a386749049",
-      "short": "c09fcaf",
-      "message": "Reliable VIPC bake: required UTF essentials first, best-effort tooling; align gate with build triggers",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T19:10:58Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
