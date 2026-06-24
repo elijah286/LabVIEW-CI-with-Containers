@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.19",
+  "version": "4.1.20",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.20",
+        "date": "2026-06-24",
+        "title": "Fix the worker-manifest gh-pages publish race on install and monthly rebuilds",
+        "type": "patch",
+        "summary": "On a fresh install the Windows and Linux worker-image copies are dispatched together and both publish their worker manifest to the gh-pages branch; the loser of that concurrent push failed with a non-fast-forward rejection (the \"Copy Linux worker image\" failure). All four worker-image workflows -- the Windows and Linux Build and Copy -- now publish with a retry-on-conflict step that re-fetches gh-pages, re-applies its files (keeping every other file), and pushes again, so concurrent publishes both land. The same fix stops the monthly Windows + Linux base rebuilds from racing each other.",
+        "highlights": [
+          "Replaces the single-shot gh-pages publish with a retry-on-conflict git push in build/copy-labview-image.yml and build/copy-labview-linux-image.yml.",
+          "Fixes the install-time \"Copy Linux worker image\" failure caused by the Windows and Linux install copies racing the gh-pages push."
+        ]
+      },
       {
         "version": "4.1.19",
         "date": "2026-06-24",
