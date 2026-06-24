@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.29",
+  "version": "4.1.30",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.30",
+        "date": "2026-06-24",
+        "title": "Queued Actions show on the dashboard",
+        "type": "patch",
+        "summary": "The dashboard now recognizes GitHub Actions runs that are pending, waiting, requested, queued, or in progress and maps workflow_dispatch runs back to the revision they target instead of the branch ref that launched them.",
+        "highlights": [
+          "Includes target commit SHAs in manual workflow run names for Mass Compile, VI Analyzer, VIDiff, Unit Tests, and Antidoc so active runs can be matched to dashboard rows.",
+          "Treats the all-history VI Snapshots backfill as a global active run so snapshot cells show Queued/Running while the backfill is still executing.",
+          "Uses GitHub's pending/waiting/requested run states as queued work instead of showing an idle play button while a run waits for a runner."
+        ]
+      },
       {
         "version": "4.1.29",
         "date": "2026-06-24",
