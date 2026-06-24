@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.20",
+  "version": "3.46.21",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.21",
+        "date": "2026-06-23",
+        "title": "Dependency sub-views move into the page",
+        "type": "patch",
+        "summary": "The Dependencies page sub-view switcher (VIPM / VIPC, NI Packages, System Components) now lives in the page itself as a tab strip directly above the dependency tables -- just below the update panel -- instead of in the shared header sub-nav, so the switcher sits with the content it controls.",
+        "highlights": [
+          "VIPM / VIPC, NI Packages, and System Components are now in-page tabs over the dependency tables.",
+          "Removed the Dependencies header sub-nav; the page no longer depends on the shared subnav strip."
+        ],
+        "breaking": false
+      },
       {
         "version": "3.46.20",
         "date": "2026-06-23",
