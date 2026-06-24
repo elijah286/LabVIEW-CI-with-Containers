@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.47.2",
+  "version": "3.47.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.47.3",
+        "date": "2026-06-23",
+        "title": "Dependency table: VIPC/.dragon files link to GitHub",
+        "type": "patch",
+        "summary": "On the Dependencies page, each VIPC and .dragon file name in the table is now a link that opens the latest version of that file on GitHub (the default-branch HEAD) in a new tab, so you can read its contents in the browser. Clicking a file link no longer toggles the VIPC row's expand/collapse.",
+        "highlights": [
+          "VIPC file headers and .dragon file headers in the dependency table are clickable links to the file on GitHub (blob/HEAD).",
+          "Links open in a new tab; clicking a link does not expand/collapse the VIPC package list."
+        ],
+        "breaking": false
+      },
       {
         "version": "3.47.2",
         "date": "2026-06-23",
