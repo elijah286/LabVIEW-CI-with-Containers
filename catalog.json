@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.50.0",
+  "version": "3.51.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.51.0",
+        "date": "2026-06-23",
+        "title": "VI Snapshots 2.0 is its own capability, on Windows and Linux",
+        "type": "minor",
+        "summary": "The cross-platform VI Browser 2.0 renderer is now a distinct capability, VI Snapshots 2.0, that runs on both Windows and Linux instead of being bundled invisibly inside the classic VI Snapshots capability (whose Linux 2.0 workflow was installed but never offered as an option) and a separate Windows-only entry. The classic VI Snapshots + VI Browser capability is now clearly the Windows-only gallery render, and VI Snapshots 2.0 owns the position-aware toimages render image, the Linux (vi-snapshots-json.yml) and Windows (vi-snapshots-json-windows.yml) frame workflows, and the in-place viewer assets, so the Configure and install Actions tables now show a Linux checkbox for 2.0.",
+        "highlights": [
+          "Adds a VI Snapshots 2.0 capability supporting Windows and Linux, replacing the Windows-only 'Windows VI Browser 2.0 snapshots' entry.",
+          "Moves the position-aware 2.0 render workflows and toimages assets out of the classic VI Snapshots capability, which is now explicitly the Windows-only gallery render.",
+          "The Linux 2.0 renderer (vi-snapshots-json.yml) is now surfaced as a selectable Linux option instead of being installed but hidden."
+        ]
+      },
       {
         "version": "3.50.0",
         "date": "2026-06-23",
@@ -3421,7 +3433,7 @@
     {
       "id": "snapshots",
       "name": "VI Snapshots + VI Browser",
-      "summary": "Renders a browseable, blob-addressed gallery of every VI's block diagram across history (the VI Browser), so reviewers can inspect any VI without opening LabVIEW.",
+      "summary": "Renders a browseable, blob-addressed gallery of every VI's block diagram across history (the VI Browser), so reviewers can inspect any VI without opening LabVIEW. This is the classic Windows-only gallery render; for cross-platform, position-aware in-place frames enable VI Snapshots 2.0.",
       "status": "stable",
       "recommended": false,
       "supportsOs": [
@@ -3437,24 +3449,17 @@
           ".github/pages/vi-browser.html",
           ".github/pages/vi-interactive.html",
           ".github/labview/build-gallery.py",
-          ".github/labview/PrintToSingleFileHtml/",
-          ".github/workflows/vi-snapshots-json.yml",
-          ".github/workflows/build-toimages-image.yml",
-          ".github/labview/run-toimages.sh",
-          ".github/labview/build-json-worklist.sh",
-          ".github/labview/toimages/"
+          ".github/labview/PrintToSingleFileHtml/"
         ],
         "windows": [
           ".github/workflows/vi-snapshots.yml",
           ".github/labview/build-snapshots.ps1",
           ".github/labview/render-snapshots.ps1",
-          ".github/labview/build-json-worklist.sh",
-          ".github/labview/toimages/",
           ".github/labview/export-vi-snapshots.ps1"
         ],
         "linux": []
       },
-      "notes": "Snapshot rendering runs on the Windows container. The experimental Windows VI Browser 2.0 frames workflow can publish Windows frames JSON beside the Linux 2.0 frames."
+      "notes": "The classic snapshot gallery render runs on the Windows container (PowerShell). It is Windows-only; for cross-platform, position-aware in-place rendering on Windows and Linux, enable VI Snapshots 2.0."
     },
     {
       "id": "custom-image",
@@ -3489,29 +3494,39 @@
       "notes": "Required when you want to bake .vipc dependencies into the worker. Any configured VIPC file is detected and baked automatically; if no config is present, repository VIPC files outside .github are staged."
     },
     {
-      "id": "snapshots-windows-2",
-      "name": "Windows VI Browser 2.0 snapshots",
-      "summary": "Adds the experimental Windows container VI Browser 2.0 render workflow, publishing Windows frames JSON beside the existing snapshot gallery data.",
+      "id": "snapshots-2",
+      "name": "VI Snapshots 2.0",
+      "summary": "Cross-platform, position-aware VI Browser 2.0 rendering. A vendored Go engine renders each VI's block diagram in place and publishes frames JSON on Windows and Linux, so the VI Browser can show an interactive, zoomable diagram beside the classic gallery.",
       "status": "experimental",
       "recommended": false,
       "supportsOs": [
-        "windows"
+        "windows",
+        "linux"
       ],
-      "requires": [
-        "snapshots"
-      ],
+      "requires": [],
       "recommends": [
-        "dashboard"
+        "dashboard",
+        "snapshots"
       ],
       "statusContext": null,
       "files": {
-        "any": [],
+        "any": [
+          ".github/pages/vi-browser.html",
+          ".github/pages/vi-interactive.html",
+          ".github/pages/vi-render.js",
+          ".github/workflows/build-toimages-image.yml",
+          ".github/labview/run-toimages.sh",
+          ".github/labview/build-json-worklist.sh",
+          ".github/labview/toimages/"
+        ],
         "windows": [
           ".github/workflows/vi-snapshots-json-windows.yml"
         ],
-        "linux": []
+        "linux": [
+          ".github/workflows/vi-snapshots-json.yml"
+        ]
       },
-      "notes": "This is additive to the stable snapshot workflows and uses the stock NI Windows container unless EXPERIMENTAL_WINDOWS_IMAGE is set."
+      "notes": "Experimental position-aware renderer (known diagram-capture display bugs). The Linux path runs the toimages render image on ubuntu-latest; the Windows path runs the same Go engine in the stock NI Windows container (unless EXPERIMENTAL_WINDOWS_IMAGE is set). Renders publish <blob>.json (Linux) and <blob>.windows.json (Windows) beside the gallery, and build-toimages-image builds the shared render image."
     },
     {
       "id": "unit-tests",
