@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.27",
+  "version": "4.1.28",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.28",
+        "date": "2026-06-24",
+        "title": "VI Browser guides missing documents to Populate history",
+        "type": "patch",
+        "summary": "The VI Browser now preflights snapshot and report document URLs before framing them. Missing older-revision documents render an in-page explanation with a Populate history link instead of showing the raw GitHub Pages 404 page.",
+        "highlights": [
+          "Shows a native missing-document state when a VI snapshot HTML file has not been published for the selected revision.",
+          "Routes users to the dashboard Populate history flow with the selected revision already included.",
+          "Applies the same guard to VI Browser report lenses and the standalone report viewer so missing report documents do not frame a Pages 404."
+        ]
+      },
       {
         "version": "4.1.27",
         "date": "2026-06-24",
