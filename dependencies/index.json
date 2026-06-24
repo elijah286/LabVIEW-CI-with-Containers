@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "cf88c13aa243e84c0a7b4e518a226038532c7f3e",
+  "sha": "b1ddf9344568b8406bd6da89cfb2ecfe5fcbb8e6",
   "revisions": [
+    {
+      "sha": "b1ddf9344568b8406bd6da89cfb2ecfe5fcbb8e6",
+      "short": "b1ddf93",
+      "message": "Install: dispatch the Windows worker build with copy_only=true (4.1.7)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T14:09:55Z"
+    },
     {
       "sha": "cf88c13aa243e84c0a7b4e518a226038532c7f3e",
       "short": "cf88c13",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.18: fail Windows zero-frame renders",
       "author": "Elijah Kerry",
       "date": "2026-06-22T12:22:56Z"
-    },
-    {
-      "sha": "fdb4bc7aa258c1b322f9ab0e12a51a9d93e85c18",
-      "short": "fdb4bc7",
-      "message": "Dependencies: mark Linux VIPC coverage pending (v3.34.17)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T11:57:15Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
@@ -3388,23 +3388,12 @@
       "defaultTag": "latest",
       "tag": "latest",
       "ready": true,
-      "packages": [
-        "dataflow_g_lib_g_image-0.5.0.1",
-        "ni_lib_junit_results_api-1.0.1.6",
-        "ni_lib_simple_xml-1.0.0.4",
-        "ni_lib_utf_junit_report-1.0.1.43",
-        "oglib_appcontrol-4.1.0.7",
-        "oglib_array-4.1.0.13",
-        "oglib_error-4.2.0.23",
-        "oglib_file-4.0.0.20",
-        "oglib_lvdata-4.2.0.21",
-        "oglib_string-4.1.0.12"
-      ],
+      "packages": [],
       "failed_packages": [],
       "nipkg_ready": true,
       "nipkg_packages": [],
       "labview_version": "2026",
-      "version": "linux-fdf1ea9c1679"
+      "version": "linux-8a3f6613f8b8"
     }
   ]
 }
