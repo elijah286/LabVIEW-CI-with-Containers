@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "7a808d7039e5e1c39587eb522c1f974daf079e4a",
+  "sha": "8f62e6141cc7e019f08dd0ba210c8c1185dc9bb1",
   "revisions": [
+    {
+      "sha": "8f62e6141cc7e019f08dd0ba210c8c1185dc9bb1",
+      "short": "8f62e61",
+      "message": "Split worker image Build and Copy into two distinct workflows (4.1.16)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T17:06:59Z"
+    },
     {
       "sha": "7a808d7039e5e1c39587eb522c1f974daf079e4a",
       "short": "7a808d7",
@@ -695,13 +702,6 @@
       "message": "Dependencies: rename experimental column to \"Win Beta\" + click-to-explain note (v3.35.1)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T13:43:03Z"
-    },
-    {
-      "sha": "cb9467f1d1b7c832070efd223b93aa672600c37d",
-      "short": "cb9467f",
-      "message": "Coordinate in-flight CI before a worker rebuild + document the lifecycle (v3.35.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T13:39:26Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
