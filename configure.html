@@ -279,7 +279,7 @@
     const triggerSel = new Map();            // activity id -> Set of submission sources that run it
     // VI Browser render matrix: which render generations run on each OS on a new
     // revision. classic (1.0 HTML) is Windows-only; positionAware (2.0 frames) can
-    // run on Windows (preferred) and/or Linux (experimental). See the VI Browser tab.
+    // run on Windows and/or Linux. See the VI Browser tab.
     const viBrowser = { classic: new Set(["windows"]), positionAware: new Set(["windows"]) };
 
     // VI Analyzer: which .viancfg test configuration runs on which code.
@@ -836,8 +836,8 @@
     // classic (1.0) = flat-HTML snapshots (the Windows snapshots run); only Windows
     // has an HTML renderer. positionAware (2.0) = in-place block-diagram frames:
     // Windows emits them from the same snapshots run (PrintToImagesJson), Linux from
-    // the toimages render image. Windows is the recommended 2.0 path; the Linux
-    // render is experimental (known diagram-capture display bugs).
+    // the toimages render image. Both the Windows and Linux 2.0 render paths are
+    // released (core) capabilities.
     const VB_ROWS = [
       { key: "classic", label: "Classic gallery", sub: "1.0 \u2014 flat HTML snapshots" },
       { key: "positionAware", label: "Position-aware", sub: "2.0 \u2014 in-place block-diagram renders" }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.8",
+  "version": "4.1.9",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,19 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.9",
+        "date": "2026-06-25",
+        "title": "VI Snapshots 2.0 graduates to a core feature on Windows and Linux",
+        "type": "minor",
+        "summary": "VI Snapshots 2.0 (the cross-platform, position-aware VI Browser 2.0 render) is now a released core capability on Windows and Linux instead of experimental, so it is offered and installed like any other standard action. Nothing in the worker images changes: the render is a vendored Go engine that the Windows snapshot workflow compiles at run time and the Linux path ships in the separate -toimages image, so graduation is purely status + UX. Antidoc is now the only experimental capability. Also adds .github/labview/experimental.vipc (the experimental dependency set, currently Antidoc) ahead of resetting the Beta containers as the experimental branch.",
+        "highlights": [
+          "VI Snapshots 2.0 is now a core feature (status stable) on Windows and Linux, not experimental.",
+          "Removed the experimental/known-bugs wording for 2.0 from the Configure and Dependencies UX.",
+          "Added experimental.vipc (copy of antidoc.vipc) as the experimental dependency set.",
+          "Antidoc remains the sole experimental capability."
+        ]
+      },
       {
         "version": "4.1.8",
         "date": "2026-06-25",
@@ -3621,7 +3634,7 @@
       "id": "snapshots-2",
       "name": "VI Snapshots 2.0",
       "summary": "Cross-platform, position-aware VI Browser 2.0 rendering. A vendored Go engine renders each VI's block diagram in place and publishes frames JSON on Windows and Linux, so the VI Browser can show an interactive, zoomable diagram beside the classic gallery.",
-      "status": "experimental",
+      "status": "stable",
       "recommended": false,
       "supportsOs": [
         "windows",
@@ -3650,7 +3663,7 @@
           ".github/workflows/vi-snapshots-json.yml"
         ]
       },
-      "notes": "Experimental position-aware renderer (known diagram-capture display bugs). The Linux path runs the toimages render image on ubuntu-latest; the Windows path runs the same Go engine in the stock NI Windows container (unless EXPERIMENTAL_WINDOWS_IMAGE is set). Renders publish <blob>.json (Linux) and <blob>.windows.json (Windows) beside the gallery, and build-toimages-image builds the shared render image."
+      "notes": "Cross-platform position-aware renderer. The Linux path runs the toimages render image on ubuntu-latest; the Windows path runs the same Go engine in the stock NI Windows container (unless EXPERIMENTAL_WINDOWS_IMAGE is set). Renders publish <blob>.json (Linux) and <blob>.windows.json (Windows) beside the gallery, and build-toimages-image builds the shared render image."
     },
     {
       "id": "unit-tests",
