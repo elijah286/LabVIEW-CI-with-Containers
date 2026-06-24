@@ -2773,14 +2773,17 @@ html = f"""<!DOCTYPE html>
       .lvci-tablewrap{{overflow:visible}}
       #cidash-table{{display:block;width:100%;border:0;background:transparent}}
       #cidash-table thead{{display:none}}
-      #cidash-table tbody,#cidash-table tr,#cidash-table td{{display:block;width:auto}}
-      #cidash-table tr{{border:1px solid var(--border);border-radius:10px;margin:0 0 12px;padding:8px 12px;background:var(--surface)}}
-      #cidash-table td{{border:0;padding:6px 0}}
-      #cidash-table td.cidash-rev{{max-width:none;padding:2px 0 8px;border-bottom:1px solid var(--border);margin-bottom:4px}}
-      #cidash-table td:not(.cidash-rev){{display:flex!important;align-items:center;justify-content:space-between;gap:12px;text-align:left!important;min-width:0}}
-      #cidash-table td:not(.cidash-rev)::before{{content:attr(data-label);color:var(--fg-muted);font-size:.82em;font-weight:600;flex:1 1 auto;min-width:9rem;text-align:left}}
-      #cidash-table td:not(.cidash-rev)>*{{flex:0 0 auto;max-width:56%;text-align:right;justify-content:flex-end}}
-      .cidash-chip,.run-badge{{white-space:normal;text-align:right;justify-content:flex-end}}
+      #cidash-table tbody{{display:block;width:auto}}
+      /* Each card lays its capability cells out as a responsive grid of compact
+         tiles (label above value) so they fill the card width instead of leaving
+         a wide empty gutter between a left-aligned label and right-aligned badge. */
+      #cidash-table tr{{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px 14px;border:1px solid var(--border);border-radius:10px;margin:0 0 12px;padding:12px 14px;background:var(--surface)}}
+      #cidash-table td{{display:block;width:auto;border:0;padding:0}}
+      #cidash-table td.cidash-rev{{grid-column:1/-1;max-width:none;padding:2px 0 10px;border-bottom:1px solid var(--border);margin-bottom:0}}
+      #cidash-table td:not(.cidash-rev){{display:flex!important;flex-direction:column;align-items:flex-start;gap:5px;text-align:left!important;min-width:0}}
+      #cidash-table td:not(.cidash-rev)::before{{content:attr(data-label);color:var(--fg-muted);font-size:.72em;font-weight:600;text-transform:uppercase;letter-spacing:.04em;min-width:0}}
+      #cidash-table td:not(.cidash-rev)>*{{max-width:100%}}
+      .cidash-chip,.run-badge{{white-space:normal;text-align:left;justify-content:flex-start}}
     }}
     @media(max-width:520px){{
       .lvci-main{{padding:10px}}
@@ -2788,10 +2791,7 @@ html = f"""<!DOCTYPE html>
       .lvci-ctxbar .cidash-search{{padding:4px 9px}}
       .lvci-ctxbar .cidash-segfilter button{{padding:6px 8px}}
       .lvci-ctxbar .cidash-colbtn{{justify-content:flex-start;padding:7px 10px}}
-      #cidash-table tr{{padding:8px 10px;border-radius:8px}}
-      #cidash-table td:not(.cidash-rev){{gap:8px;flex-wrap:nowrap}}
-      #cidash-table td:not(.cidash-rev)::before{{flex:1 1 52%;min-width:0}}
-      #cidash-table td:not(.cidash-rev)>*{{max-width:48%}}
+      #cidash-table tr{{padding:10px 12px;border-radius:8px;gap:11px 12px}}
       .cidash-rev{{padding:8px 0}}
       .cidash-rev-msg{{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
       .cidash-rev-meta{{flex-wrap:wrap;white-space:normal}}
