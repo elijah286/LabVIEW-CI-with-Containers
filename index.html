@@ -203,7 +203,7 @@
     // the install/Configure iframe and its in-flight work. When a refresh comes due
     // with a dialog open, keep re-checking and reload only once it is closed.
     (function () {
-      var REFRESH_MS = 900 * 1000;
+      var REFRESH_MS = 60 * 1000;
       if (!(REFRESH_MS > 0)) return;
       function tick() {
         if (lvciModalOpen()) { setTimeout(tick, 5000); return; }
@@ -1495,7 +1495,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-24 22:36 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-24 23:59 UTC &nbsp;|&nbsp; Live — refreshing every 60 s while CI runs</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -3225,7 +3225,7 @@
       </td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-parent="c4e815ef45d2cecdd6b579e1a87b45e8da7d70da" data-short="197c1be" title="Run Mass Compile for commit 197c1be">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-parent="c4e815ef45d2cecdd6b579e1a87b45e8da7d70da" data-short="197c1be" title="Run VI Analyzer for commit 197c1be">&#9655;</a></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-parent="c4e815ef45d2cecdd6b579e1a87b45e8da7d70da" data-short="197c1be" title="Run VIDiff for commit 197c1be">&#9655;</a></td>
+      <td style="text-align:center"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/28137290617" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>diff</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-parent="c4e815ef45d2cecdd6b579e1a87b45e8da7d70da" data-short="197c1be" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 51 VIs in this revision"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=197c1be98a17e40b88c4473157fe8aa008acbb3a" style="color:inherit">51</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-parent="c4e815ef45d2cecdd6b579e1a87b45e8da7d70da" data-short="197c1be" title="Run Unit Tests for commit 197c1be">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-parent="c4e815ef45d2cecdd6b579e1a87b45e8da7d70da" data-short="197c1be" title="Run Antidoc for commit 197c1be">&#9655;</a></td>
@@ -3623,7 +3623,7 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" data-ts="2026-06-16T01:17:20Z"><span class="cidash-chip cc-pass"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.22 9.28a.75.75 0 1 1 1.06-1.06L6 11.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=vi-analyzer-report&sha=7599b047409f6801f226b06159da3036986c5bb8&short=7599b04&src=..%2Fvi-analyzer%2F7599b047409f6801f226b06159da3036986c5bb8%2Findex.html&title=VI%20Analyzer%20%C2%B7%207599b04" style="color:inherit">analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" data-ts="2026-06-16T05:00:24Z"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8&changed=1" class="cidash-diffstat" title="VIs changed in this revision: 0 different · 22 new · 0 deleted — click to view the diffs"><span class="ds-mod ds-zero">0</span><span class="ds-sep">/</span><span class="ds-add">22</span><span class="ds-sep">/</span><span class="ds-del ds-zero">0</span></a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 22 VIs in this revision"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7599b047409f6801f226b06159da3036986c5bb8" style="color:inherit">22</a></span></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" title="Run Unit Tests for commit 7599b04">&#9655;</a></td>
+      <td style="text-align:center"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/28137255037" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>tests</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="7599b047409f6801f226b06159da3036986c5bb8" data-parent="3db5c70be32bc7eb8ece0ad96fea46f1ea849d7e" data-short="7599b04" title="Run Antidoc for commit 7599b04">&#9655;</a></td>
     </tr></tbody>
   </table>
