@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "700439845692d64504ef8e6778020babaa73c3e3",
+  "sha": "8c2f0498ec7eabe98f6648ac53cc27cf3e985315",
   "revisions": [
+    {
+      "sha": "8c2f0498ec7eabe98f6648ac53cc27cf3e985315",
+      "short": "8c2f049",
+      "message": "dashboard: gate Run/Populate to installed workflows; accurate dispatch errors (4.1.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T11:44:25Z"
+    },
     {
       "sha": "700439845692d64504ef8e6778020babaa73c3e3",
       "short": "7004398",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.13: fail empty Go render batches",
       "author": "Elijah Kerry",
       "date": "2026-06-22T11:25:31Z"
-    },
-    {
-      "sha": "377f461e056d2d3a8ed0a693e1eafb9341f4f396",
-      "short": "377f461",
-      "message": "Release v3.34.12: use Go render startup on Windows",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T11:22:27Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
