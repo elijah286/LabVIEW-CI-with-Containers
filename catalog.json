@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.47.1",
+  "version": "3.47.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,20 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.47.2",
+        "date": "2026-06-23",
+        "title": "Clearer dependency-update dialog; missing items flagged in the table",
+        "type": "patch",
+        "summary": "The 'Dependency update needed' card no longer tries to summarize which packages/Dragon items are missing -- that is the table's job. It now states plainly that dependencies are declared in VIPC files (VIPM packages) OR .dragon files (NIPM packages), and that each missing item is flagged in the table below. The dependency table now marks any declared-but-not-yet-baked line item with a warning glyph that matches the card, so it is obvious which rows are causing the banner. The persistent dashboard banner is generalized from 'N Dragon items' to 'N dependency items (in VIPC or .dragon files)'.",
+        "highlights": [
+          "Dialog stops summarizing missing packages/Dragon items and clarifies that VIPC files (VIPM) or .dragon files (NIPM) both declare dependencies.",
+          "Table cells show a warning glyph for a project dependency that is declared but not baked into a worker container (Windows/Linux for VIPC packages; Win Beta for Dragon items), matching the card's iconography.",
+          "Dragon statuses missing / not_attempted / pending / wrong_version / conflict now render as the warning glyph (the banner cause); genuine install/resolution errors stay as the red error marker.",
+          "Persistent banner wording generalized away from singling out Dragon items."
+        ],
+        "breaking": false
+      },
       {
         "version": "3.47.1",
         "date": "2026-06-23",
