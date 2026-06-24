@@ -1,12 +1,29 @@
 name: Build LabVIEW CI Image
-run-name: Build Windows worker image (apply dependencies)
+run-name: ${{ github.event_name == 'push' && 'Build Windows worker image (monitored dependency change)' || 'Build Windows worker image (apply dependencies)' }}
 
 on:
-  # The image build is a heavy CI process and is NEVER auto-triggered. Adding or
-  # changing a project *.vipc does NOT rebuild the worker: dependency updates are
-  # explicit/opt-in (the dashboard's "Review & update dependencies" dialog, which
-  # dispatches this workflow, or a manual workflow_dispatch). The only automatic
-  # run is the monthly base-image security rebuild below.
+  # The image build is a heavy CI process. It NEVER runs on an install/deploy, and
+  # by DEFAULT a project dependency change does NOT rebuild the worker either --
+  # dependency updates are opt-in (the dashboard's "Review & update dependencies"
+  # dialog, which dispatches this workflow, or a manual workflow_dispatch).
+  #
+  # A project CAN opt INDIVIDUAL dependency files into automatic rebuilds via the
+  # Configure page's per-file "Monitor" toggle (config.container.vipc[].monitor /
+  # config.container.dragon[].monitor, both default false). When at least one file
+  # is monitored, a push that changes a MONITORED *.vipc / *.dragon auto-rebuilds
+  # the worker; the gate job below enforces this and skips the build for any change
+  # that is not a monitored dependency. Monitoring is OFF by default, so out of the
+  # box nothing here runs automatically except the monthly base-image rebuild.
+  push:
+    branches: [main]
+    paths:
+      # Project dependency declarations that can be baked into the worker. The
+      # tooling's own files under .github/ are excluded so installing or updating
+      # tooling never triggers a build; only the gate's monitor check below decides
+      # whether a matching push actually rebuilds.
+      - '**.vipc'
+      - '**.dragon'
+      - '!.github/**'
   schedule:
     # Monthly rebuild to pick up NI base image security updates
     - cron: '0 4 1 * *'
@@ -58,20 +75,102 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # This workflow only runs on explicit dispatch (the dashboard's "Review & update
-  # dependencies" dialog, or a manual run) or the monthly base-image security cron --
-  # adding/changing a project .vipc never triggers it. So a rebuild is always intended
-  # when this workflow starts. The gate is kept as a tiny, always-true step purely so
-  # the downstream `needs: gate` / `if: needs.gate.outputs.build == 'true'` wiring is
-  # left untouched.
+  # Decide whether this push should actually rebuild the worker image. Auto-rebuild
+  # is OPT-IN and OFF by default: a push only rebuilds when it changes a *.vipc or
+  # *.dragon that the project flagged monitor:true in .github/labview-ci.yml
+  # (config.container.vipc[] / config.container.dragon[]). Manual dispatch and the
+  # monthly cron always rebuild (a rebuild is the whole point of running them). Any
+  # push that does not touch a monitored dependency -- and any uncertainty/error --
+  # leaves the heavy build for an explicit dispatch (the dashboard banner still
+  # flags that dependencies need installing), so nothing surprises the user with a
+  # long build they did not ask for.
   gate:
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.decide.outputs.build }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Decide whether to rebuild
         id: decide
-        run: echo "build=true" >> "$GITHUB_OUTPUT"
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess, pathlib
+
+          def emit(build, why):
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('build=%s\n' % ('true' if build else 'false'))
+              print('rebuild =', build, '--', why)
+              raise SystemExit(0)
+
+          try:
+              # Manual dispatch / monthly cron: the rebuild is always intended.
+              if os.environ.get('EVENT_NAME', '') != 'push':
+                  emit(True, 'dispatch/schedule -> always rebuild')
+
+              before = os.environ.get('BEFORE', '') or ''
+              sha = os.environ.get('SHA', '') or 'HEAD'
+              # Auto-rebuild is opt-in, so on any uncertainty we do NOT build.
+              if not before or set(before) == {'0'}:
+                  emit(False, 'no diff base on push -> skip (opt-in)')
+              diff = subprocess.run(['git', 'diff', '--name-only', before, sha],
+                                    capture_output=True, text=True)
+              if diff.returncode != 0:
+                  emit(False, 'git diff failed -> skip (opt-in)')
+              files = [f for f in diff.stdout.splitlines() if f.strip()]
+              is_dep = lambda f: f.lower().endswith(('.vipc', '.dragon'))
+              dep_changed = [f for f in files if is_dep(f)]
+              if not dep_changed:
+                  emit(False, 'no .vipc/.dragon changed -> skip')
+
+              # Read per-file monitor flags from config.container.vipc and
+              # config.container.dragon. A dependency file auto-rebuilds the worker
+              # ONLY when it is explicitly monitor: true. Anything not listed, or
+              # listed without monitor: true, defaults to OFF.
+              monitor = {}
+              cfg = pathlib.Path('.github/labview-ci.yml')
+              if cfg.exists():
+                  in_c = False; in_list = None; cur = None
+                  for line in cfg.read_text(encoding='utf-8').splitlines():
+                      if re.match(r'^container:\s*$', line):
+                          in_c = True; in_list = None; cur = None; continue
+                      if not in_c:
+                          continue
+                      if re.match(r'^\S', line):            # next top-level key
+                          in_c = False; in_list = None; cur = None; continue
+                      mk = re.match(r'^\s{4}(\w+):\s*$', line)
+                      if mk:                                # a 4-space block key
+                          in_list = mk.group(1) if mk.group(1) in ('vipc', 'dragon') else None
+                          cur = None; continue
+                      if re.match(r'^\s{4}\w+:\s*\S', line):  # 4-space key: value
+                          in_list = None; cur = None; continue
+                      if in_list:
+                          m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
+                          if m:
+                              cur = os.path.basename(m.group(1).strip())
+                              monitor.setdefault(cur, False); continue
+                          m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
+                          if m and cur is not None:
+                              monitor[cur] = (m.group(1).strip().lower() == 'true')
+
+              for f in dep_changed:
+                  if monitor.get(os.path.basename(f), False):
+                      emit(True, 'monitored dependency changed: ' + f)
+              emit(False, 'changed dependencies are not monitored -> skip')
+          except SystemExit:
+              raise
+          except Exception as e:
+              # Fail SAFE for an opt-in feature: never launch a heavy build on error.
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('build=false\n')
+              print('gate error -> build=false:', e)
+          PY
 
   # Before a heavy (~15+ min) worker rebuild, coordinate the CI runs that USE the
   # worker container so they do not straddle the image swap. The OLD image stays in
@@ -241,7 +340,7 @@ jobs:
       # every project *.vipc found ANYWHERE in the repo (recursively, excluding the
       # tooling dir under .github/) is baked -- VIPC files are the source of truth
       # for project dependencies, so they are all discovered and applied by default.
-      - name: Stage repo VIPC files
+      - name: Stage repo VIPC and Dragon files
         id: vipc
         shell: bash
         run: |
@@ -295,8 +394,41 @@ jobs:
                   print('Capability VIPC present but capability not installed (skipping):', vipc_path)
           if not staged:
               print('No VIPC files to stage.')
+
+          # Project .dragon (JKI Dragon / NIPM) declarations are handled like .vipc
+          # for the worker bake, but ONLY when explicitly listed in
+          # config.container.dragon[] -- there is no auto-discovery, so a repo that
+          # merely happens to contain a *.dragon file never changes its build until
+          # the project opts that file in from the Configure page. Staged files ride
+          # along in C:/vipm/ and are applied by the Dockerfile's dragon hook.
+          dpaths = []
+          if cfg.exists():
+              in_c = in_d = False
+              for line in cfg.read_text(encoding='utf-8').splitlines():
+                  if re.match(r'^\s*container:\s*$', line):
+                      in_c = True; in_d = False; continue
+                  if in_c and re.match(r'^\s{4}dragon:\s*$', line):
+                      in_d = True; continue
+                  if in_d:
+                      m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
+                      if m:
+                          dpaths.append(m.group(1).strip()); continue
+                      if re.match(r'^\s{0,4}\S', line):
+                          in_d = False; in_c = False
+                  elif in_c and re.match(r'^\S', line):
+                      in_c = False
+          dstaged = 0
+          for p in dpaths:
+              if os.path.isfile(p):
+                  shutil.copy2(p, dest / os.path.basename(p))
+                  print('Staged Dragon:', p); dstaged += 1
+              else:
+                  print('Configured Dragon not found (skipping):', p)
+          if not dstaged:
+              print('No Dragon files to stage.')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
               out.write(f'count={staged}\n')
+              out.write(f'dragon_count={dstaged}\n')
           PY
 
       - name: Ensure Docker daemon is running
@@ -379,16 +511,19 @@ jobs:
         shell: pwsh
         run: |
           $vipcFiles = @(Get-ChildItem '.github/labview/vipm' -Filter *.vipc -File | Sort-Object Name)
+          $dragonFiles = @(Get-ChildItem '.github/labview/vipm' -Filter *.dragon -File | Sort-Object Name)
           $files = @()
-          if ($vipcFiles.Count -gt 0) {
+          if ($vipcFiles.Count -gt 0 -or $dragonFiles.Count -gt 0) {
             $files += '.github/docker/labview-ci.Dockerfile'
             $files += '.github/labview/vipm/install-vipc.ps1'
             $files += ($vipcFiles | ForEach-Object FullName)
+            $files += ($dragonFiles | ForEach-Object FullName)
           }
           $parts = @(
             'lcwc-base-image=${{ steps.base.outputs.image }}',
             'lcwc-base-digest=${{ steps.base.outputs.digest }}',
-            'vipc-count={0}' -f $vipcFiles.Count
+            ('vipc-count={0}' -f $vipcFiles.Count),
+            ('dragon-count={0}' -f $dragonFiles.Count)
           )
           $parts += foreach ($f in $files) {
             if (Test-Path -LiteralPath $f) {
@@ -412,6 +547,8 @@ jobs:
           $wv    = '${{ steps.ver.outputs.version }}'
           $lcwcBase = '${{ steps.base.outputs.image }}'
           $vipcCount = [int]'${{ steps.vipc.outputs.count }}'
+          $dragonCount = [int]'${{ steps.vipc.outputs.dragon_count }}'
+          $depCount = $vipcCount + $dragonCount
           $unitTestsInstalled = $false
           $inActivities = $false
           if (Test-Path '.github/labview-ci.yml') {
@@ -441,8 +578,8 @@ jobs:
             $tags = @("${base}:${ver}", "${base}:${ver}-${date}", "${base}:${wv}", "${base}:latest")
           }
 
-          if ($vipcCount -eq 0) {
-            Write-Host "::notice::No repository VIPC dependencies to bake; refreshing the worker as a registry copy of the LCWC base (crane copy). The fast fresh-install seed is the separate 'Copy LabVIEW CI Image' workflow on ubuntu-latest -- this Build workflow runs on Windows for the dependency bake."
+          if ($depCount -eq 0) {
+            Write-Host "::notice::No repository VIPC/Dragon dependencies to bake; refreshing the worker as a registry copy of the LCWC base (crane copy). The fast fresh-install seed is the separate 'Copy LabVIEW CI Image' workflow on ubuntu-latest -- this Build workflow runs on Windows for the dependency bake."
             $immutable = "${base}:${wv}"
             crane copy $lcwcBase $immutable
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -453,7 +590,7 @@ jobs:
             }
             Write-Host "Published (registry copy): $immutable"
           } else {
-            Write-Host "::notice::$vipcCount repository VIPC file(s) selected. Building the repo-specific dependency layer now; this can take a long time because VIPM must apply project dependencies before CI can run on the updated worker."
+            Write-Host "::notice::$depCount repository dependency file(s) selected ($vipcCount VIPC, $dragonCount Dragon). Building the repo-specific dependency layer now; this can take a long time because VIPM must apply project dependencies before CI can run on the updated worker."
             $tagFlags = ($tags | ForEach-Object { "-t", $_ })
             $repoUrl = '${{ github.server_url }}/${{ github.repository }}.git'
             docker build -f .github/docker/labview-ci.Dockerfile `
@@ -481,7 +618,7 @@ jobs:
           $base   = '${{ env.IMAGE_NAME }}'
           $wv     = '${{ steps.ver.outputs.version }}'
           $img    = "${base}:${wv}"
-          $workerLayer = if ([int]'${{ steps.vipc.outputs.count }}' -gt 0) { 'repo-vipc-layer' } else { 'seed-only-copy' }
+          $workerLayer = if (([int]'${{ steps.vipc.outputs.count }}' + [int]'${{ steps.vipc.outputs.dragon_count }}') -gt 0) { 'repo-vipc-layer' } else { 'seed-only-copy' }
           $outDir = "ci-out/workers-pages/workers/windows/$wv"
           New-Item -ItemType Directory -Force -Path 'ci-out/worker' | Out-Null
 

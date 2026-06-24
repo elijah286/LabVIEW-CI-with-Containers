@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.16",
+  "version": "4.1.17",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.17",
+        "date": "2026-06-24",
+        "title": "Monitored dependency files can auto-rebuild the worker (opt-in, off by default)",
+        "type": "minor",
+        "summary": "Building the worker image stays manual/opt-in by default, but a project can now turn ON automatic rebuilds for individual dependency files. Flagging a .vipc or .dragon file monitor: true in .github/labview-ci.yml (config.container.vipc[] / config.container.dragon[], both default false) makes a push that changes THAT file rebuild the worker automatically; any change that is not a monitored dependency -- and any uncertainty or error -- is left for an explicit dispatch, so a long build never runs by surprise. The Build workflow's push trigger and smart gate, removed in 3.46.22, are restored to enforce this opt-in, and project .dragon (JKI Dragon / NIPM) files are now handled like .vipc at the trigger and bake level when explicitly listed in config.container.dragon[]. Manual dispatch from the dependency dialog and the monthly base-image cron still always rebuild.",
+        "highlights": [
+          "Restores the build-labview-image.yml push trigger + smart gate: a change to a MONITORED .vipc/.dragon rebuilds the worker, while non-monitored changes (and any error) skip the heavy build.",
+          "Monitoring is OFF by default and set per file (container.vipc[].monitor / container.dragon[].monitor); manual dispatch and the monthly cron always rebuild regardless.",
+          "Treats project .dragon files like .vipc for the bake -- staged, included in the worker-version hash, and applied through a best-effort JKI Dragon hook in the worker Dockerfile -- when explicitly listed in container.dragon[]."
+        ]
+      },
       {
         "version": "4.1.16",
         "date": "2026-06-24",
