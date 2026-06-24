@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.13",
+  "version": "4.1.14",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.14",
+        "date": "2026-06-24",
+        "title": "Dashboard publish retries on a gh-pages push race",
+        "summary": "On a fresh install many workflows publish to gh-pages at once (configurator site, VI snapshots, report deploys). The dashboard sits in its own latest-wins concurrency group, so its push could lose that race (a non-fast-forward 'cannot lock ref') and leave the placeholder page in place. The dashboard deploy now retries once after a short wait so it publishes through the install burst.",
+        "highlights": [
+          "Dashboard Pages deploy retries once on a non-fast-forward gh-pages push instead of failing and leaving the setup placeholder live.",
+          "Applied to all four dashboard workflow generators (source, vendored, thin, and the Apply to New Repo installer)."
+        ]
+      },
       {
         "version": "4.1.13",
         "date": "2026-06-24",

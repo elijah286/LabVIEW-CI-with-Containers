@@ -344,7 +344,11 @@ mass-compile:
         <code>cancel-in-progress: false</code>. Because several jobs push to the same <code>gh-pages</code> branch,
         serialising them prevents one job's <code>git push</code> from racing another's. The dashboard build uses a
         separate group (<code>dashboard-pages</code>, <code>cancel-in-progress: true</code>) so a burst of status
-        events collapses into a single latest-wins rebuild.</p>
+        events collapses into a single latest-wins rebuild. Because that keeps the dashboard outside the serialised
+        line, its Pages deploy can still lose a push race against a report or configurator-site deploy in the same
+        fresh-install burst (a non-fast-forward <code>cannot lock ref 'refs/heads/gh-pages'</code>); the deploy step
+        therefore retries once after a short wait, and <code>peaceiris</code> re-clones <code>gh-pages</code> on the
+        retry so it starts from the advanced tip.</p>
       <p>The dashboard surfaces this line live. It reads GitHub's in-progress and queued runs and shows each enqueued
         activity as a spinning <em>Queued</em> cell on the revision it targets. Because a manual re-run is dispatched
         with <code>inputs.commit_sha</code>, the dashboard keys an active run on the commit named in its run title
