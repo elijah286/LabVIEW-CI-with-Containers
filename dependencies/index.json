@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "32e747c79e5056455f5c4aaf0fc301d35b84e8f7",
+  "sha": "361828e301284e85c625d7ae5c4192d465edc408",
   "revisions": [
+    {
+      "sha": "361828e301284e85c625d7ae5c4192d465edc408",
+      "short": "361828e",
+      "message": "install: fix contradictory Capabilities hint about dependencies",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T04:43:46Z"
+    },
     {
       "sha": "32e747c79e5056455f5c4aaf0fc301d35b84e8f7",
       "short": "32e747c",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.5: unify revision-aware dashboard navigation",
       "author": "Elijah Kerry",
       "date": "2026-06-22T03:37:08Z"
-    },
-    {
-      "sha": "f6cbabdde0b8f6b8c9eefbc6464a1e19d1f7e0f6",
-      "short": "f6cbabd",
-      "message": "Release v3.34.4: fix Activity report fallback",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T03:28:51Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
