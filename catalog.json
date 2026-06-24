@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.22",
+  "version": "4.1.23",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.23",
+        "date": "2026-06-24",
+        "title": "Bake the VI Browser 2.0 render engine into the Linux worker (no separate build)",
+        "type": "minor",
+        "summary": "The position-aware VI Browser 2.0 render engine (the vendored Go lvctl renderer + batch runner) is now baked INTO the Linux worker image instead of being a separate -toimages image that each repository built for itself. Onboarding the pipeline no longer kicks off a heavy render-image build: the engine ships inside the Linux worker that clients already copy on install, so nothing has to be built to generate 2.0 screenshots. The Linux render workflow runs the worker image directly (invoking the render entrypoint), and the standalone build-toimages-image.yml workflow is retired.",
+        "highlights": [
+          "Bakes the render engine into .github/docker/labview-ci-linux.Dockerfile as a multi-stage build (byte-for-byte the same engine), so it is copied with the worker -- no separate image and no per-repo build.",
+          "Retires build-toimages-image.yml; vi-snapshots-json.yml now runs the Linux worker image via --entrypoint instead of pulling a separate render image.",
+          "Stops onboarding/install from triggering a render-image build (the remaining install-time background build users were seeing)."
+        ]
+      },
       {
         "version": "4.1.22",
         "date": "2026-06-24",
@@ -3779,7 +3791,8 @@
           ".github/workflows/build-labview-linux-image.yml",
           ".github/workflows/copy-labview-linux-image.yml",
           ".github/docker/labview-ci-linux.Dockerfile",
-          ".github/labview/vipm/install-vipc-linux.sh"
+          ".github/labview/vipm/install-vipc-linux.sh",
+          ".github/labview/toimages/"
         ]
       },
       "notes": "Required when you want to bake .vipc dependencies into the worker. Any configured VIPC file is detected and baked automatically; if no config is present, repository VIPC files outside .github are staged."
@@ -3805,7 +3818,6 @@
           ".github/pages/vi-browser.html",
           ".github/pages/vi-interactive.html",
           ".github/pages/vi-render.js",
-          ".github/workflows/build-toimages-image.yml",
           ".github/labview/run-toimages.sh",
           ".github/labview/build-json-worklist.sh",
           ".github/labview/toimages/"
@@ -3817,7 +3829,7 @@
           ".github/workflows/vi-snapshots-json.yml"
         ]
       },
-      "notes": "Cross-platform position-aware renderer. The Linux path runs the toimages render image on ubuntu-latest; the Windows path runs the same Go engine in the stock NI Windows container (unless EXPERIMENTAL_WINDOWS_IMAGE is set). Renders publish <blob>.json (Linux) and <blob>.windows.json (Windows) beside the gallery, and build-toimages-image builds the shared render image."
+      "notes": "Cross-platform position-aware renderer. The Linux path runs the render engine that is BAKED INTO the Linux worker image (no separate build -- it is copied with the worker); the Windows path runs the same Go engine in the stock NI Windows container (unless EXPERIMENTAL_WINDOWS_IMAGE is set). Renders publish <blob>.json (Linux) and <blob>.windows.json (Windows) beside the gallery."
     },
     {
       "id": "unit-tests",
