@@ -84,7 +84,7 @@
     const COLS = [
       { key:"windows", label:"Windows", platform:"windows", image:"worker", defaultTag:"latest" },
       { key:"linux", label:"Linux", platform:"linux", image:"worker", defaultTag:"latest" },
-      { key:"winExp", label:"Win Beta", platform:"windows", image:"experimental", manifestPlatform:"windows-experimental", defaultTag:"latest", experimental:true }
+      { key:"winExp", label:"Win Beta", platform:"windows", image:"experimental", manifestPlatform:"windows-beta", defaultTag:"latest", experimental:true }
     ];
     const NIPM_DEPS = [
       { key:"labview", name:"LabVIEW", source:"NI Package Manager", labview:true, platforms:["windows","linux"] },
@@ -281,7 +281,7 @@
           // under workers/<manifestPlatform>/ and only exists once the experimental
           // image has been built and published. Until then, show a clear
           // "experimental / pending" state instead of an unknown marker.
-          try { enrichPlatformState(st, await loadManifestFor(c.defaultTag || "latest", c.manifestPlatform || "windows-experimental")); st.experimental = true; }
+          try { enrichPlatformState(st, await loadManifestFor(c.defaultTag || "latest", c.manifestPlatform || "windows-beta")); st.experimental = true; }
           catch (_) { markExperimentalPending(st); }
           return;
         }

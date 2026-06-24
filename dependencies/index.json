@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "69b1f7c35371a14f7411bbff49e87286d3998380",
+  "sha": "cbe9cc942cdb31e0538ddbd63010d61342c869f1",
   "revisions": [
+    {
+      "sha": "cbe9cc942cdb31e0538ddbd63010d61342c869f1",
+      "short": "cbe9cc9",
+      "message": "Wire experimental-gated Windows Beta copy + dashboard lane (4.1.12)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T15:23:21Z"
+    },
     {
       "sha": "69b1f7c35371a14f7411bbff49e87286d3998380",
       "short": "69b1f7c",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.23 dashboard API timeout",
       "author": "Elijah Kerry",
       "date": "2026-06-22T12:55:28Z"
-    },
-    {
-      "sha": "83be87b0ab8d8bb167076b77a251cd73c1ff9964",
-      "short": "83be87b",
-      "message": "Release v3.34.22 dependency source tables",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T12:52:39Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
