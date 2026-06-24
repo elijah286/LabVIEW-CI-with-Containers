@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.4",
+  "version": "4.1.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,19 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.5",
+        "date": "2026-06-25",
+        "title": "Linux installs never bake dependencies either; install time is constant",
+        "type": "patch",
+        "summary": "Extends the install-stays-fast guarantee to the Linux worker builds. The Windows install already copied the base without baking dependencies, but the Linux worker and Linux-beta builds (build-labview-linux-image.yml / build-labview-linux-beta-image.yml) auto-run on the install merge (a push) and were unconditionally staging every project *.vipc and baking it with docker buildx -- so a repo that ships many VIPC files made the Linux install slower. They now skip ALL project VIPC staging on a push (install or tooling-recipe update) and seed a plain NI + LabVIEW base, so install time is constant no matter how many .vipc / .dragon files the repo has. Project dependencies are baked only on an explicit dependency rebuild (a manual workflow_dispatch from the Dependencies page or the monthly base-image rebuild), and the dashboard's 'dependencies need to be installed' banner prompts for that opt-in step. .dragon files were already never baked by any build -- they are only parsed (dragon_deps.py) for the dependency dashboard.",
+        "highlights": [
+          "Linux + Linux-beta installs now seed a plain base on the install push and never bake project VIPC, so install time no longer scales with the number of .vipc/.dragon files.",
+          "Dependency baking on Linux stays available via an explicit workflow_dispatch / monthly rebuild, mirroring the Windows opt-in model.",
+          ".dragon files are never baked by any build; they are only parsed for the dependency dashboard.",
+          "Audited every install-triggered build: Windows (copy_only), Linux, Linux-beta, toimages, and bake-vipc-windows-base -- only the two Linux builds evaluated project deps at install, and both are now fixed."
+        ]
+      },
       {
         "version": "4.1.4",
         "date": "2026-06-25",
