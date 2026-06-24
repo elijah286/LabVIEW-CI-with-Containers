@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.26",
+  "version": "4.1.27",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.27",
+        "date": "2026-06-24",
+        "title": "History backfills restore the Pages publisher",
+        "type": "patch",
+        "summary": "Manual history/backfill report runs now restore the shared publish-gh-pages action from the default branch along with the current CI scripts before deploying reports. This fixes older target commits that generated a report artifact but failed at the Pages publish step because the local action did not exist in that historical checkout.",
+        "highlights": [
+          "Restores .github/actions/publish-gh-pages during historical Mass Compile, VI Analyzer, Unit Tests, VIDiff, and Antidoc manual runs.",
+          "Keeps the backfilled commit checkout for project sources while using the current report builders and Pages publisher.",
+          "Documents the historical-run restore behavior in the developer reference."
+        ]
+      },
       {
         "version": "4.1.26",
         "date": "2026-06-24",
