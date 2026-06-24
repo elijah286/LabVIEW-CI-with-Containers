@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "195e779f3ca648882d5ffe014cf4f3784ac6c816",
+  "sha": "0a77185af24ca3bd9c6acbfe4d5d9f97bc249b64",
   "revisions": [
+    {
+      "sha": "0a77185af24ca3bd9c6acbfe4d5d9f97bc249b64",
+      "short": "0a77185",
+      "message": "Show queued manual runs on dashboard",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T22:33:55Z"
+    },
     {
       "sha": "195e779f3ca648882d5ffe014cf4f3784ac6c816",
       "short": "195e779",
@@ -695,13 +702,6 @@
       "message": "VIDiff deploy: serialize the gh-pages push so it stops racing itself (v3.38.4)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T21:19:47Z"
-    },
-    {
-      "sha": "c4a41cb34fda0846fbce63a6a96964cdeb403a01",
-      "short": "c4a41cb",
-      "message": "Find nipkg in Linux Beta image build (v3.38.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T21:17:57Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
