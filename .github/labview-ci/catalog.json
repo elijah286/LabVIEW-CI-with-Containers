@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.47.3",
+  "version": "3.48.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.48.0",
+        "date": "2026-06-23",
+        "title": "Apply to a new repository tracks installs you can leave and return to",
+        "type": "minor",
+        "summary": "The Apply to a new repository installer is now safe to leave and come back to, and it can track more than one install at a time. Each install you start is recorded in this browser, keyed by repository, and shown in a new Installs in progress panel; when you return the page reconciles every tracked install against live GitHub state -- the open or merged install pull request, the install branch, and the published dashboard version -- so the list stays honest without replaying any steps, and an install is dropped the moment its dashboard goes live or you dismiss it. Starting an install on a repository that already has one in flight no longer silently doubles up: the installer warns and lets you watch the running one, cancel it (closing its pull request and deleting the install branch), or install anyway, and points to the command-line and download path for doing it by hand. Nothing changes for a first-time, single install.",
+        "highlights": [
+          "Adds an Installs in progress panel that lists every install started in this browser across your repositories, with live status plus pull request, Actions, and dashboard links.",
+          "Reconciles tracked installs against GitHub on return (open/merged PR, install branch, published version) instead of losing progress when you navigate away.",
+          "Warns before starting a duplicate install on a repo already in flight and offers to watch, cancel, or proceed -- with a link to the manual command-line path."
+        ]
+      },
       {
         "version": "3.47.3",
         "date": "2026-06-23",

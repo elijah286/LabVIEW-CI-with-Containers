@@ -170,6 +170,20 @@
          border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.8em}
     .repopick-row .mini{font-size:.8em}
     button.ghost.mini{padding:7px 11px;font-size:.8em}
+    /* ---- installs-in-progress (leave & return) ---- */
+    .flightwrap{border:1px solid var(--border);border-radius:10px;background:var(--surface2);padding:14px 16px;margin:0 0 16px}
+    .flightwrap h3{font-size:.92em;margin:0 0 4px;display:flex;align-items:center;gap:7px}
+    .flightwrap .note{margin:0 0 10px}
+    .flight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--border)}
+    .flight:first-child{border-top:none}
+    .flight-head{display:flex;align-items:center;gap:8px;flex:1 1 240px;min-width:200px}
+    .flight-repo{font-weight:600;font-size:.9em;word-break:break-all}
+    .flight-chip{font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--fg-muted);background:var(--chip);white-space:nowrap}
+    .flight-chip.work{color:#9a6700;border-color:#9a6700}
+    .flight-chip.open{color:var(--link);border-color:var(--link)}
+    .flight-links{font-size:.82em;color:var(--fg-muted)}
+    .flight-acts{display:flex;gap:6px;margin-left:auto}
+    .flightwarn{border-color:var(--link)}
   </style>
 </head>
 <body>
@@ -242,6 +256,12 @@
       <h2>3. Install</h2>
       <p class="hint" id="installHint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a fine-grained token; the panel walks you through creating it with the permissions pre-filled. It stays in this browser so you don&rsquo;t have to paste it again.</p>
 
+      <div class="flightwrap" id="insFlightWrap" style="display:none">
+        <h3>&#128339; Installs in progress</h3>
+        <p class="note">Started installs are tracked in this browser so you can leave and come back. Status is re-checked from GitHub while this tab is open.</p>
+        <div id="insFlightList"></div>
+      </div>
+
       <div class="insopts" id="githubInstallOptions">
         <label class="insopt"><input type="checkbox" id="optReadme" checked>
           <span><strong>Add a CI dashboard link to the README</strong><small>Adds a dashboard badge and link to your README in the same pull request (only if it isn&rsquo;t already there).</small></span>
@@ -255,6 +275,17 @@
         <label class="insopt"><input type="checkbox" id="optUpdateToken" checked>
           <span><strong>Enable one-click tooling updates</strong><small>Stores your token (encrypted in your browser) as this repo&rsquo;s <code class="inl">TOOLING_UPDATE_TOKEN</code> secret so future <em>Update now</em> clicks open their pull request automatically &mdash; without turning on &ldquo;Allow GitHub Actions to create and approve pull requests.&rdquo; Needs <strong>Secrets</strong> on your token; if you skip it, the What&rsquo;s New page just prompts for a one-time token at update time.</small></span>
         </label>
+      </div>
+
+      <div class="tokpanel flightwarn" id="insFlightPanel" style="display:none">
+        <h3>&#9888; An install is already in flight for this repository</h3>
+        <p class="note" id="insFlightSummary"></p>
+        <div class="tokrow">
+          <button type="button" class="ghost" id="insFlightView">Watch it</button>
+          <button type="button" class="ghost" id="insFlightCancelGo">Cancel it &amp; install</button>
+          <button type="button" class="primary" id="insFlightAnyway">Install anyway</button>
+          <button type="button" class="ghost" id="insFlightClose">Close</button>
+        </div>
       </div>
 
       <div class="tokpanel reinstall" id="insReinstallPanel" style="display:none">
@@ -966,6 +997,177 @@
     const getInsTok = () => { try { return localStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
     const setInsTok = (v) => { try { localStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
     const clearInsTok = () => { try { localStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
+
+    // ---- in-flight install registry (leave-and-return across repos) -------
+    // Each started install is recorded in this browser, keyed by repo, so the user
+    // can leave this page mid-install and return to see every install still in
+    // flight across their repos. The browser-side phases (fetch -> commit -> push ->
+    // open PR) are not resumable once the tab is gone, so on return we RECONCILE each
+    // record against live GitHub state (open/merged PR, install branch, the published
+    // dashboard version) rather than replaying steps. A record is dropped the moment
+    // an install is truly done (dashboard live) or the user dismisses it.
+    const INSTALL_REG_KEY = "lvci_installs";
+    const PHASE_LABEL = { preparing: "Preparing files\u2026", "pr-open": "Pull request open", merging: "Merging\u2026", publishing: "Publishing dashboard\u2026" };
+    const LIVE_PHASES = ["preparing", "pr-open", "merging", "publishing"];
+    function loadInstallReg() { try { return JSON.parse(localStorage.getItem(INSTALL_REG_KEY) || "{}") || {}; } catch (_) { return {}; } }
+    function saveInstallReg(o) { try { localStorage.setItem(INSTALL_REG_KEY, JSON.stringify(o || {})); } catch (_) {} }
+    function getInstall(repo) { return loadInstallReg()[repo] || null; }
+    function putInstall(repo, patch) {
+      const o = loadInstallReg(); const existed = o[repo];
+      o[repo] = Object.assign({ repo: repo, startedAt: Date.now() }, existed || {}, patch || {}, { updatedAt: Date.now() });
+      saveInstallReg(o); renderInstallList(); return o[repo];
+    }
+    function dropInstall(repo) { const o = loadInstallReg(); if (o[repo]) { delete o[repo]; saveInstallReg(o); renderInstallList(); } }
+
+    // Probe live GitHub state for this repo's install: the most relevant install PR
+    // (open preferred, else most recent) and whether the install branch still exists.
+    async function probeRepoInstall(repo) {
+      const owner = repo.split("/")[0];
+      let pr = null, branchExists = false;
+      try {
+        const pls = await ghJson(await gh(`/repos/${repo}/pulls?state=all&head=${owner}:${INSTALL_BRANCH}&per_page=5`));
+        if (Array.isArray(pls) && pls.length) {
+          const chosen = pls.find(p => p.state === "open") || pls[0];
+          pr = { number: chosen.number, url: chosen.html_url, state: chosen.state, merged: !!chosen.merged_at };
+        }
+      } catch (_) {}
+      try { const r = await gh(`/repos/${repo}/git/ref/heads/${INSTALL_BRANCH}`); branchExists = r.ok; } catch (_) {}
+      return { pr: pr, branchExists: branchExists };
+    }
+
+    // Is there an install already in flight for this repo (a local record in a live
+    // phase, an open install PR, or a leftover install branch)? Returns details for
+    // the duplicate-warning panel, or null when the repo is clear to install.
+    async function detectInFlight(repo) {
+      const rec = getInstall(repo);
+      let probe = { pr: null, branchExists: false };
+      try { probe = await probeRepoInstall(repo); } catch (_) {}
+      const openPr = probe.pr && probe.pr.state === "open";
+      const liveRec = !!(rec && LIVE_PHASES.indexOf(rec.phase) >= 0);
+      if (openPr || probe.branchExists || liveRec) return { pr: probe.pr, branchExists: probe.branchExists, rec: rec };
+      return null;
+    }
+
+    // Reconcile one tracked install against live GitHub state; updates or drops it.
+    let _reconciling = false;
+    async function reconcileOne(repo, rec) {
+      const probe = await probeRepoInstall(repo);
+      const ver = (rec && rec.version) || (catalog && catalog.version) || "";
+      const dash = (rec && rec.dashUrl) || dashboardUrl(repo);
+      if (probe.pr) {
+        if (probe.pr.state === "open") { putInstall(repo, { phase: "pr-open", prNumber: probe.pr.number, prUrl: probe.pr.url, branch: INSTALL_BRANCH }); return; }
+        if (probe.pr.merged) {
+          if (ver && await deployedAtLeast(dash, ver)) { dropInstall(repo); return; }
+          putInstall(repo, { phase: "publishing", prNumber: probe.pr.number, prUrl: probe.pr.url }); return;
+        }
+        dropInstall(repo); return;                       // PR closed without merging -> abandoned
+      }
+      if (probe.branchExists) { putInstall(repo, { phase: "preparing", branch: INSTALL_BRANCH }); return; }
+      if (rec && rec.phase === "publishing") {
+        if (!ver || await deployedAtLeast(dash, ver)) dropInstall(repo);
+        return;                                          // keep waiting on the published version otherwise
+      }
+      dropInstall(repo);                                 // no PR, no branch, not publishing -> done/gone
+    }
+    async function reconcileInstalls() {
+      if (_reconciling) return;
+      if (!getInsTok()) { renderInstallList(); return; }
+      _reconciling = true;
+      try { const o = loadInstallReg(); for (const r of Object.keys(o)) { try { await reconcileOne(r, o[r]); } catch (_) {} } }
+      finally { _reconciling = false; }
+      renderInstallList();
+    }
+
+    // While any install is tracked, re-check live state every 10s (only when the tab
+    // is visible and a token is saved) so the list stays honest without a reload.
+    let _recTimer = null;
+    function scheduleReconcile() {
+      const has = Object.keys(loadInstallReg()).length > 0;
+      if (has && getInsTok() && !_recTimer) {
+        _recTimer = setInterval(() => { if (!document.hidden) reconcileInstalls(); }, 10000);
+      } else if ((!has || !getInsTok()) && _recTimer) { clearInterval(_recTimer); _recTimer = null; }
+    }
+
+    // ---- duplicate-in-flight warning panel -------------------------------
+    let _flightRepo = "";
+    function showFlightPanel() { const p = $("insFlightPanel"); if (p) p.style.display = ""; }
+    function hideFlightPanel() { const p = $("insFlightPanel"); if (p) p.style.display = "none"; }
+    function populateFlightPanel(repo, flight) {
+      _flightRepo = repo;
+      const sum = $("insFlightSummary");
+      let what;
+      if (flight.pr && flight.pr.state === "open") what = `an open install pull request (<a href="${esc(flight.pr.url)}" target="_blank" rel="noopener">#${flight.pr.number}</a>)`;
+      else if (flight.rec && flight.rec.phase === "publishing") what = "a dashboard that is still publishing";
+      else if (flight.branchExists) what = `an install branch (<code class="inl">${esc(INSTALL_BRANCH)}</code>) from an earlier attempt`;
+      else what = "an install already in progress";
+      if (sum) sum.innerHTML = `<strong>${esc(repo)}</strong> already has ${what}. Watch it, cancel it, or install again anyway. Prefer to do it by hand? Use <a href="javascript:void 0" id="insFlightManual">Other ways to install</a> below.`;
+      const man = $("insFlightManual");
+      if (man) man.addEventListener("click", e => { e.preventDefault(); const d = document.querySelector("details.altinstall"); if (d) { d.open = true; d.scrollIntoView({ behavior: "smooth", block: "center" }); } });
+    }
+
+    // Stop a tracked install: close its PR and delete the install branch (both
+    // best-effort), then forget it locally.
+    async function cancelInstall(repo) {
+      const rec = getInstall(repo);
+      try {
+        const owner = repo.split("/")[0];
+        let prNum = rec && rec.prNumber;
+        if (!prNum) { const pls = await ghJson(await gh(`/repos/${repo}/pulls?state=open&head=${owner}:${INSTALL_BRANCH}`)); if (Array.isArray(pls) && pls[0]) prNum = pls[0].number; }
+        if (prNum) await gh(`/repos/${repo}/pulls/${prNum}`, { method: "PATCH", body: { state: "closed" } });
+      } catch (_) {}
+      try { await gh(`/repos/${repo}/git/refs/heads/${INSTALL_BRANCH}`, { method: "DELETE" }); } catch (_) {}
+      dropInstall(repo);
+    }
+
+    function onFlightAct(e) {
+      const btn = e.currentTarget; const act = btn.getAttribute("data-act"); const repo = btn.getAttribute("data-repo");
+      if (act === "dismiss") { dropInstall(repo); return; }
+      if (act === "cancel") { btn.disabled = true; btn.textContent = "Cancelling\u2026"; cancelInstall(repo).finally(() => renderInstallList()); }
+    }
+
+    // Render the "Installs in progress" panel from the local registry. Hidden when
+    // empty or on GitLab (the browser PR flow is GitHub-only).
+    function renderInstallList() {
+      const wrap = $("insFlightWrap"), list = $("insFlightList"); if (!wrap || !list) return;
+      const o = loadInstallReg();
+      const repos = Object.keys(o).sort((a, b) => (o[b].updatedAt || 0) - (o[a].updatedAt || 0));
+      if (isGitLab() || !repos.length) { wrap.style.display = "none"; list.innerHTML = ""; scheduleReconcile(); return; }
+      wrap.style.display = "";
+      list.innerHTML = repos.map(r => {
+        const rec = o[r]; const ph = rec.phase || "preparing";
+        const chip = PHASE_LABEL[ph] || ph;
+        const cls = ph === "publishing" ? "work" : (ph === "pr-open" ? "open" : "prep");
+        const links = [];
+        if (rec.prUrl) links.push(`<a href="${esc(rec.prUrl)}" target="_blank" rel="noopener">PR${rec.prNumber ? " #" + rec.prNumber : ""}</a>`);
+        links.push(`<a href="https://github.com/${esc(r)}/actions" target="_blank" rel="noopener">Actions</a>`);
+        if (rec.dashUrl && ph === "publishing") links.push(`<a href="${esc(rec.dashUrl)}" target="_blank" rel="noopener">Dashboard</a>`);
+        return `<div class="flight">` +
+          `<div class="flight-head"><span class="flight-repo">${esc(r)}</span><span class="flight-chip ${cls}">${esc(chip)}</span></div>` +
+          `<div class="flight-links">${links.join(" &middot; ")}</div>` +
+          `<div class="flight-acts"><button type="button" class="ghost mini" data-act="cancel" data-repo="${esc(r)}">Cancel</button><button type="button" class="ghost mini" data-act="dismiss" data-repo="${esc(r)}">Dismiss</button></div>` +
+          `</div>`;
+      }).join("");
+      list.querySelectorAll("button[data-act]").forEach(b => b.addEventListener("click", onFlightAct));
+      scheduleReconcile();
+    }
+
+    // Continue an install past the duplicate-in-flight gate: detect a prior install
+    // (for keep/stale options) then proceed or show the reinstall panel.
+    async function continueAfterFlight(repo) {
+      installBusy(true);
+      setInsStatus("Checking your repository&hellip;", null);
+      try {
+        const prior = await detectPriorInstall(repo);
+        priorState = prior || null;
+        if (prior && (prior.canKeep || (prior.managedFiles && prior.managedFiles.size))) {
+          populateReinstallPanel(repo, prior); showReinstallPanel(); installBusy(false); return;
+        }
+        if (!confirmWorkerBuildIfNeeded({ keepSettings: false, deleteStale: false })) { installBusy(false); return; }
+        await proceedInstall(repo, { keepSettings: false, deleteStale: false });
+      } catch (e) {
+        setInsStatus(installError(e, repo), "err"); installBusy(false);
+      }
+    }
     const getGitLabTok = () => { try { return localStorage.getItem(GITLAB_TOK_KEY) || ""; } catch (_) { return ""; } };
     const setGitLabTok = (v) => { try { localStorage.setItem(GITLAB_TOK_KEY, v); } catch (_) {} };
     const clearGitLabTok = () => { try { localStorage.removeItem(GITLAB_TOK_KEY); } catch (_) {} };
@@ -1936,9 +2138,11 @@
 
       setInstallStep("merge", "active", "Squash-merging the install pull request now.");
       setInsBar(0.55);
+      putInstall(repo, { phase: "merging", prNumber: pr.number, prUrl: pr.html_url });
       mergeInstallPr(pr, repo).then(success => {
         if (insRunId !== myGen) return;     // a newer install took over the UI
         if (!success) {
+          putInstall(repo, { phase: "pr-open", prNumber: pr.number, prUrl: pr.html_url });
           setInstallStep("merge", "warn", "Auto-merge failed; merge the pull request manually to continue setup.");
           setInstallStep("ready", "pending", "Setup continues after the install pull request is merged.");
           setInsBar(null, "warn");
@@ -1978,6 +2182,7 @@
 
         const mergedDashboard = setup.hasDashboard && !!setup.branch;
         if (!mergedDashboard) {
+          dropInstall(repo);
           // No dashboard to publish in this install — the merge is the whole story.
           setInstallStep("dashboard", "done", "No dashboard workflow was selected for this install.");
           finishAfterImages("ok", `&#10003; Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`);
@@ -1989,6 +2194,7 @@
         // can't be live — say so honestly with what to do, never a green "done".
         const pagesConfirmed = setup.pages === "done" || setup.pages === "exists";
         if (!pagesConfirmed) {
+          dropInstall(repo);
           setInstallStep("dashboard", "warn", "GitHub Pages is not enabled yet; follow the guidance below to turn it on.");
           setInsBar(null, "warn");
           finishAfterImages("warn", `&#9888; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but your dashboard isn&rsquo;t live yet. ${pagesHelp()}`);
@@ -1998,6 +2204,7 @@
         // Pages is on, so PUBLISHING the dashboard is part of the progress: keep the
         // bar working and only finish (green "done") + reveal the link once GitHub
         // Pages actually serves the page, so the link is never a 404.
+        putInstall(repo, { phase: "publishing", prNumber: pr.number, prUrl: pr.html_url });
         setInsBar(null, "working");
         setInstallStep("dashboard", "active", "Dispatching the dashboard publish workflow and waiting for GitHub Pages to serve the new dashboard.");
         setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026 this takes about a minute.`, "ok");
@@ -2010,6 +2217,7 @@
         ).then(state => {
           if (insRunId !== myGen) return;
           if (state === "live" || state === "placeholder") {
+            dropInstall(repo);
             setInstallStep("dashboard", "done", state === "live" ? "GitHub Pages is serving the dashboard." : "GitHub Pages is serving the setup placeholder; it auto-refreshes into the dashboard.");
             revealLiveLink();
             showDashLink();
@@ -2240,23 +2448,13 @@
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) { setInsStatus("Enter your target repository (owner/name) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
       if (!getInsTok()) { showInsTokPanel(); return; }
+      hideFlightPanel();
       installBusy(true);
       setInsStatus("Checking your repository&hellip;", null);
-      try {
-        const prior = await detectPriorInstall(repo);
-        priorState = prior || null;
-        if (prior && (prior.canKeep || (prior.managedFiles && prior.managedFiles.size))) {
-          populateReinstallPanel(repo, prior);
-          showReinstallPanel();
-          installBusy(false);
-          return;
-        }
-        if (!confirmWorkerBuildIfNeeded({ keepSettings: false, deleteStale: false })) { installBusy(false); return; }
-        await proceedInstall(repo, { keepSettings: false, deleteStale: false });
-      } catch (e) {
-        setInsStatus(installError(e, repo), "err");
-        installBusy(false);
-      }
+      let flight = null;
+      try { flight = await detectInFlight(repo); } catch (_) { flight = null; }
+      if (flight) { populateFlightPanel(repo, flight); showFlightPanel(); installBusy(false); return; }
+      await continueAfterFlight(repo);
     }
 
     async function proceedInstall(repo, opts) {
@@ -2266,6 +2464,7 @@
       showInsBar();
       ++insRunId;                   // newer install invalidates any in-flight publish-wait UI updates
       { const dl0 = $("insDashLink"); if (dl0) dl0.style.display = "none"; }
+      putInstall(repo, { phase: "preparing", autoMerge: !!($("optAutoMerge") && $("optAutoMerge").checked), dashUrl: dashboardUrl(repo) });
       setInsStatus("Preparing&hellip;", null);
       try {
         const setup = {};
@@ -2425,6 +2624,7 @@
           if (!pr) await ghJson(prResp); // still nothing -> throw a typed error
         }
         setInstallStep("prepare", "done", `Opened install pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>.`);
+        putInstall(repo, { phase: "pr-open", prNumber: pr.number, prUrl: pr.html_url, branch: INSTALL_BRANCH, version: version, dashUrl: dashboardUrl(repo), autoMerge: !!($("optAutoMerge") && $("optAutoMerge").checked) });
 
         // Best-effort: optionally flip Workflow permissions to write and enable
         // Pages so the dashboard publishes with no manual settings. Never fails the
@@ -2445,6 +2645,7 @@
         installSuccess(pr, repo, setup);
       } catch (e) {
         setInstallStep("prepare", "err", "Install setup stopped before the pull request could finish.");
+        const _r = getInstall(repo); if (_r && _r.phase === "preparing") dropInstall(repo);
         setInsStatus(installError(e, repo), "err");
       } finally {
         installBusy(false);
@@ -2808,7 +3009,7 @@
       const _gtc = $("glTokCancel"); if (_gtc) _gtc.addEventListener("click", hideGitLabTokPanel);
       $("insTokForget").addEventListener("click", () => {
         if (isGitLab()) { clearGitLabTok(); refreshInsForget(); setInsStatus("GitLab token removed from this browser.", null); return; }
-        clearInsTok(); refreshInsForget(); const _dl = $("repoList"); if (_dl) _dl.innerHTML = ""; repoListToken = null; renderRepoPick(); setInsStatus("Token removed from this browser.", null);
+        clearInsTok(); refreshInsForget(); const _dl = $("repoList"); if (_dl) _dl.innerHTML = ""; repoListToken = null; renderRepoPick(); renderInstallList(); setInsStatus("Token removed from this browser.", null);
       });
       const _iti = $("insTokInput"); if (_iti) _iti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveInsTokAndInstall(); } });
       const _gti = $("glTokInput"); if (_gti) _gti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveGitLabTokAndInstall(); } });
@@ -2817,6 +3018,10 @@
       const _rg = $("insReinstallGo"); if (_rg) _rg.addEventListener("click", confirmReinstall);
       const _rc = $("insReinstallCancel"); if (_rc) _rc.addEventListener("click", () => { hideReinstallPanel(); installBusy(false); setInsStatus("Install cancelled \u2014 nothing was changed.", null); });
       const _ok = $("optKeep"); if (_ok) _ok.addEventListener("change", renderStalePreview);
+      const _fv = $("insFlightView"); if (_fv) _fv.addEventListener("click", () => { hideFlightPanel(); installBusy(false); setInsStatus("", null); const w = $("insFlightWrap"); if (w) w.scrollIntoView({ behavior: "smooth", block: "center" }); });
+      const _fcg = $("insFlightCancelGo"); if (_fcg) _fcg.addEventListener("click", async () => { hideFlightPanel(); installBusy(true); setInsStatus("Cancelling the install already in flight\u2026", null); await cancelInstall(_flightRepo); await continueAfterFlight(_flightRepo); });
+      const _fa = $("insFlightAnyway"); if (_fa) _fa.addEventListener("click", () => { hideFlightPanel(); continueAfterFlight(_flightRepo); });
+      const _fx = $("insFlightClose"); if (_fx) _fx.addEventListener("click", () => { hideFlightPanel(); installBusy(false); setInsStatus("Install cancelled \u2014 nothing was changed.", null); });
     }
 
     (async function init() {
@@ -2833,6 +3038,7 @@
       wire(); update(); refreshInsForget();
       refreshInstallPause();
       renderRepoPick(); loadRepoList();
+      renderInstallList(); reconcileInstalls();
 
       // The tooling has relocated: tell the user their install comes from the new
       // official home (and this page followed the pointer to get there).
