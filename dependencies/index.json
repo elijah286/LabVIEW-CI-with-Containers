@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ced05c23599837fe9f3406a066086a60a5a54bbf",
+  "sha": "32e747c79e5056455f5c4aaf0fc301d35b84e8f7",
   "revisions": [
+    {
+      "sha": "32e747c79e5056455f5c4aaf0fc301d35b84e8f7",
+      "short": "32e747c",
+      "message": "docs: note opt-in per-file Monitor auto-rebuild in Configure (off by default)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T04:38:00Z"
+    },
     {
       "sha": "ced05c23599837fe9f3406a066086a60a5a54bbf",
       "short": "ced05c2",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.4: fix Activity report fallback",
       "author": "Elijah Kerry",
       "date": "2026-06-22T03:28:51Z"
-    },
-    {
-      "sha": "8b37cba42fb33426184a9fd83af83841663ecd02",
-      "short": "8b37cba",
-      "message": "Release v3.34.3: fix VI Browser 2.0 dispatch target refs",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T03:12:03Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
