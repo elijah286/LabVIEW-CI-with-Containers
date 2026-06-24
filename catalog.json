@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.9",
+  "version": "4.1.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,19 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.10",
+        "date": "2026-06-25",
+        "title": "One-time reset: rebase the Beta container recipes onto Core",
+        "type": "patch",
+        "summary": "Resets the experimental Beta container recipes to be verbatim rebases of the Core recipes, so LCWC's four worker containers (Windows core, Linux core, Windows Beta, Linux Beta) all start from the same content and diverge from here as experimental capabilities are added to the Beta lane. labview-ci-linux-beta.Dockerfile is now a byte rebase of labview-ci-linux.Dockerfile (only the header and com.cotc.ci-worker.platform=linux-beta label differ), and a new labview-ci-windows-beta.Dockerfile is a rebase of the Windows base (labview-ci-base.Dockerfile, platform=windows-beta). The Windows Beta build workflow and the experimental-gated copy wiring follow next; this commit lands the recipes and resets the Linux Beta image content.",
+        "highlights": [
+          "Linux Beta Dockerfile rebased to match Linux Core exactly (header + label only).",
+          "New Windows Beta Dockerfile, a rebase of the Windows Core base.",
+          "Sets up four independent LCWC containers that diverge as experimental capabilities are added.",
+          "Beta images stay client-copied (never rebuilt on install)."
+        ]
+      },
       {
         "version": "4.1.9",
         "date": "2026-06-25",
