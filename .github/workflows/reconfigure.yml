@@ -36,7 +36,7 @@ on:
         required: false
         default: ''
       container_vipc:
-        description: 'Baked VIPC files as paths separated by ; (blank = keep current)'
+        description: 'Baked VIPC files as path::monitor pairs separated by ; (blank = keep current)'
         required: false
         default: ''
       container_actions:
@@ -191,7 +191,9 @@ jobs:
                       if re.match(r'^\s{4}actions:\s*$', line): in_actions = True; in_vipc = False; continue
                       if in_vipc:
                           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
-                          if m: cur_vipc = {'path': m.group(1).strip()}; prev['vipc'].append(cur_vipc); continue
+                          if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': False}; prev['vipc'].append(cur_vipc); continue
+                          m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
+                          if m and cur_vipc is not None: cur_vipc['monitor'] = (m.group(1).strip().lower() == 'true'); continue
                       if in_actions:
                           m = re.match(r'^\s{6}([A-Za-z0-9_.\-]+):\s*"?([^"\s]+)"?\s*$', line)
                           if m: prev['actions'][m.group(1)] = m.group(2); continue
@@ -226,11 +228,11 @@ jobs:
               for entry in s.split(';'):
                   entry = entry.strip()
                   if not entry: continue
-                  # Tolerate a legacy "path::monitor" form from older configs by
-                  # keeping only the path; monitoring no longer exists.
-                  path = entry.split('::', 1)[0].strip()
-                  if path:
-                      out.append({'path': path})
+                  if '::' in entry:
+                      path, mon = entry.rsplit('::', 1)
+                      out.append({'path': path.strip(), 'monitor': mon.strip().lower() not in ('0', 'false', 'no', 'off')})
+                  else:
+                      out.append({'path': entry, 'monitor': False})
               return out
           vipc = _parse_vipc(container_vipc_in) if container_vipc_in else prev['vipc']
 
@@ -365,6 +367,7 @@ jobs:
               for v in vipc:
                   p = str(v['path']).replace('"', '')
                   lines.append(f'      - path: "{p}"')
+                  lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
           if container_actions:
               lines.append('    actions:')
               for _id in sorted(container_actions):
