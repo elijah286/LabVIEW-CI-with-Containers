@@ -208,9 +208,10 @@
         <div class="subhead">Actions</div>
         <p class="hint" style="margin:-2px 0 10px">Every action installed in this repository and the platforms it runs on. Tick the operating systems each action should run on. On <strong>Windows</strong> the cell doubles as the container picker &mdash; it reads <strong>default</strong> (the project's default image); click it to run a different container, or choose <em>Don't run</em>. Linux jobs always use the NI base image. Choose <em>when</em> each runs under <strong>When activities run</strong> below.</p>
         <div class="depopts">
-          <label class="toggle"><input type="checkbox" id="requireDeps"> Require all dependencies to be installed before running</label>
+          <label class="toggle"><input type="checkbox" id="requireDeps"> Require all <a href="dependencies.html">monitored</a> dependencies to be installed before running</label>
           <label class="toggle"><input type="checkbox" id="autoInstallDeps"> Automatically install missing dependencies and rebuild containers before running actions</label>
         </div>
+        <p class="hint" style="margin:8px 0 0">Choose monitored dependency files on the <strong>Dependencies</strong> page. Monitoring controls dependency warnings and dependency-file change detection; installation before actions only happens when automatic dependency installation is enabled.</p>
         <div id="acts"></div>
       </section>
 
@@ -226,27 +227,12 @@
         <p class="hint" style="margin-top:10px">Saved to your configuration and included in the pull request. Activities already run on the sources ticked by default; custom per-source rules are recorded here and take effect as each workflow is wired to honor them &mdash; the same way <strong>Max concurrent runners</strong> is stored today. Pull requests from forks run sandboxed by GitHub &mdash; read-only and without access to your secrets.</p>
       </section>
 
-      <section>
-        <h2>Automatic dependency updates
-          <span class="infowrap">
-            <button type="button" class="infobtn" aria-expanded="false" aria-label="About automatic dependency updates">i</button>
-            <span class="infopop" hidden role="note">Rebuilding the worker container with your project dependencies takes a while, so it never runs automatically by default &mdash; you update dependencies on demand from the Dependencies page. Turn on <strong>Monitor</strong> for a dependency file here to opt <em>that file</em> into an automatic rebuild-and-re-push whenever it changes on a submission. A file must be <strong>included</strong> (baked) before it can be monitored.</span>
-          </span>
-        </h2>
-        <p class="hint">Choose which <code class="inl">.vipc</code> (VIPM) and <code class="inl">.dragon</code> (NIPM) dependency files are baked into the worker container, and tick <strong>Monitor</strong> to rebuild the container automatically whenever that file changes on a submission. <strong>Off by default</strong> &mdash; with nothing monitored, the worker only updates when you run it on demand from the <strong>Dependencies</strong> page.</p>
-        <div class="subhead">VIPC files (VIPM)</div>
-        <div id="vipcs"></div>
-        <p class="hint" id="vipcNote"></p>
-        <div class="subhead">Dragon files (NIPM)</div>
-        <div id="dragons"></div>
-        <p class="hint" id="dragonNote"></p>
-      </section>
     </div><!-- /pane-pipeline -->
 
     <!-- ========================= SAVE & APPLY ========================= -->
     <section id="saveApply">
       <h2>Save and apply</h2>
-      <p class="hint">Save these settings by queuing a reviewable <code class="inl">Reconfigure</code> workflow run with the dashboard token. It opens a pull request before anything changes on your default branch. Automatic dependency-update monitoring is configured above; manual dependency installation and status stay on the <strong>Dependencies</strong> page.</p>
+      <p class="hint">Save these settings by queuing a reviewable <code class="inl">Reconfigure</code> workflow run with the dashboard token. It opens a pull request before anything changes on your default branch. Dependency-file monitoring, manual dependency installation, and status stay on the <strong>Dependencies</strong> page.</p>
       <div class="actions">
         <button class="primary" id="applyCfg" type="button">Save and apply</button>
         <a id="wfLink" href="https://github.com/actions/workflows/reconfigure.yml" target="_blank" rel="noopener">View workflow</a>
@@ -1204,12 +1190,11 @@
       const cTrig = triggerInputEnc();
       const cVia = viAnalyzerInputEnc();
       const cActionOs = actionOsInputEnc();
-      // Per-action container routing travels as container_actions; the baked VIPC /
-      // Dragon dependency files (with Monitor) travel as container_vipc/container_dragon.
-      // The container image tag and VI Browser render matrix are managed elsewhere, so
-      // this leaves them unchanged: antidoc=keep and no container_use / vi_browser.
-      const cVipc = containerVipcInputEnc();
-      const cDragon = containerDragonInputEnc();
+      // Per-action container routing travels as container_actions. Dependency-file
+      // monitoring is managed from the Dependencies page, so Configure leaves
+      // container_vipc/container_dragon unchanged.
+      const cVipc = "";
+      const cDragon = "";
       const cLine =
         (cVipc ? ` \\\n  -f container_vipc="${cVipc}"` : "") +
         (cDragon ? ` \\\n  -f container_dragon="${cDragon}"` : "") +
@@ -1231,10 +1216,8 @@
     function reconfigureInputs() {
       const cActs = containerActionEntries().map(([id, t]) => `${id}::${t}`).join(";");
       const cVia = viAnalyzerInputEnc();
-      // Worker container dependencies: send the baked VIPC / Dragon files with their
-      // Monitor flags so the per-file auto-rebuild opt-in is saved. The container image
-      // tag and the VI Browser render matrix are managed elsewhere, so leave those
-      // unchanged on save (blank / keep = "leave as-is").
+      // Dependency-file monitoring is managed from the Dependencies page. Blank
+      // container_vipc/container_dragon tells reconfigure.yml to preserve them.
       return {
         labview_version: $("version").value,
         operating_systems: osChoice(),
@@ -1242,8 +1225,8 @@
         concurrent_runners: String(parseInt($("runners").value, 10) || 1),
         activities: csv(actSel) || "dashboard",
         container_use: "",
-        container_vipc: containerVipcInputEnc(),
-        container_dragon: containerDragonInputEnc(),
+        container_vipc: "",
+        container_dragon: "",
         container_actions: cActs,
         action_triggers: triggerInputEnc(),
         vi_browser: "",
