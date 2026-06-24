@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "aa86909f40e4d343507db2df2b26de2721b698a6",
+  "sha": "70f406ffdf36f7869e8704e945e34ef9e14b9414",
   "revisions": [
+    {
+      "sha": "70f406ffdf36f7869e8704e945e34ef9e14b9414",
+      "short": "70f406f",
+      "message": "Run copy_only worker install on ubuntu-latest for a fast image copy (4.1.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T12:52:04Z"
+    },
     {
       "sha": "aa86909f40e4d343507db2df2b26de2721b698a6",
       "short": "aa86909",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.15: cancel superseded Windows renders",
       "author": "Elijah Kerry",
       "date": "2026-06-22T11:39:40Z"
-    },
-    {
-      "sha": "02f5f7fae3f1879ad3eeaa4096fd39560d6c10cb",
-      "short": "02f5f7f",
-      "message": "Release v3.34.14: time out stuck Windows Go renders",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T11:38:12Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
