@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "01f4fb179002f96b63052653bc44e51315b22a9c",
+  "sha": "65aff5dc69883236c65a2a225367b5c2e4c66b66",
   "revisions": [
+    {
+      "sha": "65aff5dc69883236c65a2a225367b5c2e4c66b66",
+      "short": "65aff5d",
+      "message": "clients: tabular view with version + staleness column (3.49.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T04:20:19Z"
+    },
     {
       "sha": "01f4fb179002f96b63052653bc44e51315b22a9c",
       "short": "01f4fb1",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.2: Windows VI Browser 2.0 renders and dashboard tooling updates",
       "author": "Elijah Kerry",
       "date": "2026-06-22T02:56:38Z"
-    },
-    {
-      "sha": "348be3a719a4da1dbf754d6370a8bf924d839dae",
-      "short": "348be3a",
-      "message": "dashboard: show unit-test failed percentage with configurable gates",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T02:40:32Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
