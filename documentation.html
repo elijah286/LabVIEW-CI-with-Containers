@@ -183,7 +183,8 @@
           <tr><td><strong>VIDiff</strong></td><td>Generates visual, side-by-side front-panel + block-diagram diffs of changed VIs between commits.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>Unit Tests</strong></td><td>Runs Caraya / VI Tester / NI Unit Test Framework headlessly and merges JUnit output into one report.</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>Antidoc</strong></td><td>Generates project documentation from the VI hierarchy using Wovalab's Antidoc CLI.</td><td><span class="pill win">Win</span></td></tr>
-          <tr><td><strong>VI Snapshots / Browser</strong></td><td>Renders every VI to a content-addressed HTML snapshot (and position-aware JSON for the in-place 2.0 browser).</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
+          <tr><td><strong>VI Snapshots / Browser</strong></td><td>Renders every VI to a content-addressed HTML snapshot gallery (the classic VI Browser).</td><td><span class="pill win">Win</span></td></tr>
+          <tr><td><strong>VI Snapshots 2.0</strong></td><td>Position-aware, in-place VI Browser frames (JSON) rendered by the cross-platform toimages engine.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>Dashboard</strong></td><td>Aggregates everything above into a single status page on GitHub Pages.</td><td>runner host</td></tr>
         </tbody>
       </table>
@@ -664,8 +665,8 @@ docker run --rm `
         JSON beside the HTML as <code>&lt;blob&gt;.windows.json</code>. <code>build-gallery.py</code> emits the
         per-commit <code>manifest.json</code> (VI → by-blob HTML), the rolling <code>commits.json</code>, and the
         Windows JSON index used by the in-place browser.</p>
-      <h4>Phase 2 — position-aware JSON (VI Browser 2.0) <span class="pill lin">Linux</span></h4>
-      <p>The <code>vi-snapshots-json.yml</code> workflow pulls the <code>-toimages</code> image and renders
+      <h4>Phase 2 — position-aware JSON (VI Snapshots 2.0) <span class="pill win">Windows</span> <span class="pill lin">Linux</span></h4>
+      <p>Phase 2 is the separate <strong>VI Snapshots 2.0</strong> capability, selectable on Windows and Linux (the classic gallery above is Windows-only). The <code>vi-snapshots-json.yml</code> (Linux) and <code>vi-snapshots-json-windows.yml</code> (Windows) workflows pull the <code>-toimages</code> image and render
         position-aware frame JSON for the in-place browser. Inside that image, a Go batch runner
         (<code>main.go</code>) reads the same TSV worklist and shells out to <code>lvctl toimages</code> — a native
         Go VI-Server TCP client that launches LabVIEW under Xvfb, captures the front panel and block diagram as

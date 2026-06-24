@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "361828e301284e85c625d7ae5c4192d465edc408",
+  "sha": "3644eb3393419ef4f8e85ff5320d3f8678da5b6c",
   "revisions": [
+    {
+      "sha": "3644eb3393419ef4f8e85ff5320d3f8678da5b6c",
+      "short": "3644eb3",
+      "message": "catalog: split VI Snapshots 2.0 into its own Windows+Linux capability (3.51.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T05:00:08Z"
+    },
     {
       "sha": "361828e301284e85c625d7ae5c4192d465edc408",
       "short": "361828e",
@@ -695,13 +702,6 @@
       "message": "Dependencies page: enable revision selector",
       "author": "Elijah Kerry",
       "date": "2026-06-22T03:40:25Z"
-    },
-    {
-      "sha": "1947119bfdf9cef7b6bf6c9998e3493efcf56117",
-      "short": "1947119",
-      "message": "Release v3.34.5: unify revision-aware dashboard navigation",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T03:37:08Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
