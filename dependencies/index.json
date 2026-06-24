@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "63bb4b9da14710d38ff337b59c9facd1c79f9d83",
+  "sha": "502bdf80c01d2bf68b71dd36671a85348a1a4866",
   "revisions": [
+    {
+      "sha": "502bdf80c01d2bf68b71dd36671a85348a1a4866",
+      "short": "502bdf8",
+      "message": "Fix worker-manifest gh-pages publish race (Copy Linux worker failure) (4.1.20)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T18:40:36Z"
+    },
     {
       "sha": "63bb4b9da14710d38ff337b59c9facd1c79f9d83",
       "short": "63bb4b9",
@@ -695,13 +702,6 @@
       "message": "VI Browser 2.0: stepping through case structures no longer zooms the diagram",
       "author": "Elijah Kerry",
       "date": "2026-06-22T15:56:29Z"
-    },
-    {
-      "sha": "15aaef57ed140ef41db5168f055d57aead0bcdb1",
-      "short": "15aaef5",
-      "message": "Dependencies: Linux note becomes a column info popover; fix squeezed Win Beta popover (v3.35.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T15:54:44Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
