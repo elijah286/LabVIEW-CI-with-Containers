@@ -351,6 +351,11 @@ mass-compile:
         (<code>rev &lt;sha&gt;</code>) rather than the dispatch ref, so the cell lands on the right row instead of on
         the branch head. When several activities wait behind each other in the <code>report-pages-deploy</code> line,
         each queued cell also reports how many jobs are ahead of it (for example <em>Queued &middot; 1 ahead</em>).</p>
+      <p>A capability that runs on two platforms (Windows and Linux) writes a single shared result for the commit, so
+        the faster platform finishes first. The dashboard checks for an active run on the commit&nbsp;+ capability
+        <em>before</em> rendering that result, so while the slower platform is still running the cell keeps its live
+        <em>Running</em> badge instead of reverting to a finished-looking result &mdash; the indicator only clears
+        once every platform's run for that capability has completed.</p>
 
       <!-- 6 ───────────────────────────────────────────────────────────────── -->
       <h2 id="images">6. Worker container images <a class="anchor" href="#images">#</a></h2>
@@ -626,6 +631,16 @@ docker run --rm `
         manifest (<code>{modified, added, deleted}</code>). The <strong>backfill</strong> variant walks
         <code>git log --reverse -- '*.vi' '*.ctl'</code>, creates detached worktrees per commit, renders through a
         warm container, and is resumable via a skip-list so large histories can be processed across runs.</p>
+      <p>On the dashboard, the <strong>VIDiff</strong> column summarises the <em>shape</em> of each revision as a
+        three-number diff stat — <span style="color:#d29922;font-weight:700">different</span> /
+        <span style="color:#3fb950;font-weight:700">new</span> /
+        <span style="color:#f85149;font-weight:700">deleted</span> VI/CTL counts versus the revision's parent —
+        computed by <code>dashboard.py</code> from the two git trees (each file's blob SHA is the content
+        fingerprint: same path + changed blob = different, a path the parent lacked = new, a path the parent had =
+        deleted; a rename reads as one new + one deleted). Zero parts are dimmed so the eye lands on what actually
+        changed, a tip strip spells the counts out, and the whole cell still links into the VI Browser filtered to
+        this revision's changed VIs. The cell falls back to the shared running / queued / one-click-run affordances
+        until a VIDiff result exists.</p>
       <div class="note"><span class="lbl">PrintToSingleFileHtml</span>
         The custom operation under <code>.github/labview/PrintToSingleFileHtml/</code> is a binary
         <code>.lvclass</code> sourced from NI's <code>labview-for-containers</code> examples; it renders a single VI

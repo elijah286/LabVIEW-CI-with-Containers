@@ -313,6 +313,31 @@ def vi_tree(sha):
     _tree_cache[sha] = vis
     return vis
 
+# ── VIDiff shape: how many VIs a revision changed vs its parent ──────────────
+# (different, new, deleted) for the VI/CTL set, keyed by file path with the git
+# blob SHA as the content fingerprint: different = same path, changed blob; new =
+# a path the parent did not have; deleted = a path the parent had and this
+# revision dropped. A rename reads as one new + one deleted (path-based, like a
+# plain git diff). Both trees come from vi_tree(), which is cached, so a parent
+# that is itself a row in the window costs no extra API call. A root commit (no
+# parent) counts everything present as new.
+_diff_counts_cache = {}
+def vidiff_counts(sha, parent):
+    key = (sha, parent)
+    if key in _diff_counts_cache:
+        return _diff_counts_cache[key]
+    cur = {v['vi_rel']: v.get('blob', '') for v in vi_tree(sha)}
+    if not parent:
+        res = (0, len(cur), 0)
+    else:
+        prev = {v['vi_rel']: v.get('blob', '') for v in vi_tree(parent)}
+        different = sum(1 for p, b in cur.items() if p in prev and prev[p] != b)
+        new       = sum(1 for p in cur if p not in prev)
+        deleted   = sum(1 for p in prev if p not in cur)
+        res = (different, new, deleted)
+    _diff_counts_cache[key] = res
+    return res
+
 # Accumulates one entry per project revision for vi-snapshots/files.json, the
 # VI Browser's snapshot-independent source of commits + file trees.
 file_commits = []
@@ -657,6 +682,22 @@ for c in commits_data:
                 '<span class="run-badge" title="Queued on GitHub Actions - waiting for a runner">'
                 f'{body}</span></td>')
 
+    def active_run_cell(cap, label):
+        # If a run for THIS commit + capability is queued or in progress on GitHub
+        # right now (per the Actions API), return its Queued/Running cell — else
+        # None. Checked BEFORE a result chip so that when a capability ran on two
+        # platforms and the fast one (e.g. Linux) already posted its result, the
+        # cell still shows the OTHER platform's run is live instead of silently
+        # reverting to a finished-looking result. Matches the empty-cell behaviour
+        # in run_cell(), which already prefers an active run over an idle arrow.
+        ar = active_runs.get(sha, {}).get(cap)
+        if ar is None:
+            return None
+        caps_ran.add(cap)
+        if ar.get('status') == 'queued':
+            return queued_cell(ar.get('html_url', ''))
+        return running_cell(label, ar.get('html_url', ''))
+
     def badge(label, *contexts, url_override=None, cap=None, doc=None):
         if not is_project:
             return EMPTY_CELL
@@ -664,6 +705,12 @@ for c in commits_data:
         if run is not None:
             if cap: caps_ran.add(cap)
             return running_cell(label, run.get('target_url', ''))
+        # A sibling-platform run for this cap may still be live even though one
+        # platform already posted a terminal commit status — surface it as running.
+        if cap:
+            _live = active_run_cell(cap, label)
+            if _live is not None:
+                return _live
         s = pick_status(*contexts)
         if not s:
             return run_cell(cap) if cap else EMPTY_CELL
@@ -696,7 +743,10 @@ for c in commits_data:
         mc_badge = EMPTY_CELL
     else:
         _mc = masscompile_summary(sha)
-        if _mc and isinstance(_mc.get('percent'), int):
+        _mc_live = active_run_cell('masscompile', 'compile')
+        if _mc_live is not None:
+            mc_badge = _mc_live
+        elif _mc and isinstance(_mc.get('percent'), int):
             any_output['on'] = True
             caps_ran.add('masscompile')
             _pct = _mc['percent']
@@ -729,10 +779,49 @@ for c in commits_data:
     # showing nothing because the Windows-only context is absent.
     via_badge = badge('analyze',   'CI / VI Analyzer', 'CI / VI Analyzer (Linux)', cap='vi-analyzer',
                       doc=('vi-analyzer-report', 'vi-analyzer'))
-    # The diff badge opens the unified VI Browser filtered to this commit's
-    # changed VIs (each links to its diff report), rather than a separate table.
-    diff_badge= badge('diff',      'CI / VIDiff (windows)', 'CI / VIDiff (linux)',
-                       url_override=f'{pages_url}/vi-snapshots/index.html?sha={sha}&changed=1', cap='vidiff')
+    # VIDiff column: rather than a single "diff" badge, show the SHAPE of the
+    # revision — how many VIs are different / new / deleted versus its parent —
+    # so the table conveys at a glance what each revision did, not just that a
+    # diff ran. The three counts are computed from the VI file trees (content
+    # blob per path) and are coloured modified-amber / added-green / deleted-red,
+    # with a tip strip spelling each out. The whole cell still links into the VI
+    # Browser filtered to this revision's changed VIs (each VI linking to its
+    # side-by-side report). When VIDiff has not produced a result yet the cell
+    # falls back to the same running / queued / one-click-run affordances as the
+    # other columns.
+    def diff_cell():
+        if not is_project:
+            return EMPTY_CELL
+        _ctxs = ('CI / VIDiff (windows)', 'CI / VIDiff (linux)')
+        _run = fresh_pending(*_ctxs)
+        if _run is not None:
+            caps_ran.add('vidiff')
+            return running_cell('diff', _run.get('target_url', ''))
+        _live = active_run_cell('vidiff', 'diff')
+        if _live is not None:
+            return _live
+        _s = pick_status(*_ctxs)
+        if not _s:
+            return run_cell('vidiff')
+        any_output['on'] = True
+        caps_ran.add('vidiff')
+        _d, _n, _del = vidiff_counts(sha, parent)
+        _url = f'{pages_url}/vi-snapshots/index.html?sha={sha}&changed=1'
+        # Spell the counts out for the tip strip; "0" parts stay quiet (greyed)
+        # so the eye lands on what actually changed.
+        _parts = (f'{_d} different', f'{_n} new', f'{_del} deleted')
+        _tip = 'VIs changed in this revision: ' + ' · '.join(_parts) + ' — click to view the diffs'
+        def _num(val, cls):
+            z = '' if val else ' ds-zero'
+            return f'<span class="{cls}{z}">{val}</span>'
+        _stat = (f'{_num(_d, "ds-mod")}<span class="ds-sep">/</span>'
+                 f'{_num(_n, "ds-add")}<span class="ds-sep">/</span>'
+                 f'{_num(_del, "ds-del")}')
+        return ('<td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" '
+                f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" '
+                f'data-ts="{_s.get("created_at","")}">'
+                f'<a href="{_url}" class="cidash-diffstat" title="{_tip}">{_stat}</a></td>')
+    diff_badge = diff_cell()
     # Snapshots column: how many of this revision's VIs have a rendered snapshot
     # (content-addressed by git blob), linking into the VI Browser for the commit.
     # Snapshots are a single content-addressed gallery (not per-platform) and are
@@ -744,9 +833,12 @@ for c in commits_data:
     else:
         _snap_run = fresh_pending('CI / VI Snapshots')
         _have, _total = snapshot_coverage(sha)
+        _snap_live = active_run_cell('snapshots', 'snapshots')
         if _snap_run is not None:
             caps_ran.add('snapshots')
             snap_badge = running_cell('snapshots', _snap_run.get('target_url', ''))
+        elif _snap_live is not None:
+            snap_badge = _snap_live
         elif _have <= 0:
             snap_badge = run_cell('snapshots')
         else:
@@ -774,9 +866,12 @@ for c in commits_data:
     else:
         _ut_run = fresh_pending('CI / Unit Tests')
         _ut = unit_tests_summary(sha)
+        _ut_live = active_run_cell('unit-tests', 'tests')
         if _ut_run is not None:
             caps_ran.add('unit-tests')
             unit_badge = running_cell('tests', _ut_run.get('target_url', ''))
+        elif _ut_live is not None:
+            unit_badge = _ut_live
         elif _ut and 'tests' in _ut:
             any_output['on'] = True
             caps_ran.add('unit-tests')
@@ -1932,6 +2027,23 @@ run_dialog = (r"""
     // and the per-revision activities oldest-first, gently throttled so a long
     // history doesn't trip GitHub's secondary rate limits. Resolves with an
     // {ok, err, total} tally; the caller owns its own status line + buttons.
+    // Turn collected dispatch failures into an accurate message. A 404 means the
+    // targeted workflow file is not installed on this repo (its LabVIEW CI tooling
+    // is out of date) -- NOT a token problem -- so callers do not re-prompt for a
+    // token in that case. .tok = whether the failure is token/permission related.
+    function dispatchFailMsg(fails){
+      fails = fails || [];
+      var has = function(code){ return fails.some(function(f){ return f.status===code; }); };
+      if(has(401)) return { html:'That saved token was rejected (401) \u2014 it is invalid or expired. <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', tok:true };
+      if(has(404)){
+        var wfs=[]; fails.forEach(function(f){ if(f.status===404 && f.wf && wfs.indexOf(f.wf)<0) wfs.push(f.wf); });
+        var list=wfs.map(function(w){ return '<code>'+esc(w)+'</code>'; }).join(', ');
+        return { html:'<strong>Not a token problem</strong> \u2014 your saved token worked, but '+(wfs.length>1?'these workflows are':'this workflow is')+' not installed on <code>'+esc(REPO)+'</code> (HTTP 404): '+list+'. This repository\u2019s LabVIEW CI tooling is out of date \u2014 update it from <strong>What\u2019s new \u2192 Update</strong> to add the missing workflow'+(wfs.length>1?'s':'')+', then queue again.', tok:false };
+      }
+      if(has(403)) return { html:'The saved token is missing the <strong>Actions: Read and write</strong> permission on <code>'+esc(REPO)+'</code> (HTTP 403). On the token page set <strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong>, then <strong>Update</strong>. <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Update token \u2197</a>', tok:true };
+      if(has(422)) return { html:'GitHub rejected the dispatch (HTTP 422) \u2014 usually a bad branch ref (<code>'+esc(BRANCH)+'</code>) or inputs.', tok:false };
+      var st=(fails[0]||{}).status; return { html:'Could not queue runs (HTTP '+esc(String(st||'?'))+'). <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View Actions \u2197</a>', tok:false };
+    }
     function dispatchCells(cells, statusFn){
       var perRev=[]; var snapShas=[]; var sawSnap=false; var snapForce=false;
       cells.forEach(function(x){
@@ -1943,7 +2055,7 @@ run_dialog = (r"""
       });
       perRev.sort(function(a,b){ return b.order - a.order; });   // oldest first
       var total=perRev.reduce(function(n,x){ return n + cellPlatforms(x).length; }, 0) + (sawSnap?1:0);
-      var t0=Date.now(); var ok=0, err=0, done=0;
+      var t0=Date.now(); var ok=0, err=0, done=0; var fails=[];
       // Paint EVERY targeted cell as "Queued" up front, in one synchronous pass, so
       // the whole batch lights up the instant you click - independent of the throttled
       // dispatch chain below. A dispatch that truly fails then reverts just its own
@@ -1959,7 +2071,7 @@ run_dialog = (r"""
           return dispatchOne('vi-snapshots.yml', inputs).then(function(r){
             done++;
             if(r.ok){ ok++; captureSnapshotRun(t0); }
-            else { err++; if(r.status===401) clearTok(); snapShas.forEach(function(sha){ qForget('snapshots', sha); }); }
+            else { err++; fails.push({wf:'vi-snapshots.yml', status:r.status}); if(r.status===401) clearTok(); snapShas.forEach(function(sha){ qForget('snapshots', sha); }); }
             statusFn('Queuing\u2026 '+done+'/'+total, null);
           }).catch(function(){ err++; });
         });
@@ -1977,6 +2089,7 @@ run_dialog = (r"""
           return Promise.all(jobs).then(function(results){
             done += results.length;
             if(results.some(function(r){return r.status===401;})) clearTok();
+            results.forEach(function(r){ if(!r.ok) fails.push({wf:r.wf, status:r.status}); });
             var okPlats=results.filter(function(r){return r.ok;}).map(function(r){return r.plat;});
             if(okPlats.length){ ok++; markQueued(x.cap, x.sha, okPlats, x.parent, t0); captureRuns(x.cap, x.sha); }
             else { err++; qForget(x.cap, x.sha); }
@@ -1985,7 +2098,7 @@ run_dialog = (r"""
         }).catch(function(){ /* one cell's error never aborts the rest */ })
           .then(function(){ return new Promise(function(res){ setTimeout(res, 650); }); });
       });
-      return chain.then(function(){ return { ok:ok, err:err, total:total }; });
+      return chain.then(function(){ return { ok:ok, err:err, total:total, fails:fails }; });
     }
     function bfRunAll(){
       var cells=bfCells();
@@ -2000,10 +2113,13 @@ run_dialog = (r"""
           bfStatus('\u2713 Queued '+res.ok+' workflow'+(res.ok>1?'s':'')+', oldest first \u2014 results appear as they finish. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
           bfDismiss();
         } else if(res.ok && res.err){
-          bfStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
+          var pm=dispatchFailMsg(res.fails);
+          bfStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched. '+pm.html, 'warn');
+          if(pm.tok) bfTokPanel(true);
         } else {
-          bfStatus('Could not queue runs. The token needs <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code> (runs dispatch on <code>'+esc(BRANCH)+'</code>). <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', 'err');
-          bfTokPanel(true);
+          var fm=dispatchFailMsg(res.fails);
+          bfStatus(fm.html, 'err');
+          if(fm.tok) bfTokPanel(true);
         }
       });
     }
@@ -2378,11 +2494,14 @@ run_dialog = (r"""
           setTimeout(cidashHistClose, 900);
         } else if(res.ok && res.err){
           if(go) go.disabled=false;
-          histStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
+          var pm=dispatchFailMsg(res.fails);
+          histStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched. '+pm.html, 'warn');
+          if(pm.tok) histTokPanel(true);
         } else {
           if(go) go.disabled=false;
-          histStatus('Could not queue runs. The token needs <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code> (runs dispatch on <code>'+esc(BRANCH)+'</code>). <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', 'err');
-          histTokPanel(true);
+          var fm=dispatchFailMsg(res.fails);
+          histStatus(fm.html, 'err');
+          if(fm.tok) histTokPanel(true);
         }
       });
     }
@@ -2590,6 +2709,21 @@ html = f"""<!DOCTYPE html>
       .cidash-chip.cc-fail{{background:#ffebe9;color:#cf222e;border-color:#cf222e44}}
       .cidash-chip.cc-warn{{background:#fff8c5;color:#9a6700;border-color:#9a670055}}
       .cidash-chip.cc-info{{background:#ddf4ff;color:#0969da;border-color:#0969da44}}
+    }}
+    /* VIDiff "diff stat": different / new / deleted VI counts for a revision.
+       Colour-coded modified-amber / added-green / deleted-red with grey slashes;
+       zero parts dim so the eye lands on what actually changed. */
+    .cidash-diffstat{{display:inline-flex;align-items:baseline;gap:3px;padding:3px 9px;border-radius:999px;font-size:.78em;font-weight:700;font-variant-numeric:tabular-nums;text-decoration:none;border:1px solid var(--border);background:var(--surface)}}
+    .cidash-diffstat:hover{{border-color:var(--fg-muted)}}
+    .cidash-diffstat .ds-sep{{color:var(--fg-muted);font-weight:400;opacity:.6}}
+    .cidash-diffstat .ds-mod{{color:#d29922}}
+    .cidash-diffstat .ds-add{{color:#3fb950}}
+    .cidash-diffstat .ds-del{{color:#f85149}}
+    .cidash-diffstat .ds-zero{{color:var(--fg-muted);opacity:.45;font-weight:600}}
+    @media(prefers-color-scheme:light){{
+      .cidash-diffstat .ds-mod{{color:#9a6700}}
+      .cidash-diffstat .ds-add{{color:#1a7f37}}
+      .cidash-diffstat .ds-del{{color:#cf222e}}
     }}
     /* Rich "Revision" cell: avatar + message (primary) + sha / author / date (meta). */
     .cidash-rev{{padding:8px;max-width:440px}}

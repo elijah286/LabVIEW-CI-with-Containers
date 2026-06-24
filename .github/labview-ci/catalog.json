@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.0.0",
+  "version": "4.1.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.0",
+        "date": "2026-06-24",
+        "title": "VIDiff column shows what each revision changed at a glance",
+        "type": "minor",
+        "summary": "The VIDiff column on the dashboard no longer shows a single 'diff' badge. For every revision it now shows a three-number diff stat -- different / new / deleted -- counting the VIs and type definitions that changed versus the revision's parent: amber for VIs whose content changed, green for VIs the parent did not have, and red for VIs the parent had and this revision removed (a rename reads as one new plus one deleted). Zero parts are dimmed so the eye lands on what actually changed, hovering spells the counts out, and the cell still opens the VI Browser filtered to exactly the VIs that revision touched. Until VIDiff has produced a result the cell keeps the same running, queued, and one-click-run controls as the other columns.",
+        "highlights": [
+          "Replaces the single VIDiff 'diff' badge with a different / new / deleted count of the VIs each revision changed versus its parent, colour-coded and with a hover tip strip.",
+          "Counts are computed from the git file trees (each VI's blob is its content fingerprint), so they need no extra render and a rename reads as one new plus one deleted.",
+          "The cell still links into the VI Browser filtered to the revision's changed VIs and keeps the running / queued / one-click-run states until a result exists."
+        ]
+      },
       {
         "version": "4.0.0",
         "date": "2026-06-24",
