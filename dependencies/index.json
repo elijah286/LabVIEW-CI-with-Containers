@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "0c62d04394d8a6c1eb3af891bbb8f601820afb2d",
+  "sha": "e2e4e60d71e28d6e865a5f05c7761ffe19a573d7",
   "revisions": [
+    {
+      "sha": "e2e4e60d71e28d6e865a5f05c7761ffe19a573d7",
+      "short": "e2e4e60",
+      "message": "docs: clarify install-vs-upgrade container management + add Mermaid diagram (3.47.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T01:57:03Z"
+    },
     {
       "sha": "0c62d04394d8a6c1eb3af891bbb8f601820afb2d",
       "short": "0c62d04",
@@ -695,13 +702,6 @@
       "message": "gate: wait only for Windows worker build; treat cancelled build as non-blocking",
       "author": "Elijah Kerry",
       "date": "2026-06-21T20:04:46Z"
-    },
-    {
-      "sha": "3526743da0f5770a004fe9f358a265ff152e26ca",
-      "short": "3526743",
-      "message": "Release 3.33.0: VIPC/UTF milestone + VI Browser 2.0 platform dispatch",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T19:19:15Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
