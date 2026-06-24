@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "efa2a95ca3f620a6bec75f172b84b9c7aaa40edc",
+  "sha": "04aecf0efb2e3f4515f7c1b495331cf6c0f10b96",
   "revisions": [
+    {
+      "sha": "04aecf0efb2e3f4515f7c1b495331cf6c0f10b96",
+      "short": "04aecf0",
+      "message": "rename 'Configure Workers' -> 'Configure Pipeline' across the site",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T05:27:11Z"
+    },
     {
       "sha": "efa2a95ca3f620a6bec75f172b84b9c7aaa40edc",
       "short": "efa2a95",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.8: fix dashboard document switching",
       "author": "Elijah Kerry",
       "date": "2026-06-22T03:52:14Z"
-    },
-    {
-      "sha": "bd32d04c675efec9697f5b85470319e92d620bc7",
-      "short": "bd32d04",
-      "message": "VI Browser: fall back from stale Linux 2.0 render image overrides",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T03:41:19Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",

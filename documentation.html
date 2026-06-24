@@ -733,7 +733,7 @@ docker run --rm `
         <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
           opt-in.</li>
       </ul>
-      <p><code>reconfigure.yml</code> backs the <strong>Configure Workers</strong> dialog: it rewrites
+      <p><code>reconfigure.yml</code> backs the <strong>Configure Pipeline</strong> dialog: it rewrites
         <code>.github/labview-ci.yml</code> from a <code>workflow_dispatch</code> form and opens a reviewable pull
         request rather than committing directly.</p>
       <h3>Relocation pointer</h3>
@@ -841,7 +841,7 @@ flowchart TD
         job (Ubuntu) reads <code>.github/labview-ci.yml</code> once and exposes capability + platform flags; a
         <code>gate-images</code> job (Ubuntu) then blocks the dependency-consuming activities until the worker image
         for this commit is rebuilt. Each activity job runs only when <em>both</em> its capability flag and its platform
-        flag are true — toggling either in <strong>Configure Workers</strong> turns the job on or off with no workflow
+        flag are true — toggling either in <strong>Configure Pipeline</strong> turns the job on or off with no workflow
         edits.</p>
       <div class="mermaid">
 flowchart TD
@@ -927,7 +927,7 @@ flowchart TD
         <tbody>
           <tr><td>Discover Clients</td><td><span class="pill lin">ubuntu-latest</span></td><td>daily cron, dispatch</td><td>Source repo only (<code>if: github.repository == source</code>).</td></tr>
           <tr><td>Apply LabVIEW CI update</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (the What's New "Update now")</td><td>Runs <code>install.py --update</code>; commits to default branch or opens a PR.</td></tr>
-          <tr><td>Reconfigure LabVIEW CI</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (Configure Workers)</td><td>Rewrites <code>labview-ci.yml</code> and opens a reviewable PR.</td></tr>
+          <tr><td>Reconfigure LabVIEW CI</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (Configure Pipeline)</td><td>Rewrites <code>labview-ci.yml</code> and opens a reviewable PR.</td></tr>
           <tr><td>VIDiff Backfill — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>dispatch</td><td>Walks VI history rendering diffs through a warm container; resumable.</td></tr>
           <tr><td>VIDiff Backfill — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch</td><td>Linux counterpart of the backfill.</td></tr>
           <tr><td>Example project CI (composite-action demo)</td><td><span class="pill lin">ubuntu-latest</span> config + <span class="pill win">windows-2022</span> activities</td><td>dispatch</td><td>Dogfoods the local <code>./actions</code> path against the example project.</td></tr>

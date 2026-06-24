@@ -215,7 +215,7 @@
     '.lvci-rev-step:hover:not(:disabled){color:#e6edf3;background:rgba(177,186,196,.12)}',
     '.lvci-rev-step:disabled{opacity:.4;cursor:default}',
     '@media(prefers-color-scheme:light){.lvci-ctxbar{background:rgba(246,248,250,.96);border-bottom-color:#d0d7de}.lvci-rev-step{border-color:#d0d7de;color:#57606a}.lvci-rev-step:hover:not(:disabled){color:#1f2328;background:rgba(80,90,100,.10)}}',
-    // Settings sub-nav: the per-repo configuration sections (Configure Workers / VI
+    // Settings sub-nav: the per-repo configuration sections (Configure Pipeline / VI
     // Analyzer / Unit Testing) as a tab strip in the context bar, so the settings
     // pages read as one navigable area instead of isolated pages.
     '.lvci-subnav{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}',
@@ -727,7 +727,7 @@
     // opens it there (see runHistory()).
     return [
       { label: 'Populate history', svg: ICON.history, kind: 'runhistory' },
-      { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
+      { label: 'Configure Pipeline', svg: ICON.configure, kind: 'configure' },
       { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
       { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
       { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
@@ -813,7 +813,7 @@
       if (su) { window.open(su + 'integrate.html', '_blank', 'noopener'); return; }
     }
     var map = {
-      configure: { src: 'configure.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'Configure Workers' },
+      configure: { src: 'configure.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'Configure Pipeline' },
       vibrowser: { src: 'configure.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : '') + '#vi-browser', title: 'VI Browser renders' },
       vianalyzer: { src: 'vi-analyzer.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'VI Analyzer' },
       unittests: { src: 'unit-tests.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'Unit Testing' },
@@ -849,7 +849,7 @@
   // links (base + page + ?repo) so middle-/ctrl-click and the active state work.
   function makeSettingsNav() {
     var SECTIONS = [
-      { key: 'configure',  label: 'Configure Workers', file: 'configure.html' },
+      { key: 'configure',  label: 'Configure Pipeline', file: 'configure.html' },
       { key: 'vianalyzer', label: 'VI Analyzer',       file: 'vi-analyzer.html' },
       { key: 'unittests',  label: 'Unit Testing',      file: 'unit-tests.html' }
     ];
