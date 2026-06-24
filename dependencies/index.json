@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "8aa49525cb2fed574d5777a2034f129a0cb39c9a",
+  "sha": "69b1f7c35371a14f7411bbff49e87286d3998380",
   "revisions": [
+    {
+      "sha": "69b1f7c35371a14f7411bbff49e87286d3998380",
+      "short": "69b1f7c",
+      "message": "Add Windows Beta worker image build (fourth LCWC container) (4.1.11)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T15:16:54Z"
+    },
     {
       "sha": "8aa49525cb2fed574d5777a2034f129a0cb39c9a",
       "short": "8aa4952",
@@ -695,13 +702,6 @@
       "message": "Release v3.34.22 dependency source tables",
       "author": "Elijah Kerry",
       "date": "2026-06-22T12:52:39Z"
-    },
-    {
-      "sha": "cb025d118bad6e5e8378879f989beacb2bce3ab9",
-      "short": "cb025d1",
-      "message": "Release v3.34.21 dependency source tables",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T12:49:13Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
