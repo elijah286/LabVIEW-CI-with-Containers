@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.12",
+  "version": "4.1.13",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.13",
+        "date": "2026-06-24",
+        "title": "Installer repoints a stale dashboard link in the README",
+        "summary": "When you Apply to New Repo into a repo whose README was copied, forked, or templated from another repo (or renamed after a prior install), the dashboard badge and link are now rewritten to point at THIS repo's dashboard instead of being left pointing at the other repo.",
+        "highlights": [
+          "Apply to New Repo: an existing dashboard badge/link that points at a different repo is corrected to the current repo (previously the install skipped it and the wrong URL stayed).",
+          "Idempotent: a genuine re-install whose link already matches still makes no README change."
+        ]
+      },
       {
         "version": "4.1.12",
         "date": "2026-06-25",
