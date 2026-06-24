@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "e2e4e60d71e28d6e865a5f05c7761ffe19a573d7",
+  "sha": "18271f46b5105b5adb297abfc13a1181a6d830a9",
   "revisions": [
+    {
+      "sha": "18271f46b5105b5adb297abfc13a1181a6d830a9",
+      "short": "18271f4",
+      "message": "deps: clearer update dialog + flag missing items in the table (3.47.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T02:48:18Z"
+    },
     {
       "sha": "e2e4e60d71e28d6e865a5f05c7761ffe19a573d7",
       "short": "e2e4e60",
@@ -695,13 +702,6 @@
       "message": "dashboard: key active runs to targeted revision and show queued position",
       "author": "Elijah Kerry",
       "date": "2026-06-21T20:34:41Z"
-    },
-    {
-      "sha": "2ddd359f9f5d8731ffd7c3203341874de854f172",
-      "short": "2ddd359",
-      "message": "gate: wait only for Windows worker build; treat cancelled build as non-blocking",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T20:04:46Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",

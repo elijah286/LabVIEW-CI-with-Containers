@@ -1730,13 +1730,11 @@
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (d) {
           if (!d || !d.pending) return;
-          var pkgs = (d.packages || []).length, drg = (d.dragon || []).length, parts = [];
-          if (pkgs) parts.push(pkgs + ' package' + (pkgs === 1 ? '' : 's'));
-          if (drg) parts.push(drg + ' Dragon item' + (drg === 1 ? '' : 's'));
-          if (parts.length) {
+          var total = (d.packages || []).length + (d.dragon || []).length;
+          if (total) {
             var sub = pendbar.querySelector('.lvci-dep-sub');
-            if (sub) sub.textContent = 'Your project declares ' + parts.join(' and ') +
-              ' not yet baked into the worker container(s); container CI may error or show broken code until you update them. ';
+            if (sub) sub.textContent = 'Your project declares ' + total + ' dependency item' + (total === 1 ? '' : 's') +
+              ' (in VIPC or .dragon files) not yet baked into the worker container(s); container CI may error or show broken code until you update them. ';
           }
           pendbar.classList.add('show');
         })

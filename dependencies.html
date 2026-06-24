@@ -12,7 +12,7 @@
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5}a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 64px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.hero h1{margin:0 0 4px;font-size:1.55em}.sub{margin:0;color:var(--fg-muted);font-size:.9em}.controls{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:12px;align-items:end;margin:18px 0}.field label{display:block;color:var(--fg-muted);font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}select,button{font:inherit}select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg)}button{border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--fg);padding:9px 12px;cursor:pointer}button:hover{border-color:var(--link)}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 16px}.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px}.card .k{color:var(--fg-muted);font-size:.76em;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.card .v{margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.note{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:11px 13px;color:var(--fg-muted);font-size:.88em;margin-bottom:16px}.note.warn{border-color:rgba(210,153,34,.55);background:rgba(210,153,34,.10);color:var(--fg)}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)}table{width:100%;border-collapse:collapse;min-width:980px}th,td{border-bottom:1px solid var(--border);padding:8px 9px;text-align:left;vertical-align:top}th{position:sticky;top:0;background:var(--surface);color:var(--fg-muted);font-size:.75em;text-transform:uppercase;letter-spacing:.04em;z-index:1}td.pkg{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em}.vipc-row{background:color-mix(in srgb,var(--surface) 80%,var(--chip));font-weight:700}.vipc-row td{padding-top:10px;padding-bottom:10px}.twisty{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:5px;border:1px solid var(--border);border-radius:4px;color:var(--fg-muted);font-size:.8em}.vipc-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:.75em;color:var(--fg-muted);font-weight:600}.yes{color:var(--ok)}.no{color:var(--bad)}.maybe{color:var(--warn)}.cell{white-space:nowrap;text-align:center}.cell .mark{font-weight:800;font-size:1em}.cell .why{display:block;color:var(--fg-muted);font-size:.68em;margin-top:1px}.empty{padding:28px;text-align:center;color:var(--fg-muted)}.hidden{display:none}@media(max-width:760px){.hero{display:block}.controls{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.wrap{padding-inline:14px}}
   </style>
   <style>
-    .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}.dep-panel table{table-layout:fixed}.dep-panel th:first-child{width:auto}.dep-panel th.dep-col,.dep-panel td.cell{width:112px;min-width:112px;max-width:112px;text-align:center;vertical-align:middle}.dep-panel th.dep-col{padding-left:6px;padding-right:6px}.dep-check{width:16px;height:16px;margin:0;accent-color:var(--ok);opacity:1;vertical-align:middle}.dep-check:disabled{opacity:1}.dep-empty{display:inline-block;width:16px;height:16px}.dep-na{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;font-size:.72em;font-weight:700;color:var(--fg-muted);letter-spacing:.02em}.dep-bang{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--bad);color:#fff;font-weight:800;font-size:11px;line-height:1}.dragon-file td{background:var(--surface);font-weight:600}.dragon-sep td{padding-top:14px}.exp-head{background:none;border:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}.exp-head .exp-name{border-bottom:1px dotted currentColor}.exp-head .exp-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-style:normal;line-height:1;font-weight:700}.exp-head:hover{color:var(--link)}.col-head{display:inline-flex;align-items:center;justify-content:center;gap:6px}.col-head .exp-head{width:auto}.col-link{color:inherit;text-decoration:none;border-bottom:1px dotted currentColor}.col-link:hover{color:var(--link);border-bottom-color:var(--link)}.exp-pop{position:fixed;width:320px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:60;font-size:.84em;font-weight:400;line-height:1.5;color:var(--fg);text-transform:none;letter-spacing:normal}.exp-pop .exp-pop-h{display:block;margin-bottom:5px;font-size:1.02em}
+    .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}.dep-panel table{table-layout:fixed}.dep-panel th:first-child{width:auto}.dep-panel th.dep-col,.dep-panel td.cell{width:112px;min-width:112px;max-width:112px;text-align:center;vertical-align:middle}.dep-panel th.dep-col{padding-left:6px;padding-right:6px}.dep-check{width:16px;height:16px;margin:0;accent-color:var(--ok);opacity:1;vertical-align:middle}.dep-check:disabled{opacity:1}.dep-empty{display:inline-block;width:16px;height:16px}.dep-na{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;font-size:.72em;font-weight:700;color:var(--fg-muted);letter-spacing:.02em}.dep-bang{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--bad);color:#fff;font-weight:800;font-size:11px;line-height:1}.dep-warn{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;font-size:13px;line-height:1;color:var(--warn)}.upd-warn-glyph{color:var(--warn);font-weight:800}.dragon-file td{background:var(--surface);font-weight:600}.dragon-sep td{padding-top:14px}.exp-head{background:none;border:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}.exp-head .exp-name{border-bottom:1px dotted currentColor}.exp-head .exp-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-style:normal;line-height:1;font-weight:700}.exp-head:hover{color:var(--link)}.col-head{display:inline-flex;align-items:center;justify-content:center;gap:6px}.col-head .exp-head{width:auto}.col-link{color:inherit;text-decoration:none;border-bottom:1px dotted currentColor}.col-link:hover{color:var(--link);border-bottom-color:var(--link)}.exp-pop{position:fixed;width:320px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:60;font-size:.84em;font-weight:400;line-height:1.5;color:var(--fg);text-transform:none;letter-spacing:normal}.exp-pop .exp-pop-h{display:block;margin-bottom:5px;font-size:1.02em}
   </style>
   <style>
     .upd{border:1px solid rgba(210,153,34,.55);background:rgba(210,153,34,.10);border-radius:10px;padding:16px 18px;margin:6px 0 18px}
@@ -312,14 +312,25 @@
     //   red !       = the worker recorded an error installing the package
     function naCell(label){ return '<td class="cell"><span class="dep-na" title="' + esc(label || 'Not available on this platform') + '" aria-label="Not available">N/A</span></td>'; }
     function errorCell(label){ return '<td class="cell"><span class="dep-bang" title="' + esc(label || 'Error installing this package') + '" aria-label="Install error">!</span></td>'; }
+    // A declared dependency that is NOT yet baked into this worker. Uses the same
+    // warning glyph as the "dependency update needed" card so the table cell is
+    // visibly the cause of that banner.
+    function missingCell(label){ return '<td class="cell"><span class="dep-warn" title="' + esc(label || 'Declared but not yet baked into this worker') + '" aria-label="Missing dependency">\u26A0</span></td>'; }
     function experimentalCell(){ return naCell('Beta image pending'); }
-    function statusCell(pkg, colState){
+    function statusCell(pkg, colState, col, vipc){
       if (!pkg) return "";
       if (colState.experimentalPending) return naCell('Beta image pending');
       if (colState.label === "base" || colState.label === "none") return naCell('NI base image - no VIPC applied');
       if (!colState.ready) return naCell('Worker manifest not available');
       if (colState.failed && colState.failed.has(pkg)) return errorCell('Error installing this package in the worker');
-      return colState.packages.has(pkg) ? presentCell('Installed in this worker') : naCell('Not applied to this worker');
+      if (colState.packages.has(pkg)) return presentCell('Installed in this worker');
+      // Declared but not baked. For a PROJECT VIPC on a real worker container
+      // (Windows / Linux) this is exactly what the dependency-update banner is
+      // about, so flag it with the warning glyph. Core / capability VIPCs and the
+      // experimental lane stay neutral (N/A).
+      if (vipc && vipc.role === 'project' && vipc.configured !== false && col && col.image === 'worker')
+        return missingCell('Declared in a VIPC file but not yet baked into this worker \u2014 run the dependency update');
+      return naCell('Not applied to this worker');
     }
     function simpleCell(ok, label, naLabel){
       if (ok === null) return naCell('Worker manifest not available');
@@ -415,7 +426,7 @@
         if (v.open) {
           if (v.error) rows.push('<tr><td class="pkg" colspan="' + (COLS.length + 1) + '"><span class="why">' + esc(v.error) + '</span></td></tr>');
           else if (!(v.packages || []).length) rows.push('<tr><td class="pkg" colspan="' + (COLS.length + 1) + '"><span class="why">This file does not specify any packaged dependencies.</span></td></tr>');
-          else (v.packages || []).forEach(pkg => rows.push('<tr><td class="pkg">' + esc(pkg) + '</td>' + COLS.map(c => statusCell(pkg, colStates[c.key])).join('') + '</tr>'));
+          else (v.packages || []).forEach(pkg => rows.push('<tr><td class="pkg">' + esc(pkg) + '</td>' + COLS.map(c => statusCell(pkg, colStates[c.key], c, v)).join('') + '</tr>'));
         }
       });
       const dragonRows = dragonGroupRows(dragon, 'vipm');
@@ -504,15 +515,15 @@
     }
 
     const DRAGON_STATUS = {
-      installed:        { kind:'ok'  },
-      wrong_version:    { kind:'err' },
-      missing:          { kind:'err' },
-      resolution_failed:{ kind:'err' },
-      install_failed:   { kind:'err' },
-      conflict:         { kind:'err' },
-      unsupported:      { kind:'na'  },
-      not_attempted:    { kind:'na'  },
-      pending:          { kind:'na'  }
+      installed:        { kind:'ok'   },
+      wrong_version:    { kind:'warn' },
+      missing:          { kind:'warn' },
+      resolution_failed:{ kind:'err'  },
+      install_failed:   { kind:'err'  },
+      conflict:         { kind:'warn' },
+      unsupported:      { kind:'na'   },
+      not_attempted:    { kind:'warn' },
+      pending:          { kind:'warn' }
     };
     function dragonStatusLabel(dep){
       if (dep.message) return dep.message;
@@ -535,6 +546,7 @@
       const meta = DRAGON_STATUS[dep.status] || { kind:'na' };
       const label = dragonStatusLabel(dep);
       if (meta.kind === 'ok') return presentCell(label);
+      if (meta.kind === 'warn') return missingCell(label);
       if (meta.kind === 'err') return errorCell(label);
       return naCell(label);
     }
@@ -591,20 +603,11 @@
       let d = null;
       try { d = await fetchJson(base + "deps-pending.json"); } catch(_) {}
       if (!d || !d.pending) { el.classList.add("hidden"); el.innerHTML = ""; return; }
-      const pkgs = d.packages || [], files = d.vipcs || [], drg = d.dragon || [];
-      const conts = (d.containers && d.containers.length) ? d.containers : ["windows"];
-      const contLabel = c => ({ windows:"Windows worker", linux:"Linux worker", "windows-experimental":"Windows Beta (Dragon)" }[c] || c);
       const wfUrl = "https://github.com/" + repo + "/actions/workflows/build-labview-image.yml";
-      const block = (k, items) => items.length ? '<div class="upd-block"><div class="upd-k">' + k + '</div><div class="upd-pills">' + items.join("") + '</div></div>' : "";
-      const pill = (s, mono) => '<span class="upd-pill' + (mono ? ' mono' : '') + '">' + esc(s) + '</span>';
       el.classList.remove("hidden");
       el.innerHTML =
         '<h2 class="upd-h">\u26A0\uFE0F Dependency update needed</h2>' +
-        '<p class="upd-sub">Your project declares dependencies that are <strong>not yet baked</strong> into the worker container(s). Until you run this update, container CI may fail or show broken code.</p>' +
-        block("New / changed packages", pkgs.map(p => pill(p))) +
-        block("Dragon items", drg.map(x => pill(x.name || x.package_id || ""))) +
-        block("Declared in", files.map(f => pill(f, true))) +
-        block("Containers to update", conts.map(c => pill(contLabel(c)))) +
+        '<p class="upd-sub">Your project declares dependencies &mdash; in <strong>VIPC files</strong> (VIPM packages) or <strong>.dragon files</strong> (NIPM packages) &mdash; that are <strong>not yet baked</strong> into the worker container(s). Each missing item is marked with a <span class="upd-warn-glyph">\u26A0</span> in the table below; until you run this update, container CI may fail or show broken code.</p>' +
         '<div class="note warn upd-exp"><strong>This is a long operation.</strong> It rebuilds the worker container(s) by installing your dependencies with VIPM, which can take a while depending on the dependencies. <strong>Do not run other CI actions until it completes</strong> &mdash; they would run against the old container and may error.</div>' +
         '<div class="upd-block"><div class="upd-k">How to apply</div>' +
         '<label class="upd-radio"><input type="radio" name="updMode" value="replace" checked> <span><strong>Replace existing containers</strong> (default) &mdash; rebuild in place; your pipeline actions keep using them automatically.</span></label>' +
