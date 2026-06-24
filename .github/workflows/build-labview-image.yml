@@ -30,6 +30,10 @@ on:
         type: choice
         options: [replace, new]
         default: replace
+      copy_only:
+        description: 'Seed/install only: copy the LCWC base image into this repository GHCR package WITHOUT baking any dependencies (fast). The installer sets this true so a fresh install is always a quick copy; dependency baking happens afterwards from the Dependencies page. Leave false for dependency updates.'
+        type: boolean
+        default: false
 
 env:
   # IMAGE_NAME and PAGES_URL are populated at runtime by the resolve step below
@@ -242,9 +246,21 @@ jobs:
       - name: Stage repo VIPC files
         id: vipc
         shell: bash
+        env:
+          COPY_ONLY: ${{ github.event.inputs.copy_only || 'false' }}
         run: |
           python - <<'PY'
           import os, re, glob, shutil, pathlib
+          # Install/seed copy: never bake dependencies during an install, so a fresh
+          # install is always a fast base-image copy. Project VIPC files and capability
+          # dependencies are applied AFTER install from the Dependencies page -- so even
+          # a repo that ships a .vipc, or an install that selects extra capabilities,
+          # copies the base in seconds instead of triggering an hour-long build.
+          if os.environ.get('COPY_ONLY', '').strip().lower() == 'true':
+              print('Seed/install copy: skipping all VIPC staging (no dependency bake); the worker will be a fast copy of the LCWC base.')
+              with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+                  out.write('count=0\n')
+              raise SystemExit(0)
           dest = pathlib.Path('.github/labview/vipm'); dest.mkdir(parents=True, exist_ok=True)
           paths = []
           cfg = pathlib.Path('.github/labview-ci.yml')

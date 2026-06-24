@@ -1887,11 +1887,12 @@
       return false;
     }
 
-    async function dispatchWorkflow(repo, workflowFile, branch) {
+    async function dispatchWorkflow(repo, workflowFile, branch, inputs) {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
+          const body = inputs ? { ref: branch, inputs: inputs } : { ref: branch };
           const r = await gh(`/repos/${repo}/actions/workflows/${workflowFile}/dispatches`,
-            { method: "POST", body: { ref: branch } });
+            { method: "POST", body });
           if (r.ok || r.status === 204) return true;
           if (r.status !== 404) return false;
         } catch (_) { /* transient network -- retry */ }
@@ -1974,7 +1975,11 @@
     // we briefly retry, then fall back silently (the dashboard's Build worker image
     // button and the first CI run's wait-for-image both cover it).
     async function buildWorkerImageNow(repo, branch) {
-      return dispatchWorkflow(repo, "build-labview-image.yml", branch);
+      // copy_only=true: a fresh install ALWAYS just copies the LCWC base image into
+      // this repo's GHCR (seconds), never baking dependencies. Project VIPC / capability
+      // dependencies are applied afterwards from the Dependencies page, so an install
+      // can never trigger an hour-long worker rebuild.
+      return dispatchWorkflow(repo, "build-labview-image.yml", branch, { copy_only: "true" });
     }
 
     // Semver-ish compare (major.minor.patch). Returns >0 when a>b, <0 when a<b.
