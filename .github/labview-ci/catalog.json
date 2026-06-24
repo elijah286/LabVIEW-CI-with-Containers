@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.1",
+  "version": "4.1.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.2",
+        "date": "2026-06-24",
+        "title": "Dashboard only offers runs for workflows that are installed",
+        "type": "patch",
+        "summary": "The dashboard\u2019s Run and Populate history controls are now gated to the workflows actually present in the repository. Previously every capability in the run-target map was offered regardless of what was installed, so a repo without an experimental workflow (for example the Windows VI Browser 2.0 renderer, which is off by default) still showed a Run button and platform checkbox for it \u2014 and dispatching it failed with a confusing token-permission error even though the token was fine. The dashboard build now reads its own .github/workflows directory and drops any run target whose workflow file is missing (a platform is removed, or the whole capability if none remain), so the option simply isn\u2019t shown. Dispatch failures are also reported accurately: a 404 now says the workflow isn\u2019t installed (update the tooling) instead of blaming the token, and only real token/permission problems (401/403) re-prompt for a token.",
+        "highlights": [
+          "Run / Populate history only offer activities and platforms whose workflow is installed in the repo \u2014 no more dead options that 404 on dispatch.",
+          "A missing-workflow dispatch (404) is reported as out-of-date tooling, not a token error, and does not re-prompt for a token.",
+          "Reused saved tokens keep working; only genuine 401/403 token problems ask you to update the token."
+        ]
+      },
       {
         "version": "4.1.1",
         "date": "2026-06-24",

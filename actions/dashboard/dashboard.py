@@ -384,6 +384,36 @@ RUN_TARGETS = {
     'antidoc': {'label': 'Antidoc', 'platforms': {
         'windows': {'wf': 'run-antidoc-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
 }
+
+# Gate run targets to the workflows ACTUALLY installed in this repo, so the
+# dashboard never offers a Run / Populate-history action whose workflow file is
+# absent (which would 404 on dispatch). The dashboard is built inside the consumer
+# repo, so the workflows directory on disk is this repo's installed set: a platform
+# whose workflow is missing is dropped, and a capability left with no platform is
+# removed entirely (its cells then render a plain dash, and the dialog omits it).
+# Fail open -- if the directory can't be read, keep every target (better a rare
+# 404 than hiding a working action).
+def _installed_workflow_files():
+    import glob as _glob
+    for _base in [p for p in (os.environ.get('GITHUB_WORKSPACE'), '.') if p]:
+        _wfdir = os.path.join(_base, '.github', 'workflows')
+        if os.path.isdir(_wfdir):
+            return {os.path.basename(_p)
+                    for _ext in ('*.yml', '*.yaml')
+                    for _p in _glob.glob(os.path.join(_wfdir, _ext))}
+    return None
+
+_installed_wf = _installed_workflow_files()
+if _installed_wf is not None:
+    _gated_targets = {}
+    for _cap, _cdef in RUN_TARGETS.items():
+        _plats = {_k: _v for _k, _v in (_cdef.get('platforms') or {}).items()
+                  if _v.get('wf') in _installed_wf}
+        if _plats:
+            _ncdef = dict(_cdef); _ncdef['platforms'] = _plats
+            _gated_targets[_cap] = _ncdef
+    RUN_TARGETS = _gated_targets
+
 import json as _json
 run_targets_json = _json.dumps(RUN_TARGETS)
 
@@ -2182,7 +2212,9 @@ run_dialog = (r"""
     function histInstalledCaps(){
       var seen={}; bfCells().forEach(function(x){ seen[x.cap]=1; });
       if(HIST.length && RT.snapshots2) seen.snapshots2=1;
-      return CAP_ORDER.filter(function(c){ return seen[c] || RAN[c]; });
+      // Require an installed run target (RT[c]): a capability whose workflow is not
+      // present in this repo is never offered, even if it ran here historically.
+      return CAP_ORDER.filter(function(c){ return (seen[c] || RAN[c]) && RT[c]; });
     }
     function histModal(){ return document.getElementById('cidash-hist-modal'); }
     function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
