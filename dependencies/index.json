@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "63e8b72c2e9b582530744946a54957619cd6355d",
+  "sha": "7a808d7039e5e1c39587eb522c1f974daf079e4a",
   "revisions": [
+    {
+      "sha": "7a808d7039e5e1c39587eb522c1f974daf079e4a",
+      "short": "7a808d7",
+      "message": "Installer setup times match observed fresh installs (4.1.15)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T16:55:30Z"
+    },
     {
       "sha": "63e8b72c2e9b582530744946a54957619cd6355d",
       "short": "63e8b72",
@@ -695,13 +702,6 @@
       "message": "Coordinate in-flight CI before a worker rebuild + document the lifecycle (v3.35.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T13:39:26Z"
-    },
-    {
-      "sha": "49dea7c04f2057d282740582cd8c97a76b164b91",
-      "short": "49dea7c",
-      "message": "Dependencies: add an experimental Windows container column + opt-in render lane (v3.34.25)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T13:22:11Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
