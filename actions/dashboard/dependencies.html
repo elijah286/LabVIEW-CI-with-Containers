@@ -376,8 +376,8 @@
     var COL_INFO = {
       linux: '<span class="exp-pop-h"><strong>Linux &mdash; VIPM/VIPC enabled</strong></span>' +
         'The main Linux worker installs native VIPM and applies repository VIPC files during its image build. Choose base only when you explicitly want the bare NI Linux image without baked dependencies.',
-      winExp: '<span class="exp-pop-h"><strong>Win Beta &mdash; in-development Windows container</strong></span>' +
-        'A separate, isolated Windows container where new capabilities and new action runners are built and proven &mdash; such as getting VI Browser 2.0 snapshots to render on Windows. Keeping it apart means this in-progress work never disrupts the containers your production actions rely on. When it is ready, it graduates to replace the main Windows container. Until its image is published, this column reads experimental / pending.'
+      winExp: '<span class="exp-pop-h"><strong>Win Beta &mdash; experimental Windows container</strong></span>' +
+        'A separate, isolated Windows container where experimental capabilities and new action runners are built and proven &mdash; such as Antidoc documentation generation. Keeping it apart means this in-progress work never disrupts the containers your production actions rely on. When a capability is ready, it graduates to replace the main Windows container. Until the experimental image is published, this column reads experimental / pending.'
     };
     function ensureExpPop(){
       if (__expPop) return __expPop;
