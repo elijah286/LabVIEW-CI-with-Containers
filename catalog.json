@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.10",
+  "version": "4.1.11",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,19 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.11",
+        "date": "2026-06-25",
+        "title": "Windows Beta worker image build (fourth LCWC container)",
+        "type": "patch",
+        "summary": "Adds build-labview-windows-beta-image.yml so LCWC builds and publishes the Windows Beta base (ghcr.io/<lcwc>/...-labview-base:windows-beta-2026) from labview-ci-windows-beta.Dockerfile, and clients crane-copy it into their own ...-labview:windows-beta-2026 package -- the same source-builds / clients-copy, never-rebuild model as the other three containers. The build is dispatch + monthly-cron only (no push), and the copy_only install path runs on ubuntu-latest. build-worker-manifest.py gains a windows-beta platform and the worker manifest publishes under workers/windows-beta/. This completes the four independent LCWC containers; the experimental-gated client copy wiring and dashboard lane follow next.",
+        "highlights": [
+          "New build-labview-windows-beta-image.yml: source builds the Windows Beta base, clients copy it (no rebuild).",
+          "Windows Beta base = ...-labview-base:windows-beta-2026; client worker = ...-labview:windows-beta-2026.",
+          "build-worker-manifest.py adds the windows-beta platform; manifest under workers/windows-beta/.",
+          "LCWC now has four independent worker containers (Windows/Linux core + Windows/Linux beta)."
+        ]
+      },
       {
         "version": "4.1.10",
         "date": "2026-06-25",
