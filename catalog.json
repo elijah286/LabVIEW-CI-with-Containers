@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.7",
+  "version": "4.1.8",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.8",
+        "date": "2026-06-25",
+        "title": "Worker-image run titles say Copy vs Build so installs read correctly",
+        "type": "patch",
+        "summary": "Cosmetic clarity: the worker-image build workflows now name each run by what it actually does. An install/seed shows 'Copy <Windows|Linux|Linux Beta> worker image (seed from LCWC base, no build)', and a deliberate dependency rebuild shows 'Build ... (apply dependencies)'. Previously every run was titled 'Build ...', which made an install look like it was rebuilding the container when it was copying. Windows keys the title off the copy_only input; Linux/Beta key off the push (install) event.",
+        "highlights": [
+          "Install runs are now titled 'Copy <platform> worker image (seed from LCWC base, no build)'.",
+          "Dependency rebuilds are titled 'Build <platform> worker image (apply dependencies)'.",
+          "No behavior change -- run-name only; the workflows and their filenames are unchanged."
+        ]
+      },
       {
         "version": "4.1.7",
         "date": "2026-06-25",
