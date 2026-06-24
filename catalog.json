@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.21",
+  "version": "4.1.22",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.22",
+        "date": "2026-06-24",
+        "title": "Installing the pipeline no longer kicks off a VI snapshot run",
+        "type": "patch",
+        "summary": "The VI Snapshots / VI Browser workflow watched **.vi (and .ctl/.lvproj/.lvlib/.lvclass) on push but, unlike every other VI-source workflow, did not exclude .github/**. So onboarding the pipeline -- whose install commit adds the tooling's own VIs under .github/labview/ (PrintToSingleFileHtml, the toimages renderer) -- triggered a snapshot run that then failed waiting for the worker image still being seeded. Adding the !.github/** exclusion (which the workflow's own comment already promised) stops snapshots from running on install, matching Mass Compile, VI Analyzer, VIDiff, and Unit Tests.",
+        "highlights": [
+          "Excludes .github/** from the VI Snapshots push trigger so the pipeline's own tooling VIs no longer start a snapshot run on install/deploy.",
+          "Removes the spurious install-time snapshot failure (it had nothing to render and no seeded worker image yet)."
+        ]
+      },
       {
         "version": "4.1.21",
         "date": "2026-06-24",
