@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "04aecf0efb2e3f4515f7c1b495331cf6c0f10b96",
+  "sha": "71bcde99d751433095535fdbeaa4a84b45a3c789",
   "revisions": [
+    {
+      "sha": "71bcde99d751433095535fdbeaa4a84b45a3c789",
+      "short": "71bcde9",
+      "message": "dashboard-pages: rebuild when catalog.json changes",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T11:07:05Z"
+    },
+    {
+      "sha": "5d0c82931da1aa6ebc10f2556074a3418a6508e4",
+      "short": "5d0c829",
+      "message": "release: bump to 4.0.0 (major)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T05:29:19Z"
+    },
     {
       "sha": "04aecf0efb2e3f4515f7c1b495331cf6c0f10b96",
       "short": "04aecf0",
@@ -688,20 +702,6 @@
       "message": "Release v3.34.10: fix completed Mass Compile dashboard cells",
       "author": "Elijah Kerry",
       "date": "2026-06-22T04:28:43Z"
-    },
-    {
-      "sha": "78a128abe0af0cd5d67f61ecb6fe6a481bcd6db6",
-      "short": "78a128a",
-      "message": "Release v3.34.9: enable complete history reruns",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T04:19:17Z"
-    },
-    {
-      "sha": "c72674529baf5e3e2e789bfac7b221bd3942951c",
-      "short": "c726745",
-      "message": "Release v3.34.8: fix dashboard document switching",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T03:52:14Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
