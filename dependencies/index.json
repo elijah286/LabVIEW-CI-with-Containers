@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "9accee13f65d68296e28bbe4269e1e2fd13d758f",
+  "sha": "4c4046338834c65b7b22679e15b209c69ea2dc4d",
   "revisions": [
+    {
+      "sha": "4c4046338834c65b7b22679e15b209c69ea2dc4d",
+      "short": "4c40463",
+      "message": "Graduate VI Snapshots 2.0 to a core feature; add experimental.vipc (4.1.9)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T14:49:31Z"
+    },
     {
       "sha": "9accee13f65d68296e28bbe4269e1e2fd13d758f",
       "short": "9accee1",
@@ -697,13 +704,6 @@
       "date": "2026-06-22T12:48:09Z"
     },
     {
-      "sha": "2baab78f0fb728def4e72ca6448d22b8c7418d85",
-      "short": "2baab78",
-      "message": "Make Windows runners use shared worker by default",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T12:30:41Z"
-    },
-    {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
       "short": "590495f",
       "message": "example: add UTF JUnit reporter deps to Dependencies.vipc",
@@ -826,6 +826,16 @@
       "path": ".github/labview/antidoc/antidoc.vipc",
       "role": "capability",
       "capability": "antidoc",
+      "configured": true,
+      "packages": [
+        "wovalab_lib_antidoc_cli-3.3.0.117"
+      ],
+      "error": ""
+    },
+    {
+      "path": ".github/labview/experimental.vipc",
+      "role": "project",
+      "capability": "",
       "configured": true,
       "packages": [
         "wovalab_lib_antidoc_cli-3.3.0.117"
