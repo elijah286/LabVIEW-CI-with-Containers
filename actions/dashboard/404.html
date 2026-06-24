@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Document unavailable - LabVIEW CI</title>
+  <script>
+    (function () {
+      var DOCS = {
+        'vi-analyzer': { context: 'vi-analyzer-report', label: 'VI Analyzer', workflow: { windows: 'run-vi-analyzer-windows-container.yml' }, statuses: ['CI / VI Analyzer'] },
+        'vi-analyzer-linux': { context: 'vi-analyzer-report', label: 'VI Analyzer', platform: 'linux', workflow: { linux: 'run-vi-analyzer-linux-container.yml', windows: 'run-vi-analyzer-windows-container.yml' }, statuses: ['CI / VI Analyzer (Linux)', 'CI / VI Analyzer'] },
+        'masscompile': { context: 'masscompile-report', label: 'Mass Compile', workflow: { windows: 'masscompile-windows-container.yml', linux: 'masscompile-linux-container.yml' }, statuses: ['CI / Mass Compile'] },
+        'unit-tests': { context: 'unit-tests-report', label: 'Unit Tests', workflow: { windows: 'unit-tests-windows-container.yml' }, statuses: ['CI / Unit Tests'] },
+        'antidoc': { context: 'antidoc-report', label: 'Antidoc', workflow: { windows: 'run-antidoc-windows-container.yml' }, statuses: ['CI / Antidoc'] }
+      };
+      function trimSlash(s) { return String(s || '').replace(/\/+$/, ''); }
+      function pagesBase() {
+        var path = location.pathname.split('/').filter(Boolean);
+        var host = location.hostname.match(/^([^.]+)\.github\.io$/i);
+        var project = host && path[0] && path[0].indexOf('.') < 0 ? path[0] : '';
+        return location.origin + (project ? '/' + project : '');
+      }
+      function repoName() {
+        var path = location.pathname.split('/').filter(Boolean);
+        var host = location.hostname.match(/^([^.]+)\.github\.io$/i);
+        if (host && path[0] && path[0].indexOf('.') < 0) return host[1] + '/' + path[0];
+        return '';
+      }
+      function routeParts() {
+        var parts = location.pathname.split('/').filter(Boolean);
+        var host = location.hostname.match(/^([^.]+)\.github\.io$/i);
+        if (host && parts[0] && parts[0].indexOf('.') < 0) parts.shift();
+        return parts;
+      }
+      var parts = routeParts();
+      var key = parts[0] || '';
+      var doc = DOCS[key] || null;
+      var sha = parts[1] || '';
+      var platform = doc && doc.platform || '';
+      if (key === 'masscompile' && parts[2] === 'linux') platform = 'linux';
+      window.__LVCI_MISSING = { doc: doc, sha: sha, route: parts.join('/'), repo: repoName(), base: trimSlash(pagesBase()), platform: platform };
+      window.LVCI = {
+        context: doc ? doc.context : 'report-viewer',
+        repo: window.__LVCI_MISSING.repo,
+        pagesUrl: window.__LVCI_MISSING.base,
+        sha: sha,
+        short: sha ? sha.slice(0, 7) : '',
+        platform: platform
+      };
+    })();
+  </script>
+  <style>
+    :root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff}
+    @media(prefers-color-scheme:light){:root{--bg:#ffffff;--surface:#f6f8fa;--border:#d0d7de;--fg:#1f2328;--fg-muted:#57606a;--link:#0969da}}
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+    a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+    main{max-width:780px;margin:64px auto;padding:0 18px}
+    .card{border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:30px;box-shadow:0 16px 44px rgba(1,4,9,.24)}
+    .kicker{margin:0 0 8px;color:var(--fg-muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    h1{margin:0 0 10px;font-size:26px;line-height:1.2}
+    p{margin:0 0 14px;color:var(--fg-muted);line-height:1.55}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(110,118,129,.18);padding:2px 5px;border-radius:5px;color:var(--fg)}
+    .detail{margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:13px;color:var(--fg-muted);line-height:1.5}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+    button,.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:7px;padding:9px 13px;background:transparent;color:var(--fg);font:600 13px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;text-decoration:none}
+    button.primary{border-color:#1f6feb;background:#1f6feb;color:#fff}
+    button:hover,.btn:hover{background:rgba(110,118,129,.16);text-decoration:none}
+    button.primary:hover{background:#388bfd}
+    [hidden]{display:none!important}
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card" role="status" aria-live="polite">
+      <p class="kicker">Document unavailable</p>
+      <h1 id="title">This CI document is not available</h1>
+      <p id="message">The requested dashboard document does not exist on GitHub Pages.</p>
+      <div class="detail" id="detail">Checking the matching worker run...</div>
+      <div class="actions">
+        <button class="primary" id="run" type="button" hidden>Run worker</button>
+        <a class="btn" id="workflow" href="#" target="_blank" rel="noopener" hidden>Open workflow</a>
+        <a class="btn" id="dashboard" href="./">Back to dashboard</a>
+      </div>
+    </section>
+  </main>
+  <script>
+    (function () {
+      function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+      var m = window.__LVCI_MISSING || {};
+      var doc = m.doc || null;
+      var title = document.getElementById('title');
+      var message = document.getElementById('message');
+      var detail = document.getElementById('detail');
+      var run = document.getElementById('run');
+      var workflow = document.getElementById('workflow');
+      var dashboard = document.getElementById('dashboard');
+      function workflowName() {
+        if (!doc || !doc.workflow) return '';
+        return m.platform === 'linux' ? (doc.workflow.linux || doc.workflow.windows) : (doc.workflow.windows || doc.workflow.linux);
+      }
+      function workflowHref() {
+        var wf = workflowName();
+        return m.repo && wf ? 'https://github.com/' + m.repo + '/actions/workflows/' + encodeURIComponent(wf) : '';
+      }
+      if (dashboard && m.base) dashboard.href = m.base + '/';
+      if (doc) {
+        title.textContent = doc.label + ' report is not available';
+        message.innerHTML = 'The requested report for revision <code>' + esc((m.sha || '').slice(0, 7) || 'selected') + '</code> was not published at <code>' + esc(m.route || location.pathname) + '</code>. Run the worker to generate it, or open the workflow to inspect the last run.';
+        run.hidden = !m.sha;
+        var href = workflowHref();
+        if (href) { workflow.href = href; workflow.hidden = false; }
+      } else {
+        title.textContent = 'This dashboard document is not available';
+        message.innerHTML = 'The requested path <code>' + esc(location.pathname) + '</code> does not exist on this LabVIEW CI dashboard.';
+        detail.textContent = 'Return to the dashboard and choose an available revision or activity.';
+      }
+      function lookupRun() {
+        var wf = workflowName();
+        if (!doc || !m.repo || !m.sha || !wf) { if (doc) detail.textContent = 'No matching workflow run was found yet.'; return; }
+        var token = '';
+        try { token = localStorage.getItem('lvci_dispatch_token') || ''; } catch (e) {}
+        var headers = { 'Accept': 'application/vnd.github+json' };
+        if (token) headers.Authorization = 'Bearer ' + token;
+        fetch('https://api.github.com/repos/' + m.repo + '/actions/workflows/' + encodeURIComponent(wf) + '/runs?head_sha=' + encodeURIComponent(m.sha) + '&per_page=10', { headers: headers, cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) {
+            var runs = (j && j.workflow_runs) || [];
+            if (!runs.length) { detail.textContent = 'No matching worker run was found for this revision yet.'; return; }
+            var latest = runs[0];
+            var state = latest.status === 'completed' ? (latest.conclusion || 'completed') : latest.status;
+            var html = 'Latest ' + esc(doc.label) + ' worker run for this revision: <strong>' + esc(state) + '</strong>.';
+            if (latest.html_url) html += ' <a href="' + esc(latest.html_url) + '" target="_blank" rel="noopener">View run</a>.';
+            if (latest.status === 'completed' && latest.conclusion && latest.conclusion !== 'success') html += ' The worker returned an error or stopped before publishing this document.';
+            detail.innerHTML = html;
+          }).catch(function () { detail.textContent = 'Could not read the matching workflow run. Open the workflow to inspect it.'; });
+      }
+      if (run) run.addEventListener('click', function () {
+        var headerRun = document.getElementById('lvci-rerun');
+        if (headerRun) { headerRun.click(); return; }
+        var href = workflowHref();
+        if (href) window.open(href, '_blank', 'noopener');
+      });
+      lookupRun();
+      var script = document.createElement('script');
+      script.src = (m.base || '') + '/lvci-header.js';
+      script.defer = true;
+      document.body.appendChild(script);
+    })();
+  </script>
+</body>
+</html>

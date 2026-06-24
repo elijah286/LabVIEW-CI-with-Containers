@@ -395,7 +395,7 @@
         <li id="varsStep">Optionally pin settings as Actions variables (shown after you choose options).</li>
         <li>Open a pull request that changes a VI whenever you want the analysis columns (VI Analyzer, VIDiff, Mass Compile) to fill in — a failing check never keeps the dashboard from publishing.</li>
       </ol>
-      <p class="hint" style="margin-top:12px">None of these choices are permanent — change the LabVIEW version, platforms, activities, and container dependencies any time from <strong>⚙ Configure Workers</strong> on the dashboard (it opens a pull request with your changes). To pull later tooling improvements, re-run the installer with <code class="inl">--update</code>.</p>
+      <p class="hint" style="margin-top:12px">None of these choices are permanent — change the LabVIEW version, platforms, activities, and container dependencies any time from <strong>⚙ Configure Pipeline</strong> on the dashboard (it opens a pull request with your changes). To pull later tooling improvements, re-run the installer with <code class="inl">--update</code>.</p>
     </section>
   </div>
 
@@ -1839,7 +1839,7 @@
         "1. **Workflow permissions** must be *Read and write* (Settings \u203a Actions \u203a General) \u2014 the configurator may have already set this for you.",
         "2. **GitHub Pages** must be enabled on the `gh-pages` branch (Settings \u203a Pages) \u2014 the configurator may have already enabled this for you; otherwise turn it on after the first run creates the branch.",
         "3. The **dashboard publishes itself from this merge** \u2014 no CI run required. Open a pull request that changes a VI whenever you want the analysis columns (VI Analyzer, VIDiff, Mass Compile) to fill in; a failing check never blocks the dashboard.", "",
-        "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", "");
+        "Change any of these choices later from **\u2699 Configure Pipeline** on the dashboard.", "");
       return lines.join("\n");
     }
 
@@ -1959,7 +1959,7 @@
         setInstallStep("image", "done", "Worker container image build finished; container CI activities can start immediately.");
         return "success";
       }
-      setInstallStep("image", "warn", "At least one worker image did not finish successfully from this browser. Open the linked run or rebuild from Configure Workers.");
+      setInstallStep("image", "warn", "At least one worker image did not finish successfully from this browser. Open the linked run or rebuild from Configure Pipeline.");
       return "warn";
     }
 
@@ -2106,7 +2106,7 @@
       if (setup.workflowPerms !== "done") steps.push(`Set <strong>Workflow permissions</strong> to <em>Read and write</em> (<a href="https://github.com/${esc(repo)}/settings/actions" target="_blank" rel="noopener">Settings &rsaquo; Actions &rsaquo; General</a>).`);
       if (setup.hasDashboard && setup.pages !== "done" && setup.pages !== "exists")
         steps.push(`After you merge, the dashboard build publishes the <code class="inl">gh-pages</code> branch \u2014 then enable <strong>GitHub Pages</strong> from it (<a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a>). No CI run is required.`);
-      if (setup.buildImage && !autoMerge) steps.push(`After you merge, build the <strong>worker container image</strong> once \u2014 run <strong>Build LabVIEW CI Image</strong> (<a href="https://github.com/${esc(repo)}/actions" target="_blank" rel="noopener">Actions</a>) or use <strong>&#9881; Configure Workers</strong>. The container CI activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) run inside it.`);
+      if (setup.buildImage && !autoMerge) steps.push(`After you merge, build the <strong>worker container image</strong> once \u2014 run <strong>Build LabVIEW CI Image</strong> (<a href="https://github.com/${esc(repo)}/actions" target="_blank" rel="noopener">Actions</a>) or use <strong>&#9881; Configure Pipeline</strong>. The container CI activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) run inside it.`);
       const nextEl = $("insNext");
       if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
 
@@ -2176,7 +2176,7 @@
           } else {
             setInstallStep("ready", "warn", "Dashboard setup completed, but at least one worker image needs attention before container CI is fully ready.");
             setInsBar(null, "warn");
-            setInsStatus(message + " One worker image did not finish successfully; open the linked run above or rebuild from Configure Workers.", "warn");
+            setInsStatus(message + " One worker image did not finish successfully; open the linked run above or rebuild from Configure Pipeline.", "warn");
           }
         }
 

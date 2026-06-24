@@ -108,7 +108,7 @@
         <span class="faq-icon">▼</span>
       </div>
       <div class="faq-a">
-        <p>Yes! Click <strong>⚙ Configure Workers</strong> from the dashboard to change:</p>
+        <p>Yes! Click <strong>⚙ Configure Pipeline</strong> from the dashboard to change:</p>
         <ul>
           <li>LabVIEW version</li>
           <li>Target platforms (Windows, Linux, or both)</li>
@@ -154,7 +154,7 @@
         <p><strong>The one exception — VI Browser snapshots.</strong> The snapshot renderer deliberately starts a <em>single, long-lived</em> container and keeps it warm, rendering many commits through it via <code>docker exec</code> (no per-VI or per-commit container churn), then tears it down when the job ends. Snapshots are content-addressed by VI content, so each unique VI is rendered exactly once — ever — and reused across commits instead of being re-rendered.</p>
         <p><strong>What you can change:</strong></p>
         <ul>
-          <li><strong>Which image each container runs.</strong> Open <strong>⚙ Configure Workers</strong>; on the <strong>Container</strong> tab choose <em>Latest</em> (always current) or pin a specific immutable build. The <strong>Per-action routing</strong> section lets you override this per action — for example pin VIDiff to a frozen build for stable rendering while Mass Compile tracks <em>Latest</em>; <code>base</code> forces the bare NI image for that action.</li>
+          <li><strong>Which image each container runs.</strong> Open <strong>⚙ Configure Pipeline</strong>; on the <strong>Container</strong> tab choose <em>Latest</em> (always current) or pin a specific immutable build. The <strong>Per-action routing</strong> section lets you override this per action — for example pin VIDiff to a frozen build for stable rendering while Mass Compile tracks <em>Latest</em>; <code>base</code> forces the bare NI image for that action.</li>
           <li><strong>When the image rebuilds.</strong> Bake VIPC files into the image and turn on <strong>Monitor</strong> so it rebuilds and re-pushes automatically whenever a dependency file changes — or trigger a rebuild on demand. This changes the <em>image</em> that future containers start from; it does not make a container persist.</li>
           <li><strong>Where containers run.</strong> Point an action at a custom / self-hosted runner. On a self-hosted runner the machine and its Docker layer cache persist between jobs, so the multi-gigabyte image isn't re-pulled every run — but each job still runs a fresh <code>--rm</code> container. GitHub-hosted runners start from a clean VM every job.</li>
           <li><strong>How many spin up at once.</strong> Lower the <strong>max concurrent runners</strong> cap so a busy push doesn't start many containers at the same time and exhaust your account-wide Actions concurrency limit.</li>
@@ -262,7 +262,7 @@
           <li><strong>GitHub-hosted runners (the default).</strong> Fresh, disposable virtual machines GitHub provisions for each job — <code>windows-2022</code> for Windows jobs, <code>ubuntu-latest</code> for Linux — and wipes the moment the job finishes. There is nothing to install or maintain. They are free on public repositories and draw from your GitHub Actions minutes on private ones.</li>
           <li><strong>Self-hosted runners.</strong> Machines you own and register with your repository or organization by running GitHub's runner agent on them. Use these when you need special hardware, a license tied to a specific machine, access to an internal network, or a persistent Docker layer cache so the multi-gigabyte worker image is not re-pulled every run. You are responsible for keeping them online and updated.</li>
         </ul>
-        <p>Because the worker container runs <em>on the runner</em>, choosing a runner is how you choose where your CI executes. You pick GitHub-hosted or a self-hosted runner label during setup or from <strong>⚙ Configure Workers</strong>. Note that GitHub caps how many jobs — and therefore runners — can run at once per account (see the cost question above), which is why LabVIEW CI has a max concurrent runners setting.</p>
+        <p>Because the worker container runs <em>on the runner</em>, choosing a runner is how you choose where your CI executes. You pick GitHub-hosted or a self-hosted runner label during setup or from <strong>⚙ Configure Pipeline</strong>. Note that GitHub caps how many jobs — and therefore runners — can run at once per account (see the cost question above), which is why LabVIEW CI has a max concurrent runners setting.</p>
       </div>
     </div>
 

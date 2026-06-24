@@ -2454,7 +2454,7 @@ if not any_output['on'] and not running_flag['on'] and run_count['n'] > 0:
         'so a large history backfill paces itself instead of monopolising your account&rsquo;s '
         'runners; routine pushes and tooling updates draw from the same pool. Runs beyond the '
         'limit are queued and start automatically as earlier ones finish &mdash; nothing is lost.'
-        f'<a href="#" class="lvci-bf-cfg" onclick="lvciOpen(&#39;configure.html?repo={_cfg_repo}&#39;,&#39;Configure Workers&#39;);return false;">'
+        f'<a href="#" class="lvci-bf-cfg" onclick="lvciOpen(&#39;configure.html?repo={_cfg_repo}&#39;,&#39;Configure Pipeline&#39;);return false;">'
         f'Change this for {html.escape(repo_name)} &rarr;</a>'
         '</div></details>'
     )
@@ -2639,7 +2639,7 @@ html = f"""<!DOCTYPE html>
   <div id="lvci-modal" onclick="if(event.target===this)lvciClose()" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55)">
     <div style="position:absolute;inset:24px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.5)">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
-        <strong id="lvci-modal-title" style="font-size:.95em">Configure Workers</strong>
+        <strong id="lvci-modal-title" style="font-size:.95em">Configure Pipeline</strong>
         <button onclick="lvciClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">✕ Close</button>
       </div>
       <iframe id="lvci-frame" title="LabVIEW CI dialog" src="about:blank" style="border:0;width:100%;flex:1;min-height:0"></iframe>
