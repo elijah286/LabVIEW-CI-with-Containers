@@ -374,7 +374,10 @@ mass-compile:
           <code>FROM</code> the base and applies a thin dependency layer
           (<code>.github/docker/labview-ci.Dockerfile</code>) that bakes your VIPC packages (Dragon items go into the
           Win&nbsp;Beta / <code>windows-experimental</code> container). Nothing rebuilds automatically on a
-          <code>.vipc</code> push.</li>
+          <code>.vipc</code> push by default &mdash; but the <strong>Configure &rarr; Container &amp; Dependencies</strong>
+          tab lets a client tick <strong>Monitor</strong> on an individual baked VIPC file to opt <em>that file</em> into an
+          automatic rebuild-and-re-push whenever it changes on a submission. Monitor is <strong>off by default</strong>, so the
+          &ldquo;nothing rebuilds on a push&rdquo; behavior holds unless a client explicitly enables it per file.</li>
         <li><strong>Tooling upgrade is separate.</strong> Updating the LabVIEW CI tooling itself (the Update dialog /
           <code>apply-tooling-update.yml</code>) refreshes the workflow scripts and preserves your config; it does not
           rebuild containers. See <a href="#versioning">&sect;12</a>.</li>
