@@ -157,8 +157,7 @@
           if (/^\s{4}vipc:\s*$/.test(line)) { sec = "vipc"; return; }
           if (/^\s{4}actions:\s*$/.test(line)) { sec = "actions"; return; }
         } else if (sec === "vipc") {
-          let m = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/); if (m) { cur = { path:m[1].trim(), monitor:true, include:true }; out.vipc.push(cur); return; }
-          m = line.match(/^\s{8}monitor:\s*(\S+)/); if (m && cur) cur.monitor = m[1].toLowerCase() === "true";
+          let m = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/); if (m) { cur = { path:m[1].trim(), include:true }; out.vipc.push(cur); return; }
           if (/^\s{0,4}\S/.test(line)) sec = "container";
         } else if (sec === "actions") {
           let m = line.match(/^\s{6}([A-Za-z0-9_.-]+):\s*"?([^"#]+)"?/); if (m) out.actions[m[1]] = m[2].trim();

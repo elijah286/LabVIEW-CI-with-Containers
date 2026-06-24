@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Dependencies - LabVIEW CI</title>
-  <script>window.LVCI={context:'dependencies',subnav:{label:'Dependencies',active:'vipc',tabs:[{key:'vipc',label:'VIPM / VIPC'},{key:'nipm',label:'NI Packages'},{key:'system',label:'System Components'}]}};</script>
+  <script>window.LVCI={context:'dependencies'};</script>
   <script src="lvci-header.js" defer></script>
   <style>
     :root{--bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;--chip:#21262d;--code:#010409;--warn:#9a6700;--ok:#2ea043;--bad:#f85149}
@@ -56,6 +56,11 @@
     <div class="note hidden" id="status"></div>
     <div id="updatePanel" class="upd hidden" role="region" aria-label="Dependency update needed"></div>
     <div class="dep-tabs" id="depTabs">
+      <div class="dep-tablist" role="tablist" aria-label="Dependency views">
+        <button type="button" class="dep-tab active" id="tab-vipc" role="tab" aria-controls="panel-vipc" aria-selected="true" data-tab="vipc">VIPM / VIPC</button>
+        <button type="button" class="dep-tab" id="tab-nipm" role="tab" aria-controls="panel-nipm" aria-selected="false" data-tab="nipm">NI Packages</button>
+        <button type="button" class="dep-tab" id="tab-system" role="tab" aria-controls="panel-system" aria-selected="false" data-tab="system">System Components</button>
+      </div>
       <section class="dep-panel active" id="panel-vipc" role="tabpanel" aria-labelledby="tab-vipc">
         <h2>VIPM / VIPC Packages</h2>
         <p class="dep-caption">Repository VIPC files and the VIPM packages they request, plus VIPM dependencies requested by <code>.dragon</code> files.</p>
@@ -125,13 +130,19 @@
     async function fetchText(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.text(); }
     function selectDependencyTab(key){
       Array.from(document.querySelectorAll('.dep-panel')).forEach(panel => panel.classList.toggle('active', panel.id === 'panel-' + key));
-      if (typeof window.lvciSetSubnavActive === 'function') window.lvciSetSubnavActive(key);
+      Array.from(document.querySelectorAll('.dep-tab')).forEach(tab => {
+        const on = tab.dataset.tab === key;
+        tab.classList.toggle('active', on);
+        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
     }
     function initDependencyTabs(){
-      // Sub-view tabs live in the shared header sub-nav (window.LVCI.subnav); the
-      // header fires 'lvci:subnav' when one is chosen so every document switches
-      // sub-items from the same consistent place instead of a separate in-body bar.
-      window.addEventListener('lvci:subnav', e => { if (e && e.detail && e.detail.key) selectDependencyTab(e.detail.key); });
+      // Sub-view tabs live in the page, directly above the tables they control
+      // (below the dependency update card), so the switcher sits with its content
+      // instead of in the shared header sub-nav.
+      Array.from(document.querySelectorAll('.dep-tab')).forEach(tab => {
+        tab.addEventListener('click', () => selectDependencyTab(tab.dataset.tab));
+      });
     }
 
     function parseManifestYaml(text){
@@ -146,8 +157,7 @@
           if (/^\s{4}vipc:\s*$/.test(line)) { sec = "vipc"; return; }
           if (/^\s{4}actions:\s*$/.test(line)) { sec = "actions"; return; }
         } else if (sec === "vipc") {
-          let m = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/); if (m) { cur = { path:m[1].trim(), monitor:true, include:true }; out.vipc.push(cur); return; }
-          m = line.match(/^\s{8}monitor:\s*(\S+)/); if (m && cur) cur.monitor = m[1].toLowerCase() === "true";
+          let m = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/); if (m) { cur = { path:m[1].trim(), include:true }; out.vipc.push(cur); return; }
           if (/^\s{0,4}\S/.test(line)) sec = "container";
         } else if (sec === "actions") {
           let m = line.match(/^\s{6}([A-Za-z0-9_.-]+):\s*"?([^"#]+)"?/); if (m) out.actions[m[1]] = m[2].trim();

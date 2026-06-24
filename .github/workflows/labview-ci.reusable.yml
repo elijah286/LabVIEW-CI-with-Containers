@@ -60,13 +60,13 @@ jobs:
           echo "ref=${REF:-v1}" >> "$GITHUB_OUTPUT"
           echo "Capability version (source.ref) this repo opted into: ${REF:-v1}"
 
-  # 1b) Dependency gate. If this revision changed a monitored .vipc (or any other
-  #     worker input), the worker image must be rebuilt with the new dependencies
-  #     BEFORE the container activities run against it. This job blocks on the
-  #     worker image build(s) for this SHA; the activities below that consume the
-  #     custom worker image depend on it. No worker-affecting change => the helper
-  #     exits immediately. A repo without the custom-image capability has no helper
-  #     script, so the gate is skipped.
+  # 1b) Dependency gate. If a worker rebuild is in progress for this SHA (an
+  #     opt-in dependency update, or a worker-input change), the container
+  #     activities must wait for the new image BEFORE they run against it. This
+  #     job blocks on the worker image build(s) for this SHA; the activities below
+  #     that consume the custom worker image depend on it. No worker build in
+  #     flight => the helper exits immediately. A repo without the custom-image
+  #     capability has no helper script, so the gate is skipped.
   gate-images:
     needs: config
     runs-on: ubuntu-latest

@@ -2,15 +2,15 @@ name: Build LabVIEW CI Image - Linux
 run-name: Build Linux worker image - ${{ github.event_name == 'workflow_dispatch' && 'manual setup' || github.sha }}
 
 on:
-  # The image build is a heavy CI process, so it never auto-runs on an
-  # install/deploy (which only adds tooling under .github/). It rebuilds when
-  # YOUR project's dependencies change (a *.vipc outside the tooling dir), monthly
-  # for base-image security updates, or on demand from the dashboard / dispatch.
+  # The image build is a heavy CI process and is NEVER auto-triggered by a project
+  # dependency change. Adding or changing a project *.vipc does NOT rebuild the
+  # worker: dependency updates are explicit/opt-in (the dashboard dialog dispatches
+  # this workflow, or a manual workflow_dispatch). It still rebuilds when the
+  # tooling's own Linux build recipe changes, monthly for base-image security, or
+  # on demand.
   push:
     branches: [main]
     paths:
-      - '**.vipc'
-      - '!.github/**'
       - '.github/docker/labview-ci-linux.Dockerfile'
       - '.github/labview/vipm/install-vipc-linux.sh'
       - '.github/labview/build-worker-manifest.py'
@@ -41,83 +41,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # This workflow only runs when the tooling's own Linux build recipe changes, on the
+  # monthly base-image security cron, or on explicit dispatch -- adding/changing a
+  # project .vipc never triggers it. So a rebuild is always intended when it starts.
+  # The gate is kept as a tiny, always-true step so the downstream `needs: gate`
+  # wiring is left untouched.
   gate:
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.decide.outputs.build }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
       - name: Decide whether to rebuild
         id: decide
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BEFORE: ${{ github.event.before }}
-          SHA: ${{ github.sha }}
-        run: |
-          python3 - <<'PY'
-          import os, re, subprocess, pathlib
-          def emit(b):
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('build=%s\n' % ('true' if b else 'false'))
-            print('rebuild =', b)
-            raise SystemExit(0)
-          try:
-            if os.environ.get('EVENT_NAME', '') != 'push':
-              emit(True)
-            before = os.environ.get('BEFORE', '') or ''
-            sha = os.environ.get('SHA', '') or 'HEAD'
-            if not before or set(before) == {'0'}:
-              emit(True)
-            diff = subprocess.run(['git', 'diff', '--name-only', before, sha],
-                      capture_output=True, text=True)
-            if diff.returncode != 0:
-              emit(True)
-            files = [f for f in diff.stdout.splitlines() if f.strip()]
-            if not files:
-              emit(True)
-            is_vipc = lambda f: f.lower().endswith('.vipc')
-            nonvipc = [f for f in files if not is_vipc(f) and (
-              f == '.github/docker/labview-ci-linux.Dockerfile' or
-              f == '.github/workflows/build-labview-linux-image.yml')]
-            if nonvipc:
-              emit(True)
-            vipc_changed = [f for f in files if is_vipc(f)]
-            if not vipc_changed:
-              emit(True)
-            monitor = {}
-            cfg = pathlib.Path('.github/labview-ci.yml')
-            if cfg.exists():
-              in_c = in_v = False; cur = None
-              for line in cfg.read_text(encoding='utf-8').splitlines():
-                if re.match(r'^\s*container:\s*$', line):
-                  in_c = True; in_v = False; continue
-                if in_c and re.match(r'^\s{4}vipc:\s*$', line):
-                  in_v = True; continue
-                if in_v:
-                  m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
-                  if m:
-                    cur = os.path.basename(m.group(1).strip())
-                    monitor.setdefault(cur, True); continue
-                  m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
-                  if m and cur is not None:
-                    monitor[cur] = (m.group(1).strip().lower() == 'true'); continue
-                  if re.match(r'^\s{0,4}\S', line):
-                    in_v = False; in_c = False
-                elif in_c and re.match(r'^\S', line):
-                  in_c = False
-            for f in vipc_changed:
-              if monitor.get(os.path.basename(f), True):
-                emit(True)
-            emit(False)
-          except SystemExit:
-            raise
-          except Exception as e:
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('build=true\n')
-            print('gate error -> build=true:', e)
+        run: echo "build=true" >> "$GITHUB_OUTPUT"
           PY
 
   build-and-push:

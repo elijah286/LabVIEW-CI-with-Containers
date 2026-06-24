@@ -2,11 +2,12 @@ name: Build LabVIEW CI Image - Linux Beta
 run-name: Build Linux beta worker image - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 on:
+  # Never auto-triggered by a project dependency change: adding/changing a project
+  # *.vipc does NOT rebuild. Rebuilds only when the tooling's own beta build recipe
+  # changes, monthly for base-image security, or on demand (dashboard / dispatch).
   push:
     branches: [main]
     paths:
-      - '**.vipc'
-      - '!.github/**'
       - '.github/docker/labview-ci-linux-beta.Dockerfile'
       - '.github/labview/vipm/**'
       - '.github/workflows/build-labview-linux-beta-image.yml'

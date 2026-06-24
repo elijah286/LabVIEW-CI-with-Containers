@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "3.46.21",
+  "version": "3.46.22",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,21 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.46.22",
+        "date": "2026-06-23",
+        "title": "Adding a VIPC never auto-rebuilds the worker",
+        "type": "patch",
+        "summary": "Completes the opt-in dependency model: adding or changing a project VIPC no longer rebuilds the worker container automatically. The worker-image workflows no longer trigger on a project .vipc push, the per-VIPC 'Monitor' toggle and the 'Re-run pipeline after a dependency change' (onDependencyChange) option are retired, and the only signal a dependency changed is the persistent 'dependencies need to be installed' banner. Rebuilds run only when you apply them from the Dependencies page, on the monthly security cron, or by manual dispatch. All UI and docs (Configure, FAQ, Documentation + the image-build diagram) are reconciled to match.",
+        "highlights": [
+          "Removed the **.vipc push trigger from the Windows, Linux, and Linux-beta worker-image workflows; the gate is now a trivial always-build since the workflow only runs on dispatch/cron.",
+          "Retired the per-VIPC 'Monitor' toggle and the config.triggers.onDependencyChange re-run option (and the dead revalidate job) across configure.html, reconfigure.yml, dashboard.py, and the reusable workflow.",
+          "Configure page's 'When dependencies change' section now explains the explicit, banner-driven flow instead of offering an auto-rebuild toggle.",
+          "FAQ and Documentation (including the Mermaid image-build diagram and runner table) updated to state that a VIPC change never triggers a rebuild on its own.",
+          "Legacy configs that still carry monitor:/onDependencyChange are read tolerantly and those keys are dropped on the next reconfigure."
+        ],
+        "breaking": false
+      },
       {
         "version": "3.46.21",
         "date": "2026-06-23",

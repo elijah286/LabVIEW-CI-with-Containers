@@ -66,7 +66,6 @@
     .pkg .psum{color:var(--fg-muted);font-size:.8em}
     .pkg .pver{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.74em;color:var(--fg-muted)}
     .pkg .pkgctl{display:flex;align-items:center;gap:10px;justify-content:flex-end}
-    .pkg .pkgmon{display:inline-flex;align-items:center;gap:5px;font-size:.76em;color:var(--fg-muted);white-space:nowrap;cursor:pointer;user-select:none}
     .addpkg{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
     .addpkg input{flex:1 1 160px}
     .badge{display:inline-block;font-size:.64em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
@@ -226,8 +225,7 @@
         <div id="trigMatrix"></div>
         <p class="hint" style="margin-top:10px">Saved to your configuration and included in the pull request. Activities already run on the sources ticked by default; custom per-source rules are recorded here and take effect as each workflow is wired to honor them &mdash; the same way <strong>Max concurrent runners</strong> is stored today. Pull requests from forks run sandboxed by GitHub &mdash; read-only and without access to your secrets.</p>
         <div class="subhead" style="margin-top:18px">When dependencies change</div>
-        <p class="hint" style="margin:-2px 0 8px">Editing a committed <code class="inl">.vipc</code> always rebuilds the worker container with your new dependencies. Optionally re-run the build / test / doc activities (Mass Compile, VI Analyzer, Unit Tests, Antidoc) for that revision too &mdash; after the new image is ready &mdash; so the project is re-validated against the dependencies it now pulls in. VIDiff and Snapshots are skipped because a dependency-only change touches no VIs. Off by default. Stored as <code class="inl">config.triggers.onDependencyChange</code>.</p>
-        <label class="toggle" style="display:inline-flex"><input type="checkbox" id="depTrigger"> Re-run the pipeline after a dependency (.vipc) change</label>
+        <p class="hint" style="margin:-2px 0 8px">Adding or changing a project <code class="inl">.vipc</code> does <strong>not</strong> rebuild the worker container automatically. Instead the dashboard shows a &ldquo;dependencies need to be installed&rdquo; banner whenever your project declares packages that are not yet baked into the current container, and you apply the update explicitly from the <strong>Dependencies</strong> page (Review &amp; update dependencies). A container rebuild is a long, exclusive operation, so it only ever runs when you ask for it &mdash; never as a side effect of a commit.</p>
       </section>
     </div><!-- /pane-pipeline -->
 
@@ -313,7 +311,7 @@
     const actSel = new Set();
     let winLatest = null;                    // workers/windows/latest.json (current build)
     let containerUse = "latest";             // config.container.use (default tag activities pull)
-    let vipcList = [];                       // [{ path, include, monitor }] repo VIPC files; only `include` ones are baked
+    let vipcList = [];                       // [{ path, include }] repo VIPC files; only `include` ones are baked
     let vipcFoundCount = 0;                  // how many .vipc files discovery found in the repo
     const actionContainer = new Map();       // activity id -> container tag override (absent = inherit `use`)
     const triggerSel = new Map();            // activity id -> Set of submission sources that run it
@@ -431,8 +429,7 @@
           if (/^\s{4}vipc:\s*$/.test(line)) { inVipc = true; inActions = false; continue; }
           if (/^\s{4}actions:\s*$/.test(line)) { inActions = true; inVipc = false; continue; }
           if (inVipc) {
-            if ((mc = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/))) { curVipc = { path: mc[1].trim(), monitor: true }; out.vipc.push(curVipc); continue; }
-            if (curVipc && (mc = line.match(/^\s{8}monitor:\s*(\S+)/))) { curVipc.monitor = mc[1].trim().toLowerCase() === "true"; continue; }
+            if ((mc = line.match(/^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$/))) { curVipc = { path: mc[1].trim() }; out.vipc.push(curVipc); continue; }
           }
           if (inActions) {
             if ((mc = line.match(/^\s{6}([A-Za-z0-9_.\-]+):\s*"?([^"\s]+)"?\s*$/))) { out.actions[mc[1]] = mc[2]; continue; }
@@ -553,19 +550,9 @@
         const mid = document.createElement("div");
         mid.innerHTML = '<span class="pname">' + escapeHtml(v.path) + "</span>" +
           '<div class="psum">' + (included
-            ? (v.monitor !== false
-                ? "Included \u2014 monitored, rebuilds &amp; re-pushes the container when this file changes"
-                : "Included \u2014 baked once, not monitored for changes")
+            ? "Included \u2014 baked into the worker container on the next dependency update"
             : "Not included \u2014 tick to bake this file into the container") + "</div>";
         const ctl = document.createElement("div"); ctl.className = "pkgctl";
-        if (included) {
-          const ml = document.createElement("label"); ml.className = "pkgmon";
-          ml.title = "Monitor this file and rebuild the container automatically when it changes";
-          const mcb = document.createElement("input"); mcb.type = "checkbox"; mcb.checked = v.monitor !== false;
-          mcb.addEventListener("change", () => { v.monitor = mcb.checked; renderVipcs(); update(); });
-          ml.appendChild(mcb); ml.appendChild(document.createTextNode("Monitor"));
-          ctl.appendChild(ml);
-        }
         const rm = document.createElement("button"); rm.type = "button"; rm.className = "ghost"; rm.textContent = "Remove";
         rm.addEventListener("click", () => { vipcList.splice(i, 1); renderVipcs(); update(); });
         ctl.appendChild(rm);
@@ -688,10 +675,8 @@
     }
     function triggerYamlLines() {
       const entries = triggerEntries();
-      const dep = !!($("depTrigger") && $("depTrigger").checked);
-      if (!entries.length && !dep) return [];
+      if (!entries.length) return [];
       const lines = ["  triggers:"];
-      if (dep) lines.push("    onDependencyChange: true");
       entries.forEach(([id, srcs]) => lines.push("    " + id + ": " + (srcs.length ? srcs.join("+") : "none")));
       return lines;
     }
@@ -926,7 +911,6 @@
         lines.push("    vipc:");
         baked.forEach(v => {
           lines.push('      - path: "' + String(v.path).replace(/"/g, "") + '"');
-          lines.push("        monitor: " + (v.monitor !== false ? "true" : "false"));
         });
       }
       const acts = containerActionEntries();
@@ -951,7 +935,7 @@
         const have = new Set(vipcList.map(v => v.path));
         let added = false;
         // Pre-populate every discovered file, de-selected by default — the user picks which to bake.
-        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true, include: false }); added = true; } });
+        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, include: false }); added = true; } });
         renderVipcs();
         if (added) update();
         // VI Analyzer: discover .viancfg configs + folder/VI path suggestions from
@@ -1033,7 +1017,6 @@
         `  -f operating_systems=${osChoice()} \\\n` +
         `  -f antidoc=keep \\\n` +
         `  -f concurrent_runners=${parseInt($("runners").value, 10) || 1} \\\n` +
-        `  -f on_dependency_change=${($("depTrigger") && $("depTrigger").checked) ? "true" : "false"} \\\n` +
         `  -f activities=${csv(actSel) || "dashboard"}` + cLine;
     }
 
@@ -1053,7 +1036,6 @@
         container_vipc: "",
         container_actions: cActs,
         action_triggers: triggerInputEnc(),
-        on_dependency_change: ($("depTrigger") && $("depTrigger").checked) ? "true" : "false",
         vi_browser: viBrowserInputEnc(),
         via_default: cVia.def || "",
         via_rules: cVia.rules || ""
@@ -1215,17 +1197,16 @@
         if (m.activities.length) { actSel.clear(); m.activities.forEach(a => actSel.add(a)); renderActivities(); }
         if (m.runners) $("runners").value = m.runners;
         containerUse = m.containerUse || "latest";
-        vipcList = (m.vipc || []).map(v => ({ path: v.path, monitor: v.monitor !== false, include: true }));
+        vipcList = (m.vipc || []).map(v => ({ path: v.path, include: true }));
         actionContainer.clear();
         Object.keys(m.actions || {}).forEach(id => actionContainer.set(id, m.actions[id]));
         // Triggers: reset to per-activity defaults, then apply any saved overrides.
         initTriggerDefaults();
         Object.keys(m.triggers || {}).forEach(id => {
-          if (id === "onDependencyChange") return;   // sibling flag, not an activity source
+          if (id === "onDependencyChange") return;   // retired flag in legacy configs; ignore
           const v = String(m.triggers[id]).trim();
           triggerSel.set(id, new Set(v === "none" || v === "" ? [] : v.split("+").map(s => s.trim()).filter(Boolean)));
         });
-        if ($("depTrigger")) $("depTrigger").checked = String((m.triggers || {}).onDependencyChange || "").trim().toLowerCase() === "true";
         // VI Browser render matrix: reset to defaults, then apply any saved selection.
         viBrowser.classic = new Set(["windows"]);
         viBrowser.positionAware = new Set(["windows"]);
@@ -1267,7 +1248,6 @@
         cb.addEventListener("change", () => { cb.checked ? osSel.add(cb.value) : osSel.delete(cb.value); update(); }));
       $("version").addEventListener("change", update);
       $("runners").addEventListener("input", update);
-      if ($("depTrigger")) $("depTrigger").addEventListener("change", update);
       $("dlYaml").addEventListener("click", () => { download("labview-ci.yml", genYaml()); flash("labview-ci.yml downloaded — place at .github/labview-ci.yml"); });
       $("applyCfg").addEventListener("click", dispatchReconfigure);
       $("tokSave").addEventListener("click", () => {

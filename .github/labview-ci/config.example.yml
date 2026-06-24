@@ -41,12 +41,12 @@ config:
     # the LabVIEW year, or "base" for the bare NI image.
     use: latest
 
-    # VIPC dependency files applied to (baked into) the worker image. Set
-    # monitor: true to rebuild + re-push the container to GHCR automatically
-    # whenever that file changes on a submission; monitor: false bakes it once.
+    # VIPC dependency files baked into the worker image. Adding or changing a
+    # .vipc never rebuilds the container automatically: the dashboard shows a
+    # "dependencies need to be installed" banner and you apply the update
+    # explicitly from the Dependencies page (a long, opt-in operation).
     vipc:
       - path: "Dependencies.vipc"
-        monitor: true
 
     # Per-action container overrides (optional). Each container action can run in
     # a different image than the default above: "latest", a pinned build tag, the

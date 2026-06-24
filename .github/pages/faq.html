@@ -131,9 +131,9 @@
         <ul>
           <li>Select which prebuilt container image to use (Latest for always-current, or pin a specific build)</li>
           <li>List VIPC dependency files baked into the container</li>
-          <li>Enable "Monitor" on a VIPC so the container rebuilds automatically when that file changes</li>
+          <li>Choose a different container per action (for example, point one action at a newly-built dependency container)</li>
         </ul>
-        <p>VI Analyzer, Mass Compile, and VIDiff run inside the container you select.</p>
+        <p>VI Analyzer, Mass Compile, and VIDiff run inside the container you select. Adding or changing a VIPC never rebuilds the container automatically &mdash; the dashboard shows a "dependencies need to be installed" banner and you apply the update explicitly from the Dependencies page.</p>
       </div>
     </div>
 
@@ -187,9 +187,9 @@
         <span class="faq-icon">▼</span>
       </div>
       <div class="faq-a">
-        <p>Rebuilding the worker image is a <strong>heavy step — usually 15+ minutes</strong> — because it installs LabVIEW, your VI Package dependencies, and any baked tooling from scratch. It is intentionally <em>not</em> run on every commit. A rebuild happens only when something that changes the container's contents changes:</p>
+        <p>Rebuilding the worker image is a <strong>heavy step — usually 15+ minutes</strong> — because it installs LabVIEW, your VI Package dependencies, and any baked tooling from scratch. It is intentionally <em>not</em> run on every commit, and never as a side effect of a commit. A rebuild happens only when you explicitly ask for one:</p>
         <ul>
-          <li><strong>Your dependencies change</strong> — you edit or add a project <code>.vipc</code> (VI Package Configuration) that is monitored.</li>
+          <li><strong>Your dependencies change</strong> — you add or edit a project <code>.vipc</code> (VI Package Configuration), then apply the update from the Dependencies page ("Review &amp; update dependencies"). The dashboard shows a banner until you do.</li>
           <li><strong>The build inputs change</strong> — the worker Dockerfile or the VIPM assets under <code>.github/labview/vipm/</code>.</li>
           <li><strong>A reconfigure that affects the image</strong> — for example changing the LabVIEW version or toggling baked tooling such as Antidoc.</li>
           <li><strong>On a schedule or on demand</strong> — a monthly rebuild for base-image security updates, or when you click <strong>Build / Rebuild now</strong>.</li>

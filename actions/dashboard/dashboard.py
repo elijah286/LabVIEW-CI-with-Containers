@@ -225,8 +225,8 @@ TOOLING_PREFIXES = ('.github/', 'actions/', '_lvci/', 'ci-out/', 'build/')
 # External dependency manifests (VI Package Configuration / VI Package). A
 # revision whose ONLY project-source change is to these touches no actual VIs
 # or LabVIEW code — it just bumps the add-on dependencies the project pulls in.
-# These can be filtered out of the dashboard (they never get per-VI CI results
-# unless dependency-change CI is enabled — see config.triggers.onDependencyChange).
+# These can be filtered out of the dashboard (a dependency-only commit changes no
+# VIs, so it never produces per-VI CI results).
 DEP_EXTS = ('.vipc', '.vip')
 
 # ── Classify a commit: does it touch project LabVIEW source? ─────
@@ -923,27 +923,10 @@ try:
 except Exception:
     pass
 
-# Whether a dependency-only change re-runs the pipeline (config.triggers.
-# onDependencyChange, default off). When ON, dependency-only revisions DO get
-# CI results, so the dashboard shows them by default; when OFF they never get
-# per-VI results, so they are filtered out by default. Either way the user can
-# flip the "Include dependency-only revisions" toggle on the page.
+# Dependency-only revisions (whose only project change is a .vipc/.vip bump) never
+# get per-VI CI results, so they are filtered out of the dashboard by default. The
+# user can still reveal them with the "Include dependency-only revisions" toggle.
 lvci_dep_ci_on = False
-try:
-    _in_trig = False
-    for _tline in open('.github/labview-ci.yml', encoding='utf-8'):
-        if re.match(r'^\s*triggers:\s*$', _tline):
-            _in_trig = True
-            continue
-        if _in_trig:
-            _tm = re.match(r'^\s{4}onDependencyChange:\s*(\S+)', _tline)
-            if _tm:
-                lvci_dep_ci_on = (_tm.group(1).strip().lower() == 'true')
-                break
-            if re.match(r'^\s{0,3}\S', _tline):
-                _in_trig = False
-except Exception:
-    pass
 lvci_is_source = (not lvci_src_repo) or (lvci_src_repo.lower() == repo.lower())
 lvci_cfg_json  = json.dumps({
     'version': lvci_version, 'sourceRepo': lvci_src_repo,
@@ -2979,12 +2962,9 @@ def _parse_container_config(path='.github/labview-ci.yml'):
         elif section == 'vipc':
           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
           if m:
-            current = {'path': m.group(1).strip(), 'monitor': True}
+            current = {'path': m.group(1).strip()}
             cfg['vipc'].append(current)
             continue
-          m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
-          if m and current:
-            current['monitor'] = m.group(1).lower() == 'true'
           if re.match(r'^\s{0,4}\S', line):
             section = 'container'; current = None
         elif section == 'actions':

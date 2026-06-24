@@ -2,19 +2,11 @@ name: Build LabVIEW CI Image
 run-name: Build Windows worker image - ${{ github.event_name == 'workflow_dispatch' && 'manual setup' || github.sha }}
 
 on:
-  # The image build is a heavy CI process, so it never auto-runs on an
-  # install/deploy (which only adds the tooling Dockerfile + tooling vipc under
-  # .github/). It rebuilds when YOUR project's dependencies change (a *.vipc
-  # outside the tooling dir), monthly for base-image security updates, or on
-  # demand. After install, build it once from the dashboard (or workflow_dispatch).
-  push:
-    branches: [main]
-    paths:
-      # Your project's VI Package Configuration(s) are baked into the worker, so
-      # changing your dependencies rebuilds it. The tooling's own vipc (added by
-      # the install under .github/) is excluded so deploying never triggers a build.
-      - '**.vipc'
-      - '!.github/**'
+  # The image build is a heavy CI process and is NEVER auto-triggered. Adding or
+  # changing a project *.vipc does NOT rebuild the worker: dependency updates are
+  # explicit/opt-in (the dashboard's "Review & update dependencies" dialog, which
+  # dispatches this workflow, or a manual workflow_dispatch). The only automatic
+  # run is the monthly base-image security rebuild below.
   schedule:
     # Monthly rebuild to pick up NI base image security updates
     - cron: '0 4 1 * *'
@@ -66,95 +58,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Decide whether this push should actually rebuild the worker image. A push that
-  # ONLY changes .vipc files that are all flagged monitor:false in
-  # .github/labview-ci.yml is a deliberate "pin" (bake once, do not auto-update) and
-  # is skipped. Any other worker-affecting change (the Dockerfile, the VIPM assets,
-  # or a monitored .vipc) rebuilds, and non-push events (manual dispatch, the monthly
-  # cron) always rebuild. On ANY uncertainty or error the gate builds, so the
-  # container is never silently left stale.
+  # This workflow only runs on explicit dispatch (the dashboard's "Review & update
+  # dependencies" dialog, or a manual run) or the monthly base-image security cron --
+  # adding/changing a project .vipc never triggers it. So a rebuild is always intended
+  # when this workflow starts. The gate is kept as a tiny, always-true step purely so
+  # the downstream `needs: gate` / `if: needs.gate.outputs.build == 'true'` wiring is
+  # left untouched.
   gate:
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.decide.outputs.build }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
       - name: Decide whether to rebuild
         id: decide
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BEFORE: ${{ github.event.before }}
-          SHA: ${{ github.sha }}
-        run: |
-          python3 - <<'PY'
-          import os, re, subprocess, pathlib
-          def emit(b):
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                  f.write('build=%s\n' % ('true' if b else 'false'))
-              print('rebuild =', b)
-              raise SystemExit(0)
-          try:
-              if os.environ.get('EVENT_NAME', '') != 'push':
-                  emit(True)
-              before = os.environ.get('BEFORE', '') or ''
-              sha = os.environ.get('SHA', '') or 'HEAD'
-              if not before or set(before) == {'0'}:
-                  emit(True)                      # new branch / unknown base
-              diff = subprocess.run(['git', 'diff', '--name-only', before, sha],
-                                    capture_output=True, text=True)
-              if diff.returncode != 0:
-                  emit(True)
-              files = [f for f in diff.stdout.splitlines() if f.strip()]
-              if not files:
-                  emit(True)
-              is_vipc = lambda f: f.lower().endswith('.vipc')
-              # Worker-affecting change that is NOT a .vipc -> always build.
-              nonvipc = [f for f in files if not is_vipc(f) and (
-                  f == '.github/docker/labview-ci.Dockerfile' or
-                  f == '.github/docker/labview-ci-base.Dockerfile' or
-                  f.startswith('.github/labview/vipm/') or
-                  f == '.github/workflows/build-labview-image.yml')]
-              if nonvipc:
-                  emit(True)
-              vipc_changed = [f for f in files if is_vipc(f)]
-              if not vipc_changed:
-                  emit(True)                      # nothing recognized -> safe build
-              # Read monitor flags from config.container.vipc (default: monitored).
-              monitor = {}
-              cfg = pathlib.Path('.github/labview-ci.yml')
-              if cfg.exists():
-                  in_c = in_v = False; cur = None
-                  for line in cfg.read_text(encoding='utf-8').splitlines():
-                      if re.match(r'^\s*container:\s*$', line):
-                          in_c = True; in_v = False; continue
-                      if in_c and re.match(r'^\s{4}vipc:\s*$', line):
-                          in_v = True; continue
-                      if in_v:
-                          m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
-                          if m:
-                              cur = os.path.basename(m.group(1).strip())
-                              monitor.setdefault(cur, True); continue
-                          m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
-                          if m and cur is not None:
-                              monitor[cur] = (m.group(1).strip().lower() == 'true'); continue
-                          if re.match(r'^\s{0,4}\S', line):
-                              in_v = False; in_c = False
-                      elif in_c and re.match(r'^\S', line):
-                          in_c = False
-              for f in vipc_changed:
-                  if monitor.get(os.path.basename(f), True):
-                      emit(True)                  # a monitored .vipc changed
-              emit(False)                         # all changed .vipc are monitor:false
-          except SystemExit:
-              raise
-          except Exception as e:
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                  f.write('build=true\n')
-              print('gate error -> build=true:', e)
-          PY
+        run: echo "build=true" >> "$GITHUB_OUTPUT"
 
   # Before a heavy (~15+ min) worker rebuild, coordinate the CI runs that USE the
   # worker container so they do not straddle the image swap. The OLD image stays in
@@ -635,94 +552,3 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Worker version:** \`${{ steps.ver.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "[Worker manifest](${{ env.PAGES_URL }}/workers/windows/${{ steps.ver.outputs.version }}/manifest.html)" >> "$GITHUB_STEP_SUMMARY"
-
-  # ── Re-validate the project after a dependency change (opt-in) ───────────────
-  # A push that changes a project .vipc rebuilds the worker image above. By
-  # default nothing else re-runs: the per-activity workflows trigger on **.vi
-  # paths, not .vipc, so a dependency bump is never re-checked against the new
-  # image. When the project opts in with config.triggers.onDependencyChange: true,
-  # dispatch the build/test/doc activities for this commit AFTER the fresh image
-  # exists, re-validating the project against its new dependencies. VIDiff and
-  # Snapshots are skipped on purpose: a dependency-only commit changes no VI
-  # content, so a diff/snapshot run has nothing new to render. Off by default;
-  # flip it on the Configure page. (Only fires on a real .vipc push, not the
-  # monthly base-image rebuild or a manual dispatch.)
-  revalidate:
-    needs: build-and-push
-    if: ${{ github.event_name == 'push' && needs.build-and-push.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write     # dispatch the per-activity workflows
-      contents: read     # read .github/labview-ci.yml + see which workflows exist
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-      - name: Re-run the pipeline when dependency-change CI is enabled
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.sha }}
-          REF: ${{ github.ref_name }}
-        run: |
-          python3 - <<'PY'
-          import os, re, subprocess, pathlib
-
-          def on_dep_change():
-              cfg = pathlib.Path('.github/labview-ci.yml')
-              if not cfg.exists():
-                  return False
-              in_trig = False
-              for line in cfg.read_text(encoding='utf-8').splitlines():
-                  if re.match(r'^\s*triggers:\s*$', line):
-                      in_trig = True; continue
-                  if in_trig:
-                      m = re.match(r'^\s{4}onDependencyChange:\s*(\S+)', line)
-                      if m:
-                          return m.group(1).strip().lower() == 'true'
-                      if re.match(r'^\s{0,3}\S', line):
-                          in_trig = False
-              return False
-
-          head = os.environ.get('HEAD_SHA', '')
-          ref = os.environ.get('REF', '') or 'main'
-          summary = os.environ.get('GITHUB_STEP_SUMMARY')
-          def note(line):
-              if summary:
-                  with open(summary, 'a', encoding='utf-8') as f:
-                      f.write(line + '\n')
-
-          if not on_dep_change():
-              print('config.triggers.onDependencyChange is off -> nothing to re-run.')
-              note('Dependency-change CI is off. Enable it on the Configure page '
-                   '(config.triggers.onDependencyChange) to re-validate the project '
-                   'whenever its dependencies change.')
-              raise SystemExit(0)
-
-          # Re-validate against the freshly rebuilt worker image. Build / test /
-          # doc activities only -- VIDiff and Snapshots are keyed by VI content and
-          # a dependency-only commit changes no VI, so they have nothing new to do.
-          activities = [
-              'masscompile-windows-container.yml',
-              'run-vi-analyzer-windows-container.yml',
-              'unit-tests-windows-container.yml',
-              'run-antidoc-windows-container.yml',
-          ]
-          note('### Dependency change: re-validating the project')
-          note('')
-          note('Worker image rebuilt for the new dependencies; re-running the pipeline for `%s`.' % head)
-          dispatched = 0
-          for wf in activities:
-              if not pathlib.Path('.github/workflows', wf).exists():
-                  continue
-              r = subprocess.run(
-                  ['gh', 'workflow', 'run', wf, '--ref', ref, '-f', 'commit_sha=' + head],
-                  capture_output=True, text=True)
-              if r.returncode == 0:
-                  print('dispatched', wf, 'for', head)
-                  note('- `%s`' % wf)
-                  dispatched += 1
-              else:
-                  print('::warning::could not dispatch %s: %s' % (wf, (r.stderr or r.stdout).strip()))
-          print('Dispatched %d activity workflow(s).' % dispatched)
-          if dispatched == 0:
-              print('::notice::dependency-change CI is on, but no per-activity workflows are installed to dispatch.')
-          PY
