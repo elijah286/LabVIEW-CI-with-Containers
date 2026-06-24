@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "29cf6897f88beb4c3645725690051cf76c7e1894",
+  "sha": "01f4fb179002f96b63052653bc44e51315b22a9c",
   "revisions": [
+    {
+      "sha": "01f4fb179002f96b63052653bc44e51315b22a9c",
+      "short": "01f4fb1",
+      "message": "installer: track in-flight installs you can leave and return to (3.48.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-24T03:58:13Z"
+    },
     {
       "sha": "29cf6897f88beb4c3645725690051cf76c7e1894",
       "short": "29cf689",
@@ -695,13 +702,6 @@
       "message": "dashboard: show unit-test failed percentage with configurable gates",
       "author": "Elijah Kerry",
       "date": "2026-06-22T02:40:32Z"
-    },
-    {
-      "sha": "ce9a29e8ad4ab9e45849f2358f9c81bda4115d48",
-      "short": "ce9a29e",
-      "message": "ci: fix corrupted YAML indentation in build-labview-linux-image.yml",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T20:52:46Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
