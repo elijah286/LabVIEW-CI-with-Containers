@@ -1233,8 +1233,10 @@ docker run --rm `
       <ul>
         <li><strong>One-click "Update now"</strong> (<code>apply-tooling-update.yml</code>, launched from the What's
           New dialog) reads the manifest, follows the relocation pointer if present, fetches the latest tooling, runs
-          <code>install.py --update</code> (preserving user config, refreshing tooling files), and commits to the
-          default branch with the built-in token — falling back to a PR with auto-merge if the branch is protected.</li>
+          <code>install.py --update</code> (preserving user config, refreshing tooling files, and pruning vendored
+          tooling files the source has since removed so an obsolete file can't linger and break a build), and commits
+          to the default branch with the built-in token — falling back to a PR with auto-merge if the branch is
+          protected.</li>
         <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
           opt-in.</li>
       </ul>

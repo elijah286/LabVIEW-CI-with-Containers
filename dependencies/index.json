@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "c9b67767107642488c2f51650c840dd17e527ab5",
+  "sha": "c3f67085e3f01a239c67fe388f832f3b10f94860",
   "revisions": [
+    {
+      "sha": "c3f67085e3f01a239c67fe388f832f3b10f94860",
+      "short": "c3f6708",
+      "message": "install: prune vendored tooling files removed from source on update (4.1.34)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-25T18:54:44Z"
+    },
     {
       "sha": "c9b67767107642488c2f51650c840dd17e527ab5",
       "short": "c9b6776",
@@ -695,13 +702,6 @@
       "message": "Install native VIPM in Linux Beta image (v3.38.8)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T22:45:52Z"
-    },
-    {
-      "sha": "06a30133ab62739e8113fb8b83f6f6b842ea7f51",
-      "short": "06a3013",
-      "message": "Diagnose Linux Beta VIPM package sources (v3.38.7)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T21:56:16Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
