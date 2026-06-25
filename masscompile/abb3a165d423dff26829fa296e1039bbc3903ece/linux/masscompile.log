@@ -1,20 +1,24 @@
-LabVIEWCLI started logging in file:  /tmp/lvtemporary_288038.log
+LabVIEWCLI started logging in file:  /tmp/lvtemporary_319204.log
 Using LabVIEW: "/usr/local/natinst/LabVIEW-2026-64/labviewprofull"
 LabVIEW launched successfully.
 Connection established with LabVIEW at port number 3363.
 
 Operation output: 
-#### Starting Mass Compile: Tue, Jun 16, 2026 04:38:29 AM
+#### Starting Mass Compile: Thu, Jun 25, 2026 03:34:13 AM
   Directory: "/workspace"
 /workspace/.github/labview/PrintToSingleFileHtml/PrintToSingleFileHtml.lvclass (PrintToSingleFileHtml.lvclass)
     - The class expected to be at "/workspace/.github/labview/CoreOperation/CoreOperation.lvclass" was loaded from "/usr/local/natinst/share/nilvcli/Operations/CoreOperation/CoreOperation.lvclass".
+Search failed to find "LV AI Core.lvlib:XML generator.vi" previously from "/workspace/.github/labview/toimages/_ni/labview/lvctl/vis/LV AI Core/XML generator.vi"  +=+   Caller: "VI to XML.vi"
+  ### Bad VI:    "VI to XML.vi"	Path="/workspace/.github/labview/toimages/_ni/labview/lvctl/vis/VI to XML.vi" 
+Search failed to find "LV AI Core.lvlib:VI generator.vi" previously from "/workspace/.github/labview/toimages/_ni/labview/lvctl/vis/LV AI Core/VI generator.vi"  +=+   Caller: "XML to VI.vi"
+  ### Bad VI:    "XML to VI.vi"	Path="/workspace/.github/labview/toimages/_ni/labview/lvctl/vis/XML to VI.vi" 
 Search failed to find "PID DW.vi" previously from "/workspace/example/Curriculum/Generator Lessons/My Instruments 2023 LabVIEW/Jet VIs/PID DW.vi"  +=+   Caller: "Generator High Speed PIDDW.vi"
   ### Bad VI:    "Generator High Speed PIDDW.vi"	Path="/workspace/example/Curriculum/Generator Lessons/subVIs/Generator High Speed PIDDW.vi" 
 VI could not be saved in project version.
     Path : /workspace/example/Curriculum Launcher.vi
     Target Version: 19.0
     Oldest Save Version Required: 20.0
-#### Finished Mass Compile: Tue, Jun 16, 2026 04:38:36 AM
+#### Finished Mass Compile: Thu, Jun 25, 2026 03:34:22 AM
 
 MassCompile operation failed.
 
