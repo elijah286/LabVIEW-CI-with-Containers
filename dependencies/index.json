@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "0a77185af24ca3bd9c6acbfe4d5d9f97bc249b64",
+  "sha": "53cc6c05a3e4b1f7bdf21e958192da23d836cba1",
   "revisions": [
+    {
+      "sha": "53cc6c05a3e4b1f7bdf21e958192da23d836cba1",
+      "short": "53cc6c0",
+      "message": "vidiff-deploy: checkout repo before local publish-gh-pages action (4.1.31)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-25T02:54:02Z"
+    },
     {
       "sha": "0a77185af24ca3bd9c6acbfe4d5d9f97bc249b64",
       "short": "0a77185",
@@ -695,13 +702,6 @@
       "message": "Use apt for Linux Beta worker packages (v3.38.5)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T21:25:05Z"
-    },
-    {
-      "sha": "485c948ed6dbf20c52ace1356b59fcaf6be53db7",
-      "short": "485c948",
-      "message": "VIDiff deploy: serialize the gh-pages push so it stops racing itself (v3.38.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T21:19:47Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
