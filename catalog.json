@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.31",
+  "version": "4.1.32",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,19 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.32",
+        "date": "2026-06-25",
+        "title": "Documentation rewritten for LabVIEW users new to CI",
+        "type": "patch",
+        "summary": "The developer Documentation page was overhauled to be a world-class, beginner-friendly resource. It no longer assumes the reader is an expert in Git, Docker, or GitHub Actions: new sections explain why CI matters for LabVIEW, a plain-language glossary of every concept, when to use each activity, private/self-hosted/custom and on-prem setups, everyday best practices, and a common-errors troubleshooting guide, plus extra diagrams.",
+        "highlights": [
+          "Adds Start here sections: Why continuous integration, Key concepts in plain language (glossary + orientation diagram), and a clearer big-picture walkthrough.",
+          "Adds a Using it part: the activities and when to use each, installation with prerequisites, private/self-hosted/custom registry/offline-VIPM/on-prem setups, everyday use and best practices, and a common-errors and troubleshooting guide.",
+          "Reframes the deep reference (catalog, orchestration, images, container lifecycle, VIPM baking lessons, capabilities, contracts, versioning, discovery, extending, security, runners) with plain-language intros while preserving all technical detail.",
+          "Keeps stable anchor ids for deep sections and adds new diagrams for concepts, when CI runs, and troubleshooting; documentation.html twins stay byte-identical."
+        ]
+      },
       {
         "version": "4.1.31",
         "date": "2026-06-25",
