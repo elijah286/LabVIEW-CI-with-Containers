@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.33",
+  "version": "4.1.34",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.34",
+        "date": "2026-06-25",
+        "title": "Tooling updates prune files removed from the source",
+        "type": "patch",
+        "summary": "Running an update now removes vendored tooling files that the source repo has since deleted, so an obsolete file can no longer linger in a consumer repo and break a build. This fixes the Windows VI Browser 2.0 render failing to compile after an old Go source file was left behind by a previous update.",
+        "highlights": [
+          "install.py --update now mirrors each vendored tooling directory to the source: it prunes orphaned files (never touching your preserved config) instead of only adding and overwriting.",
+          "Resolves 'redeclared in this block' Go build failures in the VI Browser 2.0 Windows render caused by leftover viserver_windows.go / selectors_windows.go after the engine was consolidated onto one cross-platform source file."
+        ]
+      },
       {
         "version": "4.1.33",
         "date": "2026-06-25",
