@@ -1,0 +1,160 @@
+name: zz Warm-batch smoketest (DELETE BEFORE MERGE)
+run-name: zz warm-batch smoketest - ${{ github.sha }}
+
+# TEMPORARY branch-only smoke test for the warm-container Mass Compile backfill.
+# Runs the real .github/labview/masscompile-backfill.ps1 over the latest 3
+# project-touching commits inside ONE warm container, and deploys the reports to
+# a THROWAWAY gh-pages prefix (_smoketest/masscompile/<sha>/) so the live
+# dashboard (which reads masscompile/<sha>/) is never touched. Delete this file
+# (and the _smoketest/ gh-pages tree) before merging to main.
+#
+# Push-scoped to this file's own path so it only fires when the file is added/
+# changed, not on every later commit to the branch.
+
+on:
+  push:
+    branches: [feat/warm-container-batch-history]
+    paths: ['.github/workflows/zz-warmbatch-smoketest.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: zz-warmbatch-smoketest
+  cancel-in-progress: false
+
+env:
+  LABVIEW_CONTAINER_IMAGE: ''
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  packages: read
+  actions: read
+
+jobs:
+  smoketest:
+    runs-on: windows-2022
+    timeout-minutes: 120
+
+    steps:
+      - name: Enable long paths (Windows MAX_PATH workaround)
+        shell: powershell
+        run: |
+          git config --system core.longpaths true
+          New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' `
+            -Name 'LongPathsEnabled' -Value 1 -PropertyType DWORD -Force | Out-Null
+
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          ACTION_ID="masscompile"
+          CFG=.github/labview-ci.yml
+          sel=""
+          if [ -f "$CFG" ]; then
+            sel=$(awk -v act="$ACTION_ID" '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; ina=0; next}
+              inc && /^    actions:[[:space:]]*$/ {ina=1; next}
+              ina && /^      [A-Za-z0-9_.-]+:/ {
+                k=$1; sub(/:.*/,"",k);
+                v=$0; sub(/^[[:space:]]*[A-Za-z0-9_.-]+:[[:space:]]*/,"",v); gsub(/"/,"",v); gsub(/[[:space:]]/,"",v);
+                if (k==act) {print v; exit}
+                next
+              }
+              ina && /^    [A-Za-z]/ {ina=0}
+              inc && /^[^[:space:]]/ {inc=0; ina=0}
+            ' "$CFG" | tr -d '[:space:]')
+            if [ -z "$sel" ]; then
+              sel=$(awk '
+                /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+                inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+                inc && /^[^[:space:]]/ {inc=0}
+              ' "$CFG" | tr -d '[:space:]')
+            fi
+          fi
+          if [ -z "$sel" ]; then
+            img="${custom}:latest"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+            img="${BASE_IMAGE}"
+          elif [ "$sel" = "latest" ]; then
+            img="${custom}:latest"
+          else
+            img="${custom}:${sel}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: ./.github/labview/ensure-docker.ps1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for worker image build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ github.sha }}" "${{ github.event.before }}"
+
+      - name: Run Mass Compile backfill (warm container, latest 3 commits)
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path 'C:\o' | Out-Null
+          # No skip-list: force a real run of all 3 so the warm-container path is exercised.
+          & .github\labview\masscompile-backfill.ps1 `
+            -WorkspaceRoot     '${{ github.workspace }}' `
+            -OutRoot           'C:\o' `
+            -Image             "$Env:LABVIEW_CONTAINER_IMAGE" `
+            -Shas              '' `
+            -MaxCommits        3 `
+            -TimeBudgetMinutes 60 `
+            -LabVIEWPath       "C:\Program Files\National Instruments\LabVIEW ${{ vars.LABVIEW_VERSION || '2026' }}\LabVIEW.exe" `
+            -Repo              '${{ github.repository }}' `
+            -PagesUrl          '${{ env.PAGES_URL }}' `
+            -LabVIEWVersion    '${{ vars.LABVIEW_VERSION || '2026' }}'
+        continue-on-error: true
+
+      - name: Verify smoketest output
+        id: verify
+        shell: powershell
+        run: |
+          $found = Get-ChildItem -Path 'C:\o' -Recurse -Filter 'summary.json' -ErrorAction SilentlyContinue
+          if ($found) {
+            "ok=true" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding ascii -Append
+            Write-Host "Generated $($found.Count) report(s):"
+            $found | ForEach-Object { Write-Host "  $($_.FullName)" }
+          } else {
+            "ok=false" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding ascii -Append
+            Write-Host "No reports generated."
+          }
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.verify.outputs.ok == 'true'
+        shell: bash
+        run: |
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy smoketest reports to a THROWAWAY gh-pages prefix
+        if: steps.verify.outputs.ok == 'true'
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: C:\o
+          destination_dir: _smoketest/masscompile
