@@ -1,4 +1,5 @@
 name: VIDiff Backfill — Linux Container
+run-name: VIDiff Linux backfill - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 # Generates VIDiff reports for VI-touching commits across history in a single warm
 # container, so every changed VI in the VI Browser links to a true side-by-side

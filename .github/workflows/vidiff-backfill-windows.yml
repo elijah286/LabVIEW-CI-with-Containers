@@ -1,4 +1,5 @@
 name: VIDiff Backfill — Windows Container
+run-name: VIDiff Windows backfill - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 # Windows-container counterpart of the Linux VIDiff backfill. Generates Windows
 # diff reports across history so the VI Browser can toggle Linux <-> Windows and

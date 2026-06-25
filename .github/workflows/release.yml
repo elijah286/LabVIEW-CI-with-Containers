@@ -11,6 +11,7 @@
 # PR to a specific version. Creating tags/releases uses the built-in GITHUB_TOKEN —
 # no Personal Access Token is involved (a tag is a ref, not a workflow-file edit).
 name: Release
+run-name: Release LabVIEW CI - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 on:
   push:

@@ -8,7 +8,7 @@
     "releases": [
       {
         "version": "3.47.0",
-        "date": "2026-06-23",
+        "date": "2026-06-25",
         "title": "Unit Tests: add LUnit (Astemes) as a fourth framework",
         "type": "minor",
         "summary": "The Unit Tests capability now supports Astemes' LUnit alongside Caraya, VI Tester, and the NI Unit Test Framework. LUnit is driven exactly like NI UTF - through the native LabVIEW CLI ('LabVIEWCLI -OperationName LUnit'), which discovers Test Case classes under the configured locations and emits JUnit XML that merges into the same unified report. The Unit Testing configurator gains an LUnit tab, and the Windows worker image bakes in base LUnit and the LUnit CLI from VIPM (resolved from the VIPM Community / NI Tools Network indexes like the other frameworks). When the LUnit CLI is missing the report shows the shared missing-container-tooling banner instead of false-passing.",
@@ -16,6 +16,54 @@
           "Adds an LUnit tab to the Unit Testing configurator; declare where its Test Case classes live, same as the other frameworks.",
           "run-unit-tests.ps1 runs LUnit headlessly via 'LabVIEWCLI -OperationName LUnit', reusing the NI UTF calling pattern and JUnit output.",
           "Bakes base LUnit and the LUnit CLI into the Windows worker image from VIPM; pushing this rebuilds the worker image."
+        ]
+      },
+      {
+        "version": "3.46.6",
+        "date": "2026-06-23",
+        "title": "Installer shows honest end-to-end setup progress",
+        "type": "patch",
+        "summary": "Apply to a new repository now tracks the full install after the pull request is created: merge, dashboard publishing, worker container image builds, and final CI readiness. The progress bar no longer turns green while background image builds are still running, and installed GitHub Actions workflows now use clear run names so users can tell dashboard, Windows, and Linux work apart in the Actions list.",
+        "highlights": [
+          "Adds an overall setup progress panel with step status and expected durations for merge, dashboard publishing, image builds, and CI readiness.",
+          "Keeps watching Windows and Linux worker image workflows after install merge and explains why image builds can take 5-90 minutes.",
+          "Adds descriptive GitHub Actions run names for dashboard publishing, image builds, snapshots, mass compile, VI Analyzer, VIDiff, unit tests, Antidoc, update, release, and diagnostic workflows."
+        ]
+      },
+      {
+        "version": "3.46.5",
+        "date": "2026-06-23",
+        "title": "GitLab browser installs tolerate empty repository trees",
+        "type": "patch",
+        "summary": "Fixes the GitLab browser install path when GitLab returns 404 Tree Not Found while reading the target repository tree. The installer now resolves the default branch to a commit SHA before listing files and treats a missing tree as an empty inventory, so fresh GitLab projects can continue to the install commit and merge request instead of reporting a misleading token visibility error.",
+        "highlights": [
+          "Reads the GitLab default branch commit before listing repository files.",
+          "Treats GitLab 404 Tree Not Found during file inventory as an empty repository tree.",
+          "Prevents the Apply page from mislabeling this GitLab tree response as a token visibility problem."
+        ]
+      },
+      {
+        "version": "3.46.4",
+        "date": "2026-06-23",
+        "title": "GitLab installs can open a merge request from the browser",
+        "type": "patch",
+        "summary": "Apply to a new repository now supports a GitLab token install path. GitLab mode can store a GitLab host and token in the browser, create an install branch, commit the generated GitLab CI scaffold plus shared LabVIEW CI payload, and open a merge request. The command-line fallback now explains exactly where to run the generated scripts: in a local terminal from a cloned repository, not inside the GitLab web UI.",
+        "highlights": [
+          "Adds a GitLab token panel for browser-based install branch, commit, and merge-request creation.",
+          "Keeps GitLab.com as the default host while allowing self-managed GitLab server URLs.",
+          "Clarifies command-line fallback steps: clone the repo locally, cd into it, paste the command in Terminal/Git Bash/PowerShell, review, commit, and push."
+        ]
+      },
+      {
+        "version": "3.46.3",
+        "date": "2026-06-23",
+        "title": "Capability chooser stays closed on first load",
+        "type": "patch",
+        "summary": "Hardens the Apply page capability chooser so it stays collapsed on initial load even if the browser restores prior details state or a local copy carries stale markup. The chooser body is explicitly hidden while the details element is closed, and initialization closes the chooser after capabilities render.",
+        "highlights": [
+          "Adds an explicit closed-state CSS rule for the capability chooser body.",
+          "Closes the capability chooser during Apply page initialization after capabilities render.",
+          "Keeps the 3.46.2 worker-image warning and confirmation behavior unchanged."
         ]
       },
       {

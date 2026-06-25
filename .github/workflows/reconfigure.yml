@@ -1,4 +1,5 @@
 name: Reconfigure LabVIEW CI
+run-name: Reconfigure LabVIEW CI - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 # Applies a settings change from the Configure tool (or a manual dispatch) by
 # rewriting .github/labview-ci.yml + toggling container dependencies, then opening

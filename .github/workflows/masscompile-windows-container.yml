@@ -1,4 +1,5 @@
 name: Mass Compile — Windows Container
+run-name: Mass Compile Windows container - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.event.pull_request.head.sha || github.sha }}
 
 on:
   pull_request:

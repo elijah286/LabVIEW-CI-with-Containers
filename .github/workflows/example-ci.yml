@@ -10,6 +10,7 @@
 # and produce the showcase dashboard. This one is the on-demand demonstration of
 # the composite-action (./actions) consumption path, so it doesn't double-run them.
 name: Example project CI (composite-action demo)
+run-name: Example project CI - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 on:
   workflow_dispatch:

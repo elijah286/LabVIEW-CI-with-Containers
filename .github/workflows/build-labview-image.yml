@@ -1,4 +1,5 @@
 name: Build LabVIEW CI Image
+run-name: Build Windows worker image - ${{ github.event_name == 'workflow_dispatch' && 'manual setup' || github.sha }}
 
 on:
   # The image build is a heavy CI process, so it never auto-runs on an

@@ -16,6 +16,7 @@
 # a pull request and enabling auto-merge. GitHub's own "Run workflow" gate limits
 # this to write-access users.
 name: Apply LabVIEW CI update
+run-name: Apply LabVIEW CI update - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 on:
   workflow_dispatch:

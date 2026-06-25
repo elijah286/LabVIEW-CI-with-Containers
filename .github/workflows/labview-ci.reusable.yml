@@ -7,6 +7,7 @@
 # in "Configure Workers" turns the corresponding job on/off here — no per-repo
 # workflow edits. The consumer's thin caller owns only the triggers and Pages.
 name: LabVIEW CI (reusable)
+run-name: LabVIEW CI reusable workflow - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 on:
   workflow_call:

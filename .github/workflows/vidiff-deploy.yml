@@ -1,4 +1,5 @@
 name: VIDiff Deploy — Pages + PR Comment
+run-name: Deploy VIDiff pages and comment - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 on:
   workflow_run:

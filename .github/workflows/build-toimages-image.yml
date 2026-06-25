@@ -1,4 +1,5 @@
 name: Build VI Browser 2.0 render image
+run-name: Build VI Browser render image - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 # Builds the in-place VI Browser 2.0 render engine (the vendored "toimages" engine
 # under .github/labview/toimages) into a container image and publishes it to THIS

@@ -1,4 +1,5 @@
 name: toimages COM probe (diagnostic)
+run-name: toimages COM probe - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 # Diagnostic ONLY (workflow_dispatch). Confirms whether the vendored
 # toimages\Convert.vi can be driven via LabVIEW's ActiveX/COM server inside the

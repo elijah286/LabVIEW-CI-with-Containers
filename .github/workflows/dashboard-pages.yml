@@ -1,4 +1,5 @@
 name: CI Dashboard — GitHub Pages
+run-name: Publish CI dashboard - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 # Thin caller: the dashboard build logic lives in the shared composite action
 # actions/dashboard (bundled generator + tooling pages), so this repo eats its

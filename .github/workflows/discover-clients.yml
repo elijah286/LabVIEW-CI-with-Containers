@@ -1,4 +1,5 @@
 name: Discover Clients
+run-name: Discover LabVIEW CI clients - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
 # Publishes clients.json - the registry of public repositories discovered to be
 # running this LabVIEW CI tooling - to the Pages site, where the dashboard's
