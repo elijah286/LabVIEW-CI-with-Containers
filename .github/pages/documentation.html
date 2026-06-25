@@ -445,10 +445,14 @@ flowchart TD
       </table>
 
       <p>The browser-based Apply to New Repo flow also records each started install in this browser so you can
-        leave and return. On return it reconciles the saved record against GitHub: records with a saved tooling
-        version wait until the target dashboard's published <code>catalog.json</code> reaches that version, while
-        older records that never captured a version clear as soon as the merged install is serving any dashboard
-        catalog. Publishing records are rechecked even if the install token has since been forgotten.</p>
+        leave and return. On return it reconciles the saved record against GitHub and clears anything that is no
+        longer in flight: an open install pull request stays as &ldquo;pull request open&rdquo;, a merged one that
+        is still building shows &ldquo;publishing dashboard&rdquo;, and a record clears the moment its dashboard is
+        live. A record with a saved tooling version waits for the target dashboard's published <code>catalog.json</code>
+        to reach that version; because the dashboard a repo runs can publish a different version line than the
+        installer page is on, a record whose dashboard has simply been live for a while past the install clears
+        anyway, so a finished install never lingers as &ldquo;publishing dashboard&rdquo;. Publishing records are
+        rechecked from the public dashboard URL even if the install token has since been forgotten.</p>
 
       <h3>What gets written into your repo</h3>
       <ul>

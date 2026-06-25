@@ -1048,32 +1048,53 @@
       return null;
     }
 
+    // A tracked dashboard publish is settled once the repo's published catalog
+    // reaches the version that was installed. The dashboard action a repo runs can
+    // publish a different version line than the installer page is on, so once the
+    // dashboard has simply been live for a while past the install we treat a live
+    // dashboard as done rather than waiting forever for an exact version match
+    // (otherwise a finished install is shown as "Publishing dashboard..." forever).
+    const PUBLISH_SETTLE_MS = 15 * 60 * 1000;
+    async function publishSettled(dash, rec) {
+      const have = await publishedCatalogVersion(dash);
+      if (!have) return false;                               // dashboard not live yet -> still publishing
+      const want = (rec && rec.version) || "";
+      if (!want || cmpVerStr(have, want) >= 0) return true;   // reached the installed version (or none recorded)
+      const since = (rec && (rec.startedAt || rec.updatedAt)) || 0;
+      return since > 0 && (Date.now() - since) > PUBLISH_SETTLE_MS;  // version skew -> don't wait forever
+    }
+
     // Reconcile one tracked install against live GitHub state; updates or drops it.
     let _reconciling = false;
     async function reconcileOne(repo, rec) {
       const probe = await probeRepoInstall(repo);
-      const ver = (rec && rec.version) || (catalog && catalog.version) || "";
       const dash = (rec && rec.dashUrl) || dashboardUrl(repo);
       if (probe.pr) {
         if (probe.pr.state === "open") { putInstall(repo, { phase: "pr-open", prNumber: probe.pr.number, prUrl: probe.pr.url, branch: INSTALL_BRANCH }); return; }
         if (probe.pr.merged) {
-          if (ver && await deployedAtLeast(dash, ver)) { dropInstall(repo); return; }
+          if (await publishSettled(dash, rec)) { dropInstall(repo); return; }
           putInstall(repo, { phase: "publishing", prNumber: probe.pr.number, prUrl: probe.pr.url }); return;
         }
         dropInstall(repo); return;                       // PR closed without merging -> abandoned
       }
       if (probe.branchExists) { putInstall(repo, { phase: "preparing", branch: INSTALL_BRANCH }); return; }
       if (rec && rec.phase === "publishing") {
-        if (!ver || await deployedAtLeast(dash, ver)) dropInstall(repo);
-        return;                                          // keep waiting on the published version otherwise
+        if (await publishSettled(dash, rec)) dropInstall(repo);
+        return;                                          // keep waiting on the live dashboard otherwise
       }
       dropInstall(repo);                                 // no PR, no branch, not publishing -> done/gone
     }
     async function reconcileInstalls() {
       if (_reconciling) return;
-      if (!getInsTok()) { renderInstallList(); return; }
+      const hasTok = !!getInsTok();
+      const o = loadInstallReg();
+      // Without a saved token we can't probe GitHub, but a tracked "publishing"
+      // record can still settle from the public dashboard URL, so reconcile those
+      // too -> finished installs clear themselves. A full reconcile needs a token.
+      const keys = Object.keys(o).filter(r => hasTok || (o[r] && o[r].phase === "publishing"));
+      if (!keys.length) { renderInstallList(); return; }
       _reconciling = true;
-      try { const o = loadInstallReg(); for (const r of Object.keys(o)) { try { await reconcileOne(r, o[r]); } catch (_) {} } }
+      try { for (const r of keys) { try { await reconcileOne(r, o[r]); } catch (_) {} } }
       finally { _reconciling = false; }
       renderInstallList();
     }
@@ -1082,10 +1103,13 @@
     // is visible and a token is saved) so the list stays honest without a reload.
     let _recTimer = null;
     function scheduleReconcile() {
-      const has = Object.keys(loadInstallReg()).length > 0;
-      if (has && getInsTok() && !_recTimer) {
+      const o = loadInstallReg();
+      // Re-check while there is anything to reconcile: any record when a token is
+      // saved, or a "publishing" record (which settles from the public dashboard).
+      const canReconcile = Object.keys(o).some(r => getInsTok() || (o[r] && o[r].phase === "publishing"));
+      if (canReconcile && !_recTimer) {
         _recTimer = setInterval(() => { if (!document.hidden) reconcileInstalls(); }, 10000);
-      } else if ((!has || !getInsTok()) && _recTimer) { clearInterval(_recTimer); _recTimer = null; }
+      } else if (!canReconcile && _recTimer) { clearInterval(_recTimer); _recTimer = null; }
     }
 
     // ---- duplicate-in-flight warning panel -------------------------------
@@ -2039,16 +2063,23 @@
     // confirm a re-install/update actually republished, rather than the OLD
     // dashboard simply still being served.
     async function deployedAtLeast(dashUrl, want) {
+      const have = await publishedCatalogVersion(dashUrl);
+      return !!(have && cmpVerStr(have, want) >= 0);
+    }
+    // The version of the catalog.json currently published next to the dashboard
+    // URL, or "" when the dashboard isn't live yet (404 / unreachable). GitHub
+    // Pages sends Access-Control-Allow-Origin:* so this cross-origin read works.
+    async function publishedCatalogVersion(dashUrl) {
       try {
         const dir = dashUrl.replace(/[^/]*$/, "");            // .../repo/  or strip a trailing index.html
         const ctrl = new AbortController();
         const to = setTimeout(() => ctrl.abort(), 8000);
         const res = await fetch(dir + "catalog.json?_=" + Date.now(), { cache: "no-store", signal: ctrl.signal });
         clearTimeout(to);
-        if (!res.ok) return false;
+        if (!res.ok) return "";
         const cat = await res.json();
-        return !!(cat && cat.version && cmpVerStr(cat.version, want) >= 0);
-      } catch (_) { return false; }
+        return (cat && cat.version) ? String(cat.version) : "";
+      } catch (_) { return ""; }
     }
 
     // Watch the published dashboard URL until GitHub Pages actually serves it, so the
