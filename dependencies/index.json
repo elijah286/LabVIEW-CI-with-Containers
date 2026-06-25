@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "09fedca5ed7da52f105c8bbd4ac4f3a7564296e2",
+  "sha": "c9b67767107642488c2f51650c840dd17e527ab5",
   "revisions": [
+    {
+      "sha": "c9b67767107642488c2f51650c840dd17e527ab5",
+      "short": "c9b6776",
+      "message": "integrate: clear finished installs from the 'Installs in progress' panel (4.1.33)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-25T17:50:34Z"
+    },
     {
       "sha": "09fedca5ed7da52f105c8bbd4ac4f3a7564296e2",
       "short": "09fedca",
@@ -695,13 +702,6 @@
       "message": "Diagnose Linux Beta VIPM package sources (v3.38.7)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T21:56:16Z"
-    },
-    {
-      "sha": "e5cde8fef03a055d3787a4e63d605f4665617181",
-      "short": "e5cde8f",
-      "message": "Render VI Browser Windows snapshots with the cross-platform Go VI Server engine (v3.38.6)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T21:47:11Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
