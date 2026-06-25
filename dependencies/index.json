@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "53cc6c05a3e4b1f7bdf21e958192da23d836cba1",
+  "sha": "09fedca5ed7da52f105c8bbd4ac4f3a7564296e2",
   "revisions": [
+    {
+      "sha": "09fedca5ed7da52f105c8bbd4ac4f3a7564296e2",
+      "short": "09fedca",
+      "message": "docs: rewrite Documentation for LabVIEW users new to CI (4.1.32)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-25T16:25:39Z"
+    },
     {
       "sha": "53cc6c05a3e4b1f7bdf21e958192da23d836cba1",
       "short": "53cc6c0",
@@ -695,13 +702,6 @@
       "message": "Render VI Browser Windows snapshots with the cross-platform Go VI Server engine (v3.38.6)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T21:47:11Z"
-    },
-    {
-      "sha": "8e3974c4c2e370f6b0135eb0df1c4a3e36a39df4",
-      "short": "8e3974c",
-      "message": "Use apt for Linux Beta worker packages (v3.38.5)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T21:25:05Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
