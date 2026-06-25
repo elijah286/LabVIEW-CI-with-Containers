@@ -937,7 +937,10 @@ ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, o
         never run against a worker image that predates a dependency update. While a worker rebuild is in progress, the
         activity workflows &mdash; VI Analyzer, Mass Compile, Unit Tests,
         Antidoc, and VIDiff — call <code>.github/labview/wait-for-worker-images.sh</code> before they pull the image
-        and <strong>block</strong> until the worker image build(s) for that revision finish. In the reusable workflow a
+        and <strong>block</strong> until the worker image build(s) for that revision finish. The wait outlasts a cold
+        first build (pulling the multi-gigabyte NI base and baking the project VIPC runs ~80&ndash;100 minutes), so a
+        fresh install's first dispatched activity waits rather than failing while the image is still building. In the
+        reusable workflow a
         single <code>gate-images</code> job does this and the dependency-consuming jobs <code>need</code> it. If the
         rebuild fails the activities do not run; if nothing worker-affecting changed the gate returns immediately. The
         snapshot renderer is intentionally exempt because it renders on the bare NI base image.</p>

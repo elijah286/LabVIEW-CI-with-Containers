@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "c3f67085e3f01a239c67fe388f832f3b10f94860",
+  "sha": "a111d8f6089773367674b564f5cd80e826cd1d1b",
   "revisions": [
+    {
+      "sha": "a111d8f6089773367674b564f5cd80e826cd1d1b",
+      "short": "a111d8f",
+      "message": "wait-for-worker-image: wait long enough for a cold first build (4.1.35)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-25T19:50:54Z"
+    },
     {
       "sha": "c3f67085e3f01a239c67fe388f832f3b10f94860",
       "short": "c3f6708",
@@ -695,13 +702,6 @@
       "message": "Promote VIPM-enabled Linux worker",
       "author": "Elijah Kerry",
       "date": "2026-06-22T23:10:31Z"
-    },
-    {
-      "sha": "c95c5c573a72c5b7d34715eebbeab3124c294403",
-      "short": "c95c5c5",
-      "message": "Install native VIPM in Linux Beta image (v3.38.8)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T22:45:52Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
