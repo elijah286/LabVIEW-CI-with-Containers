@@ -55,7 +55,9 @@ concurrency:
 jobs:
   render:
     runs-on: windows-2022
-    timeout-minutes: 120
+    # Long enough for the worker-image wait (up to ~110 min on a cold first build)
+    # plus the render itself, so a fresh-install render isn't killed mid-wait.
+    timeout-minutes: 180
     steps:
       - name: Checkout repository (full history for content-addressed blobs)
         uses: actions/checkout@v5

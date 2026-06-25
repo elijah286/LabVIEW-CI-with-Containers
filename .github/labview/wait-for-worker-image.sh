@@ -23,7 +23,10 @@ sha="${1:-${GITHUB_SHA:-}}"
 before="${2:-${GITHUB_EVENT_BEFORE:-}}"
 workflow_name="${3:-Build LabVIEW CI Image}"
 appear_seconds="${4:-300}"     # if a build was expected but none shows up by now, stop with guidance
-overall_seconds="${5:-2400}"   # a cold first build (NI base pull + VIPC apply) can run long
+# A cold first worker-image build (pull the multi-GB NI base + bake the project
+# VIPC) reliably runs 80-100 minutes, so the wait must outlast it or every fresh
+# install's first dispatched activity times out while the build is still going.
+overall_seconds="${5:-6600}"   # 110 min - comfortably longer than a cold build
 workflow_path=""
 
 case "$workflow_name" in
