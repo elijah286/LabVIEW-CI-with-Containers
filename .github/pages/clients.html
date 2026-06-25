@@ -36,16 +36,22 @@
     .count{font-size:.55em;font-weight:700;color:var(--fg-muted);background:var(--chip);
            border:1px solid var(--border);border-radius:999px;padding:2px 10px}
     .intro{color:var(--fg-muted);font-size:.95em;margin:0 0 6px}
-    .meta{color:var(--fg-muted);font-size:.8em;margin:0 0 28px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-    .card{border:1px solid var(--border);border-radius:10px;background:var(--surface);
-          padding:16px 18px;display:flex;flex-direction:column;gap:10px}
-    .card .name{font-weight:600;font-size:1.02em;word-break:break-word}
-    .card .owner{color:var(--fg-muted);font-weight:400}
-    .card .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.82em;color:var(--fg-muted);min-height:18px}
+      .meta{color:var(--fg-muted);font-size:.8em;margin:0 0 28px}
+      .table-wrap{border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:auto}
+      table{width:100%;border-collapse:collapse;min-width:760px}
+      th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border);vertical-align:middle}
+      th{font-size:.76em;text-transform:uppercase;letter-spacing:.04em;color:var(--fg-muted);background:rgba(177,186,196,.06);white-space:nowrap}
+      tbody tr:last-child td{border-bottom:0}
+      tbody tr:hover{background:rgba(177,186,196,.06)}
+      .repo{font-weight:600;word-break:break-word}
+      .owner{color:var(--fg-muted);font-weight:600;word-break:break-word}
+      .date{color:var(--fg-muted);white-space:nowrap}
     .ver{font-family:ui-monospace,Menlo,monospace;font-size:.78em;color:var(--fg-muted);
          background:var(--chip);border:1px solid var(--border);border-radius:6px;padding:1px 7px}
-    .links{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+      .vercell{display:flex;align-items:center;gap:7px;white-space:nowrap}
+      .stale{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
+           color:#1f2328;background:#d29922;border:1px solid rgba(255,255,255,.18);font-size:.78em;font-weight:800}
+      .links{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
     .btn{display:inline-flex;align-items:center;gap:6px;font-size:.82em;font-weight:600;
          border:1px solid var(--border);border-radius:7px;padding:6px 11px;color:var(--fg);background:transparent}
     .btn:hover{background:rgba(177,186,196,.12);text-decoration:none}
@@ -64,7 +70,14 @@
     </div>
     <p class="intro">Public repositories discovered to be running this LabVIEW CI tooling. Each links to that repository&rsquo;s own CI dashboard. <strong>Scan for clients</strong> runs the discovery workflow that queries GitHub for repositories installed from this one. <a href="faq.html#discovery">How are clients discovered?</a></p>
     <p class="meta" id="meta"></p>
-    <div id="grid" class="grid" hidden></div>
+    <div id="clients" class="table-wrap" hidden>
+      <table>
+        <thead>
+          <tr><th>Repository</th><th>Owner</th><th>Version</th><th>Last update</th><th>Links</th></tr>
+        </thead>
+        <tbody id="clientRows"></tbody>
+      </table>
+    </div>
     <div id="state" class="state">
       <h2>Loading clients&hellip;</h2>
       <p>Reading the published registry.</p>
@@ -72,7 +85,8 @@
   </div>
   <script>
     (function () {
-      var grid = document.getElementById('grid');
+      var tableWrap = document.getElementById('clients');
+      var rowsEl = document.getElementById('clientRows');
       var state = document.getElementById('state');
       var countEl = document.getElementById('count');
       var metaEl = document.getElementById('meta');
@@ -103,40 +117,64 @@
         return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
       }
       function showState(title, body) {
-        grid.hidden = true; state.hidden = false;
+        tableWrap.hidden = true; state.hidden = false;
         state.innerHTML = '<h2>' + esc(title) + '</h2>' + (body ? '<p>' + esc(body) + '</p>' : '');
       }
-      function card(c) {
+      function cmpVer(a, b) {
+        var aa = String(a || '').replace(/^v/i, '').split('.').map(function (x) { return parseInt(x, 10) || 0; });
+        var bb = String(b || '').replace(/^v/i, '').split('.').map(function (x) { return parseInt(x, 10) || 0; });
+        for (var i = 0; i < Math.max(aa.length, bb.length); i++) {
+          var d = (aa[i] || 0) - (bb[i] || 0);
+          if (d) return d;
+        }
+        return 0;
+      }
+      function loadCatalog() {
+        return fetch('catalog.json', { cache: 'no-cache' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; });
+      }
+      function row(c, latestVersion) {
         var owner = c.owner || (c.repo || '').split('/')[0] || '';
         var name = c.name || (c.repo || '').split('/')[1] || c.repo || '';
         var dash = c.dashboard || ('https://' + owner + '.github.io/' + name + '/');
         var repoUrl = c.url || ('https://github.com/' + (c.repo || ''));
-        var ver = c.version ? '<span class="ver">v' + esc(c.version) + '</span>' : '';
-        var upd = c.updated ? '<span>Updated ' + esc(fmtDate(c.updated)) + '</span>' : '';
-        return '<div class="card">'
-          + '<div class="name">' + esc(name) + ' <span class="owner">/ ' + esc(owner) + '</span></div>'
-          + '<div class="row">' + ver + upd + '</div>'
-          + '<div class="links">'
+        var verText = c.version ? 'v' + esc(c.version) : 'Unknown';
+        var stale = latestVersion && (!c.version || cmpVer(c.version, latestVersion) < 0);
+        var staleTitle = c.version ? 'Not on latest version v' + esc(latestVersion) : 'Version unknown; latest is v' + esc(latestVersion);
+        var staleHtml = stale ? '<span class="stale" title="' + staleTitle + '">!</span>' : '';
+        var upd = fmtDate(c.updated) || 'Unknown';
+        return '<tr>'
+          + '<td><span class="repo">' + esc(name) + '</span></td>'
+          + '<td><span class="owner">' + esc(owner) + '</span></td>'
+          + '<td><span class="vercell"><span class="ver">' + verText + '</span>' + staleHtml + '</span></td>'
+          + '<td><span class="date">' + esc(upd) + '</span></td>'
+          + '<td><div class="links">'
             + '<a class="btn primary" href="' + esc(dash) + '" target="_blank" rel="noopener">Open dashboard &#8599;</a>'
             + '<a class="btn" href="' + esc(repoUrl) + '" target="_blank" rel="noopener">Repository</a>'
-          + '</div>'
-        + '</div>';
+          + '</div></td>'
+        + '</tr>';
       }
-      fetch('clients.json', { cache: 'no-cache' })
+      Promise.all([fetch('clients.json', { cache: 'no-cache' })
         .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
-        .then(function (data) {
+        , loadCatalog()])
+        .then(function (parts) {
+          var data = parts[0];
+          var catalog = parts[1] || {};
           if (data && data.source) setScan(data.source);
           var list = (data && data.clients) || [];
+          var latestVersion = data.latestVersion || data.latest || catalog.version || '';
           if (data && data.generated) {
             metaEl.textContent = 'Last scanned ' + fmtDate(data.generated) + ' \u00b7 public repositories only.';
+            if (latestVersion) metaEl.textContent += ' Latest version v' + latestVersion + '.';
           }
           if (!list.length) {
             showState('No clients discovered yet', 'New installs that source from this repository will appear here after the next scan.');
             return;
           }
           countEl.textContent = list.length; countEl.hidden = false;
-          grid.innerHTML = list.map(card).join('');
-          grid.hidden = false; state.hidden = true;
+          rowsEl.innerHTML = list.map(function (c) { return row(c, latestVersion); }).join('');
+          tableWrap.hidden = false; state.hidden = true;
         })
         .catch(function () {
           showState('No scan has run yet', 'Use \u201cScan for clients\u201d above to discover repositories that installed this tooling.');

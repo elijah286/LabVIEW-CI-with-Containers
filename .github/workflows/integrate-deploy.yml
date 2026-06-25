@@ -47,9 +47,7 @@ jobs:
           cp .github/labview/vipm/ci-tooling.packages.json out/ci-tooling.packages.json
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: out
           destination_dir: .
-          keep_files: true

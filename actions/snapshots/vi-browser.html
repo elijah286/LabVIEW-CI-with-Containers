@@ -1982,7 +1982,7 @@ else document.addEventListener('lvci:ready', lvciPlaceRevInContextBar);
   function dispatchTokenUrl() {
     return "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI dispatch") + "&description=" + encodeURIComponent("Dispatch CI runs for " + repo) + "&target_name=" + encodeURIComponent(repo.split("/")[0]) + "&actions=write";
   }
-  function buildWfUrl() { return "https://github.com/" + esc(repo) + "/actions/workflows/build-toimages-image.yml"; }
+  function buildWfUrl() { return "https://github.com/" + esc(repo) + "/actions/workflows/build-labview-linux-image.yml"; }
   function defaultBranch(token) {
     return gh("/repos/" + repo, token).then(ghJson).then(function (d) { return (d && d.default_branch) || "main"; }).catch(function () { return "main"; });
   }

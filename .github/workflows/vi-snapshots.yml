@@ -1,5 +1,5 @@
 name: VI Snapshots and VI Browser
-run-name: VI Snapshots and Browser - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
+run-name: VI Snapshots and Browser - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'backfill' && 'backfill' || github.sha }}
 
 on:
   # Auto-runs only on real LabVIEW source changes — never on the tooling files an
@@ -14,6 +14,10 @@ on:
       - '**.lvproj'
       - '**.lvlib'
       - '**.lvclass'
+      # Exclude the pipeline's own tooling VIs (PrintToSingleFileHtml, toimages,
+      # etc., added under .github/ by an install/deploy) so onboarding the pipeline
+      # never kicks off a snapshot run -- matching the other VI-source workflows.
+      - '!.github/**'
   workflow_dispatch:
     inputs:
       mode:
@@ -200,12 +204,10 @@ jobs:
 
       - name: Deploy snapshots to GitHub Pages
         if: steps.verify.outputs.ok == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vi-snapshots
           destination_dir: vi-snapshots
-          keep_files: true   # preserve previously-rendered by-blob snapshots
 
       - name: Post commit status
         if: always()

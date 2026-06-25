@@ -1,13 +1,18 @@
 {
   "schemaVersion": 1,
-  "version": "3.47.0",
+  "version": "4.2.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
+  "installPause": {
+    "comment": "Toggle to block new installs from the Apply page. Set enabled=true (and optionally a message) to show a pause banner instead of installing; set enabled=false to re-enable. Used during in-progress tooling/base-image updates.",
+    "enabled": false,
+    "message": "Installation is temporarily unavailable due to an in-progress update. Please check back in about 30 minutes."
+  },
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
       {
-        "version": "3.47.0",
+        "version": "4.2.0",
         "date": "2026-06-25",
         "title": "Unit Tests: add LUnit (Astemes) as a fourth framework",
         "type": "minor",
@@ -16,6 +21,695 @@
           "Adds an LUnit tab to the Unit Testing configurator; declare where its Test Case classes live, same as the other frameworks.",
           "run-unit-tests.ps1 runs LUnit headlessly via 'LabVIEWCLI -OperationName LUnit', reusing the NI UTF calling pattern and JUnit output.",
           "Bakes base LUnit and the LUnit CLI into the Windows worker image from VIPM; pushing this rebuilds the worker image."
+        ]
+      },
+      {
+        "version": "4.1.31",
+        "date": "2026-06-25",
+        "title": "Fix VIDiff Pages deploy missing checkout",
+        "type": "patch",
+        "summary": "The VIDiff Deploy workflow now checks out the repository before running the bundled publish-gh-pages action, so the VIDiff report deploy no longer fails with a missing action.yml error.",
+        "highlights": [
+          "Adds an actions/checkout step to the start of the VIDiff Deploy job so the local ./.github/actions/publish-gh-pages composite action is present on the runner.",
+          "Resolves the \"Can't find action.yml under .github/actions/publish-gh-pages\" failure on the 'Deploy VIDiff report to GitHub Pages' step."
+        ]
+      },
+      {
+        "version": "4.1.30",
+        "date": "2026-06-24",
+        "title": "Queued Actions show on the dashboard",
+        "type": "patch",
+        "summary": "The dashboard now recognizes GitHub Actions runs that are pending, waiting, requested, queued, or in progress and maps workflow_dispatch runs back to the revision they target instead of the branch ref that launched them.",
+        "highlights": [
+          "Includes target commit SHAs in manual workflow run names for Mass Compile, VI Analyzer, VIDiff, Unit Tests, and Antidoc so active runs can be matched to dashboard rows.",
+          "Treats the all-history VI Snapshots backfill as a global active run so snapshot cells show Queued/Running while the backfill is still executing.",
+          "Uses GitHub's pending/waiting/requested run states as queued work instead of showing an idle play button while a run waits for a runner."
+        ]
+      },
+      {
+        "version": "4.1.29",
+        "date": "2026-06-24",
+        "title": "VI Analyzer runs on Windows only",
+        "type": "patch",
+        "summary": "VI Analyzer is now treated as a Windows-only capability everywhere the tooling resolves, installs, dispatches, or backfills it. The Linux VI Analyzer workflow and shell runner are retired, Populate history no longer offers a Linux VI Analyzer platform, and update cleanup can remove the old Linux workflow from existing installs.",
+        "highlights": [
+          "Removes Linux from the VI Analyzer catalog support matrix and stops installing the Linux workflow/script for new or updated repositories.",
+          "Routes dashboard Run, Populate history, report re-run, and missing-document recovery for VI Analyzer to the Windows workflow only.",
+          "Updates documentation, installer-generated dashboard triggers, and dependency status so they no longer suggest VI Analyzer runs on Linux."
+        ]
+      },
+      {
+        "version": "4.1.28",
+        "date": "2026-06-24",
+        "title": "VI Browser guides missing documents to Populate history",
+        "type": "patch",
+        "summary": "The VI Browser now preflights snapshot and report document URLs before framing them. Missing older-revision documents render an in-page explanation with a Populate history link instead of showing the raw GitHub Pages 404 page.",
+        "highlights": [
+          "Shows a native missing-document state when a VI snapshot HTML file has not been published for the selected revision.",
+          "Routes users to the dashboard Populate history flow with the selected revision already included.",
+          "Applies the same guard to VI Browser report lenses and the standalone report viewer so missing report documents do not frame a Pages 404."
+        ]
+      },
+      {
+        "version": "4.1.27",
+        "date": "2026-06-24",
+        "title": "History backfills restore the Pages publisher",
+        "type": "patch",
+        "summary": "Manual history/backfill report runs now restore the shared publish-gh-pages action from the default branch along with the current CI scripts before deploying reports. This fixes older target commits that generated a report artifact but failed at the Pages publish step because the local action did not exist in that historical checkout.",
+        "highlights": [
+          "Restores .github/actions/publish-gh-pages during historical Mass Compile, VI Analyzer, Unit Tests, VIDiff, and Antidoc manual runs.",
+          "Keeps the backfilled commit checkout for project sources while using the current report builders and Pages publisher.",
+          "Documents the historical-run restore behavior in the developer reference."
+        ]
+      },
+      {
+        "version": "4.1.26",
+        "date": "2026-06-24",
+        "title": "Dependency status uses installed VIPM inventory",
+        "type": "patch",
+        "summary": "Worker manifests now capture VIPM's installed-package list and the Dependencies page uses that inventory to decide installed vs. missing. Fresh seed manifests without a captured VIPM list no longer leave the Windows core tooling VIPC empty; the dashboard infers only the known core tooling packages there and leaves project VIPCs missing until a worker manifest proves they are installed.",
+        "highlights": [
+          "Adds vipm_raw and vipm_packages to worker manifest.json, populated from vipm list --installed when a worker image is locally available.",
+          "Uses vipm_packages as the Dependencies page installed-package source of truth before falling back to older vipc[] manifest data.",
+          "Keeps fresh-install seed copies fast while avoiding all-N/A/empty Windows core tooling status when a seed manifest has no installed VIPM capture."
+        ]
+      },
+      {
+        "version": "4.1.25",
+        "date": "2026-06-24",
+        "title": "Dependencies owns monitored files",
+        "type": "patch",
+        "summary": "Dependency-file monitoring now lives on the Dependencies page where the package details are visible. Configure keeps the global dependency policy, while VIPC and Dragon file rows show the monitored state, default discovered files to monitored on fresh dashboards, and lock the CI tooling VIPC on.",
+        "highlights": [
+          "Moves per-file monitoring out of Configure and into selectable VIPC/Dragon rows on the Dependencies page.",
+          "Defaults discovered dependency files to monitored on fresh dashboards and keeps .github/labview/vipm/ci-tooling.vipc locked on.",
+          "Carries monitor state in dependencies/index.json so unmonitored files do not produce missing-package warnings."
+        ]
+      },
+      {
+        "version": "4.1.24",
+        "date": "2026-06-24",
+        "title": "Mobile dashboard cards use a compact tile grid",
+        "type": "patch",
+        "summary": "On phones and narrow screens each revision card now lays its capabilities out as a responsive grid of compact tiles (label above value) instead of one full-width row per capability, so cards no longer leave a wide empty gutter down the middle and are far shorter to scroll.",
+        "highlights": [
+          "Capability cells flow into an auto-fit tile grid on mobile, filling the card width and roughly halving card height.",
+          "Each tile shows the capability name above its status badge, left-aligned, so the result reads top-to-bottom instead of label-left / badge-far-right.",
+          "Pure presentation change to the dashboard's responsive CSS; no data, report, or catalog contract changes."
+        ]
+      },
+      {
+        "version": "4.1.23",
+        "date": "2026-06-24",
+        "title": "Bake the VI Browser 2.0 render engine into the Linux worker (no separate build)",
+        "type": "minor",
+        "summary": "The position-aware VI Browser 2.0 render engine (the vendored Go lvctl renderer + batch runner) is now baked INTO the Linux worker image instead of being a separate -toimages image that each repository built for itself. Onboarding the pipeline no longer kicks off a heavy render-image build: the engine ships inside the Linux worker that clients already copy on install, so nothing has to be built to generate 2.0 screenshots. The Linux render workflow runs the worker image directly (invoking the render entrypoint), and the standalone build-toimages-image.yml workflow is retired.",
+        "highlights": [
+          "Bakes the render engine into .github/docker/labview-ci-linux.Dockerfile as a multi-stage build (byte-for-byte the same engine), so it is copied with the worker -- no separate image and no per-repo build.",
+          "Retires build-toimages-image.yml; vi-snapshots-json.yml now runs the Linux worker image via --entrypoint instead of pulling a separate render image.",
+          "Stops onboarding/install from triggering a render-image build (the remaining install-time background build users were seeing)."
+        ]
+      },
+      {
+        "version": "4.1.22",
+        "date": "2026-06-24",
+        "title": "Installing the pipeline no longer kicks off a VI snapshot run",
+        "type": "patch",
+        "summary": "The VI Snapshots / VI Browser workflow watched **.vi (and .ctl/.lvproj/.lvlib/.lvclass) on push but, unlike every other VI-source workflow, did not exclude .github/**. So onboarding the pipeline -- whose install commit adds the tooling's own VIs under .github/labview/ (PrintToSingleFileHtml, the toimages renderer) -- triggered a snapshot run that then failed waiting for the worker image still being seeded. Adding the !.github/** exclusion (which the workflow's own comment already promised) stops snapshots from running on install, matching Mass Compile, VI Analyzer, VIDiff, and Unit Tests.",
+        "highlights": [
+          "Excludes .github/** from the VI Snapshots push trigger so the pipeline's own tooling VIs no longer start a snapshot run on install/deploy.",
+          "Removes the spurious install-time snapshot failure (it had nothing to render and no seeded worker image yet)."
+        ]
+      },
+      {
+        "version": "4.1.21",
+        "date": "2026-06-24",
+        "title": "Centralize the gh-pages publish into one retry-safe action for every workflow",
+        "type": "minor",
+        "summary": "Every workflow that publishes to the gh-pages branch -- worker images, the dashboard, mass compile, VI Analyzer, VIDiff, VI snapshots, unit tests, Antidoc, and the configurator/client deploys -- now goes through a single reusable composite action, .github/actions/publish-gh-pages, that re-fetches gh-pages and retries on a concurrent-push conflict. This replaces ~26 separate single-shot peaceiris publishes (and a couple of hand-rolled retry loops) with one implementation, so any two jobs publishing to gh-pages at the same time both land instead of the loser failing with a non-fast-forward rejection. The action is written in Python so the same logic runs on Windows and Linux runners, preserves keep_files semantics and per-report destination subdirectories, and is installed on every repo as part of the always-present base tooling.",
+        "highlights": [
+          "Adds .github/actions/publish-gh-pages: a drop-in, retry-on-conflict replacement for peaceiris/actions-gh-pages (keep_files) used by every gh-pages publisher.",
+          "Migrates all ~26 publish steps across the worker, dashboard, report, snapshot, and deploy workflows to the shared action, removing the duplicated single-shot publishes and ad-hoc retry loops.",
+          "Makes the whole system race-safe (not just the worker images), so concurrent publishes from different workflows no longer drop a report or manifest."
+        ]
+      },
+      {
+        "version": "4.1.20",
+        "date": "2026-06-24",
+        "title": "Fix the worker-manifest gh-pages publish race on install and monthly rebuilds",
+        "type": "patch",
+        "summary": "On a fresh install the Windows and Linux worker-image copies are dispatched together and both publish their worker manifest to the gh-pages branch; the loser of that concurrent push failed with a non-fast-forward rejection (the \"Copy Linux worker image\" failure). All four worker-image workflows -- the Windows and Linux Build and Copy -- now publish with a retry-on-conflict step that re-fetches gh-pages, re-applies its files (keeping every other file), and pushes again, so concurrent publishes both land. The same fix stops the monthly Windows + Linux base rebuilds from racing each other.",
+        "highlights": [
+          "Replaces the single-shot gh-pages publish with a retry-on-conflict git push in build/copy-labview-image.yml and build/copy-labview-linux-image.yml.",
+          "Fixes the install-time \"Copy Linux worker image\" failure caused by the Windows and Linux install copies racing the gh-pages push."
+        ]
+      },
+      {
+        "version": "4.1.19",
+        "date": "2026-06-24",
+        "title": "Linux worker matches Windows: dependency updates are opt-in, with a separate install copy",
+        "type": "minor",
+        "summary": "The Linux worker now behaves identically to the Windows worker. It no longer treats a push as an install seed: the install seed is a dedicated copy-labview-linux-image.yml (a fast crane copy of the shared LCWC Linux base, dispatched once on install, mirroring copy-labview-image.yml), and build-labview-linux-image.yml is now bake-only. A project dependency change does NOT rebuild the Linux worker by default -- the user is notified by the dashboard banner and applies the update on demand -- unless the .vipc is flagged Monitor (the per-file opt-in, off by default), in which case a push that changes it rebuilds and re-pushes the worker, exactly like Windows.",
+        "highlights": [
+          "Adds copy-labview-linux-image.yml (the Linux install seed) and makes the installer dispatch it, mirroring the Windows Build/Copy split.",
+          "build-labview-linux-image.yml is now bake-only: it no longer seeds on a push; its push trigger watches monitored project *.vipc only, and the gate rebuilds only on a monitored change or an explicit dispatch / monthly cron.",
+          "Linux and Windows now share the same opt-in monitored auto-rebuild behavior (off by default), so the Build operation is symmetric across platforms."
+        ]
+      },
+      {
+        "version": "4.1.18",
+        "date": "2026-06-24",
+        "title": "Turn on automatic dependency updates from the pipeline configuration",
+        "type": "minor",
+        "summary": "The pipeline configuration (Configure) now has an Automatic dependency updates section that lists the project's VIPC and Dragon dependency files, each with a per-file Monitor toggle that is off by default. Turning on Monitor opts that file into an automatic worker rebuild whenever it changes on a submission -- the control that powers the opt-in restored in 4.1.17. To avoid configuring the same thing in two places, the Dependencies page's update banner now links to that single control for automatic updates while keeping its manual, on-demand container update. Saving in Configure sends container_vipc and container_dragon to the Reconfigure workflow, which now round-trips per-file Dragon monitor flags alongside VIPC.",
+        "highlights": [
+          "Adds an Automatic dependency updates section to the Configure (pipeline configuration) page: choose which .vipc/.dragon files are baked and tick Monitor per file to auto-rebuild the worker when that file changes (off by default).",
+          "The Dependencies page update banner links to that pipeline-configuration control for automatic updates instead of duplicating it, keeping the manual on-demand update in place.",
+          "reconfigure.yml round-trips config.container.dragon[] (path::monitor) like config.container.vipc[], so saved Monitor flags persist."
+        ]
+      },
+      {
+        "version": "4.1.17",
+        "date": "2026-06-24",
+        "title": "Monitored dependency files can auto-rebuild the worker (opt-in, off by default)",
+        "type": "minor",
+        "summary": "Building the worker image stays manual/opt-in by default, but a project can now turn ON automatic rebuilds for individual dependency files. Flagging a .vipc or .dragon file monitor: true in .github/labview-ci.yml (config.container.vipc[] / config.container.dragon[], both default false) makes a push that changes THAT file rebuild the worker automatically; any change that is not a monitored dependency -- and any uncertainty or error -- is left for an explicit dispatch, so a long build never runs by surprise. The Build workflow's push trigger and smart gate, removed in 3.46.22, are restored to enforce this opt-in, and project .dragon (JKI Dragon / NIPM) files are now handled like .vipc at the trigger and bake level when explicitly listed in config.container.dragon[]. Manual dispatch from the dependency dialog and the monthly base-image cron still always rebuild.",
+        "highlights": [
+          "Restores the build-labview-image.yml push trigger + smart gate: a change to a MONITORED .vipc/.dragon rebuilds the worker, while non-monitored changes (and any error) skip the heavy build.",
+          "Monitoring is OFF by default and set per file (container.vipc[].monitor / container.dragon[].monitor); manual dispatch and the monthly cron always rebuild regardless.",
+          "Treats project .dragon files like .vipc for the bake -- staged, included in the worker-version hash, and applied through a best-effort JKI Dragon hook in the worker Dockerfile -- when explicitly listed in container.dragon[]."
+        ]
+      },
+      {
+        "version": "4.1.16",
+        "date": "2026-06-24",
+        "title": "Building dependencies and copying the worker image are now separate actions",
+        "type": "minor",
+        "summary": "Building the worker container image with baked dependencies and seeding it on a fresh install are now two distinct GitHub Actions workflows instead of one shared workflow driven by a hidden copy_only switch. A fresh install runs the new \"Copy LabVIEW CI Image\" workflow, which copies the published LCWC base image into the repository's GHCR worker package on ubuntu-latest in seconds with no LabVIEW build. Applying project VIPC or package dependencies from the Dependencies page runs the existing \"Build LabVIEW CI Image\" workflow on a Windows runner, which bakes the selected dependencies into the worker image. The Actions tab now clearly shows which action ran -- an install-time copy or a dependency build -- rather than two different operations sharing one workflow name.",
+        "highlights": [
+          "Adds a dedicated copy-labview-image.yml workflow (\"Copy LabVIEW CI Image\") that the installer dispatches to seed a fresh worker image as a fast registry copy on ubuntu-latest.",
+          "Reduces build-labview-image.yml (\"Build LabVIEW CI Image\") to dependency-bake only: it always runs on a Windows runner and no longer carries the copy_only input.",
+          "Makes the Actions history self-explanatory by giving the install copy and the dependency build separate, distinctly named workflows."
+        ]
+      },
+      {
+        "version": "4.1.15",
+        "date": "2026-06-24",
+        "title": "Installer setup times match observed fresh installs",
+        "summary": "The Apply to New Repo progress checklist now shows more realistic timing expectations based on the fresh LabVIEW-CI-Test12 install: the pull request and worker image copy are sub-minute steps, while GitHub Pages commonly takes several minutes before the dashboard link is actually live.",
+        "highlights": [
+          "Updates the setup checklist estimates to under 1 minute for PR preparation, a few seconds for auto-merge, 5-8 minutes for dashboard publishing, and 30-60 seconds for worker image copy.",
+          "Keeps the two bundled installer pages byte-identical so the source Pages site and dashboard action copy display the same expectations."
+        ]
+      },
+      {
+        "version": "4.1.14",
+        "date": "2026-06-24",
+        "title": "Dashboard publish retries on a gh-pages push race",
+        "summary": "On a fresh install many workflows publish to gh-pages at once (configurator site, VI snapshots, report deploys). The dashboard sits in its own latest-wins concurrency group, so its push could lose that race (a non-fast-forward 'cannot lock ref') and leave the placeholder page in place. The dashboard deploy now retries once after a short wait so it publishes through the install burst.",
+        "highlights": [
+          "Dashboard Pages deploy retries once on a non-fast-forward gh-pages push instead of failing and leaving the setup placeholder live.",
+          "Applied to all four dashboard workflow generators (source, vendored, thin, and the Apply to New Repo installer)."
+        ]
+      },
+      {
+        "version": "4.1.13",
+        "date": "2026-06-24",
+        "title": "Installer repoints a stale dashboard link in the README",
+        "summary": "When you Apply to New Repo into a repo whose README was copied, forked, or templated from another repo (or renamed after a prior install), the dashboard badge and link are now rewritten to point at THIS repo's dashboard instead of being left pointing at the other repo.",
+        "highlights": [
+          "Apply to New Repo: an existing dashboard badge/link that points at a different repo is corrected to the current repo (previously the install skipped it and the wrong URL stayed).",
+          "Idempotent: a genuine re-install whose link already matches still makes no README change."
+        ]
+      },
+      {
+        "version": "4.1.12",
+        "date": "2026-06-25",
+        "title": "Wire the experimental-gated Windows Beta container copy + dashboard lane",
+        "type": "minor",
+        "summary": "Completes the four-container model. The Windows Beta worker container is now copied into a client's GHCR only when an experimental Windows capability (Antidoc today) is selected: its build files are owned by the antidoc capability, so they install only then, and the installer dispatches build-labview-windows-beta-image.yml with copy_only=true during install (it runs on ubuntu-latest and crane-copies the LCWC beta base, never rebuilds). The dashboard's Win Beta dependency lane now reads the windows-beta worker manifest (renamed from windows-experimental). VI Snapshots 2.0 is core; Antidoc is the sole experimental capability and the only thing that pulls in the Beta lane.",
+        "highlights": [
+          "Install copies the Windows Beta container only when an experimental Windows capability is selected; never rebuilt.",
+          "antidoc capability owns the Windows Beta build files, so they install only with Antidoc.",
+          "Dashboard Win Beta lane now reads the windows-beta worker manifest.",
+          "Four independent LCWC containers are fully wired end-to-end (build + install + dashboard + docs)."
+        ]
+      },
+      {
+        "version": "4.1.11",
+        "date": "2026-06-25",
+        "title": "Windows Beta worker image build (fourth LCWC container)",
+        "type": "patch",
+        "summary": "Adds build-labview-windows-beta-image.yml so LCWC builds and publishes the Windows Beta base (ghcr.io/<lcwc>/...-labview-base:windows-beta-2026) from labview-ci-windows-beta.Dockerfile, and clients crane-copy it into their own ...-labview:windows-beta-2026 package -- the same source-builds / clients-copy, never-rebuild model as the other three containers. The build is dispatch + monthly-cron only (no push), and the copy_only install path runs on ubuntu-latest. build-worker-manifest.py gains a windows-beta platform and the worker manifest publishes under workers/windows-beta/. This completes the four independent LCWC containers; the experimental-gated client copy wiring and dashboard lane follow next.",
+        "highlights": [
+          "New build-labview-windows-beta-image.yml: source builds the Windows Beta base, clients copy it (no rebuild).",
+          "Windows Beta base = ...-labview-base:windows-beta-2026; client worker = ...-labview:windows-beta-2026.",
+          "build-worker-manifest.py adds the windows-beta platform; manifest under workers/windows-beta/.",
+          "LCWC now has four independent worker containers (Windows/Linux core + Windows/Linux beta)."
+        ]
+      },
+      {
+        "version": "4.1.10",
+        "date": "2026-06-25",
+        "title": "One-time reset: rebase the Beta container recipes onto Core",
+        "type": "patch",
+        "summary": "Resets the experimental Beta container recipes to be verbatim rebases of the Core recipes, so LCWC's four worker containers (Windows core, Linux core, Windows Beta, Linux Beta) all start from the same content and diverge from here as experimental capabilities are added to the Beta lane. labview-ci-linux-beta.Dockerfile is now a byte rebase of labview-ci-linux.Dockerfile (only the header and com.cotc.ci-worker.platform=linux-beta label differ), and a new labview-ci-windows-beta.Dockerfile is a rebase of the Windows base (labview-ci-base.Dockerfile, platform=windows-beta). The Windows Beta build workflow and the experimental-gated copy wiring follow next; this commit lands the recipes and resets the Linux Beta image content.",
+        "highlights": [
+          "Linux Beta Dockerfile rebased to match Linux Core exactly (header + label only).",
+          "New Windows Beta Dockerfile, a rebase of the Windows Core base.",
+          "Sets up four independent LCWC containers that diverge as experimental capabilities are added.",
+          "Beta images stay client-copied (never rebuilt on install)."
+        ]
+      },
+      {
+        "version": "4.1.9",
+        "date": "2026-06-25",
+        "title": "VI Snapshots 2.0 graduates to a core feature on Windows and Linux",
+        "type": "minor",
+        "summary": "VI Snapshots 2.0 (the cross-platform, position-aware VI Browser 2.0 render) is now a released core capability on Windows and Linux instead of experimental, so it is offered and installed like any other standard action. Nothing in the worker images changes: the render is a vendored Go engine that the Windows snapshot workflow compiles at run time and the Linux path ships in the separate -toimages image, so graduation is purely status + UX. Antidoc is now the only experimental capability. Also adds .github/labview/experimental.vipc (the experimental dependency set, currently Antidoc) ahead of resetting the Beta containers as the experimental branch.",
+        "highlights": [
+          "VI Snapshots 2.0 is now a core feature (status stable) on Windows and Linux, not experimental.",
+          "Removed the experimental/known-bugs wording for 2.0 from the Configure and Dependencies UX.",
+          "Added experimental.vipc (copy of antidoc.vipc) as the experimental dependency set.",
+          "Antidoc remains the sole experimental capability."
+        ]
+      },
+      {
+        "version": "4.1.8",
+        "date": "2026-06-25",
+        "title": "Worker-image run titles say Copy vs Build so installs read correctly",
+        "type": "patch",
+        "summary": "Cosmetic clarity: the worker-image build workflows now name each run by what it actually does. An install/seed shows 'Copy <Windows|Linux|Linux Beta> worker image (seed from LCWC base, no build)', and a deliberate dependency rebuild shows 'Build ... (apply dependencies)'. Previously every run was titled 'Build ...', which made an install look like it was rebuilding the container when it was copying. Windows keys the title off the copy_only input; Linux/Beta key off the push (install) event.",
+        "highlights": [
+          "Install runs are now titled 'Copy <platform> worker image (seed from LCWC base, no build)'.",
+          "Dependency rebuilds are titled 'Build <platform> worker image (apply dependencies)'.",
+          "No behavior change -- run-name only; the workflows and their filenames are unchanged."
+        ]
+      },
+      {
+        "version": "4.1.7",
+        "date": "2026-06-25",
+        "title": "Install now actually dispatches the Windows worker build as a copy (not a build)",
+        "type": "patch",
+        "summary": "Fixes the install flow so the Windows worker image is copied, not rebuilt. The copy_only=true plumbing (4.1.3/4.1.4) was added to a helper (buildWorkerImageNow) that the install flow never called: the actual installer path (watchInstallImageBuilds) dispatched build-labview-image.yml with NO inputs, so copy_only defaulted to false. That made the Windows build run on windows-2022 and -- for any repo shipping a project VIPC (e.g. COTC Dependencies.vipc) -- docker-build/bake the dependencies at install time (the slow path), exactly the build the install is supposed to avoid. The installer now dispatches the Windows build with copy_only=true, so it runs on ubuntu-latest and crane-copies the LCWC base in a couple of minutes. (The Linux build was already correct: it is push-triggered and uses the event-based seed gate, so it copied.)",
+        "highlights": [
+          "Install dispatches the Windows worker build with copy_only=true, so it copies on ubuntu-latest instead of building/baking on windows-2022.",
+          "Root cause: the copy_only dispatch lived in an unused helper; the real install path sent no inputs.",
+          "Repos that ship a project VIPC no longer trigger a ~90-min dependency bake during install.",
+          "Linux/Beta installs were already copying (push-triggered seed gate); only the Windows dispatch was affected."
+        ]
+      },
+      {
+        "version": "4.1.6",
+        "date": "2026-06-25",
+        "title": "Linux installs copy the shared LCWC base too -- as fast as Windows",
+        "type": "patch",
+        "summary": "Linux now uses the same source/client copy model as Windows. Previously every client rebuilt its Linux worker from the public NI image (a full docker buildx build, ~10-20 min); now the source repo builds and publishes the shared Linux base (ghcr.io/<lcwc>/...-labview:linux-2026, and the Beta :linux-beta-2026) and every client install just crane-copies that base into its own GHCR package -- a fast registry-to-registry copy on ubuntu-latest, no rebuild. The copy produces an independent, client-owned image (verified the LCWC Linux images are public and pullable); the lowercase GHCR reference is immune to the installer's branding rewrite so it keeps pointing at LCWC. Both build-labview-linux-image.yml and build-labview-linux-beta-image.yml gained the source-vs-client split, a crane setup step, copy-aware worker-version and manifest generation, and the docker build path is kept only for the source base build and the opt-in dependency bake. Also fixed a stray heredoc-terminator (PY) in the Linux gate step that made its build-and-push job evaluate as skipped.",
+        "highlights": [
+          "Linux + Linux-beta client installs now crane-copy the shared LCWC base instead of rebuilding from the NI image -- a fast registry copy, like Windows.",
+          "Source repo builds and publishes the shared Linux base; clients duplicate it into their own package as an independent, customizable image.",
+          "Fixed a stray 'PY' artifact in the Linux gate that had been skipping the Linux build-and-push job.",
+          "Dependency baking on Linux stays the opt-in docker build path; install never bakes and never scales with .vipc/.dragon count."
+        ]
+      },
+      {
+        "version": "4.1.5",
+        "date": "2026-06-25",
+        "title": "Linux installs never bake dependencies either; install time is constant",
+        "type": "patch",
+        "summary": "Extends the install-stays-fast guarantee to the Linux worker builds. The Windows install already copied the base without baking dependencies, but the Linux worker and Linux-beta builds (build-labview-linux-image.yml / build-labview-linux-beta-image.yml) auto-run on the install merge (a push) and were unconditionally staging every project *.vipc and baking it with docker buildx -- so a repo that ships many VIPC files made the Linux install slower. They now skip ALL project VIPC staging on a push (install or tooling-recipe update) and seed a plain NI + LabVIEW base, so install time is constant no matter how many .vipc / .dragon files the repo has. Project dependencies are baked only on an explicit dependency rebuild (a manual workflow_dispatch from the Dependencies page or the monthly base-image rebuild), and the dashboard's 'dependencies need to be installed' banner prompts for that opt-in step. .dragon files were already never baked by any build -- they are only parsed (dragon_deps.py) for the dependency dashboard.",
+        "highlights": [
+          "Linux + Linux-beta installs now seed a plain base on the install push and never bake project VIPC, so install time no longer scales with the number of .vipc/.dragon files.",
+          "Dependency baking on Linux stays available via an explicit workflow_dispatch / monthly rebuild, mirroring the Windows opt-in model.",
+          ".dragon files are never baked by any build; they are only parsed for the dependency dashboard.",
+          "Audited every install-triggered build: Windows (copy_only), Linux, Linux-beta, toimages, and bake-vipc-windows-base -- only the two Linux builds evaluated project deps at install, and both are now fixed."
+        ]
+      },
+      {
+        "version": "4.1.4",
+        "date": "2026-06-25",
+        "title": "Installs copy the worker image on Linux for a fast multi-GB transfer",
+        "type": "patch",
+        "summary": "The copy_only install/seed path of Build LabVIEW CI Image now runs on ubuntu-latest instead of windows-2022. A client install copies the shared ~10 GB LCWC base image into the repository's own GHCR package with crane. Cross-repo blob mounting is only server-side when the token already has access to the source package, so a client install transfers the layers through the runner -- on the Windows runner that full transfer took 8+ minutes; on ubuntu-latest's much faster network it finishes in a minute or two. The dependency-bake path (which needs the Windows Docker daemon) still runs on windows-2022. The build job's PowerShell steps were made cross-platform (pwsh) with an OS-aware crane download, and the Docker-daemon step is skipped on the copy path, so the same job runs correctly on either runner.",
+        "highlights": [
+          "copy_only installs now run on ubuntu-latest, cutting the worker copy from 8+ minutes to a minute or two.",
+          "Dependency bakes still run on windows-2022 (Windows Docker daemon); only the no-Docker copy path moved to Linux.",
+          "Build steps converted to cross-platform pwsh with an OS-aware crane binary download.",
+          "Docs updated: a client copy is a full registry transfer (not a server-side blob-mount) and the copy path is on Linux."
+        ]
+      },
+      {
+        "version": "4.1.3",
+        "date": "2026-06-24",
+        "title": "Installs always copy the worker image; never an hour-long build",
+        "type": "patch",
+        "summary": "Installing LabVIEW CI now always finishes quickly: the worker container image is copied from the shared LCWC base into the repository GHCR package at the registry level (crane copy, seconds) and never builds a dependency layer. Previously, if the repository shipped a project VIPC file (e.g. a Dependencies.vipc), the install-time image build auto-discovered and baked it, turning a should-be-one-minute install into a 90+ minute docker build -- the exact case seen on a test repo whose Windows worker build ran 96 minutes. The installer now dispatches Build LabVIEW CI Image with a new copy_only flag that skips all dependency staging, so a fresh install -- and an install that de-selects capabilities -- only ever copies base workers. Dependency baking (project VIPC and capability dependencies) is unchanged but happens AFTER install, on demand, from the Dependencies page.",
+        "highlights": [
+          "Install always copies the LCWC base worker image (seconds); it can no longer trigger a long dependency build, even when the repo ships a .vipc or you change the selected capabilities.",
+          "Adds a copy_only input to Build LabVIEW CI Image; the installer sets it so staging is skipped and the fast crane-copy path is always taken.",
+          "Dependency baking is unchanged and remains an explicit, post-install step from the Dependencies page."
+        ]
+      },
+      {
+        "version": "4.1.2",
+        "date": "2026-06-24",
+        "title": "Dashboard only offers runs for workflows that are installed",
+        "type": "patch",
+        "summary": "The dashboard\u2019s Run and Populate history controls are now gated to the workflows actually present in the repository. Previously every capability in the run-target map was offered regardless of what was installed, so a repo without an experimental workflow (for example the Windows VI Browser 2.0 renderer, which is off by default) still showed a Run button and platform checkbox for it \u2014 and dispatching it failed with a confusing token-permission error even though the token was fine. The dashboard build now reads its own .github/workflows directory and drops any run target whose workflow file is missing (a platform is removed, or the whole capability if none remain), so the option simply isn\u2019t shown. Dispatch failures are also reported accurately: a 404 now says the workflow isn\u2019t installed (update the tooling) instead of blaming the token, and only real token/permission problems (401/403) re-prompt for a token.",
+        "highlights": [
+          "Run / Populate history only offer activities and platforms whose workflow is installed in the repo \u2014 no more dead options that 404 on dispatch.",
+          "A missing-workflow dispatch (404) is reported as out-of-date tooling, not a token error, and does not re-prompt for a token.",
+          "Reused saved tokens keep working; only genuine 401/403 token problems ask you to update the token."
+        ]
+      },
+      {
+        "version": "4.1.1",
+        "date": "2026-06-24",
+        "title": "A running activity stays visible until every platform finishes",
+        "type": "patch",
+        "summary": "When a capability runs on both Windows and Linux for the same commit, the faster platform finishes first and writes the shared result. The dashboard now checks for an active (queued or in progress) run on that commit and capability BEFORE showing the result, so the cell keeps its live Running badge -- linking straight to the in-progress run -- until every platform has finished, instead of reverting to a finished-looking result while the slower platform is still going. Applies to Mass Compile, VI Analyzer, VIDiff, Snapshots, Unit Tests and Antidoc.",
+        "highlights": [
+          "A result produced by one platform no longer hides that the other platform's run for the same capability is still running.",
+          "Each affected cell prefers a live queued or in-progress run over a partial or previous result, matching how empty cells already surface an active run.",
+          "The running indicator only clears once all platform runs for that capability have completed."
+        ]
+      },
+      {
+        "version": "4.1.0",
+        "date": "2026-06-24",
+        "title": "VIDiff column shows what each revision changed at a glance",
+        "type": "minor",
+        "summary": "The VIDiff column on the dashboard no longer shows a single 'diff' badge. For every revision it now shows a three-number diff stat -- different / new / deleted -- counting the VIs and type definitions that changed versus the revision's parent: amber for VIs whose content changed, green for VIs the parent did not have, and red for VIs the parent had and this revision removed (a rename reads as one new plus one deleted). Zero parts are dimmed so the eye lands on what actually changed, hovering spells the counts out, and the cell still opens the VI Browser filtered to exactly the VIs that revision touched. Until VIDiff has produced a result the cell keeps the same running, queued, and one-click-run controls as the other columns.",
+        "highlights": [
+          "Replaces the single VIDiff 'diff' badge with a different / new / deleted count of the VIs each revision changed versus its parent, colour-coded and with a hover tip strip.",
+          "Counts are computed from the git file trees (each VI's blob is its content fingerprint), so they need no extra render and a rename reads as one new plus one deleted.",
+          "The cell still links into the VI Browser filtered to the revision's changed VIs and keeps the running / queued / one-click-run states until a result exists."
+        ]
+      },
+      {
+        "version": "4.0.0",
+        "date": "2026-06-24",
+        "title": "Configure dialog simplified to a single Pipeline page",
+        "type": "major",
+        "summary": "The Configure tool is now a single page titled Configure Pipeline that focuses on the one thing it is for: defining the actions that run automatically when something changes in the repository. The Container & Dependencies and VI Browser tabs are gone (worker dependencies are managed on the Dependencies page, and the VI Browser render OSes are the same Windows/Linux selection already in the Actions table). Per-action container routing is folded into the Actions table: the Windows cell now reads default and is clickable to run a different container or turn the Windows job off, while Linux stays a simple checkbox (Linux always uses the NI base image). Save and apply is a button right on the page, with a small Generate the script disclosure for the gh CLI and download fallbacks. Saving leaves worker dependencies and the VI Browser render matrix unchanged.",
+        "highlights": [
+          "Renames the dialog to Configure Pipeline and collapses five tabs into one page.",
+          "Removes the Container & Dependencies and VI Browser tabs; folds Action Routing into the Windows column of the Actions table (default / pick a container / Don't run).",
+          "Makes Save and apply a primary button with a small 'generate the script' disclosure; saving leaves dependencies and the VI Browser matrix untouched."
+        ]
+      },
+      {
+        "version": "3.51.0",
+        "date": "2026-06-23",
+        "title": "VI Snapshots 2.0 is its own capability, on Windows and Linux",
+        "type": "minor",
+        "summary": "The cross-platform VI Browser 2.0 renderer is now a distinct capability, VI Snapshots 2.0, that runs on both Windows and Linux instead of being bundled invisibly inside the classic VI Snapshots capability (whose Linux 2.0 workflow was installed but never offered as an option) and a separate Windows-only entry. The classic VI Snapshots + VI Browser capability is now clearly the Windows-only gallery render, and VI Snapshots 2.0 owns the position-aware toimages render image, the Linux (vi-snapshots-json.yml) and Windows (vi-snapshots-json-windows.yml) frame workflows, and the in-place viewer assets, so the Configure and install Actions tables now show a Linux checkbox for 2.0.",
+        "highlights": [
+          "Adds a VI Snapshots 2.0 capability supporting Windows and Linux, replacing the Windows-only 'Windows VI Browser 2.0 snapshots' entry.",
+          "Moves the position-aware 2.0 render workflows and toimages assets out of the classic VI Snapshots capability, which is now explicitly the Windows-only gallery render.",
+          "The Linux 2.0 renderer (vi-snapshots-json.yml) is now surfaced as a selectable Linux option instead of being installed but hidden."
+        ]
+      },
+      {
+        "version": "3.50.0",
+        "date": "2026-06-23",
+        "title": "Configure: Container & Dependencies tab with opt-in auto-rebuild",
+        "type": "minor",
+        "summary": "The Configure tool gains a Container & Dependencies tab for choosing the default worker container, picking which repository VIPC files are baked into it, and editing the VIPM tooling packages -- with live previews of labview-ci.yml and ci-tooling.packages.json and an on-demand build/update command. VIPC files are de-selected by default, and a per-file Monitor toggle that auto-rebuilds and re-pushes the container when that file changes is OFF by default: the container is only ever rebuilt when a client explicitly opts in, never as a side effect of a commit. Clients who want the container to track a dependency file automatically can turn Monitor on per file.",
+        "highlights": [
+          "Adds a Container & Dependencies tab to Configure (default container, baked VIPC selection, VIPM packages, on-demand build command, and file previews).",
+          "Per-file Monitor (auto-rebuild and re-push the container on change) is opt-in and OFF by default, preserving the existing 'never auto-rebuild on commit' behavior unless a client enables it.",
+          "Stores the monitor choice as a path::monitor pair through reconfigure.yml and as a monitor flag in labview-ci.yml; bare paths default to monitor off."
+        ]
+      },
+      {
+        "version": "3.49.0",
+        "date": "2026-06-23",
+        "title": "Clients page: tabular view with version and staleness",
+        "type": "minor",
+        "summary": "The Clients directory on the source dashboard now renders discovered repositories as a table -- Repository, Owner, Version, Last update, and Links columns -- instead of cards. Each row shows the installed tooling version and flags repositories that are not on the latest published version with a stale marker, so it is easy to see at a glance which clients are behind. The page reads the same published clients.json plus the catalog to determine the latest version.",
+        "highlights": [
+          "Replaces the client cards with a table (Repository, Owner, Version, Last update, Links).",
+          "Flags clients not on the latest published version with a stale badge, comparing against the catalog version.",
+          "Keeps the existing discovery link, Scan for clients button, and per-client dashboard and repository links."
+        ]
+      },
+      {
+        "version": "3.48.0",
+        "date": "2026-06-23",
+        "title": "Apply to a new repository tracks installs you can leave and return to",
+        "type": "minor",
+        "summary": "The Apply to a new repository installer is now safe to leave and come back to, and it can track more than one install at a time. Each install you start is recorded in this browser, keyed by repository, and shown in a new Installs in progress panel; when you return the page reconciles every tracked install against live GitHub state -- the open or merged install pull request, the install branch, and the published dashboard version -- so the list stays honest without replaying any steps, and an install is dropped the moment its dashboard goes live or you dismiss it. Starting an install on a repository that already has one in flight no longer silently doubles up: the installer warns and lets you watch the running one, cancel it (closing its pull request and deleting the install branch), or install anyway, and points to the command-line and download path for doing it by hand. Nothing changes for a first-time, single install.",
+        "highlights": [
+          "Adds an Installs in progress panel that lists every install started in this browser across your repositories, with live status plus pull request, Actions, and dashboard links.",
+          "Reconciles tracked installs against GitHub on return (open/merged PR, install branch, published version) instead of losing progress when you navigate away.",
+          "Warns before starting a duplicate install on a repo already in flight and offers to watch, cancel, or proceed -- with a link to the manual command-line path."
+        ]
+      },
+      {
+        "version": "3.47.3",
+        "date": "2026-06-23",
+        "title": "Dependency table: VIPC/.dragon files link to GitHub",
+        "type": "patch",
+        "summary": "On the Dependencies page, each VIPC and .dragon file name in the table is now a link that opens the latest version of that file on GitHub (the default-branch HEAD) in a new tab, so you can read its contents in the browser. Clicking a file link no longer toggles the VIPC row's expand/collapse.",
+        "highlights": [
+          "VIPC file headers and .dragon file headers in the dependency table are clickable links to the file on GitHub (blob/HEAD).",
+          "Links open in a new tab; clicking a link does not expand/collapse the VIPC package list."
+        ],
+        "breaking": false
+      },
+      {
+        "version": "3.47.2",
+        "date": "2026-06-23",
+        "title": "Clearer dependency-update dialog; missing items flagged in the table",
+        "type": "patch",
+        "summary": "The 'Dependency update needed' card no longer tries to summarize which packages/Dragon items are missing -- that is the table's job. It now states plainly that dependencies are declared in VIPC files (VIPM packages) OR .dragon files (NIPM packages), and that each missing item is flagged in the table below. The dependency table now marks any declared-but-not-yet-baked line item with a warning glyph that matches the card, so it is obvious which rows are causing the banner. The persistent dashboard banner is generalized from 'N Dragon items' to 'N dependency items (in VIPC or .dragon files)'.",
+        "highlights": [
+          "Dialog stops summarizing missing packages/Dragon items and clarifies that VIPC files (VIPM) or .dragon files (NIPM) both declare dependencies.",
+          "Table cells show a warning glyph for a project dependency that is declared but not baked into a worker container (Windows/Linux for VIPC packages; Win Beta for Dragon items), matching the card's iconography.",
+          "Dragon statuses missing / not_attempted / pending / wrong_version / conflict now render as the warning glyph (the banner cause); genuine install/resolution errors stay as the red error marker.",
+          "Persistent banner wording generalized away from singling out Dragon items."
+        ],
+        "breaking": false
+      },
+      {
+        "version": "3.47.1",
+        "date": "2026-06-23",
+        "title": "Docs: install vs. upgrade container management + diagram",
+        "type": "patch",
+        "summary": "Documentation now spells out the key distinction in how worker containers are managed: installation ALWAYS copies the shared LCWC base image into the repo's own GHCR (crane copy, seconds, no rebuild), while an upgrade adds/replaces project VIPC/Dragon dependency files and surfaces the opt-in 'dependencies need to be installed' banner when those declared packages are not yet baked into the current worker. Section 6 of the Documentation page gains a rendered Mermaid diagram of this overall logic, and the stale two-layer (labview-vipm-base / labview-vipc-layer) description is replaced with the current source-owned base + thin labview-ci.Dockerfile model.",
+        "highlights": [
+          "New 'Installation vs. upgrade -- how containers are managed' subsection with a real (Mermaid) flowchart of the install-copy vs. upgrade-rebuild paths.",
+          "Corrected the Worker container images intro to the current model: the source repo owns/publishes the base; clients crane copy it on install, or build a thin dependency layer on an opt-in upgrade.",
+          "Clarified that a VIPC/Dragon change never auto-rebuilds; the dashboard banner prompts an explicit, opt-in update (replace or new dated tag)."
+        ],
+        "breaking": false
+      },
+      {
+        "version": "3.47.0",
+        "date": "2026-06-23",
+        "title": "Configure Actions table: per-action platforms + dependency policy",
+        "type": "minor",
+        "summary": "The Configure page Activities list is now a table of the actions installed in the repository, with separate Linux and Windows columns. A checkbox appears in a cell only where an action supports that platform, so per-action platform selection lives in one place and config.os is the union of the chosen platforms. Two repository-wide options sit above the table, both off by default: require all dependencies to be installed before running, and automatically install missing dependencies and rebuild containers before running actions. The Reconfigure workflow persists the new config.actionOs and config.dependencyPolicy fields.",
+        "highlights": [
+          "Replaces the flat activity checklist with an Actions table that lists only installed actions and hides ones that are not installed (for example Antidoc when it is not enabled).",
+          "Adds per-action Linux and Windows checkboxes, shown only for the platforms each action supports.",
+          "Adds off-by-default require-dependencies and auto-install-dependencies options saved to config.dependencyPolicy, plus per-action platforms saved to config.actionOs, via the Reconfigure workflow."
+        ]
+      },
+      {
+        "version": "3.46.22",
+        "date": "2026-06-23",
+        "title": "Adding a VIPC never auto-rebuilds the worker",
+        "type": "patch",
+        "summary": "Completes the opt-in dependency model: adding or changing a project VIPC no longer rebuilds the worker container automatically. The worker-image workflows no longer trigger on a project .vipc push, the per-VIPC 'Monitor' toggle and the 'Re-run pipeline after a dependency change' (onDependencyChange) option are retired, and the only signal a dependency changed is the persistent 'dependencies need to be installed' banner. Rebuilds run only when you apply them from the Dependencies page, on the monthly security cron, or by manual dispatch. All UI and docs (Configure, FAQ, Documentation + the image-build diagram) are reconciled to match.",
+        "highlights": [
+          "Removed the **.vipc push trigger from the Windows, Linux, and Linux-beta worker-image workflows; the gate is now a trivial always-build since the workflow only runs on dispatch/cron.",
+          "Retired the per-VIPC 'Monitor' toggle and the config.triggers.onDependencyChange re-run option (and the dead revalidate job) across configure.html, reconfigure.yml, dashboard.py, and the reusable workflow.",
+          "Configure page's 'When dependencies change' section now explains the explicit, banner-driven flow instead of offering an auto-rebuild toggle.",
+          "FAQ and Documentation (including the Mermaid image-build diagram and runner table) updated to state that a VIPC change never triggers a rebuild on its own.",
+          "Legacy configs that still carry monitor:/onDependencyChange are read tolerantly and those keys are dropped on the next reconfigure."
+        ],
+        "breaking": false
+      },
+      {
+        "version": "3.46.21",
+        "date": "2026-06-23",
+        "title": "Dependency sub-views move into the page",
+        "type": "patch",
+        "summary": "The Dependencies page sub-view switcher (VIPM / VIPC, NI Packages, System Components) now lives in the page itself as a tab strip directly above the dependency tables -- just below the update panel -- instead of in the shared header sub-nav, so the switcher sits with the content it controls.",
+        "highlights": [
+          "VIPM / VIPC, NI Packages, and System Components are now in-page tabs over the dependency tables.",
+          "Removed the Dependencies header sub-nav; the page no longer depends on the shared subnav strip."
+        ],
+        "breaking": false
+      },
+      {
+        "version": "3.46.20",
+        "date": "2026-06-23",
+        "title": "Explicit, opt-in dependency container updates",
+        "type": "patch",
+        "summary": "Makes it clear and explicit when worker containers need to be updated to add VIPC/Dragon dependencies. A persistent dashboard banner appears whenever a declared project dependency is not yet baked into the current worker container. The Dependencies page gains an update panel that lists the new/changed dependencies, names the containers that need updating, sets expectations that this is a long, exclusive procedure, and lets you replace the existing containers (default) or create new ones. Newly-created dependency containers are selectable per action on the Configure page.",
+        "highlights": [
+          "Persistent amber banner across the dashboard when project dependencies are pending (driven by deps-pending.json).",
+          "Dependencies page update panel: shows pending packages/Dragon items, which containers need updating, a long-operation / no-other-actions warning, and Replace (default) vs Create-new options.",
+          "Worker-image workflow gains an update_mode input (replace|new): 'new' publishes a <year>-deps-<date> tag instead of moving the year/latest tags.",
+          "Configure page surfaces newly-created dependency-container tags so an action can be pointed at a new container; replaced containers default to the replacement.",
+          "Detection is conservative: only fires for a configured, cleanly-parsed project VIPC (or declared Dragon item) whose packages are missing from the current worker manifest."
+        ],
+        "breaking": false
+      },
+      {
+        "version": "3.46.19",
+        "date": "2026-06-23",
+        "title": "Install no longer implies a long container build",
+        "type": "patch",
+        "summary": "Removes the 5-90 minute estimates from the Apply page. Installing now only copies the shared LabVIEW container into the repository's registry (about a minute) and never bakes project dependencies. The capability chooser explains that VIPC/Dragon dependencies are applied later via a separate, opt-in action rather than during install.",
+        "highlights": [
+          "Drops the 60-90 / 5-90 minute install-time warnings and confirmation prompts.",
+          "Reframes the install plan step as a quick container copy, not a long build.",
+          "Clarifies that project dependency baking is a separate, opt-in operation after install."
+        ]
+      },
+      {
+        "version": "3.46.18",
+        "date": "2026-06-23",
+        "title": "Use crane for the registry-native base copy",
+        "type": "patch",
+        "summary": "The Windows runner does not ship docker buildx, so the registry-native copy now uses crane (go-containerregistry), a small self-contained binary. A no-dependency repository copies the public LCWC base image into its own GHCR worker package via crane copy + crane tag, with cross-repo blob mounting, so the multi-gigabyte layers are never downloaded to or re-uploaded from the runner. The base digest is read with crane digest (no pull).",
+        "highlights": [
+          "Downloads crane and copies the base image server-side instead of relying on docker buildx (absent on the Windows runner).",
+          "crane copy + crane tag publishes all worker tags by blob-mounting layers within the same GHCR owner.",
+          "No-dependency worker images are ready in a couple of minutes instead of fifteen-plus."
+        ]
+      },
+      {
+        "version": "3.46.17",
+        "date": "2026-06-23",
+        "title": "Read the base digest without the unsupported buildx flag",
+        "type": "patch",
+        "summary": "The registry-native base copy resolved the base image digest with 'docker buildx imagetools inspect --format', but the buildx shipped on the Windows runner does not support the --format flag, so the Prepare base step failed instantly. It now parses the digest from the standard inspect output and treats a missing digest as best-effort, so the fast no-download copy path proceeds.",
+        "highlights": [
+          "Parses the base image digest from the default imagetools inspect output (no --format flag).",
+          "Treats a missing digest as best-effort so the registry-native copy still runs."
+        ]
+      },
+      {
+        "version": "3.46.16",
+        "date": "2026-06-23",
+        "title": "Registry-native base copy makes no-dependency installs fast",
+        "type": "patch",
+        "summary": "A fresh repository with no selected VIPC dependencies now copies the public LCWC base image into its own GHCR worker package at the registry level (docker buildx imagetools create) instead of pulling the multi-gigabyte image down to the runner and pushing it back up. The base digest is resolved with imagetools inspect (no pull), and the worker manifest skips the container run on the copy path. A no-dependency worker is now ready in a couple of minutes instead of fifteen-plus.",
+        "highlights": [
+          "Copies the base image server-side with imagetools create, so the runner never transfers the multi-gigabyte layers.",
+          "Resolves the base digest via imagetools inspect with no docker pull.",
+          "Skips the nipkg container run for seed-only copies to avoid an extra multi-gigabyte pull."
+        ]
+      },
+      {
+        "version": "3.46.15",
+        "date": "2026-06-23",
+        "title": "Clients copy the base image instead of rebuilding it",
+        "type": "patch",
+        "summary": "Fixes the Windows worker build so fresh client repositories actually copy the public LCWC base image instead of rebuilding their own. The previous release detected the source repository from a hardcoded slug in the workflow, but the installer's branding substitution rewrote that slug to the client's own repository, so every client incorrectly thought it was the source and rebuilt the whole base (the slow path the base-copy design is meant to avoid). The source repository is now derived at runtime from the base image name, which the substitution cannot rewrite.",
+        "highlights": [
+          "Derives the source repository from the LCWC base image name so the install-time branding rewrite can't flip a client into source mode.",
+          "No-dependency client repositories now reliably copy the published base image in seconds instead of rebuilding it."
+        ]
+      },
+      {
+        "version": "3.46.14",
+        "date": "2026-06-23",
+        "title": "Re-enable installs after the base-image rollout",
+        "type": "patch",
+        "summary": "The public LCWC Windows base image is published, so new installs are re-enabled: the Apply-page install pause is turned off. Fresh repositories with no selected VIPC dependencies now seed their worker image by copying the public base in seconds instead of rebuilding the shared LabVIEW tooling.",
+        "highlights": [
+          "Turns off the toggleable Apply-page install pause now that the LCWC base image is public.",
+          "No-dependency repositories use the fast base-copy path on their first worker build."
+        ]
+      },
+      {
+        "version": "3.46.13",
+        "date": "2026-06-23",
+        "title": "Fix worker build VIPC staging output",
+        "type": "patch",
+        "summary": "Fixes an indentation error in the Windows worker build's Stage repo VIPC files step that made the build fail immediately when emitting the staged VIPC count used by the LCWC base-copy fast path. The install pause remains enabled while the base image is published.",
+        "highlights": [
+          "Corrects the Python indentation that wrote the staged VIPC count to GITHUB_OUTPUT.",
+          "Keeps the toggleable Apply-page install pause enabled during the in-progress base-image rollout."
+        ]
+      },
+      {
+        "version": "3.46.12",
+        "date": "2026-06-23",
+        "title": "Windows workers copy the LCWC base image",
+        "type": "patch",
+        "summary": "Fresh Windows container installs now seed each repository's GHCR worker image from the source-owned LCWC base image instead of rebuilding a repo-owned LabVIEW+VIPM base. Repositories with no selected VIPC dependencies use a fast pull/tag/push path; repositories with selected VIPC dependencies build only the repo-specific dependency layer and clearly warn that dependency application can take longer. Adds a toggleable Apply-page install pause so new installs can be blocked with a banner during an in-progress update.",
+        "highlights": [
+          "Publishes and consumes the source-owned LCWC Windows base image for shared LabVIEW/VIPM tooling layers.",
+          "Copies/tags the LCWC base into the client repository worker package when no selected VIPC dependencies exist.",
+          "Adds a toggleable install pause (catalog.installPause) that shows a banner instead of installing when enabled.",
+          "Adds release-time catalog/source sync validation so installer file lists cannot drift from the source-owned worker files again."
+        ]
+      },
+      {
+        "version": "3.46.11",
+        "date": "2026-06-23",
+        "title": "GitLab reinstall repairs prior scaffold attempts",
+        "type": "patch",
+        "summary": "GitLab browser installs now repair known-owned scaffold files when recovering from a previous generated install branch. If an earlier attempt left only a ci/install branch with broken generated files, rerunning the installer creates main from that branch and immediately commits the current fixed scaffold on top so the project is left in a working state.",
+        "highlights": [
+          "Commits the current GitLab scaffold after creating main from a previous generated install branch.",
+          "Updates existing scaffold files instead of preserving corrupted generated files from earlier attempts.",
+          "Keeps reruns focused on the LabVIEW CI-owned GitLab files while preserving the normal merge request path for established projects."
+        ]
+      },
+      {
+        "version": "3.46.10",
+        "date": "2026-06-23",
+        "title": "GitLab dashboard builder runs without indentation errors",
+        "type": "patch",
+        "summary": "Fixes the generated GitLab dashboard builder so the Python file starts at column zero instead of inheriting the Apply page template indentation. This prevents the first GitLab lvci:dashboard job from failing with an IndentationError and allows the downstream pages job to publish the dashboard artifact.",
+        "highlights": [
+          "Dedents the generated .gitlab/labview-ci/build-dashboard.py file before writing it into GitLab projects.",
+          "Validates the generated dashboard builder with Python compilation during the release check.",
+          "Unblocks the GitLab pages job that was skipped after the dashboard builder failed."
+        ]
+      },
+      {
+        "version": "3.46.9",
+        "date": "2026-06-23",
+        "title": "GitLab install completion distinguishes Pages publishing",
+        "type": "patch",
+        "summary": "GitLab browser installs now report that the repository files are installed while GitLab Pages is still publishing, instead of implying the dashboard URL is immediately live. The success panel links directly to the target project's Pipelines and Deploy > Pages screens and explains that a 404 can mean the pages job has not deployed yet, access is restricted, or GitLab has assigned a different final Pages URL.",
+        "highlights": [
+          "Uses the installer warning state for GitLab installs until Pages is verified from GitLab.",
+          "Adds direct links to the target project's Pipelines and Deploy > Pages screens after GitLab install.",
+          "Explains what to check when the expected GitLab Pages dashboard URL returns 404."
+        ]
+      },
+      {
+        "version": "3.46.8",
+        "date": "2026-06-23",
+        "title": "Private GitHub repo installs get setup guidance",
+        "type": "patch",
+        "summary": "Adds detailed private GitHub repository install documentation and links it from the Apply to New Repo repository field and the installer README. The guide explains token repository access, required and optional fine-grained permissions, GitHub Pages behavior for private repositories, and what happens after the install PR is merged.",
+        "highlights": [
+          "Documents private GitHub repo prerequisites and fine-grained token permissions in the installer guide.",
+          "Links the Apply to New Repo page near the --repo owner/name flag for users specifying a target repository.",
+          "Adds a private-repo setup link beside the Apply page target repo field before users create a token."
+        ]
+      },
+      {
+        "version": "3.46.7",
+        "date": "2026-06-23",
+        "title": "GitLab installs initialize empty projects directly",
+        "type": "patch",
+        "summary": "GitLab browser installs now handle brand-new empty projects without requiring users to create a README or initial commit first. When no target branch exists, the installer creates the initial branch directly and reports setup as complete instead of trying to open a merge request into a missing branch. If a previous failed install left only a generated ci/install branch, retrying creates a normal main branch from it.",
+        "highlights": [
+          "Creates the first GitLab branch directly when the project has no existing target branch.",
+          "Avoids opening impossible merge requests into a missing target branch.",
+          "Recovers projects where an earlier install created only a generated ci/install branch by creating main from that branch."
         ]
       },
       {
@@ -3009,7 +3703,8 @@
       ".github/labview-ci/install.ps1",
       ".github/labview-ci/README.md",
       ".github/labview/wait-for-worker-image.sh",
-      ".github/labview/ensure-docker.ps1"
+      ".github/labview/ensure-docker.ps1",
+    ".github/actions/publish-gh-pages/action.yml"
     ]
   },
   "capabilities": [
@@ -3082,8 +3777,7 @@
       "status": "stable",
       "recommended": true,
       "supportsOs": [
-        "windows",
-        "linux"
+        "windows"
       ],
       "requires": [],
       "recommends": [
@@ -3093,19 +3787,15 @@
       "statusContext": "CI / VI Analyzer",
       "files": {
         "any": [
-          ".github/labview/build-analyzer-report.py"
+          ".github/labview/build-analyzer-report.py",
+          ".github/labview/via-configs/"
         ],
         "windows": [
           ".github/workflows/run-vi-analyzer-windows-container.yml",
           ".github/labview/run-vi-analyzer.ps1"
-        ],
-        "linux": [
-          ".github/workflows/run-vi-analyzer-linux-container.yml",
-          ".github/labview/run-vi-analyzer.sh",
-          ".github/labview/via-configs/"
         ]
       },
-      "notes": "The full default test set (~90 tests) requires the custom image (enable “Shared LabVIEW image”). On the bare NI base image the analyzer reports “0 tests run”."
+      "notes": "Runs on Windows only. The full default test set (~90 tests) requires the custom image (enable “Shared LabVIEW image”). On the bare NI base image the analyzer reports “0 tests run”."
     },
     {
       "id": "vidiff",
@@ -3146,7 +3836,7 @@
     {
       "id": "snapshots",
       "name": "VI Snapshots + VI Browser",
-      "summary": "Renders a browseable, blob-addressed gallery of every VI's block diagram across history (the VI Browser), so reviewers can inspect any VI without opening LabVIEW.",
+      "summary": "Renders a browseable, blob-addressed gallery of every VI's block diagram across history (the VI Browser), so reviewers can inspect any VI without opening LabVIEW. This is the classic Windows-only gallery render; for cross-platform, position-aware in-place frames enable VI Snapshots 2.0.",
       "status": "stable",
       "recommended": false,
       "supportsOs": [
@@ -3162,24 +3852,17 @@
           ".github/pages/vi-browser.html",
           ".github/pages/vi-interactive.html",
           ".github/labview/build-gallery.py",
-          ".github/labview/PrintToSingleFileHtml/",
-          ".github/workflows/vi-snapshots-json.yml",
-          ".github/workflows/build-toimages-image.yml",
-          ".github/labview/run-toimages.sh",
-          ".github/labview/build-json-worklist.sh",
-          ".github/labview/toimages/"
+          ".github/labview/PrintToSingleFileHtml/"
         ],
         "windows": [
           ".github/workflows/vi-snapshots.yml",
           ".github/labview/build-snapshots.ps1",
           ".github/labview/render-snapshots.ps1",
-          ".github/labview/build-json-worklist.sh",
-          ".github/labview/toimages/",
           ".github/labview/export-vi-snapshots.ps1"
         ],
         "linux": []
       },
-      "notes": "Snapshot rendering runs on the Windows container. The experimental Windows VI Browser 2.0 frames workflow can publish Windows frames JSON beside the Linux 2.0 frames."
+      "notes": "The classic snapshot gallery render runs on the Windows container (PowerShell). It is Windows-only; for cross-platform, position-aware in-place rendering on Windows and Linux, enable VI Snapshots 2.0."
     },
     {
       "id": "custom-image",
@@ -3201,48 +3884,59 @@
         ],
         "windows": [
           ".github/workflows/build-labview-image.yml",
+          ".github/workflows/copy-labview-image.yml",
+          ".github/docker/labview-ci-base.Dockerfile",
           ".github/docker/labview-ci.Dockerfile",
-          ".github/docker/labview-vipm-base.Dockerfile",
-          ".github/docker/labview-vipc-layer.Dockerfile",
           ".github/labview/vipm/"
         ],
         "linux": [
           ".github/workflows/build-labview-linux-image.yml",
+          ".github/workflows/copy-labview-linux-image.yml",
           ".github/docker/labview-ci-linux.Dockerfile",
-          ".github/labview/vipm/install-vipc-linux.sh"
+          ".github/labview/vipm/install-vipc-linux.sh",
+          ".github/labview/toimages/"
         ]
       },
       "notes": "Required when you want to bake .vipc dependencies into the worker. Any configured VIPC file is detected and baked automatically; if no config is present, repository VIPC files outside .github are staged."
     },
     {
-      "id": "snapshots-windows-2",
-      "name": "Windows VI Browser 2.0 snapshots",
-      "summary": "Adds the experimental Windows container VI Browser 2.0 render workflow, publishing Windows frames JSON beside the existing snapshot gallery data.",
-      "status": "experimental",
+      "id": "snapshots-2",
+      "name": "VI Snapshots 2.0",
+      "summary": "Cross-platform, position-aware VI Browser 2.0 rendering. A vendored Go engine renders each VI's block diagram in place and publishes frames JSON on Windows and Linux, so the VI Browser can show an interactive, zoomable diagram beside the classic gallery.",
+      "status": "stable",
       "recommended": false,
       "supportsOs": [
-        "windows"
+        "windows",
+        "linux"
       ],
-      "requires": [
-        "snapshots"
-      ],
+      "requires": [],
       "recommends": [
-        "dashboard"
+        "dashboard",
+        "snapshots"
       ],
       "statusContext": null,
       "files": {
-        "any": [],
+        "any": [
+          ".github/pages/vi-browser.html",
+          ".github/pages/vi-interactive.html",
+          ".github/pages/vi-render.js",
+          ".github/labview/run-toimages.sh",
+          ".github/labview/build-json-worklist.sh",
+          ".github/labview/toimages/"
+        ],
         "windows": [
           ".github/workflows/vi-snapshots-json-windows.yml"
         ],
-        "linux": []
+        "linux": [
+          ".github/workflows/vi-snapshots-json.yml"
+        ]
       },
-      "notes": "This is additive to the stable snapshot workflows and uses the stock NI Windows container unless EXPERIMENTAL_WINDOWS_IMAGE is set."
+      "notes": "Cross-platform position-aware renderer. The Linux path runs the render engine that is BAKED INTO the Linux worker image (no separate build -- it is copied with the worker); the Windows path runs the same Go engine in the stock NI Windows container (unless EXPERIMENTAL_WINDOWS_IMAGE is set). Renders publish <blob>.json (Linux) and <blob>.windows.json (Windows) beside the gallery."
     },
     {
       "id": "unit-tests",
       "name": "Unit Tests",
-      "summary": "Run a LabVIEW unit-test framework (e.g. Caraya, LUnit, or JKI VI Tester) in CI and publish pass/fail results to the dashboard.",
+      "summary": "Run a LabVIEW unit-test framework (e.g. Caraya or VI Tester) in CI and publish pass/fail results to the dashboard.",
       "status": "stable",
       "recommended": false,
       "supportsOs": [
@@ -3264,7 +3958,7 @@
         ],
         "linux": []
       },
-      "notes": "Runs the configured LabVIEW unit-test frameworks headlessly in the Windows worker, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Caraya runs via g-cli; NI UTF via the built-in LabVIEWCLI RunUnitTests operation; LUnit (Astemes) via the native LabVIEWCLI LUnit operation; JKI VI Tester is scaffolded (g-cli, same contract). Windows-only because the frameworks are VIPM packages; choose which tools run and where their tests live on the Unit Testing page."
+      "notes": "Runs the configured LabVIEW unit-test frameworks (Caraya, JKI VI Tester) headlessly in the Windows worker via g-cli, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Windows-only because Caraya and VI Tester are VIPM packages; choose which tools run and where their tests live on the Unit Testing page. NI UTF headless execution is scaffolded (coming soon)."
     },
     {
       "id": "antidoc",
@@ -3291,7 +3985,9 @@
         ],
         "windows": [
           ".github/workflows/run-antidoc-windows-container.yml",
-          ".github/labview/run-antidoc.ps1"
+          ".github/labview/run-antidoc.ps1",
+          ".github/workflows/build-labview-windows-beta-image.yml",
+          ".github/docker/labview-ci-windows-beta.Dockerfile"
         ],
         "linux": []
       },

@@ -28,7 +28,7 @@ jobs:
     secrets: inherit
 ```
 
-Or install interactively from the dashboard's **Apply to New Repo** button, or via the installer in [`.github/labview-ci/`](.github/labview-ci/README.md).
+Or install interactively from the dashboard's **Apply to New Repo** button, or via the installer in [`.github/labview-ci/`](.github/labview-ci/README.md). Private GitHub repositories are supported; see [installing to a private GitHub repository](.github/labview-ci/README.md#installing-to-a-private-github-repository) before creating the install token.
 
 See [`.github/labview-ci/standalone/README.md`](.github/labview-ci/README.md) for the versioning + release model.
 

@@ -620,6 +620,22 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
             "        with:\n"
             "          github-token: ${{ secrets.GITHUB_TOKEN }}\n"
             "      - uses: peaceiris/actions-gh-pages@v4.1.0\n"
+            "        id: deploy\n"
+            "        continue-on-error: true\n"
+            "        with:\n"
+            "          github_token: ${{ secrets.GITHUB_TOKEN }}\n"
+            "          publish_dir: ci-out/dashboard\n"
+            "          destination_dir: .\n"
+            "          keep_files: true\n"
+            # Retry once if a concurrent gh-pages push (configurator site, VI
+            # snapshots, report deploys) made this a non-fast-forward; peaceiris
+            # re-clones gh-pages each run, so the retry starts from the new tip.
+            "      - name: Wait out a gh-pages push race\n"
+            "        if: steps.deploy.outcome == 'failure'\n"
+            "        run: sleep 30\n"
+            "      - name: Deploy dashboard to GitHub Pages (retry)\n"
+            "        if: steps.deploy.outcome == 'failure'\n"
+            "        uses: peaceiris/actions-gh-pages@v4.1.0\n"
             "        with:\n"
             "          github_token: ${{ secrets.GITHUB_TOKEN }}\n"
             "          publish_dir: ci-out/dashboard\n"
@@ -724,7 +740,6 @@ def consumer_dashboard_workflow(catalog: dict, branch: str = "main") -> str:
         '      - "Mass Compile \u2014 Windows Container"\n'
         '      - "Mass Compile Backfill \u2014 Windows Container"\n'
         '      - "Run VI Analyzer \u2014 Windows Container"\n'
-        '      - "Run VI Analyzer \u2014 Linux Container"\n'
         '      - "VIDiff Report \u2014 Windows Container"\n'
         '      - "VIDiff Report \u2014 Linux Container"\n'
         '      - "VIDiff Deploy \u2014 Pages + PR Comment"\n'
@@ -763,6 +778,22 @@ def consumer_dashboard_workflow(catalog: dict, branch: str = "main") -> str:
         "        with:\n"
         "          github-token: ${{ secrets.GITHUB_TOKEN }}\n"
         "      - name: Deploy dashboard to GitHub Pages\n"
+        "        id: deploy\n"
+        "        continue-on-error: true\n"
+        "        uses: peaceiris/actions-gh-pages@v4.1.0\n"
+        "        with:\n"
+        "          github_token: ${{ secrets.GITHUB_TOKEN }}\n"
+        "          publish_dir: ci-out/dashboard\n"
+        "          destination_dir: .\n"
+        "          keep_files: true\n"
+        # Retry once if a concurrent gh-pages push (configurator site, VI
+        # snapshots, report deploys) made this a non-fast-forward; peaceiris
+        # re-clones gh-pages each run, so the retry starts from the new tip.
+        "      - name: Wait out a gh-pages push race\n"
+        "        if: steps.deploy.outcome == 'failure'\n"
+        "        run: sleep 30\n"
+        "      - name: Deploy dashboard to GitHub Pages (retry)\n"
+        "        if: steps.deploy.outcome == 'failure'\n"
         "        uses: peaceiris/actions-gh-pages@v4.1.0\n"
         "        with:\n"
         "          github_token: ${{ secrets.GITHUB_TOKEN }}\n"

@@ -108,7 +108,7 @@
         <span class="faq-icon">▼</span>
       </div>
       <div class="faq-a">
-        <p>Yes! Click <strong>⚙ Configure Workers</strong> from the dashboard to change:</p>
+        <p>Yes! Click <strong>⚙ Configure Pipeline</strong> from the dashboard to change:</p>
         <ul>
           <li>LabVIEW version</li>
           <li>Target platforms (Windows, Linux, or both)</li>
@@ -130,10 +130,10 @@
         <p>From Configure, you can:</p>
         <ul>
           <li>Select which prebuilt container image to use (Latest for always-current, or pin a specific build)</li>
-          <li>List VIPC dependency files baked into the container</li>
-          <li>Enable "Monitor" on a VIPC so the container rebuilds automatically when that file changes</li>
+          <li>Set the global dependency policy for requiring or automatically installing monitored dependencies</li>
+          <li>Choose a different container per action (for example, point one action at a newly-built dependency container)</li>
         </ul>
-        <p>VI Analyzer, Mass Compile, and VIDiff run inside the container you select.</p>
+        <p>VI Analyzer, Mass Compile, and VIDiff run inside the container you select. Dependency files are monitored from the Dependencies page, where each VIPC and .dragon row has its own <strong>Monitored</strong> checkbox. Monitored files produce dependency warnings, and files saved with <code>monitor: true</code> can trigger an automatic worker rebuild when they change; unmonitored files do neither.</p>
       </div>
     </div>
 
@@ -147,14 +147,14 @@
         <p>What that means in practice:</p>
         <ul>
           <li><strong>Across files in one revision — shared.</strong> When an action runs (say Mass Compile), it starts <em>one</em> container and processes <em>every</em> VI in that revision inside a single LabVIEW session, then tears the container down. You never get a container per VI.</li>
-          <li><strong>Across actions — not shared.</strong> Each capability (Mass Compile, VI Analyzer, VIDiff, Unit Tests, Antidoc) is its own workflow on its own runner. A push that triggers three actions spins up three separate containers — more if both Windows and Linux are enabled — each created and destroyed independently, usually in parallel.</li>
+          <li><strong>Across actions — not shared.</strong> Each capability (Mass Compile, VI Analyzer, VIDiff, Unit Tests, Antidoc) is its own workflow on its own runner. A push that triggers three actions spins up three separate containers — more for capabilities that run on both Windows and Linux — each created and destroyed independently, usually in parallel.</li>
           <li><strong>Across revisions / commits — not shared.</strong> Every new commit triggers fresh workflow runs and therefore fresh containers. Nothing carries over from the previous revision.</li>
           <li><strong>The image is reused; the container is not.</strong> The prebuilt worker <em>image</em> (with your baked-in VIPC dependencies) is pulled once per job and cached on the runner, but each job runs a brand-new container instance from it and discards that instance when the job ends. Your repository files are bind-mounted in from the runner, so nothing changed inside a container is ever persisted.</li>
         </ul>
         <p><strong>The one exception — VI Browser snapshots.</strong> The snapshot renderer deliberately starts a <em>single, long-lived</em> container and keeps it warm, rendering many commits through it via <code>docker exec</code> (no per-VI or per-commit container churn), then tears it down when the job ends. Snapshots are content-addressed by VI content, so each unique VI is rendered exactly once — ever — and reused across commits instead of being re-rendered.</p>
         <p><strong>What you can change:</strong></p>
         <ul>
-          <li><strong>Which image each container runs.</strong> Open <strong>⚙ Configure Workers</strong>; on the <strong>Container</strong> tab choose <em>Latest</em> (always current) or pin a specific immutable build. The <strong>Per-action routing</strong> section lets you override this per action — for example pin VIDiff to a frozen build for stable rendering while Mass Compile tracks <em>Latest</em>; <code>base</code> forces the bare NI image for that action.</li>
+          <li><strong>Which image each container runs.</strong> Open <strong>⚙ Configure Pipeline</strong>; on the <strong>Container</strong> tab choose <em>Latest</em> (always current) or pin a specific immutable build. The <strong>Per-action routing</strong> section lets you override this per action — for example pin VIDiff to a frozen build for stable rendering while Mass Compile tracks <em>Latest</em>; <code>base</code> forces the bare NI image for that action.</li>
           <li><strong>When the image rebuilds.</strong> Bake VIPC files into the image and turn on <strong>Monitor</strong> so it rebuilds and re-pushes automatically whenever a dependency file changes — or trigger a rebuild on demand. This changes the <em>image</em> that future containers start from; it does not make a container persist.</li>
           <li><strong>Where containers run.</strong> Point an action at a custom / self-hosted runner. On a self-hosted runner the machine and its Docker layer cache persist between jobs, so the multi-gigabyte image isn't re-pulled every run — but each job still runs a fresh <code>--rm</code> container. GitHub-hosted runners start from a clean VM every job.</li>
           <li><strong>How many spin up at once.</strong> Lower the <strong>max concurrent runners</strong> cap so a busy push doesn't start many containers at the same time and exhaust your account-wide Actions concurrency limit.</li>
@@ -170,7 +170,7 @@
         <span class="faq-icon">▼</span>
       </div>
       <div class="faq-a">
-        <p><strong>Stored</strong> in the <strong>GitHub Container Registry (GHCR, <code>ghcr.io</code>)</strong> as a package attached to <em>your</em> repository. The "Build LabVIEW CI Image" workflow builds your worker image and pushes it with the built-in <code>GITHUB_TOKEN</code>, so the image lives under your own account — for example <code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview</code> (and, if VI Browser 2.0 renders are enabled, <code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages</code>). The image inherits your repository's visibility, and you can view or delete it under your repo's <strong>Packages</strong>. The NI base layer it builds on (<code>nationalinstruments/labview</code>) is pulled from NI's public registry — nothing is stored on the tooling author's servers.</p>
+        <p><strong>Stored</strong> in the <strong>GitHub Container Registry (GHCR, <code>ghcr.io</code>)</strong> as a package attached to <em>your</em> repository. The "Build LabVIEW CI Image" workflow builds your worker image and pushes it with the built-in <code>GITHUB_TOKEN</code>, so the image lives under your own account — for example <code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview</code> (the Linux worker also bakes in the VI Browser 2.0 render engine). The image inherits your repository's visibility, and you can view or delete it under your repo's <strong>Packages</strong>. The NI base layer it builds on (<code>nationalinstruments/labview</code>) is pulled from NI's public registry — nothing is stored on the tooling author's servers.</p>
         <p><strong>Run</strong> on the <strong>GitHub Actions runner</strong> that executes the workflow job, never on NI's or the tooling author's infrastructure. For each job the runner:</p>
         <ul>
           <li><strong>Pulls the image</strong> from GHCR (authenticating with the job's <code>GITHUB_TOKEN</code>), or from NI's registry for the base image.</li>
@@ -187,9 +187,9 @@
         <span class="faq-icon">▼</span>
       </div>
       <div class="faq-a">
-        <p>Rebuilding the worker image is a <strong>heavy step — usually 15+ minutes</strong> — because it installs LabVIEW, your VI Package dependencies, and any baked tooling from scratch. It is intentionally <em>not</em> run on every commit. A rebuild happens only when something that changes the container's contents changes:</p>
+        <p>Rebuilding the worker image is a <strong>heavy step — usually 15+ minutes</strong> — because it installs LabVIEW, your VI Package dependencies, and any baked tooling from scratch. It is intentionally <em>not</em> run on every ordinary code commit. A rebuild happens only in these cases:</p>
         <ul>
-          <li><strong>Your dependencies change</strong> — you edit or add a project <code>.vipc</code> (VI Package Configuration) that is monitored.</li>
+          <li><strong>Your monitored dependencies change</strong> — you add or edit a monitored project <code>.vipc</code> / <code>.dragon</code> file, or apply the update from the Dependencies page ("Review &amp; update dependencies"). The dashboard shows a banner for monitored missing dependencies until you do.</li>
           <li><strong>The build inputs change</strong> — the worker Dockerfile or the VIPM assets under <code>.github/labview/vipm/</code>.</li>
           <li><strong>A reconfigure that affects the image</strong> — for example changing the LabVIEW version or toggling baked tooling such as Antidoc.</li>
           <li><strong>On a schedule or on demand</strong> — a monthly rebuild for base-image security updates, or when you click <strong>Build / Rebuild now</strong>.</li>
@@ -262,7 +262,7 @@
           <li><strong>GitHub-hosted runners (the default).</strong> Fresh, disposable virtual machines GitHub provisions for each job — <code>windows-2022</code> for Windows jobs, <code>ubuntu-latest</code> for Linux — and wipes the moment the job finishes. There is nothing to install or maintain. They are free on public repositories and draw from your GitHub Actions minutes on private ones.</li>
           <li><strong>Self-hosted runners.</strong> Machines you own and register with your repository or organization by running GitHub's runner agent on them. Use these when you need special hardware, a license tied to a specific machine, access to an internal network, or a persistent Docker layer cache so the multi-gigabyte worker image is not re-pulled every run. You are responsible for keeping them online and updated.</li>
         </ul>
-        <p>Because the worker container runs <em>on the runner</em>, choosing a runner is how you choose where your CI executes. You pick GitHub-hosted or a self-hosted runner label during setup or from <strong>⚙ Configure Workers</strong>. Note that GitHub caps how many jobs — and therefore runners — can run at once per account (see the cost question above), which is why LabVIEW CI has a max concurrent runners setting.</p>
+        <p>Because the worker container runs <em>on the runner</em>, choosing a runner is how you choose where your CI executes. You pick GitHub-hosted or a self-hosted runner label during setup or from <strong>⚙ Configure Pipeline</strong>. Note that GitHub caps how many jobs — and therefore runners — can run at once per account (see the cost question above), which is why LabVIEW CI has a max concurrent runners setting.</p>
       </div>
     </div>
 

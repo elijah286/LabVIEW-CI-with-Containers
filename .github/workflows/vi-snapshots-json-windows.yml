@@ -339,41 +339,11 @@ jobs:
 
       - name: Deploy Windows JSON to GitHub Pages (race-safe)
         if: steps.index.outputs.count != '0'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -uo pipefail
-          src="$PWD/_winpublish"
-          if [ ! -d "$src" ]; then echo "nothing to deploy"; exit 0; fi
-          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git config --global user.name  "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # gh-pages is a hot branch (many workflows deploy to it concurrently), so a
-          # single clone->commit->push loses the push race intermittently. Re-clone the
-          # latest gh-pages and retry on rejection. Mirrors peaceiris destination_dir=
-          # vi-snapshots + keep_files: overlay our files without deleting anything else.
-          ok=0
-          for attempt in 1 2 3 4 5; do
-            work="$(mktemp -d)"
-            if ! git clone --depth=1 --single-branch --branch gh-pages "$remote" "$work"; then
-              echo "clone failed (attempt $attempt); retrying..."; rm -rf "$work"; sleep $((attempt * 5)); continue
-            fi
-            mkdir -p "$work/vi-snapshots"
-            cp -R "$src/." "$work/vi-snapshots/"
-            git -C "$work" add -A
-            if git -C "$work" diff --cached --quiet; then
-              echo "no changes to publish"; ok=1; rm -rf "$work"; break
-            fi
-            git -C "$work" commit -q -m "deploy windows snapshots: ${GITHUB_SHA}"
-            if git -C "$work" push origin gh-pages; then
-              echo "pushed on attempt $attempt"; ok=1; rm -rf "$work"; break
-            fi
-            echo "gh-pages push race on attempt $attempt; re-cloning and retrying..."
-            rm -rf "$work"
-            sleep $((attempt * 5))
-          done
-          if [ "$ok" -ne 1 ]; then echo "failed to deploy to gh-pages after retries" >&2; exit 1; fi
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: _winpublish
+          destination_dir: vi-snapshots
+          commit_message: "deploy windows snapshots: ${{ github.sha }}"
 
       - name: Upload rendered frames JSON
         if: always()

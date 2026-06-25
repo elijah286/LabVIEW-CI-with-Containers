@@ -91,12 +91,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Resolve the render image (this repo's own GHCR; override with the TOIMAGES_IMAGE variable)
+      - name: Resolve the render image (the Linux worker, which bakes in the 2.0 render engine; override with TOIMAGES_IMAGE)
         id: img
         run: |
           owner=$(printf '%s' "${{ github.repository_owner }}" | tr 'A-Z' 'a-z')
           repo=$(printf '%s' "${{ github.event.repository.name }}" | tr 'A-Z' 'a-z')
-          fallback="ghcr.io/${owner}/${repo}-toimages:latest"
+          # The VI Browser 2.0 render engine now ships INSIDE the Linux worker image
+          # (seeded/copied on install), so there is no separate image to build. Use
+          # the worker's moving Linux tag; override with the TOIMAGES_IMAGE variable.
+          fallback="ghcr.io/${owner}/${repo}-labview:linux-latest"
           override="${{ vars.TOIMAGES_IMAGE }}"
           if [ -n "$override" ]; then
             echo "image=$override" >> "$GITHUB_OUTPUT"
@@ -125,7 +128,7 @@ jobs:
               echo "Using fallback $FALLBACK"
             else
               echo "ok=false" >> "$GITHUB_OUTPUT"
-              echo "::notice::Render image $FALLBACK is not available yet - run 'Build VI Browser 2.0 render image' first. The VI Browser uses the 1.0 view until then."
+              echo "::notice::The Linux worker image $FALLBACK is not available yet (it is seeded on install). The VI Browser uses the 1.0 view until then."
               if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
                 echo "::error::No pullable VI Browser 2.0 render image was available for this manual run."
                 exit 1
@@ -174,9 +177,7 @@ jobs:
 
       - name: Deploy JSON to GitHub Pages (preserves existing HTML + JSON)
         if: steps.pull.outputs.ok == 'true' && steps.verify.outputs.ok == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vi-snapshots
           destination_dir: vi-snapshots
-          keep_files: true

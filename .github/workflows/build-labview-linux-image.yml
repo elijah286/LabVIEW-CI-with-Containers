@@ -1,20 +1,23 @@
 name: Build LabVIEW CI Image - Linux
-run-name: Build Linux worker image - ${{ github.event_name == 'workflow_dispatch' && 'manual setup' || github.sha }}
+run-name: ${{ github.event_name == 'push' && 'Build Linux worker image (monitored dependency change)' || 'Build Linux worker image (apply dependencies)' }}
 
 on:
-  # The image build is a heavy CI process, so it never auto-runs on an
-  # install/deploy (which only adds tooling under .github/). It rebuilds when
-  # YOUR project's dependencies change (a *.vipc outside the tooling dir), monthly
-  # for base-image security updates, or on demand from the dashboard / dispatch.
+  # The Linux worker BAKE -- distinct from the install seed, which is the separate
+  # copy-labview-linux-image.yml (a fast crane copy of the shared LCWC Linux base).
+  # By DEFAULT a project dependency change does NOT rebuild the worker; the user is
+  # notified by the dashboard banner and applies the update on demand. A project CAN
+  # opt an individual *.vipc into automatic rebuilds via the per-file Monitor toggle
+  # (config.container.vipc[].monitor, default false); a push that changes a MONITORED
+  # *.vipc then rebuilds and re-pushes the worker -- identical to the Windows worker.
+  # The gate enforces this opt-in; the monthly cron rebuilds for base-image security.
   push:
     branches: [main]
     paths:
+      # Only a project dependency change (outside the tooling dir) is considered; the
+      # gate then rebuilds solely when a changed *.vipc is monitored. Tooling / base
+      # changes rebuild via the monthly cron or an explicit dispatch, not a push.
       - '**.vipc'
       - '!.github/**'
-      - '.github/docker/labview-ci-linux.Dockerfile'
-      - '.github/labview/vipm/install-vipc-linux.sh'
-      - '.github/labview/build-worker-manifest.py'
-      - '.github/workflows/build-labview-linux-image.yml'
   schedule:
     # Monthly rebuild to pick up NI base image security updates
     - cron: '0 4 1 * *'
@@ -31,6 +34,14 @@ env:
   IMAGE_NAME: ''
   PAGES_URL: ''
   DEFAULT_TAG: linux-${{ vars.LABVIEW_VERSION || '2026' }}
+  # The shared LCWC Linux worker image, owned by the source repo's GHCR. Clients
+  # COPY this image into their own GHCR package on install instead of rebuilding it
+  # from the NI base -- the Linux analog of LCWC_BASE_IMAGE. The source repo is
+  # detected at runtime by deriving the owning repo from this image name, so the
+  # installer's branding substitution (which only rewrites the mixed-case project
+  # slug) never makes a client think it is the source: the lowercase GHCR reference
+  # is left untouched and keeps pointing at LCWC.
+  LCWC_LINUX_BASE_IMAGE: ${{ vars.LCWC_LINUX_BASE_IMAGE || 'ghcr.io/elijah286/labview-ci-with-containers-labview:linux-2026' }}
 
 permissions:
   contents: write
@@ -41,6 +52,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Decide whether this push should rebuild the worker. Auto-rebuild is per monitored
+  # file -- identical to the Windows worker: a push rebuilds only when it
+  # changes a *.vipc the project flagged monitor:true in config.container.vipc[].
+  # Manual dispatch and the monthly cron always rebuild. Any non-monitored change,
+  # and any uncertainty/error, leaves the heavy build for an explicit dispatch (the
+  # dashboard banner still flags that dependencies need installing). The install
+  # SEED is a separate workflow (copy-labview-linux-image.yml), so nothing here is
+  # needed to give a fresh install a worker.
   gate:
     runs-on: ubuntu-latest
     outputs:
@@ -59,65 +78,69 @@ jobs:
         run: |
           python3 - <<'PY'
           import os, re, subprocess, pathlib
-          def emit(b):
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('build=%s\n' % ('true' if b else 'false'))
-            print('rebuild =', b)
-            raise SystemExit(0)
+
+          def emit(build, why):
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('build=%s\n' % ('true' if build else 'false'))
+              print('rebuild =', build, '--', why)
+              raise SystemExit(0)
+
           try:
-            if os.environ.get('EVENT_NAME', '') != 'push':
-              emit(True)
-            before = os.environ.get('BEFORE', '') or ''
-            sha = os.environ.get('SHA', '') or 'HEAD'
-            if not before or set(before) == {'0'}:
-              emit(True)
-            diff = subprocess.run(['git', 'diff', '--name-only', before, sha],
-                      capture_output=True, text=True)
-            if diff.returncode != 0:
-              emit(True)
-            files = [f for f in diff.stdout.splitlines() if f.strip()]
-            if not files:
-              emit(True)
-            is_vipc = lambda f: f.lower().endswith('.vipc')
-            nonvipc = [f for f in files if not is_vipc(f) and (
-              f == '.github/docker/labview-ci-linux.Dockerfile' or
-              f == '.github/workflows/build-labview-linux-image.yml')]
-            if nonvipc:
-              emit(True)
-            vipc_changed = [f for f in files if is_vipc(f)]
-            if not vipc_changed:
-              emit(True)
-            monitor = {}
-            cfg = pathlib.Path('.github/labview-ci.yml')
-            if cfg.exists():
-              in_c = in_v = False; cur = None
-              for line in cfg.read_text(encoding='utf-8').splitlines():
-                if re.match(r'^\s*container:\s*$', line):
-                  in_c = True; in_v = False; continue
-                if in_c and re.match(r'^\s{4}vipc:\s*$', line):
-                  in_v = True; continue
-                if in_v:
-                  m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
-                  if m:
-                    cur = os.path.basename(m.group(1).strip())
-                    monitor.setdefault(cur, True); continue
-                  m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
-                  if m and cur is not None:
-                    monitor[cur] = (m.group(1).strip().lower() == 'true'); continue
-                  if re.match(r'^\s{0,4}\S', line):
-                    in_v = False; in_c = False
-                elif in_c and re.match(r'^\S', line):
-                  in_c = False
-            for f in vipc_changed:
-              if monitor.get(os.path.basename(f), True):
-                emit(True)
-            emit(False)
+              if os.environ.get('EVENT_NAME', '') != 'push':
+                  emit(True, 'dispatch/schedule -> always rebuild')
+              before = os.environ.get('BEFORE', '') or ''
+              sha = os.environ.get('SHA', '') or 'HEAD'
+              if not before or set(before) == {'0'}:
+                  emit(False, 'no diff base on push -> skip (opt-in)')
+              diff = subprocess.run(['git', 'diff', '--name-only', before, sha],
+                                    capture_output=True, text=True)
+              if diff.returncode != 0:
+                  emit(False, 'git diff failed -> skip (opt-in)')
+              files = [f for f in diff.stdout.splitlines() if f.strip()]
+              dep_changed = [f for f in files
+                             if f.lower().endswith('.vipc')
+                             and not f.replace(os.sep, '/').startswith('.github/')]
+              if not dep_changed:
+                  emit(False, 'no project .vipc changed -> skip')
+
+              # Per-file monitor flags from config.container.vipc (default OFF).
+              monitor = {}
+              cfg = pathlib.Path('.github/labview-ci.yml')
+              if cfg.exists():
+                  in_c = False; in_list = None; cur = None
+                  for line in cfg.read_text(encoding='utf-8').splitlines():
+                      if re.match(r'^container:\s*$', line):
+                          in_c = True; in_list = None; cur = None; continue
+                      if not in_c:
+                          continue
+                      if re.match(r'^\S', line):
+                          in_c = False; in_list = None; cur = None; continue
+                      mk = re.match(r'^\s{4}(\w+):\s*$', line)
+                      if mk:
+                          in_list = mk.group(1) if mk.group(1) in ('vipc', 'dragon') else None
+                          cur = None; continue
+                      if re.match(r'^\s{4}\w+:\s*\S', line):
+                          in_list = None; cur = None; continue
+                      if in_list:
+                          m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
+                          if m:
+                              cur = m.group(1).strip().replace('\\', '/')
+                              monitor.setdefault(cur, False); continue
+                          m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
+                          if m and cur is not None:
+                              monitor[cur] = (m.group(1).strip().lower() == 'true')
+
+              for f in dep_changed:
+                  key = f.replace(os.sep, '/')
+                  if monitor.get(key, False):
+                      emit(True, 'monitored .vipc changed: ' + f)
+              emit(False, 'changed .vipc are not monitored -> skip')
           except SystemExit:
-            raise
+              raise
           except Exception as e:
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('build=true\n')
-            print('gate error -> build=true:', e)
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('build=false\n')
+              print('gate error -> build=false:', e)
           PY
 
   build-and-push:
@@ -139,6 +162,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Set up crane (registry copy tool)
+        run: |
+          ver=v0.20.2
+          url="https://github.com/google/go-containerregistry/releases/download/${ver}/go-containerregistry_Linux_x86_64.tar.gz"
+          tmp="$(mktemp -d)"
+          curl -fsSL "$url" | tar -xz -C "$tmp"
+          echo "$tmp" >> "$GITHUB_PATH"
+          "$tmp/crane" version
+
       - name: Resolve image name and date tag
         id: date
         env:
@@ -151,30 +183,64 @@ jobs:
           echo "IMAGE_NAME=ghcr.io/${owner}/${name}" >> "$GITHUB_ENV"
           echo "PAGES_URL=${PAGES_URL_OVERRIDE:-https://${owner}.github.io/${GITHUB_REPOSITORY##*/}}" >> "$GITHUB_ENV"
           echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+          # Derive the source repo that OWNS the shared LCWC Linux base image
+          # (ghcr.io/<owner>/<name>-labview -> <owner>/<name>). Only that repo BUILDS
+          # the base; every other repo is a client that COPIES it. Deriving the identity
+          # from the (lowercase) image name keeps it immune to the installer's branding
+          # rewrite, so a client never mistakes itself for the source.
+          base_repo="${LCWC_LINUX_BASE_IMAGE%:*}"
+          src_slug="${base_repo#*/}"; src_slug="${src_slug%-labview}"
+          this_repo="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          if [ "$this_repo" = "$(printf '%s' "$src_slug" | tr '[:upper:]' '[:lower:]')" ]; then
+            echo "is_source=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_source=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Stage repo VIPC files
+        id: vipc
+        shell: bash
         run: |
           python3 - <<'PY'
           import os, re, glob, shutil, pathlib
-          dest = pathlib.Path('.github/labview/vipm-linux'); dest.mkdir(parents=True, exist_ok=True)
-          paths = []
+          dest = pathlib.Path('.github/labview/vipm'); dest.mkdir(parents=True, exist_ok=True)
           cfg = pathlib.Path('.github/labview-ci.yml')
-          if cfg.exists():
-            in_c = in_v = False
+
+          def configured_vipcs():
+            selected = []
+            saw_list = False
+            cur = None
+            if not cfg.exists():
+              return selected, saw_list
+            in_c = False
+            in_v = False
             for line in cfg.read_text(encoding='utf-8').splitlines():
               if re.match(r'^\s*container:\s*$', line):
-                in_c = True; in_v = False; continue
-              if in_c and re.match(r'^\s{4}vipc:\s*$', line):
-                in_v = True; continue
+                in_c = True; in_v = False; cur = None; continue
+              if not in_c:
+                continue
+              if re.match(r'^\S', line):
+                in_c = False; in_v = False; cur = None; continue
+              if re.match(r'^\s{4}vipc:\s*$', line):
+                in_v = True; saw_list = True; cur = None; continue
+              if re.match(r'^\s{4}\w+:\s*$', line):
+                in_v = False; cur = None; continue
+              if re.match(r'^\s{4}\w+:\s*\S', line):
+                in_v = False; cur = None; continue
               if in_v:
                 m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
                 if m:
-                  paths.append(m.group(1).strip()); continue
-                if re.match(r'^\s{0,4}\S', line):
-                  in_v = False; in_c = False
-              elif in_c and re.match(r'^\S', line):
-                in_c = False
-          if not paths:
+                  cur = m.group(1).strip().replace('\\', '/')
+                  continue
+                m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
+                if m and cur is not None:
+                  if m.group(1).strip().lower() == 'true':
+                    selected.append(cur)
+                  cur = None
+            return selected, saw_list
+
+          paths, saw_vipc_list = configured_vipcs()
+          if not paths and not saw_vipc_list:
             paths = sorted(
               p for p in glob.glob('**/*.vipc', recursive=True)
               if not p.replace(os.sep, '/').startswith('.github/')
@@ -188,24 +254,44 @@ jobs:
               print('Configured VIPC not found (skipping):', p)
           if not staged:
             print('No VIPC files to stage.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+            out.write(f'count={staged}\n')
           PY
-
       - name: Compute worker version
         id: ver
+        env:
+          IS_SOURCE: ${{ steps.date.outputs.is_source }}
+          VIPC_COUNT: ${{ steps.vipc.outputs.count }}
         run: |
           python3 - <<'PY'
-          import hashlib, pathlib, os
-          files = [
-              pathlib.Path('.github/docker/labview-ci-linux.Dockerfile'),
-              pathlib.Path('.github/labview/vipm/install-vipc-linux.sh'),
-          ]
-          files += sorted(pathlib.Path('.github/labview/vipm-linux').glob('*.vipc'), key=lambda p: p.name.lower())
-          parts = []
-          for path in files:
-            if path.exists():
-              parts.append(f'{path.name}={hashlib.sha256(path.read_bytes()).hexdigest()}')
-          digest = hashlib.sha256('\n'.join(parts).encode('utf-8')).hexdigest()
-          version = 'linux-' + digest[:12]
+          import hashlib, pathlib, os, subprocess
+          is_source = os.environ.get('IS_SOURCE', '') == 'true'
+          vipc_count = int(os.environ.get('VIPC_COUNT', '0') or '0')
+          if (not is_source) and vipc_count == 0:
+            # Client install/seed: the worker is a registry COPY of the shared LCWC Linux
+            # base, so the immutable version reflects that base image + its digest (mirrors
+            # the Windows copy path) -- deterministic and tied to the copied content.
+            base = os.environ['LCWC_LINUX_BASE_IMAGE']
+            digest = subprocess.check_output(['crane', 'digest', base], text=True).strip()
+            parts = [f'lcwc-linux-base-image={base}', f'lcwc-linux-base-digest={digest}', 'vipc-count=0']
+            print('Copy path: worker version derived from the LCWC Linux base digest.')
+          else:
+            files = [
+                pathlib.Path('.github/docker/labview-ci-linux.Dockerfile'),
+                pathlib.Path('.github/labview/vipm/install-vipc-linux.sh'),
+            ]
+            files += sorted(pathlib.Path('.github/labview/vipm-linux').glob('*.vipc'), key=lambda p: p.name.lower())
+            # The VI Browser 2.0 render engine (lvctl + runner) is baked into this
+            # worker, so its source must factor into the version -- an engine change
+            # must yield a new worker image so clients pick it up on the next copy.
+            toimages = pathlib.Path('.github/labview/toimages')
+            if toimages.is_dir():
+              files += sorted((p for p in toimages.rglob('*') if p.is_file()), key=lambda p: p.as_posix().lower())
+            parts = []
+            for path in files:
+              if path.exists():
+                parts.append(f'{path.as_posix()}={hashlib.sha256(path.read_bytes()).hexdigest()}')
+          version = 'linux-' + hashlib.sha256('\n'.join(parts).encode('utf-8')).hexdigest()[:12]
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             f.write(f'version={version}\n')
           print('Worker version:', version)
@@ -216,12 +302,33 @@ jobs:
           VIPM_SERIAL_NUMBER: ${{ secrets.VIPM_SERIAL_NUMBER }}
           VIPM_FULL_NAME: ${{ secrets.VIPM_FULL_NAME }}
           VIPM_EMAIL: ${{ secrets.VIPM_EMAIL }}
+          IS_SOURCE: ${{ steps.date.outputs.is_source }}
+          VIPC_COUNT: ${{ steps.vipc.outputs.count }}
         run: |
           set -euo pipefail
           base="${{ env.IMAGE_NAME }}"
           tag="${{ env.DEFAULT_TAG }}"
           date_tag="${{ steps.date.outputs.date }}"
           worker_version="${{ steps.ver.outputs.version }}"
+          lcwc_base="${LCWC_LINUX_BASE_IMAGE}"
+
+          if [ "${IS_SOURCE}" != "true" ] && [ "${VIPC_COUNT:-0}" = "0" ]; then
+            # NO-DEPENDENCIES FALLBACK: a client dispatched a bake but declares no project
+            # VIPC, so there is nothing to install -- duplicate the shared LCWC Linux base
+            # into this repository's own GHCR package with crane (a registry-to-registry
+            # copy, no rebuild). The fresh-install SEED is the separate
+            # copy-labview-linux-image.yml; this branch only handles a dependency-less bake.
+            echo "::notice::No project VIPC to bake -- copying the shared LCWC Linux base (${lcwc_base}) into ${base} with crane instead of rebuilding."
+            immutable="${base}:${worker_version}"
+            crane copy "${lcwc_base}" "${immutable}"
+            for t in "${tag}" "${tag}-${date_tag}" "linux-latest"; do
+              crane tag "${immutable}" "${t}"
+              echo "Published (registry copy): ${base}:${t}"
+            done
+            exit 0
+          fi
+
+          # SOURCE base build, or a deliberate client dependency bake: docker buildx build.
           if [ "${{ github.event.inputs.push_latest }}" = "true" ]; then
             echo "push_latest is kept for compatibility; :linux-latest is always published."
           fi
@@ -248,26 +355,43 @@ jobs:
           done
 
       - name: Generate worker manifest
+        env:
+          IS_SOURCE: ${{ steps.date.outputs.is_source }}
+          VIPC_COUNT: ${{ steps.vipc.outputs.count }}
         run: |
           set -euo pipefail
           worker_version="${{ steps.ver.outputs.version }}"
           image_ref="${{ env.IMAGE_NAME }}:${worker_version}"
           out_dir="ci-out/workers-pages/workers/linux/${worker_version}"
           mkdir -p ci-out/worker "$out_dir"
-          docker run --rm "$image_ref" bash -lc "nipkg list" > ci-out/worker/nipkg-list.txt 2>/dev/null || : > ci-out/worker/nipkg-list.txt
-          base_digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$image_ref" 2>/dev/null || true)
+          : > ci-out/worker/nipkg-list.txt
+          : > ci-out/worker/vipm-list.txt
           vipc_args=()
-          while IFS= read -r -d '' vipc_file; do
-            vipc_args+=(--vipc "$vipc_file")
-          done < <(find .github/labview/vipm-linux -maxdepth 1 -type f -iname '*.vipc' -print0 | sort -z)
+
+          if [ "${IS_SOURCE}" != "true" ] && [ "${VIPC_COUNT:-0}" = "0" ]; then
+            # Seed-only copy: the worker mirrors the LCWC Linux base byte-for-byte and is
+            # NOT present locally (copied at the registry level), so read the base metadata
+            # from the registry with crane instead of pulling multiple gigabytes.
+            base_image="${LCWC_LINUX_BASE_IMAGE}"
+            base_digest="$(crane digest "${LCWC_LINUX_BASE_IMAGE}" 2>/dev/null || true)"
+          else
+            docker run --rm "$image_ref" bash -lc "nipkg list" > ci-out/worker/nipkg-list.txt 2>/dev/null || : > ci-out/worker/nipkg-list.txt
+            docker run --rm "$image_ref" bash -lc "vipm list --installed" > ci-out/worker/vipm-list.txt 2>/dev/null || : > ci-out/worker/vipm-list.txt
+            base_image="nationalinstruments/labview:latest-linux"
+            base_digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$image_ref" 2>/dev/null || true)
+            while IFS= read -r -d '' vipc_file; do
+              vipc_args+=(--vipc "$vipc_file")
+            done < <(find .github/labview/vipm-linux -maxdepth 1 -type f -iname '*.vipc' -print0 | sort -z)
+          fi
 
           python3 .github/labview/build-worker-manifest.py \
             --platform linux \
             --version "$worker_version" \
             --nipkg-list ci-out/worker/nipkg-list.txt \
+            --vipm-list ci-out/worker/vipm-list.txt \
             --labview-version "${{ vars.LABVIEW_VERSION || '2026' }}" \
             --pages-url "${{ env.PAGES_URL }}" \
-            --base-image nationalinstruments/labview:latest-linux \
+            --base-image "$base_image" \
             --base-digest "$base_digest" \
             --image-ref "$image_ref" \
             --git-sha "${{ github.sha }}" \
@@ -286,13 +410,10 @@ jobs:
           JSON
 
       - name: Publish worker manifest to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/workers-pages
-          destination_dir: .
-          keep_files: true
-
+          commit_message: Publish Linux worker manifest
       - name: Summary
         run: |
           echo "### Docker image published" >> "$GITHUB_STEP_SUMMARY"

@@ -1,5 +1,5 @@
 name: Mass Compile — Linux Container
-run-name: Mass Compile Linux container - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.event.pull_request.head.sha || github.sha }}
+run-name: Mass Compile Linux container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 # Linux counterpart of the Windows mass compile. Produces the same friendly,
 # navigable report (problems grouped by VI, snapshot drawer, dashboard nav) for
@@ -41,8 +41,8 @@ permissions:
   statuses: write
   packages: read
 
-# No shared concurrency group: this mirrors run-vi-analyzer-linux-container.yml,
-# which deploys to gh-pages directly with no group. The Windows report workflows
+# No shared concurrency group: this Linux report deploys to gh-pages directly
+# with no group. The Windows report workflows
 # share `report-pages-deploy` (cancel-in-progress:false) to serialize their pushes,
 # but GitHub keeps only one *pending* run per group — so adding a third member
 # would make a normal push cancel one of the three. The Linux job writes to a
@@ -87,7 +87,7 @@ jobs:
         if: github.event.inputs.commit_sha != ''
         run: |
           git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
-          git checkout FETCH_HEAD -- .github/labview .github/workflows
+          git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
 
       - name: Resolve Linux container image name
         env:
@@ -197,12 +197,10 @@ jobs:
 
       - name: Deploy report to GitHub Pages
         if: steps.report.outputs.exists == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/masscompile
           destination_dir: masscompile/${{ steps.sha.outputs.sha }}/linux
-          keep_files: true
 
       - name: Post commit status
         if: always()

@@ -1,5 +1,5 @@
 name: Run Unit Tests — Windows Container
-run-name: Unit Tests Windows container - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.event.pull_request.head.sha || github.sha }}
+run-name: Unit Tests Windows container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 # Runs the configured LabVIEW unit-test frameworks (Caraya / VI Tester / UTF)
 # headlessly inside the project's CI worker image, normalises their JUnit XML into
@@ -100,7 +100,7 @@ jobs:
         shell: bash
         run: |
           git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
-          git checkout FETCH_HEAD -- .github/labview .github/workflows
+          git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
 
       # Per-action container selection: config.container.actions.unit-tests wins,
       # then config.container.use. With neither set, default to the shared custom
@@ -253,12 +253,10 @@ jobs:
 
       - name: Deploy report to GitHub Pages
         if: steps.report.outputs.exists == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/unit-tests
           destination_dir: unit-tests/${{ steps.sha.outputs.sha }}
-          keep_files: true
 
       - name: Post commit status
         if: always()

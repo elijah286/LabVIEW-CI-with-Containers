@@ -6,6 +6,11 @@
   <title>Documentation — LabVIEW CI</title>
   <script>window.LVCI={context:'documentation'};</script>
   <script src="lvci-header.js" defer></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default', securityLevel: 'loose', flowchart: { htmlLabels: true, useMaxWidth: true } });
+  </script>
   <style>
     :root{
       --bg:#0d1117;--surface:#161b22;--surface2:#1c2230;--border:#30363d;
@@ -73,6 +78,9 @@
     .diagram{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px;
              margin:16px 0;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78em;
              line-height:1.45;white-space:pre;color:var(--fg)}
+    .mermaid{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 20px;
+             margin:16px 0;overflow-x:auto;text-align:center;line-height:1.4}
+    .mermaid svg{max-width:100%;height:auto}
     .pill{display:inline-block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
           padding:1px 8px;border-radius:999px;border:1px solid var(--border);color:var(--fg-muted);vertical-align:middle}
     .pill.win{color:#58a6ff;border-color:#1f6feb}
@@ -117,6 +125,7 @@
         <li><a href="#extending">14. Extending the system</a></li>
         <li><a href="#security">15. Security model</a></li>
         <li><a href="#constraints">16. Constraints &amp; gotchas</a></li>
+        <li><a href="#runners">17. Workflow &amp; runner reference</a></li>
       </ol>
     </nav>
 
@@ -170,11 +179,12 @@
         <thead><tr><th>Capability</th><th>What it does</th><th>Platforms</th></tr></thead>
         <tbody>
           <tr><td><strong>Mass Compile</strong></td><td>Compiles every VI/CTL and flags broken VIs and missing dependencies.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
-          <tr><td><strong>VI Analyzer</strong></td><td>Runs NI's static-analysis test suite for correctness, performance, style and documentation.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
+          <tr><td><strong>VI Analyzer</strong></td><td>Runs NI's static-analysis test suite for correctness, performance, style and documentation.</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>VIDiff</strong></td><td>Generates visual, side-by-side front-panel + block-diagram diffs of changed VIs between commits.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>Unit Tests</strong></td><td>Runs Caraya / LUnit / VI Tester / NI Unit Test Framework headlessly and merges JUnit output into one report.</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>Antidoc</strong></td><td>Generates project documentation from the VI hierarchy using Wovalab's Antidoc CLI.</td><td><span class="pill win">Win</span></td></tr>
-          <tr><td><strong>VI Snapshots / Browser</strong></td><td>Renders every VI to a content-addressed HTML snapshot (and position-aware JSON for the in-place 2.0 browser).</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
+          <tr><td><strong>VI Snapshots / Browser</strong></td><td>Renders every VI to a content-addressed HTML snapshot gallery (the classic VI Browser).</td><td><span class="pill win">Win</span></td></tr>
+          <tr><td><strong>VI Snapshots 2.0</strong></td><td>Position-aware, in-place VI Browser frames (JSON) rendered by the cross-platform toimages engine.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>Dashboard</strong></td><td>Aggregates everything above into a single status page on GitHub Pages.</td><td>runner host</td></tr>
         </tbody>
       </table>
@@ -186,26 +196,23 @@
         writes a report, deploys it to the <code>gh-pages</code> branch, and posts a commit status. A separate
         dashboard workflow reacts to those statuses and rebuilds the Pages dashboard.</p>
 
-      <div class="diagram">  commit / PR
-       │
-       ▼
-  labview-ci.reusable.yml ───────────────────────────────────────────────┐
-       │  (config job reads .github/labview-ci.yml, exposes outputs)      │
-       │                                                                  │
-       ├─ has-masscompile & os-windows ─► masscompile (windows-2022)      │
-       ├─ has-vi-analyzer  & os-linux   ─► vi-analyzer (ubuntu-latest)    │   each job:
-       ├─ has-vidiff       …            ─► vidiff                          │   1. pull image (GHCR / NI)
-       ├─ has-snapshots    …            ─► vi-snapshots                    │   2. docker run --rm
-       └─ …                                                               │   3. LabVIEW headless
-                                                                          │   4. build report (host)
-  GHCR  ghcr.io/<owner>/<repo>-labview   ◄── built by build-labview-image │   5. deploy to gh-pages
-        ghcr.io/<owner>/<repo>-toimages  ◄── built by build-toimages-image│   6. POST commit status
-  NI    nationalinstruments/labview      ◄── base layer (public)          │
-                                                                          ▼
-  status event ─► dashboard-pages.yml ─► actions/dashboard ─► gh-pages root (index.html, …)
-                                                                          │
-                                                                          ▼
-                                               GitHub Pages  ◄── your dashboard + reports</div>
+      <div class="mermaid">
+flowchart TD
+  CP["commit / PR"] --> RW["labview-ci.reusable.yml&lt;br/&gt;config job reads .github/labview-ci.yml"]
+  RW -->|"has-masscompile and os-windows"| MC["masscompile&lt;br/&gt;windows-2022"]
+  RW -->|"has-vi-analyzer and os-linux"| VA["vi-analyzer&lt;br/&gt;ubuntu-latest"]
+  RW -->|has-vidiff| VD["vidiff"]
+  RW -->|has-snapshots| SN["vi-snapshots"]
+  MC --> JOB["each job&lt;br/&gt;1. pull image (GHCR / NI)&lt;br/&gt;2. docker run --rm&lt;br/&gt;3. LabVIEW headless&lt;br/&gt;4. build report on host&lt;br/&gt;5. deploy to gh-pages&lt;br/&gt;6. post commit status"]
+  VA --> JOB
+  VD --> JOB
+  SN --> JOB
+  IMG["images&lt;br/&gt;ghcr.io/owner/repo-labview &mdash; build-labview-image (Windows) / build-labview-linux-image (Linux, incl. VI Browser 2.0 engine)&lt;br/&gt;nationalinstruments/labview &mdash; base layer (public)"] -.->|"pulled by"| JOB
+  JOB -->|"commit status"| ST["status event"]
+  ST --> DP["dashboard-pages.yml&lt;br/&gt;actions/dashboard"]
+  DP --> GHP["gh-pages root&lt;br/&gt;index.html, reports, snapshots"]
+  GHP --> PAGES["GitHub Pages&lt;br/&gt;your dashboard + reports"]
+</div>
 
       <p>Three deploy destinations live side by side on the <code>gh-pages</code> branch (all written with
         <code>keep_files: true</code> so they never clobber each other):</p>
@@ -233,11 +240,11 @@
       "name": "VI Analyzer",
       "status": "stable",          // planned | advanced | stable  → drives UI visibility
       "recommended": true,
-      "supportsOs": ["windows", "linux"],
+      "supportsOs": ["windows"],
       "requires": ["dashboard"],   // hard dependencies
       "recommends": ["dashboard"],
       "statusContext": "CI / VI Analyzer",   // GitHub commit-status context
-      "files": { "any": [...], "windows": [...], "linux": [...] }
+      "files": { "any": [...], "windows": [...] }
     }
   ],
   "substitutions": { "ordered": [ { "find": "...", "replaceWith": "{ownerRepo}" } ] },
@@ -285,7 +292,7 @@ config:
   container:
     use: latest           # tag every action uses by default
     vipc:
-      - { path: Dependencies.vipc, monitor: true }
+      - { path: Dependencies.vipc }
     actions:              # per-action image overrides
       masscompile: base   # bare NI image
       vidiff: "2026"      # pinned tag
@@ -337,26 +344,101 @@ mass-compile:
         <code>cancel-in-progress: false</code>. Because several jobs push to the same <code>gh-pages</code> branch,
         serialising them prevents one job's <code>git push</code> from racing another's. The dashboard build uses a
         separate group (<code>dashboard-pages</code>, <code>cancel-in-progress: true</code>) so a burst of status
-        events collapses into a single latest-wins rebuild.</p>
-      <p>The dashboard surfaces this line live. It reads GitHub's in-progress and queued runs and shows each enqueued
-        activity as a spinning <em>Queued</em> cell on the revision it targets. Because a manual re-run is dispatched
-        with <code>inputs.commit_sha</code>, the dashboard keys an active run on the commit named in its run title
-        (<code>rev &lt;sha&gt;</code>) rather than the dispatch ref, so the cell lands on the right row instead of on
-        the branch head. When several activities wait behind each other in the <code>report-pages-deploy</code> line,
+        events collapses into a single latest-wins rebuild. Because that keeps the dashboard outside the serialised
+        line, its Pages deploy can still lose a push race against a report or configurator-site deploy in the same
+        fresh-install burst (a non-fast-forward <code>cannot lock ref 'refs/heads/gh-pages'</code>); the deploy step
+        therefore retries once after a short wait, and <code>peaceiris</code> re-clones <code>gh-pages</code> on the
+        retry so it starts from the advanced tip.</p>
+      <p>The dashboard surfaces this line live. It reads GitHub's in-progress, pending, waiting/requested, and queued
+        runs and shows each enqueued activity as a spinning <em>Queued</em> cell on the revision it targets. Because
+        a manual re-run is dispatched on the default branch ref, the run's <code>head_sha</code> is the workflow-file
+        commit, not necessarily the revision being analyzed. Per-revision dispatch workflows therefore include the
+        target SHA (<code>inputs.commit_sha</code>, or <code>inputs.head_sha</code> for VIDiff) in their run name, and
+        <code>dashboard.py</code> keys active runs on that target SHA rather than the dispatch ref. Snapshot backfills
+        are one global run, so they are treated as active for every snapshot cell still awaiting coverage. When several
+        activities wait behind each other in the <code>report-pages-deploy</code> line,
         each queued cell also reports how many jobs are ahead of it (for example <em>Queued &middot; 1 ahead</em>).</p>
+      <p>A capability that runs on two platforms (Windows and Linux) writes a single shared result for the commit, so
+        the faster platform finishes first. The dashboard checks for an active run on the commit&nbsp;+ capability
+        <em>before</em> rendering that result, so while the slower platform is still running the cell keeps its live
+        <em>Running</em> badge instead of reverting to a finished-looking result &mdash; the indicator only clears
+        once every platform's run for that capability has completed.</p>
 
       <!-- 6 ───────────────────────────────────────────────────────────────── -->
       <h2 id="images">6. Worker container images <a class="anchor" href="#images">#</a></h2>
-      <p>The worker image is where LabVIEW and your baked-in dependencies live. Windows builds use a two-layer model:
-        <code>.github/docker/labview-vipm-base.Dockerfile</code> creates a reusable LabVIEW+VIPM base image with VI
-        Analyzer support, optional UTF support, VIPM, and Git; then
-        <code>.github/docker/labview-vipc-layer.Dockerfile</code> starts from that base and applies only the staged
-        project <code>.vipc</code> files. This keeps routine dependency rebuilds from reinstalling VIPM. Linux builds
-        are handled by <code>build-labview-linux-image.yml</code>. Images are pushed to <strong>your</strong> GitHub
-        Container Registry (GHCR) as packages attached to your repo:</p>
-      <pre><code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview-vipm-base  # shared Windows base with VIPM installed
-ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview            # the LabVIEW worker
-ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware renderer (Linux)</code></pre>
+      <p>The worker image is where LabVIEW and your baked-in dependencies live. The <strong>source/template repo
+        (LCWC)</strong> owns and publishes one shared base image from
+        <code>.github/docker/labview-ci-base.Dockerfile</code> &mdash; LabVIEW with VI Analyzer support, optional UTF
+        support, VIPM, and Git already installed. Every client repo gets its worker from that base in one of two ways,
+        and which one runs is the key distinction between <em>installation</em> and an <em>upgrade</em>.</p>
+
+      <h3>Installation vs. upgrade &mdash; how containers are managed</h3>
+      <ul>
+        <li><strong>Installation always copies the base.</strong> When a repo installs LabVIEW CI, its worker is
+          <em>seeded by copying</em> the shared LCWC base straight into the repo's own GHCR &mdash; there is no
+          rebuild. This is its own dedicated workflow, <code>copy-labview-image.yml</code>
+          (&ldquo;Copy LabVIEW CI Image&rdquo;), kept separate from the dependency build so the Actions tab clearly shows
+          an install seed versus a dependency bake. It uses <code>crane copy</code> / <code>crane tag</code> to copy the
+          base into <code>ghcr.io/&lt;you&gt;/&lt;repo&gt;-labview</code> at the registry level. Cross-repo blob mounting is
+          server-side only when the token already has access to the source package, so a client install actually
+          transfers the multi-GB layers through the runner &mdash; which is why the copy workflow always runs on
+          <code>ubuntu-latest</code>, whose fast network finishes the copy in a minute or two instead of
+          the several minutes a Windows runner takes (and far quicker than a full rebuild either way). A fresh install
+          bakes no project dependencies; the worker is plain NI&nbsp;+&nbsp;LabVIEW.</li>
+        <li><strong>Upgrade adds or replaces dependencies.</strong> Later you add or change project
+          <code>.vipc</code> / <code>.dragon</code> files that declare the add-on packages your action runners need.
+          The dashboard compares those declarations against what is baked into the current worker manifest; if any are
+          missing it shows a persistent <em>&ldquo;dependencies need to be installed&rdquo;</em> banner. Applying it is
+          <strong>opt-in</strong>: from the Dependencies page you dispatch the dependency build
+          (<code>build-labview-image.yml</code>, &ldquo;Build LabVIEW CI Image&rdquo;), which runs on a Windows runner and
+          this time starts <code>FROM</code> the base and applies a thin dependency layer
+          (<code>.github/docker/labview-ci.Dockerfile</code>) that bakes your monitored <code>.vipc</code> packages (and, when a
+          monitored <code>.dragon</code> file is selected, applies it through the JKI&nbsp;Dragon CLI the base image provides).
+          Dependency monitoring is configured on the <strong>Dependencies</strong> page, not Configure. Every discovered
+          project <code>.vipc</code> and <code>.dragon</code> is checked by default on a fresh repo, while
+          <code>.github/labview/vipm/ci-tooling.vipc</code> is always checked and locked. Checked files are saved in
+          <code>.github/labview-ci.yml</code> (<code>container.vipc[]</code> / <code>container.dragon[]</code>) with their
+          <code>monitor</code> flag. They produce dependency warnings; unchecked files are shown as unmonitored and do
+          not turn missing packages into warnings. Installation remains separate: dependencies are not installed before
+          actions unless the Configure page's automatic dependency installation policy is enabled, or you dispatch the
+          dependency build yourself. On a push, the <code>gate</code> rebuilds only when a changed dependency file is
+          saved with <code>monitor: true</code>; entries saved with <code>monitor: false</code> do not trigger automatic
+          worker updates. The dashboard also writes <code>dependencies/index.json</code> during every publish so a fresh
+          install or revision change can immediately show the dependency table from metadata alone: checked boxes mean
+          a worker manifest proves the package is baked, a yellow bang means the platform supports a monitored
+          dependency but the current worker is missing it or has not published its manifest yet, and <code>N/A</code> is
+          reserved for dependency/platform combinations that are not supported or files that are not monitored. Each
+          generated VIPC entry carries its role (<code>core</code> tooling vs. <code>project</code> dependency), monitor
+          state, and tooling lock state, so built-in CI tooling packages can stay neutral while monitored project
+          packages are marked as missing until a worker update bakes them in.</li>
+        <li><strong>Tooling upgrade is separate.</strong> Updating the LabVIEW CI tooling itself (the Update dialog /
+          <code>apply-tooling-update.yml</code>) refreshes the workflow scripts and preserves your config; it does not
+          rebuild containers. See <a href="#versioning">&sect;12</a>.</li>
+      </ul>
+
+      <div class="mermaid">
+flowchart TD
+  BASE["Source repo (LCWC)&lt;br/&gt;labview-ci-base.Dockerfile&lt;br/&gt;publishes the shared -labview-base image"]
+
+  INS["Installation&lt;br/&gt;a repo onboards LabVIEW CI"] --> COPY["copy-labview-image.yml&lt;br/&gt;crane copy + crane tag on ubuntu-latest&lt;br/&gt;copy the base into&lt;br/&gt;ghcr.io/you/repo-labview&lt;br/&gt;a minute or two, no rebuild"]
+  BASE -.->|"copied from"| COPY
+  COPY --> READY["Worker ready&lt;br/&gt;NI + LabVIEW, no project deps yet"]
+  READY -.->|"later"| UPG
+
+  UPG["Upgrade&lt;br/&gt;add or replace .vipc / .dragon files"] --> CHK{"Declared deps already&lt;br/&gt;baked into the current&lt;br/&gt;worker manifest?"}
+  CHK -->|"yes"| OK["Nothing to do"]
+  CHK -->|"no, some missing"| BAN["Dashboard banner&lt;br/&gt;dependencies need to be installed"]
+  BAN --> APPLY["You open Review and update&lt;br/&gt;opt-in workflow dispatch"]
+  APPLY --> BUILD["build-labview-image.yml&lt;br/&gt;FROM base + thin labview-ci.Dockerfile&lt;br/&gt;bakes your VIPC / Dragon packages"]
+  BUILD --> MODE{"Update mode"}
+  MODE -->|"replace (default)"| REP["Rebuild current tags in place&lt;br/&gt;actions pick it up automatically"]
+  MODE -->|"new"| NEW["Publish dated tag year-deps-date&lt;br/&gt;select per action in Configure"]
+</div>
+
+      <p>Linux builds are handled by <code>build-labview-linux-image.yml</code> on the same model. Images are pushed to
+        <strong>your</strong> GitHub Container Registry (GHCR) as packages attached to your repo:</p>
+      <pre><code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview      # your LabVIEW worker (copied from the base, or base + your deps; the Linux worker also bakes the VI Browser 2.0 render engine)
+ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, owned &amp; published by the source repo</code></pre>
       <p>The image inherits your repository's visibility and is authenticated with the job's built-in
         <code>GITHUB_TOKEN</code>. GHCR rejects uppercase names, so the owner/repo are lowercased at build time.</p>
 
@@ -376,17 +458,22 @@ ghcr.io/&lt;owner&gt;/&lt;repo&gt;-toimages     # VI Browser 2.0 position-aware 
       <p>Each build also publishes a human/machine-readable <strong>worker manifest</strong> to
         <code>/workers/&lt;platform&gt;/&lt;version&gt;/manifest.html</code> listing the exact <code>nipkg</code> and
         VIPM packages baked in, so a worker image is fully auditable.</p>
+      <p>The machine-readable <code>manifest.json</code> records installed VIPM packages in
+        <code>vipm_packages</code> (<code>name</code>, <code>version</code>, and VIPC-style <code>label</code>) plus
+        the raw <code>vipm list --installed</code> output in <code>vipm_raw</code>. The Dependencies page uses that
+        installed-package inventory as the source of truth before falling back to older <code>vipc[].packages</code>
+        manifests.</p>
 
       <h3>When images rebuild</h3>
-      <p>The build is triggered by a push that changes a monitored <code>.vipc</code> file, by the monthly cron
-        (to pick up base-image updates), or by manual dispatch. A gate job deliberately <em>skips</em> rebuilds when
-        the only changed <code>.vipc</code> files are marked <code>monitor: false</code> — that is the "bake once,
-        pin forever" path.</p>
+      <p>A worker rebuild is a heavy, opt-in operation. It runs when you apply a dependency update from the dashboard's
+        <em>Review &amp; update dependencies</em> dialog, on the monthly cron (to pick up base-image security updates),
+        or by manual dispatch. Adding or changing a project <code>.vipc</code> never triggers a rebuild on its own &mdash;
+        the dashboard simply flags that dependencies need installing until you choose to run the update.</p>
 
       <h3>Dependency gate (activities wait for the rebuild)</h3>
       <p>VIPC files are the source of truth for a repo's project dependencies, so the container-based activities must
-        never run against a worker image that predates a dependency change. When a push changes a monitored
-        <code>.vipc</code> (or any other worker input), the activity workflows — VI Analyzer, Mass Compile, Unit Tests,
+        never run against a worker image that predates a dependency update. While a worker rebuild is in progress, the
+        activity workflows &mdash; VI Analyzer, Mass Compile, Unit Tests,
         Antidoc, and VIDiff — call <code>.github/labview/wait-for-worker-images.sh</code> before they pull the image
         and <strong>block</strong> until the worker image build(s) for that revision finish. In the reusable workflow a
         single <code>gate-images</code> job does this and the dependency-consuming jobs <code>need</code> it. If the
@@ -457,6 +544,10 @@ docker run --rm `
         navigation chrome, and writing the machine-readable <code>summary.json</code>/<code>problems.json</code>
         that the dashboard reads. The report is then uploaded as an artifact <em>and</em> deployed to
         <code>gh-pages</code> under its per-SHA path, and a commit status is posted with the report URL.</p>
+      <p>When a report workflow is manually dispatched for an older commit, it checks out that target revision but
+        restores the current CI runtime from the repository default branch before running: <code>.github/labview</code>,
+        <code>.github/workflows</code>, and the local <code>.github/actions/publish-gh-pages</code> action. That keeps
+        history backfills compatible with commits that predate the current report builders or shared Pages publisher.</p>
 
       <!-- 8 ───────────────────────────────────────────────────────────────── -->
       <h2 id="vipm">8. VIPM dependency baking <a class="anchor" href="#vipm">#</a></h2>
@@ -496,17 +587,23 @@ docker run --rm `
           <code>No packages were installed</code>. The hook treats that text as a failed apply and continues to the
           package-spec and local-file fallback paths.</li>
       </ol>
-      <div class="note"><span class="lbl">Discovery, monitoring &amp; the base/project stack</span>
-        Every <code>.vipc</code> in the repo (discovered recursively, outside <code>.github/</code>) is treated as
-        project dependency source-of-truth and baked into the worker by default; the Configure dialog lists them all
-        <em>selected</em> and <em>monitored</em>, and you can un-tick or stop monitoring individual files (written back
-        as <code>config.container.vipc</code> entries with <code>monitor: true|false</code>). The tooling also ships a
-        base configuration — <code>.github/labview/vipm/ci-tooling.vipc</code> — that is always applied first; a
-        project's own discovered VIPC files stack on top of it. When this template repo updates that base, consumers
-        receive the new base on their next tooling update and the next container rebuild re-applies base + project
-        together. Because each repo publishes to its own GHCR namespace, those rebuilds produce that repo's own unique
-        worker image.
+      <div class="note"><span class="lbl">Discovery &amp; the base/project stack</span>
+        Every <code>.vipc</code> in the repo is discovered recursively and listed on the Dependencies page. That page
+        owns the monitored-file selection written back as <code>config.container.vipc</code> entries; Configure only
+        owns the global dependency policy. The tooling also ships a base configuration —
+        <code>.github/labview/vipm/ci-tooling.vipc</code> — that is always monitored and locked on, while a project's
+        own discovered VIPC files can be checked or unchecked. Checked project files produce warnings when their
+        packages are missing from the worker; unchecked project files are tracked in config with <code>monitor: false</code>
+        and do not produce warnings or automatic dependency-update triggers. When this template repo updates the base,
+        consumers receive the new base on their next tooling update and the next container rebuild re-applies base +
+        project together. Because each repo publishes to its own GHCR namespace, those rebuilds produce that repo's own
+        unique worker image.
       </div>
+      <p>After a worker image is built locally, the publish workflow captures both <code>nipkg list</code> and
+        <code>vipm list --installed</code> from inside the image and writes them into the worker manifest. Fresh-install
+        seed copies use a fast registry copy and do not pull the multi-GB image back just to inspect it; seed manifests
+        without a captured VIPM list are treated conservatively by the dashboard, with only the known
+        Windows core tooling VIPC inferred as installed.</p>
       <div class="note"><span class="lbl">Required essentials vs. best-effort tooling</span>
         <code>install-vipc.ps1</code> installs the UTF JUnit essentials
         (<code>ni_lib_utf_junit_report</code> + its <code>ni_lib_junit_results_api</code> /
@@ -551,7 +648,7 @@ docker run --rm `
         <code>Tee-Object</code> can emit.</div>
 
       <h3 id="cap-vianalyzer">9.2 VI Analyzer <a class="anchor" href="#cap-vianalyzer">#</a></h3>
-      <p>Driver: <code>run-vi-analyzer.ps1</code> / <code>.sh</code>; report:
+      <p>Driver: <code>run-vi-analyzer.ps1</code> <span class="pill win">Windows</span>; report:
         <code>build-analyzer-report.py</code>. It runs
         <code>LabVIEWCLI -OperationName RunVIAnalyzer</code> against a <code>.viancfg</code> configuration. The
         default template (<code>via-config-default.viancfg</code>) has a <code>__WORKSPACE_PATH__</code> placeholder
@@ -559,8 +656,8 @@ docker run --rm `
         suite".</p>
       <p>Configuration is layered. The manifest's <code>config.viAnalyzer</code> can name a <code>default</code>
         config and a list of per-path <code>rules</code> (e.g. strict rules for <code>src/critical/**</code>,
-        relaxed for <code>tests/**</code>). <span class="pill lin">Linux</span> honours only the <code>default</code>
-        config — per-subset rules are Windows-only. The report builder maps each failed test to a category
+        relaxed for <code>tests/**</code>). VI Analyzer runs on Windows only; Linux is not offered in the
+        configurator or Populate history. The report builder maps each failed test to a category
         (correctness / performance / style / documentation) for the dashboard's coloured breakdown and preserves the
         LabVIEW-native HTML as <code>raw.html</code>.</p>
 
@@ -576,6 +673,16 @@ docker run --rm `
         manifest (<code>{modified, added, deleted}</code>). The <strong>backfill</strong> variant walks
         <code>git log --reverse -- '*.vi' '*.ctl'</code>, creates detached worktrees per commit, renders through a
         warm container, and is resumable via a skip-list so large histories can be processed across runs.</p>
+      <p>On the dashboard, the <strong>VIDiff</strong> column summarises the <em>shape</em> of each revision as a
+        three-number diff stat — <span style="color:#d29922;font-weight:700">different</span> /
+        <span style="color:#3fb950;font-weight:700">new</span> /
+        <span style="color:#f85149;font-weight:700">deleted</span> VI/CTL counts versus the revision's parent —
+        computed by <code>dashboard.py</code> from the two git trees (each file's blob SHA is the content
+        fingerprint: same path + changed blob = different, a path the parent lacked = new, a path the parent had =
+        deleted; a rename reads as one new + one deleted). Zero parts are dimmed so the eye lands on what actually
+        changed, a tip strip spells the counts out, and the whole cell still links into the VI Browser filtered to
+        this revision's changed VIs. The cell falls back to the shared running / queued / one-click-run affordances
+        until a VIDiff result exists.</p>
       <div class="note"><span class="lbl">PrintToSingleFileHtml</span>
         The custom operation under <code>.github/labview/PrintToSingleFileHtml/</code> is a binary
         <code>.lvclass</code> sourced from NI's <code>labview-for-containers</code> examples; it renders a single VI
@@ -602,7 +709,9 @@ docker run --rm `
       <h3 id="cap-snapshots">9.6 VI Snapshots &amp; VI Browser <a class="anchor" href="#cap-snapshots">#</a></h3>
       <p>This is the one place that deliberately reuses a warm container. Snapshots are <strong>content-addressed by
         git blob SHA</strong>, so each unique VI is rendered exactly once — ever — and reused across every commit
-        that contains it.</p>
+        that contains it. If an older revision references a snapshot or report document that has not been published
+        yet, the VI Browser and framed report viewer show an in-page missing-document state with a Populate history
+        link instead of framing a GitHub Pages 404.</p>
       <h4>Phase 1 — HTML snapshots and Windows 2.0 frames <span class="pill win">Windows</span></h4>
       <p>Orchestrated by <code>build-snapshots.ps1</code>, which starts a single long-lived container
         (<code>docker run -d … while true sleep</code>) and renders many commits through it via
@@ -616,9 +725,9 @@ docker run --rm `
         JSON beside the HTML as <code>&lt;blob&gt;.windows.json</code>. <code>build-gallery.py</code> emits the
         per-commit <code>manifest.json</code> (VI → by-blob HTML), the rolling <code>commits.json</code>, and the
         Windows JSON index used by the in-place browser.</p>
-      <h4>Phase 2 — position-aware JSON (VI Browser 2.0) <span class="pill lin">Linux</span></h4>
-      <p>The <code>vi-snapshots-json.yml</code> workflow pulls the <code>-toimages</code> image and renders
-        position-aware frame JSON for the in-place browser. Inside that image, a Go batch runner
+      <h4>Phase 2 — position-aware JSON (VI Snapshots 2.0) <span class="pill win">Windows</span> <span class="pill lin">Linux</span></h4>
+      <p>Phase 2 is the separate <strong>VI Snapshots 2.0</strong> capability, selectable on Windows and Linux (the classic gallery above is Windows-only). The <code>vi-snapshots-json.yml</code> (Linux) and <code>vi-snapshots-json-windows.yml</code> (Windows) workflows render
+        position-aware frame JSON for the in-place browser. The render engine is <strong>baked into the Linux worker image</strong> (and runs in the stock NI image on Windows) &mdash; a Go batch runner
         (<code>main.go</code>) reads the same TSV worklist and shells out to <code>lvctl toimages</code> — a native
         Go VI-Server TCP client that launches LabVIEW under Xvfb, captures the front panel and block diagram as
         positioned frames, and emits a JSON array. Output is written to
@@ -641,6 +750,13 @@ docker run --rm `
         aggregates per-activity data from the deployed JSON (e.g. <code>masscompile/&lt;sha&gt;/summary.json</code>,
         the snapshot <code>by-blob</code> index), and renders one dashboard row per recent commit. It also stages the
         bundled tooling pages and writes the VI Browser's <code>files.json</code> index.</p>
+      <p>On a fresh install with project revisions but no CI results yet, <code>dashboard.py</code> emits a
+        <strong>Populate the dashboard with your history</strong> card above the table. The card opens the Populate
+        history chooser, can be dismissed per repository in local storage, and hides as soon as that dashboard has
+        queued one of its own runnable cells or a later dashboard rebuild sees a running/finished activity from a
+        revision or pull request. Queued-run state is matched against the current table's cells by capability and
+        target revision (or globally for the all-history snapshot backfill) so another repository on the same Pages
+        origin cannot suppress the fresh-install card.</p>
       <p>The shared site-wide header is <code>lvci-header.js</code>: every page declares a tiny
         <code>window.LVCI</code> config and loads the script, which injects a consistent navigation chrome
         (Dashboard / VI Browser nav, Settings &amp; Help menus, version badge, live activity pill, theme toggle).
@@ -658,6 +774,8 @@ docker run --rm `
           <tr><td><code>vidiff/&lt;segment&gt;/&lt;platform&gt;/vidiff/changes.json</code></td><td>VIDiff</td><td>Dashboard + VIDiff report</td></tr>
           <tr><td><code>unit-tests/&lt;sha&gt;/results.json</code></td><td>Unit-test report builder</td><td>Dashboard + report</td></tr>
           <tr><td><code>vi-snapshots/&lt;sha&gt;/manifest.json</code></td><td>Snapshot gallery builder</td><td>VI Browser</td></tr>
+          <tr><td><code>dependencies/index.json</code></td><td>Dashboard publisher</td><td>Dependencies page install-time inventory</td></tr>
+          <tr><td><code>workers/&lt;platform&gt;/&lt;version&gt;/manifest.json</code></td><td>Worker image workflows</td><td>Dependencies page installed-package status</td></tr>
           <tr><td><code>catalog.json</code> (root)</td><td>Installer / integrate-deploy</td><td>Version badge, What's New</td></tr>
         </tbody>
       </table>
@@ -684,7 +802,7 @@ docker run --rm `
         <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
           opt-in.</li>
       </ul>
-      <p><code>reconfigure.yml</code> backs the <strong>Configure Workers</strong> dialog: it rewrites
+      <p><code>reconfigure.yml</code> backs the <strong>Configure Pipeline</strong> dialog: it rewrites
         <code>.github/labview-ci.yml</code> from a <code>workflow_dispatch</code> form and opens a reviewable pull
         request rather than committing directly.</p>
       <h3>Relocation pointer</h3>
@@ -756,8 +874,8 @@ docker run --rm `
       <ul>
         <li><strong>Concurrency is per account, not per repo.</strong> GitHub's job-concurrency limit is shared
           across all your repositories, which is why the per-repo runner cap defaults conservatively.</li>
-        <li><strong>Linux VI Analyzer is reduced.</strong> Only the <code>default</code> config is honoured;
-          per-path rule subsets are Windows-only.</li>
+        <li><strong>VI Analyzer is Windows-only.</strong> Linux is not offered in the configurator, Populate history,
+          or generated workflows.</li>
         <li><strong>Unit Tests &amp; Antidoc are Windows-only</strong> today (they depend on baked VIPM tooling).</li>
         <li><strong>First container pull is slow.</strong> The worker image is multi-gigabyte; GitHub-hosted runners
           re-pull every job. A self-hosted runner with a warm Docker layer cache is the cure.</li>
@@ -766,6 +884,148 @@ docker run --rm `
         <li><strong>Search-index lag.</strong> A brand-new install can take up to a day (plus GitHub's own indexing
           delay) to appear on the Clients page.</li>
       </ul>
+
+      <!-- 17 ──────────────────────────────────────────────────────────────── -->
+      <h2 id="runners">17. Workflow &amp; runner reference <a class="anchor" href="#runners">#</a></h2>
+      <p>Every job in this system runs on exactly one of two GitHub-hosted runner images, and the choice is
+        mechanical: a job runs on <span class="pill win">windows-2022</span> only if it drives LabVIEW inside a
+        <strong>Windows</strong> Docker container; everything else — orchestration, gating, Pages deploys, releases,
+        Linux containers, discovery, and maintenance — runs on <span class="pill lin">ubuntu-latest</span>, which is
+        faster to start and cheaper. The lightweight decision/publishing work is deliberately kept off the Windows
+        runner so the slow, expensive Windows image only spins up for the one thing that genuinely needs it.</p>
+      <div class="warn"><span class="lbl">Why windows-2022, never windows-latest</span>
+        <code>windows-latest</code> now resolves to Windows Server 2025, whose Docker daemon is broken for these
+        LabVIEW containers. Every Windows job pins <code>windows-2022</code> explicitly.</div>
+
+      <h3>Which runner OS a job uses</h3>
+      <div class="mermaid">
+flowchart TD
+  A["A workflow job needs to run"] --> B{"Runs LabVIEW inside a&lt;br/&gt;Windows Docker container?"}
+  B -->|yes| W["windows-2022&lt;br/&gt;Windows container build"]
+  B -->|no| U["ubuntu-latest&lt;br/&gt;orchestration, config gating&lt;br/&gt;Pages deploys, releases&lt;br/&gt;Linux containers, discovery&lt;br/&gt;maintenance, image publishing"]
+</div>
+
+      <h3>Activity fan-out — the reusable workflow gates every job</h3>
+      <p><code>labview-ci.reusable.yml</code> is where repo settings decide which jobs run. A single <code>config</code>
+        job (Ubuntu) reads <code>.github/labview-ci.yml</code> once and exposes capability + platform flags; a
+        <code>gate-images</code> job (Ubuntu) then blocks the dependency-consuming activities until the worker image
+        for this commit is rebuilt. Each activity job runs only when <em>both</em> its capability flag and its platform
+        flag are true — toggling either in <strong>Configure Pipeline</strong> turns the job on or off with no workflow
+        edits.</p>
+      <div class="mermaid">
+flowchart TD
+  T["commit / PR / workflow_dispatch"] --> C["config &middot; ubuntu-latest&lt;br/&gt;reads .github/labview-ci.yml"]
+  C --> G["gate-images &middot; ubuntu-latest&lt;br/&gt;waits for this SHA's worker-image rebuild"]
+  G --> M1["mass-compile &middot; windows-2022&lt;br/&gt;if has-masscompile and os-windows"]
+  G --> M2["mass-compile &middot; ubuntu-latest&lt;br/&gt;if has-masscompile and os-linux"]
+  G --> V["vi-analyzer &middot; win / linux&lt;br/&gt;if has-vi-analyzer and os-platform"]
+  G --> D["vidiff &middot; win / linux&lt;br/&gt;if has-vidiff and os-platform"]
+  G --> S["snapshots &middot; windows-2022&lt;br/&gt;if has-snapshots and os-windows"]
+</div>
+
+      <h3>Image build — gate, coordinate, then the heavy lift</h3>
+      <p>The worker image build (<code>build-labview-image.yml</code>, &ldquo;Build LabVIEW CI Image&rdquo;) is a
+        three-job run that <strong>bakes project dependencies</strong> &mdash; it is distinct from the
+        <code>copy-labview-image.yml</code> install seed described earlier, which only copies the base. It runs on an
+        explicit dispatch (the dashboard&rsquo;s &ldquo;Review &amp; update dependencies&rdquo; dialog or a manual run),
+        the monthly base-image cron, or a push that changes a
+        <strong>monitored</strong> <code>.vipc</code> / <code>.dragon</code> file. The <code>gate</code> job enforces this
+        opt-in: on a push it rebuilds only if a changed dependency file is flagged <code>monitor: true</code> in
+        <code>.github/labview-ci.yml</code>, and skips otherwise. The staging step follows the same list: after a monitor list exists, only <code>monitor: true</code> entries are baked; before any list exists, a manual dependency build discovers all project <code>.vipc</code> / <code>.dragon</code> files so the fresh-repo default selections can be applied. The two Ubuntu jobs decide
+        <em>whether</em> to rebuild and <em>safely when</em>; the final <code>build-and-push</code> job always runs on
+        <code>windows-2022</code> (it needs the Windows Docker daemon to bake the dependency layer), falling back to a
+        plain <code>crane copy</code> of the base on that same runner if a dispatch declares no dependencies at all.</p>
+      <div class="mermaid">
+flowchart TD
+  T["dispatch (dashboard 'update dependencies') / monthly cron"] --> G
+  PUSH["push to a .vipc / .dragon"] --> G{"gate &middot; ubuntu-latest&lt;br/&gt;dispatch/cron: rebuild&lt;br/&gt;push: only if a MONITORED file changed"}
+  G -->|"rebuild"| CO["coordinate &middot; ubuntu-latest&lt;br/&gt;drain or cancel in-flight CI"]
+  G -->|"push, nothing monitored"| SKIP["skip &mdash; no rebuild"]
+  CO --> B["build-and-push &middot; windows-2022"]
+  B --> P{"Any dependency to bake?"}
+  P -->|"vipc/dragon (bake) &middot; windows-2022"| BD["build dependency layer &mdash; slow"]
+  P -->|"none (fallback) &middot; windows-2022"| CP["crane copy / tag base &mdash; a minute or two"]
+  CP --> PU["push tags &rarr; worker manifest &rarr; gh-pages"]
+  BD --> PU
+  INS["install seed (separate workflow)"] --> CW["copy-labview-image.yml &middot; ubuntu-latest&lt;br/&gt;crane copy / tag base"]
+  CW --> PU
+</div>
+      <div class="note"><span class="lbl">Linux image builds mirror Windows</span>
+        The Linux worker uses the same two-action split as Windows, on <code>ubuntu-latest</code> (Linux containers
+        build on a Linux runner). The install seed is its own workflow, <code>copy-labview-linux-image.yml</code>, which
+        the installer dispatches to <code>crane</code>-copy the shared LCWC Linux base (<code>…-labview:linux-2026</code>)
+        into the client's own package &mdash; a fast registry copy, not a rebuild, so a Linux install never scales with
+        the number of <code>.vipc</code> / <code>.dragon</code> files. <code>build-labview-linux-image.yml</code> is
+        <strong>bake-only</strong>: a project dependency change does <strong>not</strong> rebuild the worker by default
+        (the &ldquo;dependencies need to be installed&rdquo; banner prompts an on-demand update), and a push rebuilds
+        automatically only when it changes a <strong>monitored</strong> <code>.vipc</code> &mdash; exactly the opt-in
+        behavior of the Windows worker. (The Linux&nbsp;Beta builds directly on <code>ubuntu-latest</code> with no separate gate; the VI&nbsp;Browser 2.0 render engine is now baked into the Linux worker, so there is no separate render image.)</div>
+
+      <h3>Complete runner inventory</h3>
+      <p>Every workflow in the repository, the runner(s) it uses, what triggers it, and the conditions under which it
+        runs or is skipped. <span class="pill win">windows-2022</span> = Windows container work;
+        <span class="pill lin">ubuntu-latest</span> = everything else.</p>
+
+      <h4>Container activities</h4>
+      <table>
+        <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
+        <tbody>
+          <tr><td>Mass Compile — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push on VI source (<code>**.vi/.ctl/.lvproj/.lvlib/.lvclass</code>, excl. <code>.github/</code>), dispatch</td><td>Compiles every VI; skipped when only tooling under <code>.github/</code> changed.</td></tr>
+          <tr><td>Mass Compile — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>same as above</td><td>Linux counterpart; deploys under <code>masscompile/&lt;sha&gt;/linux/</code>.</td></tr>
+          <tr><td>Run VI Analyzer — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push VI source, dispatch</td><td>Full <code>.viancfg</code> suite incl. per-path rule subsets.</td></tr>
+          <tr><td>VIDiff Report — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push <code>**.vi/.ctl</code>, dispatch</td><td>Diffs changed VIs; runs on the bare NI image (no custom worker).</td></tr>
+          <tr><td>VIDiff Report — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>PR / push <code>**.vi/.ctl</code>, dispatch</td><td>Linux counterpart.</td></tr>
+          <tr><td>Run Unit Tests — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push (VIs, <code>**.lvtest</code>), dispatch</td><td>Windows-only (depends on baked VIPM/UTF tooling).</td></tr>
+          <tr><td>Run Antidoc — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>push to default branch, dispatch (no PR)</td><td>Windows-only; heavier doc render, so no per-PR run.</td></tr>
+          <tr><td>VI Snapshots and VI Browser</td><td><span class="pill win">windows-2022</span></td><td>push VI source (excl. <code>.github/</code>), dispatch (head / backfill)</td><td>Renders HTML snapshots + Windows 2.0 frames in one warm container.</td></tr>
+          <tr><td>VI Snapshots JSON (VI Browser 2.0, Linux)</td><td><span class="pill lin">ubuntu-latest</span></td><td><code>workflow_run</code> after snapshots, dispatch</td><td>Gate job decides; auto-runs only when <code>positionAware</code> includes <code>linux</code>.</td></tr>
+          <tr><td>VI Browser 2.0 render (Windows container)</td><td><span class="pill win">windows-2022</span></td><td>dispatch only</td><td>Additive Windows frames via COM in the stock NI image.</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Image builds</h4>
+      <table>
+        <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
+        <tbody>
+          <tr><td>Build LabVIEW CI Image (Windows worker)</td><td><span class="pill lin">ubuntu-latest</span> gate + coordinate, <span class="pill win">windows-2022</span> build</td><td>dispatch (dashboard &ldquo;Review &amp; update dependencies&rdquo; or manual), monthly cron, and a push that changes a <strong>monitored</strong> <code>.vipc</code>/<code>.dragon</code></td><td>Dependency bake. On a push the gate rebuilds only if a changed dependency file is <code>monitor: true</code>; otherwise it skips. Always builds on <span class="pill win">windows-2022</span>; with no dependencies declared it falls back to a plain crane copy of the base.</td></tr>
+          <tr><td>Copy LabVIEW CI Image (install seed)</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (the installer dispatches it on a fresh install)</td><td>Seeds a fresh worker by copying the LCWC base into the repo&rsquo;s GHCR with crane &mdash; no LabVIEW build; the install-time counterpart to the dependency build above.</td></tr>
+          <tr><td>Build LabVIEW CI Image &mdash; Linux</td><td><span class="pill lin">ubuntu-latest</span> (gate + build)</td><td>dispatch (dashboard or manual), monthly cron, and a push that changes a <strong>monitored</strong> <code>.vipc</code></td><td>Dependency bake (mirrors the Windows worker); also bakes the VI&nbsp;Browser 2.0 render engine into the worker. On a push the gate rebuilds only if a changed <code>.vipc</code> is <code>monitor: true</code>; otherwise it skips.</td></tr>
+          <tr><td>Copy LabVIEW CI Image &mdash; Linux (install seed)</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (the installer dispatches it on a fresh install)</td><td>Seeds a fresh Linux worker by copying the LCWC Linux base into the repo&rsquo;s GHCR with crane &mdash; no build; the Linux counterpart to the Copy workflow above.</td></tr>
+          <tr><td>Build LabVIEW CI Image &mdash; Linux Beta</td><td><span class="pill lin">ubuntu-latest</span></td><td>push to the beta build recipe, monthly cron, dispatch</td><td>Experimental Linux lane &mdash; a rebase of the Linux core that diverges as experimental capabilities are baked in.</td></tr>
+          <tr><td>Build LabVIEW CI Image &mdash; Windows Beta</td><td><span class="pill lin">ubuntu-latest</span> copy, <span class="pill win">windows-2022</span> source base build</td><td>monthly cron, dispatch (the installer dispatches a <code>copy_only</code> copy when an experimental Windows capability is selected)</td><td>Experimental Windows lane &mdash; the source builds the beta base, clients copy it; never rebuilt on install.</td></tr>
+          <tr><td>Bake VIPC Windows Base Image</td><td><span class="pill win">windows-2022</span></td><td>dispatch only</td><td>Proof-and-promote: verifies a VIPC installs before pushing tags.</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Publishing &amp; release</h4>
+      <table>
+        <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
+        <tbody>
+          <tr><td>CI Dashboard — GitHub Pages</td><td><span class="pill lin">ubuntu-latest</span></td><td>push page assets, <code>status</code> event, <code>workflow_run</code> completions, dispatch</td><td>Latest-wins rebuild; reacts to every capability's status with no enumeration.</td></tr>
+          <tr><td>Integrate Configurator — Pages</td><td><span class="pill lin">ubuntu-latest</span></td><td>push configurator / <code>catalog.json</code>, dispatch</td><td>Publishes Apply / Configure / What's New + catalog.</td></tr>
+          <tr><td>VIDiff Deploy — Pages + PR Comment</td><td><span class="pill lin">ubuntu-latest</span></td><td><code>workflow_run</code> after VIDiff reports</td><td>Deploys the diff and comments on the PR (runs even on failure).</td></tr>
+          <tr><td>Catalog Source Sync</td><td><span class="pill lin">ubuntu-latest</span></td><td>PR / push to catalog, docker, or build workflow; dispatch</td><td>Fails if installer file lists drift from the source-owned worker files.</td></tr>
+          <tr><td>Release</td><td><span class="pill lin">ubuntu-latest</span></td><td>push <code>catalog.json</code> on <code>main</code>, dispatch</td><td>Tags <code>v&lt;x.y.z&gt;</code> and moves the <code>v&lt;major&gt;</code>/<code>v&lt;major.minor&gt;</code> aliases.</td></tr>
+        </tbody>
+      </table>
+
+      <h4>Maintenance &amp; diagnostics</h4>
+      <table>
+        <thead><tr><th>Workflow</th><th>Runner</th><th>Triggers</th><th>Runs when / skips</th></tr></thead>
+        <tbody>
+          <tr><td>Discover Clients</td><td><span class="pill lin">ubuntu-latest</span></td><td>daily cron, dispatch</td><td>Source repo only (<code>if: github.repository == source</code>).</td></tr>
+          <tr><td>Apply LabVIEW CI update</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (the What's New "Update now")</td><td>Runs <code>install.py --update</code>; commits to default branch or opens a PR.</td></tr>
+          <tr><td>Reconfigure LabVIEW CI</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch (Configure Pipeline)</td><td>Rewrites <code>labview-ci.yml</code> and opens a reviewable PR.</td></tr>
+          <tr><td>VIDiff Backfill — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>dispatch</td><td>Walks VI history rendering diffs through a warm container; resumable.</td></tr>
+          <tr><td>VIDiff Backfill — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>dispatch</td><td>Linux counterpart of the backfill.</td></tr>
+          <tr><td>Example project CI (composite-action demo)</td><td><span class="pill lin">ubuntu-latest</span> config + <span class="pill win">windows-2022</span> activities</td><td>dispatch</td><td>Dogfoods the local <code>./actions</code> path against the example project.</td></tr>
+          <tr><td>toimages COM probe (diagnostic)</td><td><span class="pill win">windows-2022</span></td><td>dispatch</td><td>Confirms COM-driven rendering in the stock NI image; touches nothing in production.</td></tr>
+        </tbody>
+      </table>
+      <div class="tip"><span class="lbl">Self-hosted runners</span>
+        Both runner labels default to GitHub-hosted but can be redirected to self-hosted labels via the reusable
+        workflow's <code>windows-runner</code> input or Actions variables. A self-hosted runner additionally keeps a
+        warm Docker layer cache, so the multi-gigabyte worker image is not re-pulled every job (see §16).</div>
 
       <p style="margin-top:40px"><a href="faq.html">← Back to the FAQ</a> &nbsp;·&nbsp;
         <a class="lvci-repo-link" data-show-slug href="https://github.com/elijah286/LabVIEW-CI-with-Containers" target="_blank" rel="noopener">View the source on GitHub →</a></p>

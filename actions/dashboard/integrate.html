@@ -170,6 +170,20 @@
          border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.8em}
     .repopick-row .mini{font-size:.8em}
     button.ghost.mini{padding:7px 11px;font-size:.8em}
+    /* ---- installs-in-progress (leave & return) ---- */
+    .flightwrap{border:1px solid var(--border);border-radius:10px;background:var(--surface2);padding:14px 16px;margin:0 0 16px}
+    .flightwrap h3{font-size:.92em;margin:0 0 4px;display:flex;align-items:center;gap:7px}
+    .flightwrap .note{margin:0 0 10px}
+    .flight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--border)}
+    .flight:first-child{border-top:none}
+    .flight-head{display:flex;align-items:center;gap:8px;flex:1 1 240px;min-width:200px}
+    .flight-repo{font-weight:600;font-size:.9em;word-break:break-all}
+    .flight-chip{font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--fg-muted);background:var(--chip);white-space:nowrap}
+    .flight-chip.work{color:#9a6700;border-color:#9a6700}
+    .flight-chip.open{color:var(--link);border-color:var(--link)}
+    .flight-links{font-size:.82em;color:var(--fg-muted)}
+    .flight-acts{display:flex;gap:6px;margin-left:auto}
+    .flightwarn{border-color:var(--link)}
   </style>
 </head>
 <body>
@@ -197,6 +211,7 @@
           <label class="fl" for="repo">Target repo (owner/name)</label>
           <input type="text" id="repo" placeholder="your-org/your-lv-repo" autocomplete="off" spellcheck="false" list="repoList">
           <datalist id="repoList"></datalist>
+          <p class="hint" style="margin-top:6px">Installing to a private GitHub repo? Review the <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/blob/main/.github/labview-ci/README.md#installing-to-a-private-github-repository" target="_blank" rel="noopener">private repo setup notes</a> before creating the token.</p>
           <p class="hint repopick" id="repoPickHint" style="display:none"></p>
           <div class="repopick-row" id="repoTokRow" style="display:none">
             <input id="repoTokInput" type="password" autocomplete="off" placeholder="github_pat_&hellip;">
@@ -230,8 +245,8 @@
           </span>
         </summary>
         <div class="capbox-body">
-          <p class="capwarn" id="capWarn" style="display:none"><strong>Heads up:</strong> these choices include a custom LabVIEW worker container. Building or rebuilding that container can add 60-90 minutes to the installation before container-based checks are ready.</p>
-          <p class="hint">Stable and advanced capabilities are selected by default. Experimental features are off unless you opt in. Dependencies are added automatically.</p>
+          <p class="capwarn" id="capWarn" style="display:none"><strong>Note:</strong> installing copies the shared LabVIEW worker container into your repository's registry &mdash; about a minute. Your project's VIPC/Dragon dependencies are <strong>not</strong> baked in during install; applying them is a separate, opt-in step you run afterward.</p>
+          <p class="hint">Stable and advanced capabilities are selected by default. Experimental features are off unless you opt in. Your project's VIPC/Dragon dependencies are <strong>not</strong> baked in during install &mdash; applying them is a separate, opt-in step you run afterward.</p>
           <div class="caps" id="caps"></div>
         </div>
       </details>
@@ -240,6 +255,12 @@
     <section>
       <h2>3. Install</h2>
       <p class="hint" id="installHint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a fine-grained token; the panel walks you through creating it with the permissions pre-filled. It stays in this browser so you don&rsquo;t have to paste it again.</p>
+
+      <div class="flightwrap" id="insFlightWrap" style="display:none">
+        <h3>&#128339; Installs in progress</h3>
+        <p class="note">Started installs are tracked in this browser so you can leave and come back. Status is re-checked from GitHub while this tab is open.</p>
+        <div id="insFlightList"></div>
+      </div>
 
       <div class="insopts" id="githubInstallOptions">
         <label class="insopt"><input type="checkbox" id="optReadme" checked>
@@ -254,6 +275,17 @@
         <label class="insopt"><input type="checkbox" id="optUpdateToken" checked>
           <span><strong>Enable one-click tooling updates</strong><small>Stores your token (encrypted in your browser) as this repo&rsquo;s <code class="inl">TOOLING_UPDATE_TOKEN</code> secret so future <em>Update now</em> clicks open their pull request automatically &mdash; without turning on &ldquo;Allow GitHub Actions to create and approve pull requests.&rdquo; Needs <strong>Secrets</strong> on your token; if you skip it, the What&rsquo;s New page just prompts for a one-time token at update time.</small></span>
         </label>
+      </div>
+
+      <div class="tokpanel flightwarn" id="insFlightPanel" style="display:none">
+        <h3>&#9888; An install is already in flight for this repository</h3>
+        <p class="note" id="insFlightSummary"></p>
+        <div class="tokrow">
+          <button type="button" class="ghost" id="insFlightView">Watch it</button>
+          <button type="button" class="ghost" id="insFlightCancelGo">Cancel it &amp; install</button>
+          <button type="button" class="primary" id="insFlightAnyway">Install anyway</button>
+          <button type="button" class="ghost" id="insFlightClose">Close</button>
+        </div>
       </div>
 
       <div class="tokpanel reinstall" id="insReinstallPanel" style="display:none">
@@ -363,7 +395,7 @@
         <li id="varsStep">Optionally pin settings as Actions variables (shown after you choose options).</li>
         <li>Open a pull request that changes a VI whenever you want the analysis columns (VI Analyzer, VIDiff, Mass Compile) to fill in — a failing check never keeps the dashboard from publishing.</li>
       </ol>
-      <p class="hint" style="margin-top:12px">None of these choices are permanent — change the LabVIEW version, platforms, activities, and container dependencies any time from <strong>⚙ Configure Workers</strong> on the dashboard (it opens a pull request with your changes). To pull later tooling improvements, re-run the installer with <code class="inl">--update</code>.</p>
+      <p class="hint" style="margin-top:12px">None of these choices are permanent — change the LabVIEW version, platforms, activities, and container dependencies any time from <strong>⚙ Configure Pipeline</strong> on the dashboard (it opens a pull request with your changes). To pull later tooling improvements, re-run the installer with <code class="inl">--update</code>.</p>
     </section>
   </div>
 
@@ -577,7 +609,9 @@
       workerBuildConfirmAccepted = false;
       if (!capabilityEditNoticeShown) {
         capabilityEditNoticeShown = true;
-        window.alert("Changing these capability options can require a custom LabVIEW worker container build. If the shared LabVIEW container image stays selected, budget 60-90 minutes during first-time installation while GitHub builds and publishes the image.");
+        // Install only copies the shared container into the repo's registry (about
+        // a minute); project VIPC/Dragon dependencies are applied later via a
+        // separate, opt-in action, so there is no long install-time build.
       }
     }
 
@@ -589,10 +623,11 @@
 
     function confirmWorkerBuildIfNeeded(opts) {
       if (!capabilityChoicesChanged || !effectiveUsesWorkerImage(opts) || workerBuildConfirmAccepted) return true;
-      const ok = window.confirm("These capability choices will build a custom LabVIEW worker container. That can add 60-90 minutes to first-time installation before the container-based activities are ready. Continue?");
-      if (ok) workerBuildConfirmAccepted = true;
-      else setInsStatus("Install cancelled - capability choices were left unchanged.", null);
-      return ok;
+      // Install only copies the shared LabVIEW container into the repo's registry
+      // (about a minute); project VIPC/Dragon dependencies are applied later via a
+      // separate, opt-in action, so there is no long build to confirm here.
+      workerBuildConfirmAccepted = true;
+      return true;
     }
 
     // ---- file resolution (mirrors install.py) ----------------------------
@@ -669,6 +704,10 @@
       if (!repo.includes("/")) return "https://<namespace>.gitlab.io/<project>";
       const parts = repo.split("/").filter(Boolean);
       return `https://${parts[0].toLowerCase()}.gitlab.io/${parts.slice(1).join("/")}`;
+    }
+
+    function gitlabProjectUrl(projectPath) {
+      return gitlabHost() + "/" + projectPath.split("/").map(encodeURIComponent).join("/");
     }
 
     function updateProviderUi() {
@@ -875,7 +914,7 @@
 
     if __name__ == "__main__":
       main()
-    `;
+    `.replace(/^ {4}/gm, "");
       }
 
       function gitlabReadme() {
@@ -958,6 +997,177 @@
     const getInsTok = () => { try { return localStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
     const setInsTok = (v) => { try { localStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
     const clearInsTok = () => { try { localStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
+
+    // ---- in-flight install registry (leave-and-return across repos) -------
+    // Each started install is recorded in this browser, keyed by repo, so the user
+    // can leave this page mid-install and return to see every install still in
+    // flight across their repos. The browser-side phases (fetch -> commit -> push ->
+    // open PR) are not resumable once the tab is gone, so on return we RECONCILE each
+    // record against live GitHub state (open/merged PR, install branch, the published
+    // dashboard version) rather than replaying steps. A record is dropped the moment
+    // an install is truly done (dashboard live) or the user dismisses it.
+    const INSTALL_REG_KEY = "lvci_installs";
+    const PHASE_LABEL = { preparing: "Preparing files\u2026", "pr-open": "Pull request open", merging: "Merging\u2026", publishing: "Publishing dashboard\u2026" };
+    const LIVE_PHASES = ["preparing", "pr-open", "merging", "publishing"];
+    function loadInstallReg() { try { return JSON.parse(localStorage.getItem(INSTALL_REG_KEY) || "{}") || {}; } catch (_) { return {}; } }
+    function saveInstallReg(o) { try { localStorage.setItem(INSTALL_REG_KEY, JSON.stringify(o || {})); } catch (_) {} }
+    function getInstall(repo) { return loadInstallReg()[repo] || null; }
+    function putInstall(repo, patch) {
+      const o = loadInstallReg(); const existed = o[repo];
+      o[repo] = Object.assign({ repo: repo, startedAt: Date.now() }, existed || {}, patch || {}, { updatedAt: Date.now() });
+      saveInstallReg(o); renderInstallList(); return o[repo];
+    }
+    function dropInstall(repo) { const o = loadInstallReg(); if (o[repo]) { delete o[repo]; saveInstallReg(o); renderInstallList(); } }
+
+    // Probe live GitHub state for this repo's install: the most relevant install PR
+    // (open preferred, else most recent) and whether the install branch still exists.
+    async function probeRepoInstall(repo) {
+      const owner = repo.split("/")[0];
+      let pr = null, branchExists = false;
+      try {
+        const pls = await ghJson(await gh(`/repos/${repo}/pulls?state=all&head=${owner}:${INSTALL_BRANCH}&per_page=5`));
+        if (Array.isArray(pls) && pls.length) {
+          const chosen = pls.find(p => p.state === "open") || pls[0];
+          pr = { number: chosen.number, url: chosen.html_url, state: chosen.state, merged: !!chosen.merged_at };
+        }
+      } catch (_) {}
+      try { const r = await gh(`/repos/${repo}/git/ref/heads/${INSTALL_BRANCH}`); branchExists = r.ok; } catch (_) {}
+      return { pr: pr, branchExists: branchExists };
+    }
+
+    // Is there an install already in flight for this repo (a local record in a live
+    // phase, an open install PR, or a leftover install branch)? Returns details for
+    // the duplicate-warning panel, or null when the repo is clear to install.
+    async function detectInFlight(repo) {
+      const rec = getInstall(repo);
+      let probe = { pr: null, branchExists: false };
+      try { probe = await probeRepoInstall(repo); } catch (_) {}
+      const openPr = probe.pr && probe.pr.state === "open";
+      const liveRec = !!(rec && LIVE_PHASES.indexOf(rec.phase) >= 0);
+      if (openPr || probe.branchExists || liveRec) return { pr: probe.pr, branchExists: probe.branchExists, rec: rec };
+      return null;
+    }
+
+    // Reconcile one tracked install against live GitHub state; updates or drops it.
+    let _reconciling = false;
+    async function reconcileOne(repo, rec) {
+      const probe = await probeRepoInstall(repo);
+      const ver = (rec && rec.version) || (catalog && catalog.version) || "";
+      const dash = (rec && rec.dashUrl) || dashboardUrl(repo);
+      if (probe.pr) {
+        if (probe.pr.state === "open") { putInstall(repo, { phase: "pr-open", prNumber: probe.pr.number, prUrl: probe.pr.url, branch: INSTALL_BRANCH }); return; }
+        if (probe.pr.merged) {
+          if (ver && await deployedAtLeast(dash, ver)) { dropInstall(repo); return; }
+          putInstall(repo, { phase: "publishing", prNumber: probe.pr.number, prUrl: probe.pr.url }); return;
+        }
+        dropInstall(repo); return;                       // PR closed without merging -> abandoned
+      }
+      if (probe.branchExists) { putInstall(repo, { phase: "preparing", branch: INSTALL_BRANCH }); return; }
+      if (rec && rec.phase === "publishing") {
+        if (!ver || await deployedAtLeast(dash, ver)) dropInstall(repo);
+        return;                                          // keep waiting on the published version otherwise
+      }
+      dropInstall(repo);                                 // no PR, no branch, not publishing -> done/gone
+    }
+    async function reconcileInstalls() {
+      if (_reconciling) return;
+      if (!getInsTok()) { renderInstallList(); return; }
+      _reconciling = true;
+      try { const o = loadInstallReg(); for (const r of Object.keys(o)) { try { await reconcileOne(r, o[r]); } catch (_) {} } }
+      finally { _reconciling = false; }
+      renderInstallList();
+    }
+
+    // While any install is tracked, re-check live state every 10s (only when the tab
+    // is visible and a token is saved) so the list stays honest without a reload.
+    let _recTimer = null;
+    function scheduleReconcile() {
+      const has = Object.keys(loadInstallReg()).length > 0;
+      if (has && getInsTok() && !_recTimer) {
+        _recTimer = setInterval(() => { if (!document.hidden) reconcileInstalls(); }, 10000);
+      } else if ((!has || !getInsTok()) && _recTimer) { clearInterval(_recTimer); _recTimer = null; }
+    }
+
+    // ---- duplicate-in-flight warning panel -------------------------------
+    let _flightRepo = "";
+    function showFlightPanel() { const p = $("insFlightPanel"); if (p) p.style.display = ""; }
+    function hideFlightPanel() { const p = $("insFlightPanel"); if (p) p.style.display = "none"; }
+    function populateFlightPanel(repo, flight) {
+      _flightRepo = repo;
+      const sum = $("insFlightSummary");
+      let what;
+      if (flight.pr && flight.pr.state === "open") what = `an open install pull request (<a href="${esc(flight.pr.url)}" target="_blank" rel="noopener">#${flight.pr.number}</a>)`;
+      else if (flight.rec && flight.rec.phase === "publishing") what = "a dashboard that is still publishing";
+      else if (flight.branchExists) what = `an install branch (<code class="inl">${esc(INSTALL_BRANCH)}</code>) from an earlier attempt`;
+      else what = "an install already in progress";
+      if (sum) sum.innerHTML = `<strong>${esc(repo)}</strong> already has ${what}. Watch it, cancel it, or install again anyway. Prefer to do it by hand? Use <a href="javascript:void 0" id="insFlightManual">Other ways to install</a> below.`;
+      const man = $("insFlightManual");
+      if (man) man.addEventListener("click", e => { e.preventDefault(); const d = document.querySelector("details.altinstall"); if (d) { d.open = true; d.scrollIntoView({ behavior: "smooth", block: "center" }); } });
+    }
+
+    // Stop a tracked install: close its PR and delete the install branch (both
+    // best-effort), then forget it locally.
+    async function cancelInstall(repo) {
+      const rec = getInstall(repo);
+      try {
+        const owner = repo.split("/")[0];
+        let prNum = rec && rec.prNumber;
+        if (!prNum) { const pls = await ghJson(await gh(`/repos/${repo}/pulls?state=open&head=${owner}:${INSTALL_BRANCH}`)); if (Array.isArray(pls) && pls[0]) prNum = pls[0].number; }
+        if (prNum) await gh(`/repos/${repo}/pulls/${prNum}`, { method: "PATCH", body: { state: "closed" } });
+      } catch (_) {}
+      try { await gh(`/repos/${repo}/git/refs/heads/${INSTALL_BRANCH}`, { method: "DELETE" }); } catch (_) {}
+      dropInstall(repo);
+    }
+
+    function onFlightAct(e) {
+      const btn = e.currentTarget; const act = btn.getAttribute("data-act"); const repo = btn.getAttribute("data-repo");
+      if (act === "dismiss") { dropInstall(repo); return; }
+      if (act === "cancel") { btn.disabled = true; btn.textContent = "Cancelling\u2026"; cancelInstall(repo).finally(() => renderInstallList()); }
+    }
+
+    // Render the "Installs in progress" panel from the local registry. Hidden when
+    // empty or on GitLab (the browser PR flow is GitHub-only).
+    function renderInstallList() {
+      const wrap = $("insFlightWrap"), list = $("insFlightList"); if (!wrap || !list) return;
+      const o = loadInstallReg();
+      const repos = Object.keys(o).sort((a, b) => (o[b].updatedAt || 0) - (o[a].updatedAt || 0));
+      if (isGitLab() || !repos.length) { wrap.style.display = "none"; list.innerHTML = ""; scheduleReconcile(); return; }
+      wrap.style.display = "";
+      list.innerHTML = repos.map(r => {
+        const rec = o[r]; const ph = rec.phase || "preparing";
+        const chip = PHASE_LABEL[ph] || ph;
+        const cls = ph === "publishing" ? "work" : (ph === "pr-open" ? "open" : "prep");
+        const links = [];
+        if (rec.prUrl) links.push(`<a href="${esc(rec.prUrl)}" target="_blank" rel="noopener">PR${rec.prNumber ? " #" + rec.prNumber : ""}</a>`);
+        links.push(`<a href="https://github.com/${esc(r)}/actions" target="_blank" rel="noopener">Actions</a>`);
+        if (rec.dashUrl && ph === "publishing") links.push(`<a href="${esc(rec.dashUrl)}" target="_blank" rel="noopener">Dashboard</a>`);
+        return `<div class="flight">` +
+          `<div class="flight-head"><span class="flight-repo">${esc(r)}</span><span class="flight-chip ${cls}">${esc(chip)}</span></div>` +
+          `<div class="flight-links">${links.join(" &middot; ")}</div>` +
+          `<div class="flight-acts"><button type="button" class="ghost mini" data-act="cancel" data-repo="${esc(r)}">Cancel</button><button type="button" class="ghost mini" data-act="dismiss" data-repo="${esc(r)}">Dismiss</button></div>` +
+          `</div>`;
+      }).join("");
+      list.querySelectorAll("button[data-act]").forEach(b => b.addEventListener("click", onFlightAct));
+      scheduleReconcile();
+    }
+
+    // Continue an install past the duplicate-in-flight gate: detect a prior install
+    // (for keep/stale options) then proceed or show the reinstall panel.
+    async function continueAfterFlight(repo) {
+      installBusy(true);
+      setInsStatus("Checking your repository&hellip;", null);
+      try {
+        const prior = await detectPriorInstall(repo);
+        priorState = prior || null;
+        if (prior && (prior.canKeep || (prior.managedFiles && prior.managedFiles.size))) {
+          populateReinstallPanel(repo, prior); showReinstallPanel(); installBusy(false); return;
+        }
+        if (!confirmWorkerBuildIfNeeded({ keepSettings: false, deleteStale: false })) { installBusy(false); return; }
+        await proceedInstall(repo, { keepSettings: false, deleteStale: false });
+      } catch (e) {
+        setInsStatus(installError(e, repo), "err"); installBusy(false);
+      }
+    }
     const getGitLabTok = () => { try { return localStorage.getItem(GITLAB_TOK_KEY) || ""; } catch (_) { return ""; } };
     const setGitLabTok = (v) => { try { localStorage.setItem(GITLAB_TOK_KEY, v); } catch (_) {} };
     const clearGitLabTok = () => { try { localStorage.removeItem(GITLAB_TOK_KEY); } catch (_) {} };
@@ -1039,12 +1249,13 @@
       const imgs = [];
       if (opts.buildWindowsImage) imgs.push("Windows");
       if (opts.buildLinuxImage) imgs.push("Linux");
+      if (opts.buildWindowsBeta) imgs.push("Windows Beta");
       installPlanSteps = [
-        { id: "prepare", title: "Prepare install pull request", eta: "~1 min", state: "active", detail: "Reading the repo, fetching the selected tooling, and opening the install PR." },
-        { id: "merge", title: "Merge install pull request", eta: opts.autoMerge ? "seconds" : "your review", state: "pending", detail: opts.autoMerge ? "The configurator will squash-merge it after the branch is ready." : "Review and merge the PR when you are ready; setup continues after the merge." }
+        { id: "prepare", title: "Prepare install pull request", eta: "under 1 min", state: "active", detail: "Reading the repo, fetching the selected tooling, and opening the install PR." },
+        { id: "merge", title: "Merge install pull request", eta: opts.autoMerge ? "a few seconds" : "your review", state: "pending", detail: opts.autoMerge ? "The configurator will squash-merge it after the branch is ready." : "Review and merge the PR when you are ready; setup continues after the merge." }
       ];
-      if (opts.hasDashboard !== false) installPlanSteps.push({ id: "dashboard", title: "Publish dashboard", eta: "1-3 min", state: "pending", detail: "GitHub Pages builds the dashboard and this page waits until the link is live." });
-      if (imgs.length) installPlanSteps.push({ id: "image", title: "Build worker container image" + (imgs.length > 1 ? "s" : ""), eta: "5-90 min", state: "pending", detail: `${esc(imgs.join(" + "))} container workflow${imgs.length > 1 ? "s" : ""} may run for a while; CI waits for the image instead of failing.` });
+      if (opts.hasDashboard !== false) installPlanSteps.push({ id: "dashboard", title: "Publish dashboard", eta: "5-8 min", state: "pending", detail: "GitHub Pages builds the dashboard and this page waits until the link is live." });
+      if (imgs.length) installPlanSteps.push({ id: "image", title: "Copy worker container image" + (imgs.length > 1 ? "s" : ""), eta: "30-60 sec", state: "pending", detail: `Copies the shared LabVIEW container into ${esc(imgs.join(" + "))}; your project's VIPC/Dragon dependencies are applied later via a separate, opt-in action.` });
       installPlanSteps.push({ id: "ready", title: "Ready for CI runs", eta: "done", state: "pending", detail: "Dashboard link works and selected container workers are available." });
       renderInstallPlan();
     }
@@ -1210,6 +1421,12 @@
         if ((resp.status >= 500 || resp.status === 429) && attempt < 4) { await sleep(wait); wait *= 2; continue; }
         return glJson(resp);
       }
+    }
+    async function glText(path, label) {
+      const resp = await gl(path, { headers: { "Accept": "text/plain" } });
+      if (resp.ok) return resp.text();
+      if (resp.status === 404) return null;
+      return glJson(resp);
     }
     async function ghJson(resp) {
       if (resp.ok) return resp.status === 204 ? null : resp.json();
@@ -1383,7 +1600,6 @@
         '      - "Mass Compile \u2014 Windows Container"',
         '      - "Mass Compile Backfill \u2014 Windows Container"',
         '      - "Run VI Analyzer \u2014 Windows Container"',
-        '      - "Run VI Analyzer \u2014 Linux Container"',
         '      - "VIDiff Report \u2014 Windows Container"',
         '      - "VIDiff Report \u2014 Linux Container"',
         '      - "VIDiff Deploy \u2014 Pages + PR Comment"',
@@ -1425,6 +1641,22 @@
         "        with:",
         "          github-token: ${{ secrets.GITHUB_TOKEN }}",
         "      - name: Deploy dashboard to GitHub Pages",
+        "        id: deploy",
+        "        continue-on-error: true",
+        "        uses: peaceiris/actions-gh-pages@v4.1.0",
+        "        with:",
+        "          github_token: ${{ secrets.GITHUB_TOKEN }}",
+        "          publish_dir: ci-out/dashboard",
+        "          destination_dir: .",
+        "          keep_files: true",
+        "      # Retry once if a concurrent gh-pages push (configurator site, VI",
+        "      # snapshots, report deploys) made this a non-fast-forward; peaceiris",
+        "      # re-clones gh-pages each run, so the retry starts from the new tip.",
+        "      - name: Wait out a gh-pages push race",
+        "        if: steps.deploy.outcome == 'failure'",
+        "        run: sleep 30",
+        "      - name: Deploy dashboard to GitHub Pages (retry)",
+        "        if: steps.deploy.outcome == 'failure'",
         "        uses: peaceiris/actions-gh-pages@v4.1.0",
         "        with:",
         "          github_token: ${{ secrets.GITHUB_TOKEN }}",
@@ -1468,6 +1700,20 @@
       return section + "\n" + existing;
     }
 
+    // The dashboard URL the README's marked section currently points at — the
+    // first non-shields.io link inside the labview-ci:dashboard section — or null.
+    // Used to detect a section copied/forked/templated from another repo (or left
+    // behind after a rename), whose badge still links that other repo's dashboard.
+    function markedDashboardUrl(text) {
+      const at = text.indexOf("<!-- labview-ci:dashboard -->");
+      if (at < 0) return null;
+      const seg = text.slice(at, at + 800);
+      const re = /\]\((https?:\/\/[^)\s]+)\)/g;
+      let m;
+      while ((m = re.exec(seg))) { if (!/img\.shields\.io/.test(m[1])) return m[1]; }
+      return null;
+    }
+
     // Fetch the repo's README (if any) and return a {path, content} that adds the
     // dashboard section near the top — or null when it already links the dashboard.
     async function buildReadmeFile(repo) {
@@ -1478,9 +1724,21 @@
       if (existing != null) {
         const hasMarker = /labview-ci:dashboard/.test(existing);
         const isMarkdown = /\.(md|markdown|mdown|mkdn?)$/i.test(path);
-        // Already linked from a real MARKDOWN README -> nothing to do (the badge
-        // and links render there, so a re-install must not duplicate the section).
-        if (hasMarker && isMarkdown) return null;
+        // Already linked from a real MARKDOWN README. A re-install must not
+        // duplicate the section -- BUT if the linked dashboard belongs to a
+        // DIFFERENT repo (the README was copied, forked, or templated from another
+        // repo, or the repo was renamed after a prior install) the badge and link
+        // still point at that other repo's dashboard. Rewrite the stale URL to THIS
+        // repo's dashboard in place; only when it already matches is there nothing
+        // to do (so a genuine re-install stays idempotent).
+        if (hasMarker && isMarkdown) {
+          const want = dashboardUrl(repo);
+          const have = markedDashboardUrl(existing);
+          if (have && have !== want) {
+            return { path, content: existing.split(have).join(want), isText: true };
+          }
+          return null;
+        }
         if (isMarkdown) {
           return { path, content: insertReadmeSection(existing, repo), isText: true };
         }
@@ -1623,7 +1881,7 @@
         "1. **Workflow permissions** must be *Read and write* (Settings \u203a Actions \u203a General) \u2014 the configurator may have already set this for you.",
         "2. **GitHub Pages** must be enabled on the `gh-pages` branch (Settings \u203a Pages) \u2014 the configurator may have already enabled this for you; otherwise turn it on after the first run creates the branch.",
         "3. The **dashboard publishes itself from this merge** \u2014 no CI run required. Open a pull request that changes a VI whenever you want the analysis columns (VI Analyzer, VIDiff, Mass Compile) to fill in; a failing check never blocks the dashboard.", "",
-        "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", "");
+        "Change any of these choices later from **\u2699 Configure Pipeline** on the dashboard.", "");
       return lines.join("\n");
     }
 
@@ -1671,11 +1929,12 @@
       return false;
     }
 
-    async function dispatchWorkflow(repo, workflowFile, branch) {
+    async function dispatchWorkflow(repo, workflowFile, branch, inputs) {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
+          const body = inputs ? { ref: branch, inputs: inputs } : { ref: branch };
           const r = await gh(`/repos/${repo}/actions/workflows/${workflowFile}/dispatches`,
-            { method: "POST", body: { ref: branch } });
+            { method: "POST", body });
           if (r.ok || r.status === 204) return true;
           if (r.status !== 404) return false;
         } catch (_) { /* transient network -- retry */ }
@@ -1711,8 +1970,9 @@
 
     async function watchInstallImageBuilds(repo, branch, setup, sinceMs) {
       const targets = [];
-      if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "build-labview-image.yml", dispatch: true });
-      if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "build-labview-linux-image.yml", dispatch: false });
+      if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "copy-labview-image.yml", dispatch: true });
+      if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "copy-labview-linux-image.yml", dispatch: true });
+      if (setup.buildWindowsBeta) targets.push({ label: "Windows Beta worker image", workflow: "build-labview-windows-beta-image.yml", dispatch: true, inputs: { copy_only: "true" } });
       if (!targets.length) return "skipped";
       const states = {};
       const render = () => {
@@ -1724,7 +1984,7 @@
         const startedAt = Date.now();
         if (t.dispatch) {
           states[t.label] = "queuing"; render();
-          const queued = await dispatchWorkflow(repo, t.workflow, branch);
+          const queued = await dispatchWorkflow(repo, t.workflow, branch, t.inputs);
           if (!queued) { states[t.label] = "could not queue automatically"; render(); return "warn"; }
         } else {
           states[t.label] = "waiting for GitHub to start it from the install merge"; render();
@@ -1743,22 +2003,28 @@
         setInstallStep("image", "done", "Worker container image build finished; container CI activities can start immediately.");
         return "success";
       }
-      setInstallStep("image", "warn", "At least one worker image did not finish successfully from this browser. Open the linked run or rebuild from Configure Workers.");
+      setInstallStep("image", "warn", "At least one worker image did not finish successfully from this browser. Open the linked run or rebuild from Configure Pipeline.");
       return "warn";
     }
 
-    // Kick off the worker container IMAGE build the moment the install merges, when
-    // the custom-image capability is installed. Every Windows container activity (mass
+    // Seed the worker container IMAGE the moment the install merges, when the
+    // custom-image capability is installed. Every Windows container activity (mass
     // compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) runs inside
-    // ghcr.io/<owner>/<repo>-labview, which is built with the baked dependency VIPC and
-    // does NOT exist until this build runs — so a fresh install must build it once.
-    // build-labview-image.yml never auto-runs on the install merge (it only adds
-    // .github/** files, which its push trigger excludes), so we dispatch it here.
+    // ghcr.io/<owner>/<repo>-labview, which is seeded by COPYING the LCWC base and
+    // does NOT exist until this copy runs — so a fresh install must seed it once.
+    // copy-labview-image.yml never auto-runs on the install merge (the install only
+    // adds .github/** files), so we dispatch it here. The separate dependency bake
+    // (build-labview-image.yml) is opt-in later from the Dependencies page.
     // Best-effort: a 404 means the workflow isn't on the default branch yet (rare), so
     // we briefly retry, then fall back silently (the dashboard's Build worker image
     // button and the first CI run's wait-for-image both cover it).
     async function buildWorkerImageNow(repo, branch) {
-      return dispatchWorkflow(repo, "build-labview-image.yml", branch);
+      // A fresh install ALWAYS just COPIES the LCWC base image into this repo's GHCR
+      // (seconds) via the dedicated Copy workflow -- never baking dependencies. Project
+      // VIPC / capability dependencies are applied afterwards from the Dependencies page
+      // via the separate Build LabVIEW CI Image workflow, so an install can never
+      // trigger an hour-long worker rebuild.
+      return dispatchWorkflow(repo, "copy-labview-image.yml", branch);
     }
 
     // Semver-ish compare (major.minor.patch). Returns >0 when a>b, <0 when a<b.
@@ -1890,7 +2156,7 @@
       if (setup.workflowPerms !== "done") steps.push(`Set <strong>Workflow permissions</strong> to <em>Read and write</em> (<a href="https://github.com/${esc(repo)}/settings/actions" target="_blank" rel="noopener">Settings &rsaquo; Actions &rsaquo; General</a>).`);
       if (setup.hasDashboard && setup.pages !== "done" && setup.pages !== "exists")
         steps.push(`After you merge, the dashboard build publishes the <code class="inl">gh-pages</code> branch \u2014 then enable <strong>GitHub Pages</strong> from it (<a href="https://github.com/${esc(repo)}/settings/pages" target="_blank" rel="noopener">Settings &rsaquo; Pages</a>). No CI run is required.`);
-      if (setup.buildImage && !autoMerge) steps.push(`After you merge, build the <strong>worker container image</strong> once \u2014 run <strong>Build LabVIEW CI Image</strong> (<a href="https://github.com/${esc(repo)}/actions" target="_blank" rel="noopener">Actions</a>) or use <strong>&#9881; Configure Workers</strong>. The container CI activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) run inside it.`);
+      if (setup.buildImage && !autoMerge) steps.push(`After you merge, build the <strong>worker container image</strong> once \u2014 run <strong>Build LabVIEW CI Image</strong> (<a href="https://github.com/${esc(repo)}/actions" target="_blank" rel="noopener">Actions</a>) or use <strong>&#9881; Configure Pipeline</strong>. The container CI activities (mass compile, VI Analyzer, VIDiff, snapshots, unit tests, Antidoc) run inside it.`);
       const nextEl = $("insNext");
       if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
 
@@ -1922,9 +2188,11 @@
 
       setInstallStep("merge", "active", "Squash-merging the install pull request now.");
       setInsBar(0.55);
+      putInstall(repo, { phase: "merging", prNumber: pr.number, prUrl: pr.html_url });
       mergeInstallPr(pr, repo).then(success => {
         if (insRunId !== myGen) return;     // a newer install took over the UI
         if (!success) {
+          putInstall(repo, { phase: "pr-open", prNumber: pr.number, prUrl: pr.html_url });
           setInstallStep("merge", "warn", "Auto-merge failed; merge the pull request manually to continue setup.");
           setInstallStep("ready", "pending", "Setup continues after the install pull request is merged.");
           setInsBar(null, "warn");
@@ -1935,9 +2203,10 @@
         setInsBar(0.62);
         const nx = $("insNext"); if (nx) nx.style.display = "none";
 
-        // Build/watch worker container images now so the container CI activities have
-        // an image to run in. Windows is dispatched here; Linux starts from the merge
-        // push because its workflow file is part of the install. Both are tracked.
+        // Seed the worker container images now so the container CI activities have an
+        // image to run in. Windows and Linux each dispatch their dedicated Copy workflow
+        // (copy-labview-image.yml / copy-labview-linux-image.yml) -- a fast registry copy
+        // of the shared LCWC base, no dependency build. Both are tracked.
         const mergeAt = Date.now();
         const imagePromise = setup.buildImages ? watchInstallImageBuilds(repo, setup.branch, setup, mergeAt) : Promise.resolve("skipped");
         async function finishAfterImages(kind, message) {
@@ -1948,7 +2217,7 @@
             return;
           }
           setInsBar(null, "working");
-          setInsStatus(message + ` Worker image build${setup.buildImage && setup.buildLinuxImage ? "s are" : " is"} still running; this can take 5-90 minutes depending on VIPC dependencies.`, kind);
+          setInsStatus(message + ` Worker container${setup.buildImage && setup.buildLinuxImage ? "s are" : " is"} being copied into your registry; this takes about a minute.`, kind);
           const imgState = await imagePromise;
           if (insRunId !== myGen) return;
           if (imgState === "success") {
@@ -1958,12 +2227,13 @@
           } else {
             setInstallStep("ready", "warn", "Dashboard setup completed, but at least one worker image needs attention before container CI is fully ready.");
             setInsBar(null, "warn");
-            setInsStatus(message + " One worker image did not finish successfully; open the linked run above or rebuild from Configure Workers.", "warn");
+            setInsStatus(message + " One worker image did not finish successfully; open the linked run above or rebuild from Configure Pipeline.", "warn");
           }
         }
 
         const mergedDashboard = setup.hasDashboard && !!setup.branch;
         if (!mergedDashboard) {
+          dropInstall(repo);
           // No dashboard to publish in this install — the merge is the whole story.
           setInstallStep("dashboard", "done", "No dashboard workflow was selected for this install.");
           finishAfterImages("ok", `&#10003; Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> was merged and deployed to <code class="inl">${esc(repo)}</code>.`);
@@ -1975,6 +2245,7 @@
         // can't be live — say so honestly with what to do, never a green "done".
         const pagesConfirmed = setup.pages === "done" || setup.pages === "exists";
         if (!pagesConfirmed) {
+          dropInstall(repo);
           setInstallStep("dashboard", "warn", "GitHub Pages is not enabled yet; follow the guidance below to turn it on.");
           setInsBar(null, "warn");
           finishAfterImages("warn", `&#9888; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>, but your dashboard isn&rsquo;t live yet. ${pagesHelp()}`);
@@ -1984,6 +2255,7 @@
         // Pages is on, so PUBLISHING the dashboard is part of the progress: keep the
         // bar working and only finish (green "done") + reveal the link once GitHub
         // Pages actually serves the page, so the link is never a 404.
+        putInstall(repo, { phase: "publishing", prNumber: pr.number, prUrl: pr.html_url });
         setInsBar(null, "working");
         setInstallStep("dashboard", "active", "Dispatching the dashboard publish workflow and waiting for GitHub Pages to serve the new dashboard.");
         setInsStatus(`&#10003; Merged <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> \u2014 publishing your dashboard now\u2026 this takes about a minute.`, "ok");
@@ -1996,6 +2268,7 @@
         ).then(state => {
           if (insRunId !== myGen) return;
           if (state === "live" || state === "placeholder") {
+            dropInstall(repo);
             setInstallStep("dashboard", "done", state === "live" ? "GitHub Pages is serving the dashboard." : "GitHub Pages is serving the setup placeholder; it auto-refreshes into the dashboard.");
             revealLiveLink();
             showDashLink();
@@ -2226,23 +2499,13 @@
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) { setInsStatus("Enter your target repository (owner/name) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
       if (!getInsTok()) { showInsTokPanel(); return; }
+      hideFlightPanel();
       installBusy(true);
       setInsStatus("Checking your repository&hellip;", null);
-      try {
-        const prior = await detectPriorInstall(repo);
-        priorState = prior || null;
-        if (prior && (prior.canKeep || (prior.managedFiles && prior.managedFiles.size))) {
-          populateReinstallPanel(repo, prior);
-          showReinstallPanel();
-          installBusy(false);
-          return;
-        }
-        if (!confirmWorkerBuildIfNeeded({ keepSettings: false, deleteStale: false })) { installBusy(false); return; }
-        await proceedInstall(repo, { keepSettings: false, deleteStale: false });
-      } catch (e) {
-        setInsStatus(installError(e, repo), "err");
-        installBusy(false);
-      }
+      let flight = null;
+      try { flight = await detectInFlight(repo); } catch (_) { flight = null; }
+      if (flight) { populateFlightPanel(repo, flight); showFlightPanel(); installBusy(false); return; }
+      await continueAfterFlight(repo);
     }
 
     async function proceedInstall(repo, opts) {
@@ -2252,6 +2515,7 @@
       showInsBar();
       ++insRunId;                   // newer install invalidates any in-flight publish-wait UI updates
       { const dl0 = $("insDashLink"); if (dl0) dl0.style.display = "none"; }
+      putInstall(repo, { phase: "preparing", autoMerge: !!($("optAutoMerge") && $("optAutoMerge").checked), dashUrl: dashboardUrl(repo) });
       setInsStatus("Preparing&hellip;", null);
       try {
         const setup = {};
@@ -2261,7 +2525,8 @@
           autoMerge: !!($("optAutoMerge") && $("optAutoMerge").checked),
           hasDashboard: activities.includes("dashboard"),
           buildWindowsImage: activities.includes("custom-image") && osList.includes("windows"),
-          buildLinuxImage: activities.includes("custom-image") && osList.includes("linux")
+          buildLinuxImage: activities.includes("custom-image") && osList.includes("linux"),
+          buildWindowsBeta: osList.includes("windows") && (catalog.capabilities || []).some(c => isExperimental(c) && (c.supportsOs || []).includes("windows") && activities.includes(c.id))
         });
         if (opts.keepSettings && priorState && priorState.canKeep) {
           setup.kept = activities.map(actLabel).join(", ") + " \u00b7 LabVIEW " + version + " \u00b7 " + osList.join(", ");
@@ -2317,7 +2582,12 @@
         // built — so a fresh install must build it once. Remember whether to do that.
         setup.buildImage = activities.includes("custom-image") && osList.includes("windows");
         setup.buildLinuxImage = activities.includes("custom-image") && osList.includes("linux");
-        setup.buildImages = setup.buildImage || setup.buildLinuxImage;
+        // The Windows Beta (experimental) worker container is copied only when an
+        // experimental Windows capability (e.g. Antidoc) is selected. Its build files
+        // are owned by that capability, so they are only present when it is installed.
+        setup.buildWindowsBeta = osList.includes("windows") && (catalog.capabilities || []).some(c =>
+          isExperimental(c) && (c.supportsOs || []).includes("windows") && activities.includes(c.id));
+        setup.buildImages = setup.buildImage || setup.buildLinuxImage || setup.buildWindowsBeta;
 
         if ($("optReadme") && $("optReadme").checked && setup.hasDashboard) {
           setInsStatus("Preparing the README link&hellip;", null);
@@ -2411,6 +2681,7 @@
           if (!pr) await ghJson(prResp); // still nothing -> throw a typed error
         }
         setInstallStep("prepare", "done", `Opened install pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>.`);
+        putInstall(repo, { phase: "pr-open", prNumber: pr.number, prUrl: pr.html_url, branch: INSTALL_BRANCH, version: version, dashUrl: dashboardUrl(repo), autoMerge: !!($("optAutoMerge") && $("optAutoMerge").checked) });
 
         // Best-effort: optionally flip Workflow permissions to write and enable
         // Pages so the dashboard publishes with no manual settings. Never fails the
@@ -2431,6 +2702,7 @@
         installSuccess(pr, repo, setup);
       } catch (e) {
         setInstallStep("prepare", "err", "Install setup stopped before the pull request could finish.");
+        const _r = getInstall(repo); if (_r && _r.phase === "preparing") dropInstall(repo);
         setInsStatus(installError(e, repo), "err");
       } finally {
         installBusy(false);
@@ -2485,6 +2757,15 @@
       }
     }
 
+    async function gitlabBranchInfo(projectKey, branch) {
+      try {
+        return await glWrite(`/projects/${projectKey}/repository/branches/${encodeURIComponent(branch)}`, null, "read your GitLab target branch");
+      } catch (e) {
+        if (e && e.status === 404) return null;
+        throw e;
+      }
+    }
+
     async function gitlabExistingPaths(projectKey, treeRef) {
       const paths = new Set();
       for (let page = 1; page <= 20; page++) {
@@ -2510,6 +2791,23 @@
       });
     }
 
+    async function gitlabCommitInstallFiles(projectKey, branchName, built, existingPaths, startBranch, commitMessage) {
+      const commitBody = {
+        branch: branchName,
+        commit_message: commitMessage,
+        actions: gitlabCommitActions(built.files, existingPaths)
+      };
+      if (startBranch) commitBody.start_branch = startBranch;
+      await glWrite(`/projects/${projectKey}/repository/commits`, { method: "POST", body: commitBody }, "create the GitLab install commit");
+    }
+
+    async function gitlabNeedsDirectRepair(projectKey, targetBranch, existingPaths) {
+      if (!existingPaths || !existingPaths.has(".gitlab/labview-ci/build-dashboard.py")) return false;
+      const filePath = encodeURIComponent(".gitlab/labview-ci/build-dashboard.py");
+      const text = await glText(`/projects/${projectKey}/repository/files/${filePath}/raw?ref=${encodeURIComponent(targetBranch)}`, "read the GitLab dashboard builder");
+      return /^#![^\n]*\n {4}from __future__ import annotations/m.test(text || "");
+    }
+
     function gitlabMrBody(acts, osList, ver, fileCount) {
       const s = source();
       return [
@@ -2529,27 +2827,74 @@
     }
 
     function gitlabInstallSuccess(mr, projectPath, branchName, fileCount) {
-      setInsBar(1, "done");
+      setInsBar(null, "warn");
       const url = gitlabPagesUrl();
+      const projectUrl = gitlabProjectUrl(projectPath);
       const mrLink = mr.web_url || "#";
       const mrNum = mr.iid || mr.id || "";
-      setInsStatus(`&#10003; Done &mdash; opened GitLab merge request <a href="${esc(mrLink)}" target="_blank" rel="noopener">!${esc(mrNum)}</a> in <code class="inl">${esc(projectPath)}</code>.`, "ok");
+      setInsStatus(`&#10003; Install files are ready &mdash; opened GitLab merge request <a href="${esc(mrLink)}" target="_blank" rel="noopener">!${esc(mrNum)}</a> in <code class="inl">${esc(projectPath)}</code>. The dashboard URL can 404 until GitLab finishes the <code class="inl">pages</code> deployment.`, "warn");
       const done = [
         `Created branch <code class="inl">${esc(branchName)}</code>.`,
         `Added ${fileCount} LabVIEW CI file${fileCount === 1 ? "" : "s"}, including <code class="inl">.gitlab-ci.yml</code> and <code class="inl">.gitlab/labview-ci/</code>.`,
-        `After the merge, GitLab Pages will publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job runs.`
+        `After the merge, GitLab Pages should publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job deploys it.`
       ];
       const doneEl = $("insDone");
       if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = ""; }
       const steps = [
         `Review and merge the GitLab merge request.`,
-        `Open <strong>Build &rsaquo; Pipelines</strong> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `Open <a href="${esc(projectUrl + "/-/pipelines")}" target="_blank" rel="noopener"><strong>Build &rsaquo; Pipelines</strong></a> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `If the expected Pages URL still shows 404 after the job completes, open <a href="${esc(projectUrl + "/-/pages")}" target="_blank" rel="noopener"><strong>Deploy &rsaquo; Pages</strong></a> in GitLab and use the URL GitLab lists there.`,
         `If you instead use the command-line fallback later, run it from a local clone: <code class="inl">git clone</code>, <code class="inl">cd</code> into the repo, paste the command, then commit and push.`
       ];
       const nextEl = $("insNext");
       if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
       const note = $("insNote");
       if (note) { note.innerHTML = `Full Windows LabVIEW jobs need a Windows Docker GitLab Runner registered to this project or group. The first scaffold focuses on the dashboard and provider boundary.`; note.style.display = ""; }
+    }
+
+    function gitlabInitialBranchSuccess(projectPath, branchName, fileCount) {
+      setInsBar(null, "warn");
+      const url = gitlabPagesUrl();
+      const projectUrl = gitlabProjectUrl(projectPath);
+      setInsStatus(`&#10003; Install files are in GitLab &mdash; created the initial <code class="inl">${esc(branchName)}</code> branch in <code class="inl">${esc(projectPath)}</code>. The dashboard URL can 404 until GitLab finishes the <code class="inl">pages</code> deployment.`, "warn");
+      const done = [
+        `Created branch <code class="inl">${esc(branchName)}</code> as the project&rsquo;s initial branch.`,
+        `Added ${fileCount} LabVIEW CI file${fileCount === 1 ? "" : "s"}, including <code class="inl">.gitlab-ci.yml</code> and <code class="inl">.gitlab/labview-ci/</code>.`,
+        `GitLab Pages should publish at <code class="inl">${esc(url)}</code> once the <code class="inl">pages</code> job deploys it.`
+      ];
+      const doneEl = $("insDone");
+      if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = ""; }
+      const steps = [
+        `Refresh GitLab and confirm <code class="inl">${esc(branchName)}</code> is the default branch. If GitLab does not set it automatically, open <strong>Settings &rsaquo; Repository &rsaquo; Branch defaults</strong> and choose it.`,
+        `Open <a href="${esc(projectUrl + "/-/pipelines")}" target="_blank" rel="noopener"><strong>Build &rsaquo; Pipelines</strong></a> in GitLab and confirm the <code class="inl">pages</code> job completes.`,
+        `If the expected Pages URL still shows 404 after the job completes, open <a href="${esc(projectUrl + "/-/pages")}" target="_blank" rel="noopener"><strong>Deploy &rsaquo; Pages</strong></a> in GitLab and use the URL GitLab lists there.`,
+        `Future installer runs will use the normal merge request path now that the repository has an initial branch.`
+      ];
+      const nextEl = $("insNext");
+      if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
+      const note = $("insNote");
+      if (note) { note.innerHTML = `No merge request was needed because this GitLab project did not have an existing target branch yet. A Pages 404 after a green pipeline usually means GitLab is still publishing, Pages access is restricted, or GitLab chose a different final Pages URL; check <strong>Deploy &rsaquo; Pages</strong> for the authoritative URL. Full Windows LabVIEW jobs still need a Windows Docker GitLab Runner registered to this project or group.`; note.style.display = ""; }
+    }
+
+    function gitlabRepairSuccess(projectPath, branchName, fileCount) {
+      setInsBar(null, "warn");
+      const url = gitlabPagesUrl();
+      const projectUrl = gitlabProjectUrl(projectPath);
+      setInsStatus(`&#10003; Repaired the GitLab install scaffold on <code class="inl">${esc(branchName)}</code> in <code class="inl">${esc(projectPath)}</code>. The dashboard URL can 404 until GitLab reruns the <code class="inl">pages</code> deployment.`, "warn");
+      const done = [
+        `Updated ${fileCount} LabVIEW CI file${fileCount === 1 ? "" : "s"}, including the generated <code class="inl">.gitlab/labview-ci/build-dashboard.py</code>.`,
+        `GitLab Pages should publish at <code class="inl">${esc(url)}</code> once the next <code class="inl">pages</code> job deploys it.`
+      ];
+      const doneEl = $("insDone");
+      if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = ""; }
+      const steps = [
+        `Open <a href="${esc(projectUrl + "/-/pipelines")}" target="_blank" rel="noopener"><strong>Build &rsaquo; Pipelines</strong></a> in GitLab and run or retry the pipeline on <code class="inl">${esc(branchName)}</code>.`,
+        `If the expected Pages URL still shows 404 after the job completes, open <a href="${esc(projectUrl + "/-/pages")}" target="_blank" rel="noopener"><strong>Deploy &rsaquo; Pages</strong></a> in GitLab and use the URL GitLab lists there.`
+      ];
+      const nextEl = $("insNext");
+      if (nextEl) { nextEl.innerHTML = steps.map(s => `<li>${s}</li>`).join(""); nextEl.style.display = ""; }
+      const note = $("insNote");
+      if (note) { note.innerHTML = `The installer recognized an older generated GitLab scaffold and repaired the LabVIEW CI-owned files directly instead of asking you to merge a repair request.`; note.style.display = ""; }
     }
 
     async function gitlabInstallToRepo() {
@@ -2565,30 +2910,58 @@
       try {
         const projectKey = gitlabProjectKey(projectPath);
         const project = await glWrite(`/projects/${projectKey}`, null, "read your GitLab project");
-        const defaultBranch = project.default_branch;
-        if (!defaultBranch) throw new Error("Your GitLab project has no default branch yet. Create an initial commit or README in GitLab first, then install.");
-        const branchName = INSTALL_BRANCH + "-" + Date.now().toString(36);
+        let targetBranch = project.default_branch || "main";
+        let targetInfo = await gitlabBranchInfo(projectKey, targetBranch);
         const built = await collectGitLabInstallFiles();
 
-          setInsStatus("Reading your GitLab repository&hellip;", null);
-          const treeRef = await gitlabBranchTreeRef(projectKey, defaultBranch);
-          const existingPaths = await gitlabExistingPaths(projectKey, treeRef);
-        const acts = built.activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
-        const commitMessage = `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})`;
-        const actions = gitlabCommitActions(built.files, existingPaths);
+        if (targetInfo && targetBranch.indexOf(INSTALL_BRANCH) === 0) {
+          const mainInfo = await gitlabBranchInfo(projectKey, "main");
+          if (mainInfo) {
+            targetBranch = "main";
+            targetInfo = mainInfo;
+          } else {
+            setInsStatus("Creating the initial GitLab branch&hellip;", null);
+            await glWrite(`/projects/${projectKey}/repository/branches`, { method: "POST", body: { branch: "main", ref: targetBranch } }, "create the initial GitLab branch");
+            try { await glWrite(`/projects/${projectKey}`, { method: "PUT", body: { default_branch: "main" } }, "set your GitLab default branch"); } catch (_) {}
+            setInsStatus("Repairing the GitLab install scaffold&hellip;", null);
+            const treeRef = (targetInfo.commit && targetInfo.commit.id) || await gitlabBranchTreeRef(projectKey, targetBranch);
+            const existingPaths = await gitlabExistingPaths(projectKey, treeRef);
+            await gitlabCommitInstallFiles(projectKey, "main", built, existingPaths, null, "ci: repair LabVIEW CI GitLab scaffold");
+            gitlabInitialBranchSuccess(projectPath, "main", built.files.length);
+            return;
+          }
+        }
 
-        setInsStatus("Creating the GitLab commit&hellip;", null);
-        await glWrite(`/projects/${projectKey}/repository/commits`, { method: "POST", body: {
-          branch: branchName,
-          start_branch: defaultBranch,
-          commit_message: commitMessage,
-          actions
-        } }, "create the GitLab install commit");
+        const bootstrapInitialBranch = !targetInfo;
+        const branchName = bootstrapInitialBranch ? targetBranch : INSTALL_BRANCH + "-" + Date.now().toString(36);
+
+        setInsStatus("Reading your GitLab repository&hellip;", null);
+        const treeRef = targetInfo ? ((targetInfo.commit && targetInfo.commit.id) || await gitlabBranchTreeRef(projectKey, targetBranch)) : null;
+        const existingPaths = treeRef ? await gitlabExistingPaths(projectKey, treeRef) : new Set();
+        const acts = built.activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
+        const repairExistingBranch = !bootstrapInitialBranch && await gitlabNeedsDirectRepair(projectKey, targetBranch, existingPaths);
+        const commitMessage = repairExistingBranch ? "ci: repair LabVIEW CI GitLab scaffold" : `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})`;
+        const commitBranchName = repairExistingBranch ? targetBranch : branchName;
+        const startBranch = bootstrapInitialBranch || repairExistingBranch ? null : targetBranch;
+
+        setInsStatus(repairExistingBranch ? "Repairing the GitLab install scaffold&hellip;" : "Creating the GitLab commit&hellip;", null);
+        await gitlabCommitInstallFiles(projectKey, commitBranchName, built, existingPaths, startBranch, commitMessage);
+
+        if (bootstrapInitialBranch) {
+          try { await glWrite(`/projects/${projectKey}`, { method: "PUT", body: { default_branch: branchName } }, "set your GitLab default branch"); } catch (_) {}
+          gitlabInitialBranchSuccess(projectPath, branchName, built.files.length);
+          return;
+        }
+
+        if (repairExistingBranch) {
+          gitlabRepairSuccess(projectPath, targetBranch, built.files.length);
+          return;
+        }
 
         setInsStatus("Opening the GitLab merge request&hellip;", null);
         const mr = await glWrite(`/projects/${projectKey}/merge_requests`, { method: "POST", body: {
           source_branch: branchName,
-          target_branch: defaultBranch,
+          target_branch: targetBranch,
           title: "Add LabVIEW CI pipeline",
           description: gitlabMrBody(acts, built.osList, built.version, built.files.length),
           remove_source_branch: true
@@ -2618,7 +2991,42 @@
       gitlabInstallToRepo();
     }
 
+    // ---- install pause (toggleable) -------------------------------------
+    // Flip catalog.installPause.enabled to true to block new installs (e.g.
+    // during an in-progress tooling update). The big green Install button then
+    // shows a banner instead of installing. Set it back to false to re-enable.
+    function installPauseConfig() {
+      const p = catalog && catalog.installPause;
+      return (p && typeof p === "object" && p.enabled) ? p : null;
+    }
+    function installIsPaused() { return !!installPauseConfig(); }
+    function installPauseMessage() {
+      const p = installPauseConfig();
+      return (p && p.message) ||
+        "Installation is temporarily unavailable due to an in-progress update. Please check back in about 30 minutes.";
+    }
+    function showInstallPauseBanner() {
+      const msg = installPauseMessage();
+      let b = document.getElementById("installPauseBanner");
+      if (!b) {
+        b = document.createElement("div");
+        b.id = "installPauseBanner";
+        b.className = "tokpanel reinstall";
+        const anchor = document.querySelector(".actions");
+        if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(b, anchor);
+      }
+      b.style.display = "";
+      b.innerHTML = '<h3>&#9888; Installation paused</h3><p class="note">' + esc(msg) + "</p>";
+      setInsStatus(esc(msg), "warn");
+    }
+    function refreshInstallPause() {
+      const b = document.getElementById("installPauseBanner");
+      if (installIsPaused()) { showInstallPauseBanner(); }
+      else if (b) { b.style.display = "none"; }
+    }
+
     async function providerInstall() {
+      if (installIsPaused()) { showInstallPauseBanner(); return; }
       if (!isGitLab()) { await installToRepo(); return; }
       if (!getGitLabTok()) { showGitLabTokPanel(); setInsStatus("Paste a GitLab token to open the install merge request from this browser, or use the command-line fallback below from a local clone.", null); return; }
       await gitlabInstallToRepo();
@@ -2658,7 +3066,7 @@
       const _gtc = $("glTokCancel"); if (_gtc) _gtc.addEventListener("click", hideGitLabTokPanel);
       $("insTokForget").addEventListener("click", () => {
         if (isGitLab()) { clearGitLabTok(); refreshInsForget(); setInsStatus("GitLab token removed from this browser.", null); return; }
-        clearInsTok(); refreshInsForget(); const _dl = $("repoList"); if (_dl) _dl.innerHTML = ""; repoListToken = null; renderRepoPick(); setInsStatus("Token removed from this browser.", null);
+        clearInsTok(); refreshInsForget(); const _dl = $("repoList"); if (_dl) _dl.innerHTML = ""; repoListToken = null; renderRepoPick(); renderInstallList(); setInsStatus("Token removed from this browser.", null);
       });
       const _iti = $("insTokInput"); if (_iti) _iti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveInsTokAndInstall(); } });
       const _gti = $("glTokInput"); if (_gti) _gti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveGitLabTokAndInstall(); } });
@@ -2667,6 +3075,10 @@
       const _rg = $("insReinstallGo"); if (_rg) _rg.addEventListener("click", confirmReinstall);
       const _rc = $("insReinstallCancel"); if (_rc) _rc.addEventListener("click", () => { hideReinstallPanel(); installBusy(false); setInsStatus("Install cancelled \u2014 nothing was changed.", null); });
       const _ok = $("optKeep"); if (_ok) _ok.addEventListener("change", renderStalePreview);
+      const _fv = $("insFlightView"); if (_fv) _fv.addEventListener("click", () => { hideFlightPanel(); installBusy(false); setInsStatus("", null); const w = $("insFlightWrap"); if (w) w.scrollIntoView({ behavior: "smooth", block: "center" }); });
+      const _fcg = $("insFlightCancelGo"); if (_fcg) _fcg.addEventListener("click", async () => { hideFlightPanel(); installBusy(true); setInsStatus("Cancelling the install already in flight\u2026", null); await cancelInstall(_flightRepo); await continueAfterFlight(_flightRepo); });
+      const _fa = $("insFlightAnyway"); if (_fa) _fa.addEventListener("click", () => { hideFlightPanel(); continueAfterFlight(_flightRepo); });
+      const _fx = $("insFlightClose"); if (_fx) _fx.addEventListener("click", () => { hideFlightPanel(); installBusy(false); setInsStatus("Install cancelled \u2014 nothing was changed.", null); });
     }
 
     (async function init() {
@@ -2681,7 +3093,9 @@
       renderVersions(); renderCaps();
       const chooser = $("capChooser"); if (chooser) chooser.open = false;
       wire(); update(); refreshInsForget();
+      refreshInstallPause();
       renderRepoPick(); loadRepoList();
+      renderInstallList(); reconcileInstalls();
 
       // The tooling has relocated: tell the user their install comes from the new
       // official home (and this page followed the pointer to get there).

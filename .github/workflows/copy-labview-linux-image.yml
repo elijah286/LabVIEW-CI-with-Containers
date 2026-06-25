@@ -1,0 +1,185 @@
+name: Copy LabVIEW CI Image - Linux (install seed)
+run-name: Copy Linux worker image (seed from LCWC base, no build)
+
+on:
+  # The install seed COPY for the Linux worker. This is a distinct action from
+  # "Build LabVIEW CI Image - Linux" (which bakes dependencies): it only crane-copies
+  # the shared LCWC Linux worker image into this repository's own GHCR package -- a
+  # fast registry copy, never a rebuild. The installer dispatches it once on a fresh
+  # install; dependency baking is the separate Build workflow run from the
+  # Dependencies page afterwards. Mirrors copy-labview-image.yml for Windows.
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: ''
+  PAGES_URL: ''
+  DEFAULT_TAG: linux-${{ vars.LABVIEW_VERSION || '2026' }}
+  # The shared LCWC Linux worker image, owned by the source repo's GHCR. Clients copy
+  # it; they never build it (the source publishes it via Build LabVIEW CI Image -
+  # Linux). The lowercase reference is immune to the installer's branding rewrite.
+  LCWC_LINUX_BASE_IMAGE: ${{ vars.LCWC_LINUX_BASE_IMAGE || 'ghcr.io/elijah286/labview-ci-with-containers-labview:linux-2026' }}
+
+permissions:
+  contents: write   # also publishes the worker manifest to the gh-pages branch
+  packages: write
+
+concurrency:
+  group: build-labview-linux-image   # shares the lane with the Build workflow so the two never race the worker-manifest publish
+  cancel-in-progress: false
+
+jobs:
+  copy-and-push:
+    # Pure registry copy: crane only, no Docker build -- a fast network copy of the
+    # multi-GB Linux worker image on ubuntu-latest.
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image name and date tag
+        id: date
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          PAGES_URL_OVERRIDE: ${{ vars.PAGES_URL }}
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${owner}/${name}" >> "$GITHUB_ENV"
+          echo "PAGES_URL=${PAGES_URL_OVERRIDE:-https://${owner}.github.io/${GITHUB_REPOSITORY##*/}}" >> "$GITHUB_ENV"
+          echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up crane (registry copy tool)
+        shell: bash
+        run: |
+          ver=v0.20.2
+          url="https://github.com/google/go-containerregistry/releases/download/${ver}/go-containerregistry_Linux_x86_64.tar.gz"
+          tmp="$(mktemp -d)"
+          curl -fsSL "$url" | tar -xz -C "$tmp"
+          echo "$tmp" >> "$GITHUB_PATH"
+          "$tmp/crane" version
+
+      - name: Resolve the LCWC Linux base image digest
+        id: base
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_image="${LCWC_LINUX_BASE_IMAGE}"
+          case "$base_image" in *:*) ;; *) base_image="${base_image}:${DEFAULT_TAG}";; esac
+          digest="$(crane digest "$base_image" 2>/dev/null || true)"
+          if [ -z "$digest" ]; then
+            echo "::error::Could not read the LCWC Linux base image '${base_image}' from the registry. Confirm the source GHCR package is public/readable, or set the LCWC_LINUX_BASE_IMAGE repository variable to a readable base image."
+            exit 1
+          fi
+          echo "image=${base_image}" >> "$GITHUB_OUTPUT"
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+          echo "LCWC Linux base image: ${base_image}  digest: ${digest}"
+
+      # Worker version = short SHA-256 over the LCWC Linux seed image + its digest. A
+      # seed copy bakes no dependencies, so vipc-count is always 0. Same inputs -> same
+      # immutable tag (matches the no-deps path of the Build workflow).
+      - name: Compute worker version
+        id: ver
+        shell: bash
+        env:
+          BASE_IMAGE: ${{ steps.base.outputs.image }}
+          BASE_DIGEST: ${{ steps.base.outputs.digest }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, os
+          parts = [
+              f"lcwc-linux-base-image={os.environ['BASE_IMAGE']}",
+              f"lcwc-linux-base-digest={os.environ['BASE_DIGEST']}",
+              "vipc-count=0",
+          ]
+          digest = hashlib.sha256('\n'.join(parts).encode('utf-8')).hexdigest()
+          version = 'linux-' + digest[:12]
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write(f'version={version}\n')
+          print('Worker version:', version)
+          PY
+
+      - name: Copy and tag the Linux worker image
+        shell: bash
+        env:
+          BASE_IMAGE: ${{ steps.base.outputs.image }}
+        run: |
+          set -euo pipefail
+          base="${IMAGE_NAME}"
+          tag="${DEFAULT_TAG}"
+          date_tag="${{ steps.date.outputs.date }}"
+          wv="${{ steps.ver.outputs.version }}"
+          echo "::notice::Copying the shared LCWC Linux worker image (${BASE_IMAGE}) into ${base} with crane -- a registry-to-registry copy, no rebuild. Dependencies are applied afterwards by the separate Build LabVIEW CI Image - Linux workflow."
+          immutable="${base}:${wv}"
+          crane copy "${BASE_IMAGE}" "${immutable}"
+          for t in "${tag}" "${tag}-${date_tag}" "linux-latest"; do
+            crane tag "${immutable}" "${t}"
+            echo "Published (registry copy): ${base}:${t}"
+          done
+          echo "Published (registry copy): ${immutable}"
+
+      - name: Generate worker manifest
+        shell: bash
+        env:
+          BASE_IMAGE: ${{ steps.base.outputs.image }}
+          BASE_DIGEST: ${{ steps.base.outputs.digest }}
+        run: |
+          set -euo pipefail
+          wv="${{ steps.ver.outputs.version }}"
+          image_ref="${IMAGE_NAME}:${wv}"
+          out_dir="ci-out/workers-pages/workers/linux/${wv}"
+          mkdir -p ci-out/worker "$out_dir"
+          : > ci-out/worker/nipkg-list.txt
+          : > ci-out/worker/vipm-list.txt
+
+          python3 .github/labview/build-worker-manifest.py \
+            --platform linux \
+            --version "$wv" \
+            --nipkg-list ci-out/worker/nipkg-list.txt \
+            --vipm-list ci-out/worker/vipm-list.txt \
+            --labview-version "${{ vars.LABVIEW_VERSION || '2026' }}" \
+            --pages-url "${PAGES_URL}" \
+            --base-image "${BASE_IMAGE}" \
+            --base-digest "${BASE_DIGEST}" \
+            --image-ref "$image_ref" \
+            --git-sha "${{ github.sha }}" \
+            --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --out-dir "$out_dir"
+
+          cat > "ci-out/workers-pages/workers/linux/latest.json" <<JSON
+          {
+            "version": "$wv",
+            "platform": "linux",
+            "manifest_url": "${PAGES_URL}/workers/linux/$wv/manifest.html",
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_sha": "${{ github.sha }}"
+          }
+          JSON
+
+      - name: Publish worker manifest to GitHub Pages
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: ci-out/workers-pages
+          commit_message: Publish Linux worker manifest
+      - name: Summary
+        shell: bash
+        run: |
+          echo "### Linux worker image copied (install seed)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${{ env.IMAGE_NAME }}:${{ steps.ver.outputs.version }}\` (immutable worker tag)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Seed copy only -- no dependencies baked. Apply project dependencies with the **Build LabVIEW CI Image - Linux** workflow from the Dependencies page." >> "$GITHUB_STEP_SUMMARY"

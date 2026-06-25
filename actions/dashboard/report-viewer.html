@@ -78,6 +78,9 @@
        rest of the viewport beneath it. */
     iframe{flex:1 1 auto;width:100%;border:0;background:var(--bg)}
     .err{margin:auto;padding:40px;text-align:center;color:var(--fg-muted)}
+    .err h1{margin:0 0 10px;color:var(--fg);font-size:1.45em}
+    .err .btn{display:inline-block;margin:8px 6px 0;padding:9px 18px;border-radius:8px;background:#2da44e;color:#fff;text-decoration:none;font-weight:700}
+    .err .link{display:inline-block;margin:8px 6px 0;color:var(--link);font-weight:700}
   </style>
 </head>
 <body>
@@ -94,8 +97,43 @@
       document.title = cfg.framedTitle || 'CI Report';
       var frame = document.getElementById('frame');
       var err = document.getElementById('err');
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, function (ch) { return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[ch]; });
+      }
+      function dashboardRoot() {
+        return location.pathname.indexOf('/report/') >= 0
+          ? location.pathname.replace(/report\/[^/]*$/, '')
+          : location.pathname.replace(/[^/]*$/, '');
+      }
+      function capForType(type) {
+        return ({
+          'masscompile-report': 'masscompile',
+          'vi-analyzer-report': 'vi-analyzer',
+          'unit-tests-report': 'unit-tests',
+          'antidoc-report': 'antidoc'
+        })[type] || '';
+      }
+      function populateHistoryUrl() {
+        var cap = capForType(cfg.context);
+        var url = dashboardRoot() + '?lvci-populate=1';
+        if (cap) url += '&cap=' + encodeURIComponent(cap);
+        if (cfg.sha) url += '&sha=' + encodeURIComponent(cfg.sha);
+        if (cfg.platform) url += '&platform=' + encodeURIComponent(cfg.platform);
+        return url;
+      }
+      function showMissingReport() {
+        frame.removeAttribute('src');
+        frame.hidden = true;
+        err.hidden = false;
+        err.innerHTML = '<h1>Report document not found</h1>'
+          + '<p>This revision does not have a published <strong>' + escapeHtml(cfg.framedTitle || 'CI report') + '</strong> document yet. Populate history to generate missing report documents for older revisions.</p>'
+          + '<a class="btn" href="' + escapeHtml(populateHistoryUrl()) + '">Populate history</a>'
+          + '<a class="link" target="_blank" rel="noopener" href="' + escapeHtml(cfg.framedSrc || '') + '">Open raw URL</a>';
+      }
       if (cfg.framedSrc) {
-        frame.src = cfg.framedSrc;
+        fetch(cfg.framedSrc, { method: 'HEAD', cache: 'no-store' })
+          .then(function (response) { if (!response.ok) throw new Error(String(response.status)); frame.src = cfg.framedSrc; })
+          .catch(showMissingReport);
       } else {
         frame.hidden = true;
         err.hidden = false;

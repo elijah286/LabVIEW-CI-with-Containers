@@ -20,6 +20,7 @@ activities:
   - vi-analyzer
   - vidiff
   - snapshots
+  - snapshots-2
   - unit-tests
 
 # Unit-test frameworks to run in CI, plus the pass-rate thresholds that color the

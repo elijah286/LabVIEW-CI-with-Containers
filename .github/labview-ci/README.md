@@ -8,7 +8,7 @@ installed into any LabVIEW repository — from the command line or from the
 |---|---|---|
 | **Dashboard** | GitHub Pages dashboard aggregating every commit's CI status + the configurator | Linux runner |
 | **Mass Compile** | Compiles every VI to catch broken/mutated code; reports % compiled | Windows |
-| **VI Analyzer** | Runs the VI Analyzer test suite; native + friendly report | Windows / Linux |
+| **VI Analyzer** | Runs the VI Analyzer test suite; native + friendly report | Windows |
 | **VIDiff** | Side-by-side visual diff reports per changed VI; PR comments | Windows / Linux |
 | **VI Snapshots** | Browseable gallery of every VI's block diagram (the VI Browser) | Windows |
 | **Shared image** | Builds the LabVIEW CI container image to GHCR | Windows / Linux |
@@ -75,6 +75,57 @@ The installer **only writes files into the working tree** — it never runs
 LabVIEW, commits, or pushes. Review the result with `git diff`, then follow the
 printed next steps (enable Pages, set Actions permissions, commit & push).
 
+## Installing to a private GitHub repository
+
+Private GitHub repositories are supported. The main difference is that GitHub
+cannot read or write a private target repository unless you authenticate with a
+fine-grained personal access token that has access to that specific repository.
+The easiest path is the published
+[Apply to New Repo page](https://elijah286.github.io/LabVIEW-CI-with-Containers/integrate.html),
+which walks you through creating that token with the permissions pre-filled and
+then opens the install pull request for you.
+
+Before installing, make sure:
+
+1. The target repository already exists.
+2. For GitHub repositories, the target repository has at least one commit. A
+  README-only initial commit is enough.
+3. Your token's **Repository access** includes the private repository. GitHub's
+  token page can pre-fill the owner and permissions, but you still choose which
+  repositories the token can access.
+4. The token has the permissions needed for the install choices you enable:
+
+| Permission | Why the installer may need it |
+|---|---|
+| Contents: Read and write | Create the install branch and commit workflow/tooling files |
+| Pull requests: Read and write | Open the install PR when you review before merging |
+| Workflows: Read and write | Add or update files under `.github/workflows/` |
+| Actions: Read and write | Dispatch the dashboard publish workflow and later CI backfills |
+| Administration: Read and write | Optional: set workflow permissions for the repo |
+| Pages: Read and write | Optional: enable GitHub Pages automatically |
+| Secrets: Read and write | Optional: store `TOOLING_UPDATE_TOKEN` for one-click future updates |
+
+If you install from a local checkout instead of the browser page, run the
+bootstrapper from the private repo's working tree. The installer usually infers
+the GitHub repo from `origin`, but you can specify it explicitly when needed:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/elijah286/challenge-of-champions/main/.github/labview-ci/install.sh \
+  | bash -s -- --repo your-org/your-private-repo \
+          --activities masscompile,vi-analyzer,vidiff,dashboard \
+          --os windows,linux --labview-version 2026
+```
+
+Private repo dashboards use GitHub Pages just like public repo dashboards. On
+GitHub Free, Pages for private repositories may be unavailable; GitHub Pro,
+Team, or Enterprise is typically required. If Pages cannot be enabled
+automatically, the installer still lands the CI tooling and reports the manual
+follow-up instead of treating the whole install as failed.
+
+After the install PR is merged, the workflows run inside your repository. Worker
+images are published under your repository's GHCR packages, and private
+repositories are not listed by the public client discovery page.
+
 ### Installer flags
 
 | Flag | Meaning |
@@ -83,7 +134,7 @@ printed next steps (enable Pages, set Actions permissions, commit & push).
 | `--os windows,linux` | Target operating systems |
 | `--labview-version` | LabVIEW year (default 2026) |
 | `--image-name` | GHCR image name override |
-| `--repo owner/name` | Target repo (default: inferred from the git remote) |
+| `--repo owner/name` | Target repo (default: inferred from the git remote); use the [Apply to New Repo page](https://elijah286.github.io/LabVIEW-CI-with-Containers/integrate.html) for a guided browser install |
 | `--dry-run` | Show what would change without writing |
 | `--force` | Overwrite files that already exist |
 | `--update` | Re-pull the latest tooling for an existing install (overwrites tooling, preserves your config) |

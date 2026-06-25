@@ -17,6 +17,9 @@ on:
       - '.github/pages/documentation.html'
       - '.github/pages/clients.html'
       - '.github/pages/lvci-header.js'
+      # The dashboard stages catalog.json at the Pages root (version badge +
+      # What's New), so a catalog/version change must rebuild the dashboard too.
+      - '.github/labview-ci/catalog.json'
       - '.github/workflows/dashboard-pages.yml'
       # Rebuild when the shared dashboard action (generator or its bundled pages)
       # changes, so this repo's own dashboard always reflects the latest tooling.
@@ -38,7 +41,6 @@ on:
       - "Mass Compile — Windows Container"
       - "Mass Compile Backfill — Windows Container"
       - "Run VI Analyzer — Windows Container"
-      - "Run VI Analyzer — Linux Container"
       - "VIDiff Report — Windows Container"
       - "VIDiff Report — Linux Container"
       - "VIDiff Deploy — Pages + PR Comment"
@@ -88,10 +90,11 @@ jobs:
           pages-url: ${{ env.PAGES_URL }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Publish the dashboard to gh-pages. The shared publish action retries on a
+      # concurrent-push conflict (gh-pages is a single branch many jobs push to),
+      # so it no longer needs the manual wait-and-retry this step used to carry.
       - name: Deploy dashboard to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/dashboard
-          destination_dir: .
-          keep_files: true
+          commit_message: Publish dashboard

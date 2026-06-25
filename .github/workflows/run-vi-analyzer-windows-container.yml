@@ -1,5 +1,5 @@
 name: Run VI Analyzer — Windows Container
-run-name: VI Analyzer Windows container - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.event.pull_request.head.sha || github.sha }}
+run-name: VI Analyzer Windows container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 on:
   pull_request:
@@ -104,7 +104,7 @@ jobs:
         shell: bash
         run: |
           git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
-          git checkout FETCH_HEAD -- .github/labview .github/workflows
+          git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
 
       # GHCR rejects upper-case repository names. The Configure dialog writes the
       # selected container tag to config.container.use in .github/labview-ci.yml
@@ -329,12 +329,10 @@ jobs:
 
       - name: Deploy report to GitHub Pages
         if: steps.report.outputs.exists == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
           destination_dir: ${{ steps.dest.outputs.dir }}
-          keep_files: true
 
       - name: Post commit status
         if: always() && github.event.inputs.files == ''

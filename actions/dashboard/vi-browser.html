@@ -397,6 +397,7 @@ let currentDiffRow = null;       // the tree row backing the current view (for r
 // uses each VI's frames JSON and gracefully falls back to 1.0 when none exists yet.
 let viewerMode = (new URLSearchParams(location.search).get('viewer') === '2') ? '2' : '1';
 let currentSnapshot = null;      // { html, title } of the open plain snapshot (re-rendered on a 1.0/2.0 switch)
+let frameRequestId = 0;          // cancels stale async 1.0 snapshot preflight results
 // VI Browser 2.0 sub-view: 'fp' = front panel (frames[0]), 'bd' = block diagram
 // (frames[1] + its nested case frames). Sticky across VIs; defaults to the front
 // panel so the in-place view opens on what the previous build already showed.
@@ -432,6 +433,12 @@ const ICON = {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function populateHistoryUrl() {
+  const root = BASE.replace(/vi-snapshots\/$/, '');
+  const sha = (document.getElementById('commit-select') || {}).value || '';
+  return root + '?lvci-populate=1' + (sha ? '&sha=' + encodeURIComponent(sha) : '');
 }
 
 // Build a folder tree from the flat manifest using each VI's on-disk relative path.
@@ -860,6 +867,7 @@ function openSnapshot(htmlUrl, title) {
 
 // Render the in-place diagram into #vi-canvas (same-origin parent document).
 function showInPlace(frames, htmlUrl, title) {
+  frameRequestId++;
   document.getElementById('vi-title').textContent = title;
   const open = document.getElementById('open-link');
   open.href = htmlUrl; open.style.display = 'inline';
@@ -936,6 +944,7 @@ function hideVb2PlatToggle() {
 function showNeedsToken(htmlUrl, title) {
   // 2.0 empty state: this VI has no frames JSON yet (no render exists, run in
   // progress, or the run failed). The 2.0 controller below reflects the real state.
+  frameRequestId++;
   const canvas = document.getElementById('vi-canvas');
   if (canvas) canvas.style.display = 'none';
   if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
@@ -960,6 +969,7 @@ function showNeedsToken(htmlUrl, title) {
 }
 
 function showInFrame(url, title) {
+  const requestId = ++frameRequestId;
   // Leaving any in-place render: hide the canvas and restore the iframe.
   const canvas = document.getElementById('vi-canvas');
   if (canvas) canvas.style.display = 'none';
@@ -981,14 +991,46 @@ function showInFrame(url, title) {
   document.getElementById('viewer').style.display = 'block';
   const frame = document.getElementById('vi-frame');
   setViewerLoading(true);
-  // The snapshot is same-origin (gh-pages), so we can restyle its DOM on load to
-  // make images fit/zoom and turn a Case/Event structure's frames into a stepper.
-  frame.onload = () => {
-    try { enhanceSnapshot(frame.contentDocument); }
-    catch (e) { /* cross-origin or unexpected DOM: fall back to the raw snapshot */ }
-    setViewerLoading(false);
-  };
-  frame.src = url;
+  fetch(url, { method: 'HEAD', cache: 'no-store' })
+    .then(r => { if (!r.ok) throw new Error(String(r.status)); return r; })
+    .then(() => {
+      if (requestId !== frameRequestId) return;
+      // The snapshot is same-origin (gh-pages), so we can restyle its DOM on load to
+      // make images fit/zoom and turn a Case/Event structure's frames into a stepper.
+      frame.onload = () => {
+        try { enhanceSnapshot(frame.contentDocument); }
+        catch (e) { /* cross-origin or unexpected DOM: fall back to the raw snapshot */ }
+        setViewerLoading(false);
+      };
+      frame.src = url;
+    })
+    .catch(() => { if (requestId === frameRequestId) showMissingDocument(url, title); });
+}
+
+function showMissingDocument(url, title) {
+  const frame = document.getElementById('vi-frame');
+  if (frame) { frame.removeAttribute('src'); frame.style.display = 'none'; }
+  const canvas = document.getElementById('vi-canvas'); if (canvas) canvas.style.display = 'none';
+  if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
+  const drf = document.getElementById('vi-diffrun'); if (drf) drf.style.display = 'none';
+  const nt = document.getElementById('vi-needtoken'); if (nt) nt.style.display = 'block';
+  document.getElementById('vi-title').textContent = title;
+  const open = document.getElementById('open-link'); if (open) { open.href = url; open.style.display = 'inline'; }
+  const hint = document.getElementById('viewer-hint'); if (hint) hint.style.display = 'none';
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('viewer').style.display = 'block';
+  hideRegenLink(); hidePaneToggle(); hideVb2PlatToggle();
+  try { if (window.__lvciVB2 && window.__lvciVB2.cancel) window.__lvciVB2.cancel(); } catch (e) {}
+  const tokp = document.getElementById('nt-tokp'); if (tokp) tokp.style.display = 'none';
+  const state = document.getElementById('nt-state'); if (state) state.style.display = 'block';
+  const icon = document.getElementById('nt-state-icon'); if (icon) icon.textContent = '!';
+  const stTitle = document.getElementById('nt-state-title'); if (stTitle) stTitle.textContent = 'Snapshot document not found';
+  const msg = document.getElementById('nt-state-msg');
+  if (msg) msg.innerHTML = 'This revision lists <strong>' + escapeHtml(title) + '</strong>, but its snapshot HTML has not been published yet. Populate history to generate missing VI Browser documents for older revisions.';
+  const actions = document.getElementById('nt-state-actions');
+  if (actions) actions.innerHTML = '<a href="' + escapeHtml(populateHistoryUrl()) + '" style="padding:9px 18px;border-radius:8px;background:#2da44e;color:#fff;font-weight:600;text-decoration:none">Populate history</a><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="color:var(--link);font-weight:600">Open raw URL</a>';
+  const status = document.getElementById('nt-state-status'); if (status) status.textContent = '';
+  setViewerLoading(false);
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -1674,12 +1716,28 @@ function enterReportLens(key, sha) {
   if (open)  open.href = viewer;
   if (loading) loading.classList.add('show');
   frame.title = info.label + ' report';
-  frame.onload = function () { if (loading) loading.classList.remove('show'); };
-  frame.src = bare;
   document.body.classList.add('lens-report');
   curLens = key;
   syncUrl();
+  frame.onload = function () { if (loading) loading.classList.remove('show'); };
+  fetch(bare, { method: 'HEAD', cache: 'no-store' })
+    .then(r => { if (!r.ok) throw new Error(String(r.status)); return r; })
+    .then(() => { frame.removeAttribute('srcdoc'); frame.src = bare; })
+    .catch(() => showMissingLensDocument(frame, info, sha, bare));
   return true;
+}
+
+function showMissingLensDocument(frame, info, sha, rawUrl) {
+  const title = (info ? info.label : 'Report') + ' document not found';
+  const hist = populateHistoryUrl();
+  frame.removeAttribute('src');
+  frame.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;font:14px/1.55 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#57606a;background:#fff}main{max-width:560px;padding:32px;text-align:center}h1{margin:0 0 10px;color:#1f2328;font-size:1.45em}.btn{display:inline-block;margin:8px 6px 0;padding:9px 18px;border-radius:8px;background:#2da44e;color:#fff;text-decoration:none;font-weight:700}.link{color:#0969da;font-weight:700}</style></head><body><main>'
+    + '<h1>' + escapeHtml(title) + '</h1>'
+    + '<p>This revision has no published ' + escapeHtml(info ? info.label : 'report') + ' document for <code>' + escapeHtml(sha || '') + '</code> yet. Populate history to generate missing report documents for older revisions.</p>'
+    + '<a class="btn" target="_top" href="' + escapeHtml(hist) + '">Populate history</a>'
+    + '<a class="link" target="_blank" rel="noopener" href="' + escapeHtml(rawUrl || '') + '">Open raw URL</a>'
+    + '</main></body></html>';
 }
 function exitReportLens(skipUrl) {
   if (curLens === 'snapshots') return;
@@ -1984,7 +2042,7 @@ else document.addEventListener('lvci:ready', lvciPlaceRevInContextBar);
   function dispatchTokenUrl() {
     return "https://github.com/settings/personal-access-tokens/new?name=" + encodeURIComponent("LabVIEW CI dispatch") + "&description=" + encodeURIComponent("Dispatch CI runs for " + repo) + "&target_name=" + encodeURIComponent(repo.split("/")[0]) + "&actions=write";
   }
-  function buildWfUrl() { return "https://github.com/" + esc(repo) + "/actions/workflows/build-toimages-image.yml"; }
+  function buildWfUrl() { return "https://github.com/" + esc(repo) + "/actions/workflows/build-labview-linux-image.yml"; }
   function defaultBranch(token) {
     return gh("/repos/" + repo, token).then(ghJson).then(function (d) { return (d && d.default_branch) || "main"; }).catch(function () { return "main"; });
   }

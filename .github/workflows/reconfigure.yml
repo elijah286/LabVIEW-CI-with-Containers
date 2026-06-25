@@ -36,7 +36,11 @@ on:
         required: false
         default: ''
       container_vipc:
-        description: 'Baked VIPC files as path::monitor pairs separated by ; (blank = keep current)'
+        description: 'Monitored VIPC files as path::monitor pairs separated by ; (blank = keep current)'
+        required: false
+        default: ''
+      container_dragon:
+        description: 'Monitored Dragon (NIPM) files as path::monitor pairs separated by ; (blank = keep current)'
         required: false
         default: ''
       container_actions:
@@ -47,14 +51,24 @@ on:
         description: 'Per-activity submission triggers as id::sources pairs separated by ; (sources joined by +, e.g. snapshots::push-default+pr-branch; use "none" to disable an activity; blank = keep current)'
         required: false
         default: ''
-      on_dependency_change:
-        description: 'Re-run the build/test/doc pipeline after a dependency (.vipc) change: true, false, or blank = keep current'
-        required: false
-        default: ''
       vi_browser:
         description: 'VI Browser render matrix as classic::<oses>;positionAware::<oses> (oses joined by +, e.g. positionAware::windows+linux; "none" to disable a generation; blank = keep current)'
         required: false
         default: ''
+      action_os:
+        description: 'Per-action platforms as id::oses pairs separated by ; (oses joined by +, e.g. masscompile::windows+linux;snapshots::windows; "none" to run nowhere; blank = keep current)'
+        required: false
+        default: ''
+      require_dependencies:
+        description: 'Require all monitored dependencies to be installed before running actions (keep = leave unchanged)'
+        type: choice
+        options: [keep, 'true', 'false']
+        default: keep
+      auto_install_dependencies:
+        description: 'Automatically install missing monitored dependencies and rebuild containers before running actions (keep = leave unchanged)'
+        type: choice
+        options: [keep, 'true', 'false']
+        default: keep
       via_default:
         description: 'VI Analyzer default test configuration: builtin (full suite), none (skip unmatched VIs), or a committed .viancfg path (blank = keep current)'
         required: false
@@ -97,10 +111,13 @@ jobs:
           IN_ACTS: ${{ inputs.activities }}
           IN_CONTAINER_USE: ${{ inputs.container_use }}
           IN_CONTAINER_VIPC: ${{ inputs.container_vipc }}
+          IN_CONTAINER_DRAGON: ${{ inputs.container_dragon }}
           IN_CONTAINER_ACTIONS: ${{ inputs.container_actions }}
           IN_ACTION_TRIGGERS: ${{ inputs.action_triggers }}
-          IN_DEP_TRIGGER: ${{ inputs.on_dependency_change }}
           IN_VI_BROWSER: ${{ inputs.vi_browser }}
+          IN_ACTION_OS: ${{ inputs.action_os }}
+          IN_REQUIRE_DEPS: ${{ inputs.require_dependencies }}
+          IN_AUTO_INSTALL_DEPS: ${{ inputs.auto_install_dependencies }}
           IN_VIA_DEFAULT: ${{ inputs.via_default }}
           IN_VIA_RULES: ${{ inputs.via_rules }}
           IN_UNIT_TESTS: ${{ inputs.unit_tests }}
@@ -115,10 +132,13 @@ jobs:
           acts_in = os.environ['IN_ACTS'].strip()
           container_use_in = os.environ.get('IN_CONTAINER_USE', '').strip()
           container_vipc_in = os.environ.get('IN_CONTAINER_VIPC', '').strip()
+          container_dragon_in = os.environ.get('IN_CONTAINER_DRAGON', '').strip()
           container_actions_in = os.environ.get('IN_CONTAINER_ACTIONS', '').strip()
           action_triggers_in = os.environ.get('IN_ACTION_TRIGGERS', '').strip()
-          dep_trigger_in = os.environ.get('IN_DEP_TRIGGER', '').strip().lower()
           vi_browser_in = os.environ.get('IN_VI_BROWSER', '').strip()
+          action_os_in = os.environ.get('IN_ACTION_OS', '').strip()
+          require_deps_in = os.environ.get('IN_REQUIRE_DEPS', '').strip().lower()
+          auto_install_in = os.environ.get('IN_AUTO_INSTALL_DEPS', '').strip().lower()
           via_default_in = os.environ.get('IN_VIA_DEFAULT', '').strip()
           via_rules_in = os.environ.get('IN_VIA_RULES', '').strip()
           unit_tests_in = os.environ.get('IN_UNIT_TESTS', '').strip()
@@ -126,19 +146,23 @@ jobs:
           # Preserve provenance fields from any existing manifest.
           mpath = pathlib.Path('.github/labview-ci.yml')
           prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main',
-                  'container_use': '', 'vipc': [], 'actions': {}, 'triggers': {}, 'viBrowser': {}, 'unitTests_block': [],
+                  'container_use': '', 'vipc': [], 'dragon': [], 'actions': {}, 'triggers': {}, 'viBrowser': {}, 'actionOs': {}, 'dependencyPolicy': {}, 'unitTests_block': [],
                   'labviewVersion': '', 'os': [], 'maxParallel': None}
           if mpath.exists():
-              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_ut = False; cur_vipc = None
+              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_action_os = False; in_dep_policy = False; in_ut = False; cur_vipc = None
               for line in mpath.read_text(encoding='utf-8').splitlines():
                   if re.match(r'^\s*activities:\s*$', line):
-                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
+                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_action_os = False; in_dep_policy = False; continue
                   if re.match(r'^\s*container:\s*$', line):
-                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
+                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_action_os = False; in_dep_policy = False; continue
                   if re.match(r'^\s*triggers:\s*$', line):
-                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_vibrowser = False; continue
+                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_vibrowser = False; in_action_os = False; in_dep_policy = False; continue
                   if re.match(r'^\s*viBrowser:\s*$', line):
-                      in_vibrowser = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; continue
+                      in_vibrowser = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_action_os = False; in_dep_policy = False; continue
+                  if re.match(r'^\s*actionOs:\s*$', line):
+                      in_action_os = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_dep_policy = False; continue
+                  if re.match(r'^\s*dependencyPolicy:\s*$', line):
+                      in_dep_policy = True; in_action_os = False; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
                   if re.match(r'^unitTests:\s*$', line):
                       in_ut = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False
                       prev['unitTests_block'] = [line]; continue
@@ -158,6 +182,14 @@ jobs:
                       m = re.match(r'^\s{4}(classic|positionAware):\s*(\S+)', line)
                       if m: prev['viBrowser'][m.group(1)] = m.group(2); continue
                       if re.match(r'^\s{0,3}\S', line): in_vibrowser = False
+                  if in_action_os:
+                      m = re.match(r'^\s{4}([A-Za-z0-9_.\-]+):\s*(\S+)', line)
+                      if m: prev['actionOs'][m.group(1)] = m.group(2); continue
+                      if re.match(r'^\s{0,3}\S', line): in_action_os = False
+                  if in_dep_policy:
+                      m = re.match(r'^\s{4}(requireInstalled|autoInstall):\s*(\S+)', line)
+                      if m: prev['dependencyPolicy'][m.group(1)] = m.group(2); continue
+                      if re.match(r'^\s{0,3}\S', line): in_dep_policy = False
                   if in_container:
                       m = re.match(r'^\s{4}use:\s*"?([^"\s]+)"?', line)
                       if m: prev['container_use'] = m.group(1); in_vipc = False; in_actions = False; continue
@@ -165,7 +197,7 @@ jobs:
                       if re.match(r'^\s{4}actions:\s*$', line): in_actions = True; in_vipc = False; continue
                       if in_vipc:
                           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
-                          if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': True}; prev['vipc'].append(cur_vipc); continue
+                          if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': False}; prev['vipc'].append(cur_vipc); continue
                           m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                           if m and cur_vipc is not None: cur_vipc['monitor'] = (m.group(1).strip().lower() == 'true'); continue
                       if in_actions:
@@ -184,6 +216,31 @@ jobs:
                   if m: prev['os'] = [x.strip() for x in m.group(1).split(',') if x.strip()]
                   m = re.match(r'^\s{4}maxParallel:\s*(\d+)', line)
                   if m: prev['maxParallel'] = int(m.group(1))
+
+          # Monitored Dragon files (config.container.dragon): scanned separately from the
+          # main state machine above to keep that loop untouched. container: -> dragon:
+          def _scan_prev_dragon(text):
+              out = []; in_c = False; in_d = False; cur = None
+              for line in text.splitlines():
+                  if re.match(r'^\s*container:\s*$', line):
+                      in_c = True; in_d = False; cur = None; continue
+                  if not in_c:
+                      continue
+                  if re.match(r'^\s{0,3}\S', line):     # left the container block
+                      in_c = False; in_d = False; cur = None; continue
+                  if re.match(r'^\s{4}dragon:\s*$', line):
+                      in_d = True; cur = None; continue
+                  if re.match(r'^\s{4}\S', line):       # another 4-space key ends the list
+                      in_d = False; cur = None; continue
+                  if in_d:
+                      m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
+                      if m:
+                          cur = {'path': m.group(1).strip(), 'monitor': False}; out.append(cur); continue
+                      m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
+                      if m and cur is not None:
+                          cur['monitor'] = (m.group(1).strip().lower() == 'true')
+              return out
+          prev['dragon'] = _scan_prev_dragon(mpath.read_text(encoding='utf-8')) if mpath.exists() else []
 
           # version / os / runners: explicit input wins; blank or "keep" preserves
           # whatever the manifest had (so a focused editor can change one thing).
@@ -206,9 +263,10 @@ jobs:
                       path, mon = entry.rsplit('::', 1)
                       out.append({'path': path.strip(), 'monitor': mon.strip().lower() not in ('0', 'false', 'no', 'off')})
                   else:
-                      out.append({'path': entry, 'monitor': True})
+                      out.append({'path': entry, 'monitor': False})
               return out
           vipc = _parse_vipc(container_vipc_in) if container_vipc_in else prev['vipc']
+          dragon = _parse_vipc(container_dragon_in) if container_dragon_in else prev['dragon']
 
           # Per-action container overrides: explicit input wins; blank keeps the
           # manifest's. Each entry is "<activity-id>::<tag>" (tag = latest, a pinned
@@ -237,20 +295,8 @@ jobs:
                   if k and v: out[k] = v
               return out
           triggers = _parse_triggers(action_triggers_in) if action_triggers_in else dict(prev['triggers'])
-
-          # config.triggers.onDependencyChange (re-run the pipeline after a .vipc
-          # change) is a sibling flag, NOT a per-activity source entry. Carry it
-          # separately so the per-activity matrix replacement above never drops it:
-          # the explicit input wins; blank keeps whatever the manifest had.
-          prev_dep = str(prev['triggers'].get('onDependencyChange', '')).strip().lower()
-          if dep_trigger_in in ('true', 'false'):
-              dep_flag = dep_trigger_in
-          elif prev_dep in ('true', 'false'):
-              dep_flag = prev_dep
-          else:
-              dep_flag = ''
-          # Never let it ride along in the activity-source matrix (it would be
-          # double-written and misread as an activity id).
+          # onDependencyChange is retired: dependency updates are explicit/opt-in and
+          # never auto-rerun the pipeline. Drop any legacy flag so it is not re-emitted.
           triggers.pop('onDependencyChange', None)
 
           # VI Browser render matrix: explicit input wins; blank keeps the manifest's.
@@ -265,6 +311,18 @@ jobs:
                   if k and v: out[k] = v
               return out
           vi_browser = _parse_vibrowser(vi_browser_in) if vi_browser_in else prev['viBrowser']
+
+          # Per-action platforms (config.actionOs): same id::oses;.. shape as the
+          # VI Browser matrix. Explicit input wins; blank keeps the manifest's.
+          action_os = _parse_vibrowser(action_os_in) if action_os_in else prev['actionOs']
+
+          # Dependency policy: explicit input wins; "keep"/blank preserves.
+          def _dep_bool(in_val, key):
+              if in_val in ('', 'keep'):
+                  return str(prev['dependencyPolicy'].get(key, '')).lower() == 'true'
+              return in_val == 'true'
+          require_installed = _dep_bool(require_deps_in, 'requireInstalled')
+          auto_install = _dep_bool(auto_install_in, 'autoInstall')
 
           # VI Analyzer: which .viancfg test config runs on which code. Explicit
           # inputs win; blank keeps the manifest's. Parsed on its own (nested rules).
@@ -342,6 +400,12 @@ jobs:
                   p = str(v['path']).replace('"', '')
                   lines.append(f'      - path: "{p}"')
                   lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
+          if dragon:
+              lines.append('    dragon:')
+              for v in dragon:
+                  p = str(v['path']).replace('"', '')
+                  lines.append(f'      - path: "{p}"')
+                  lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
           if container_actions:
               lines.append('    actions:')
               for _id in sorted(container_actions):
@@ -364,12 +428,18 @@ jobs:
                           lines.append('      - config: "' + str(_cfg).replace('"', '') + '"')
                       _paths = '|'.join(str(p).replace('|', '').replace('"', '') for p in _r['paths'])
                       lines.append(f'        paths: "{_paths}"')
-          if triggers or dep_flag:
+          if triggers:
               lines.append('  triggers:')
-              if dep_flag:
-                  lines.append(f'    onDependencyChange: {dep_flag}')
               for _id in sorted(triggers):
                   lines.append(f'    {_id}: {triggers[_id]}')
+          if action_os:
+              lines.append('  actionOs:')
+              for _id in sorted(action_os):
+                  lines.append(f'    {_id}: {action_os[_id]}')
+          if require_installed or auto_install:
+              lines.append('  dependencyPolicy:')
+              lines.append(f"    requireInstalled: {'true' if require_installed else 'false'}")
+              lines.append(f"    autoInstall: {'true' if auto_install else 'false'}")
           lines += ['activities:'] + [f'  - {a}' for a in acts] + ['']
           def _unit_tests_block_from_json(s):
               data = json.loads(s)

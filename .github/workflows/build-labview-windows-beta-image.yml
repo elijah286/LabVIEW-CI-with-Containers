@@ -1,0 +1,236 @@
+name: Build LabVIEW CI Image - Windows Beta
+run-name: ${{ github.event.inputs.copy_only == 'true' && 'Copy Windows BETA worker image (seed from LCWC beta base, no build)' || 'Build Windows BETA base image' }}
+
+on:
+  # Experimental Windows worker lane. Like the core Windows build, this is never
+  # auto-triggered by a project .vipc change: the SOURCE repo rebuilds the shared
+  # beta base on the monthly security cron or an explicit dispatch, and the
+  # installer dispatches a copy_only run on a client that selected an experimental
+  # capability. (No push trigger: a push would default copy_only off and pin the
+  # slow windows-2022 runner -- the exact bug the core build avoids.)
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+    inputs:
+      copy_only:
+        description: 'Seed/install only: copy the LCWC Windows Beta base image into this repository GHCR package WITHOUT rebuilding (fast). The installer sets this true when an experimental capability is selected. Leave false for the source-repo base rebuild.'
+        type: boolean
+        default: false
+
+env:
+  IMAGE_NAME: ''
+  PAGES_URL: ''
+  # The experimental beta worker tag (distinct from the core :2026 tag).
+  DEFAULT_TAG: windows-beta-${{ vars.LABVIEW_VERSION || '2026' }}
+  # The shared LCWC Windows Beta base image, owned by the source repo's GHCR.
+  # Source detection derives the owning repo from this (lowercase) image name, so
+  # the installer's branding rewrite never makes a client think it is the source.
+  LCWC_BETA_BASE_IMAGE: ${{ vars.LCWC_WINDOWS_BETA_BASE_IMAGE || 'ghcr.io/elijah286/labview-ci-with-containers-labview-base:windows-beta-2026' }}
+
+permissions:
+  contents: write   # also publishes the worker manifest to the gh-pages branch
+  packages: write
+
+concurrency:
+  group: build-labview-windows-beta-image
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    # The source base build needs the Windows Docker daemon, so it pins to
+    # windows-2022. The copy_only install/seed path uses only crane (no Docker),
+    # so it runs on ubuntu-latest whose fast network copies the multi-GB base in a
+    # fraction of the time. crane is OS-agnostic for registry copies.
+    runs-on: ${{ github.event.inputs.copy_only == 'true' && 'ubuntu-latest' || 'windows-2022' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image name and date tag
+        id: date
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          PAGES_URL_OVERRIDE: ${{ vars.PAGES_URL }}
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${owner}/${name}" >> "$GITHUB_ENV"
+          echo "PAGES_URL=${PAGES_URL_OVERRIDE:-https://${owner}.github.io/${GITHUB_REPOSITORY##*/}}" >> "$GITHUB_ENV"
+          echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure Docker daemon is running
+        # Only the source base build uses Docker; the ubuntu copy path is crane-only.
+        if: ${{ github.event.inputs.copy_only != 'true' }}
+        shell: powershell
+        run: ./.github/labview/ensure-docker.ps1
+
+      - name: Set up crane (registry copy tool)
+        shell: pwsh
+        run: |
+          $ver = 'v0.20.2'
+          $osName = if ($env:RUNNER_OS -eq 'Windows') { 'Windows' } else { 'Linux' }
+          $url = "https://github.com/google/go-containerregistry/releases/download/$ver/go-containerregistry_${osName}_x86_64.tar.gz"
+          $tgz = Join-Path $env:RUNNER_TEMP 'crane.tar.gz'
+          $dir = Join-Path $env:RUNNER_TEMP 'crane'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Invoke-WebRequest -Uri $url -OutFile $tgz -UseBasicParsing
+          tar -xzf $tgz -C $dir
+          "$dir" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          $craneExe = if ($env:RUNNER_OS -eq 'Windows') { Join-Path $dir 'crane.exe' } else { Join-Path $dir 'crane' }
+          & $craneExe version
+
+      - name: Prepare LCWC Windows Beta base image
+        id: base
+        shell: pwsh
+        run: |
+          $baseImage = '${{ env.LCWC_BETA_BASE_IMAGE }}'
+          if (-not $baseImage.Contains(':')) { $baseImage = "${baseImage}:${{ env.DEFAULT_TAG }}" }
+          $baseRepo = ($baseImage -replace ':[^/:]+$', '')
+          # Derive the OWNING repo from the base image name: ghcr.io/<owner>/<name>-labview-base
+          # -> <owner>/<name>. Only that source repo BUILDS the beta base; every other repo
+          # is a client that copies it. Immune to the installer's branding rewrite.
+          $sourceSlug = ($baseRepo -replace '^[^/]+/', '') -replace '-labview-base$', ''
+          $isSourceRepo = ('${{ github.repository }}'.ToLowerInvariant() -eq $sourceSlug.ToLowerInvariant())
+
+          if ($isSourceRepo) {
+            $baseHash = (Get-FileHash -LiteralPath '.github/docker/labview-ci-windows-beta.Dockerfile' -Algorithm SHA256).Hash.ToLower().Substring(0, 12)
+            $immutableBase = "${baseRepo}:windows-beta-base-${baseHash}"
+            Write-Host "::notice::Building and publishing the shared LCWC Windows Beta base image $baseImage ($immutableBase) from labview-ci-windows-beta.Dockerfile. Client repositories copy this image into their own GHCR beta worker package."
+            docker build -f .github/docker/labview-ci-windows-beta.Dockerfile -t $baseImage -t $immutableBase .
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            foreach ($tag in @($baseImage, $immutableBase)) {
+              Write-Host "Pushing Windows Beta base $tag"
+              docker push $tag
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+          } else {
+            Write-Host "::notice::Using shared LCWC Windows Beta base image $baseImage; this client copies it into its own GHCR beta worker package."
+          }
+
+          # Resolve the base manifest digest from the registry WITHOUT pulling the
+          # multi-GB image to the runner -- the copy path never downloads it.
+          $digest = (crane digest $baseImage 2>$null)
+          if (-not $digest) {
+            throw "Could not read the LCWC Windows Beta base image '$baseImage' from the registry. The source repo must publish it first (dispatch this workflow on LCWC, or wait for the monthly rebuild); confirm the GHCR package is public/readable or set the LCWC_WINDOWS_BETA_BASE_IMAGE repository variable."
+          }
+          "image=$baseImage" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "digest=$digest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "LCWC Windows Beta base: $baseImage  digest: $digest"
+
+      # Worker version = short SHA-256 over the beta seed image + its digest. The beta
+      # worker is a pure copy of the beta base (experimental deps live in the beta base
+      # recipe, not a per-repo layer), so vipc-count is always 0.
+      - name: Compute worker version
+        id: ver
+        shell: pwsh
+        run: |
+          $parts = @(
+            'lcwc-beta-base-image=${{ steps.base.outputs.image }}',
+            'lcwc-beta-base-digest=${{ steps.base.outputs.digest }}',
+            'vipc-count=0'
+          )
+          $bytes   = [System.Text.Encoding]::UTF8.GetBytes(($parts -join "`n"))
+          $digest  = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+          $hex     = -join ($digest | ForEach-Object { $_.ToString('x2') })
+          $version = 'win-beta-' + $hex.Substring(0, 12)
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Worker version: $version"
+
+      - name: Copy and tag the Windows Beta worker image
+        shell: pwsh
+        run: |
+          $base     = '${{ env.IMAGE_NAME }}'
+          $tag      = '${{ env.DEFAULT_TAG }}'
+          $date     = '${{ steps.date.outputs.date }}'
+          $wv       = '${{ steps.ver.outputs.version }}'
+          $betaBase = '${{ steps.base.outputs.image }}'
+          Write-Host "::notice::Copying the LCWC Windows Beta base image into this repository's GHCR worker package at the REGISTRY level (crane copy). The beta worker is a copy of the beta base -- experimental dependencies are baked into the beta base recipe, never here -- so this is a fast copy, not a rebuild."
+          $immutable = "${base}:${wv}"
+          crane copy $betaBase $immutable
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($t in @($tag, "${tag}-${date}", 'windows-beta-latest')) {
+            crane tag $immutable $t
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Write-Host "Published (registry copy): ${base}:${t}"
+          }
+          Write-Host "Published (registry copy): $immutable"
+
+      - name: Generate worker manifest
+        shell: pwsh
+        run: |
+          $base   = '${{ env.IMAGE_NAME }}'
+          $wv     = '${{ steps.ver.outputs.version }}'
+          $img    = "${base}:${wv}"
+          $outDir = "ci-out/workers-pages/workers/windows-beta/$wv"
+          New-Item -ItemType Directory -Force -Path 'ci-out/worker' | Out-Null
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+
+          # Seed-only copy: byte-identical to the beta base and NOT present locally
+          # (copied at the registry level), so skip the multi-GB nipkg pull.
+          Set-Content -Path 'ci-out/worker/nipkg-list.txt' -Value '' -NoNewline
+          $baseDigest = '${{ steps.base.outputs.digest }}'
+
+          python .github/labview/build-worker-manifest.py `
+            --platform windows-beta `
+            --version $wv `
+            --nipkg-list 'ci-out/worker/nipkg-list.txt' `
+            --labview-version ${{ vars.LABVIEW_VERSION || '2026' }} `
+            --pages-url '${{ env.PAGES_URL }}' `
+            --base-image '${{ steps.base.outputs.image }}' `
+            --base-digest "$baseDigest" `
+            --seed-image '${{ steps.base.outputs.image }}' `
+            --seed-digest "$baseDigest" `
+            --worker-layer seed-only-copy `
+            --image-ref $img `
+            --git-sha '${{ github.sha }}' `
+            --run-url 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}' `
+            --out-dir $outDir
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # latest.json pointer for "current Windows Beta worker".
+          $latest = [ordered]@{
+            version      = $wv
+            platform     = 'windows-beta'
+            manifest_url = "${{ env.PAGES_URL }}/workers/windows-beta/$wv/manifest.html"
+            build_date   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            git_sha      = '${{ github.sha }}'
+          }
+          $latest | ConvertTo-Json |
+            Out-File -FilePath 'ci-out/workers-pages/workers/windows-beta/latest.json' -Encoding utf8
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        shell: bash
+        run: |
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Publish worker manifest to GitHub Pages
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: ci-out/workers-pages
+          destination_dir: .
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "### Windows Beta worker image published" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${{ env.IMAGE_NAME }}:${{ steps.ver.outputs.version }}\` (immutable worker tag)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Worker version:** \`${{ steps.ver.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Worker manifest](${{ env.PAGES_URL }}/workers/windows-beta/${{ steps.ver.outputs.version }}/manifest.html)" >> "$GITHUB_STEP_SUMMARY"

@@ -150,12 +150,23 @@ for sha in "${COMMITS[@]}"; do
     continue
   fi
 
+  # IMAGE is the Linux worker image, which now BAKES IN the render engine, so we
+  # invoke the render entrypoint explicitly (the worker's default entrypoint is
+  # left alone for the other CI activities) and pass the engine's env. xvfb +
+  # lvctl + runner + labview.conf all ship inside the worker.
   docker run --rm \
+    --entrypoint /usr/local/bin/toimages-entrypoint.sh \
     -v "$wt:/work:ro" \
     -v "$OUT:/out" \
     -e WORKSPACE=/work \
     -e WORKLIST=/out/worklist.tsv \
     -e OUT_BY_BLOB=/out/by-blob \
+    -e LVCTL=/app/lvctl \
+    -e LVCTL_CACHE_DIR=/tmp/lvctl-cache \
+    -e LABVIEW_PATH=/usr/local/natinst/LabVIEW-2026-64 \
+    -e LABVIEW_CONF=/app/labview.conf \
+    -e LABVIEW_HOST=127.0.0.1:3363 \
+    -e LABVIEW_LOG=/tmp/labview.log \
     "$IMAGE" || echo "::warning::toimages reported a non-zero exit for $short (any VIs it did render are kept)."
 
   git -C "$WS" worktree remove --force "$wt" >/dev/null 2>&1 || rm -rf "$wt"

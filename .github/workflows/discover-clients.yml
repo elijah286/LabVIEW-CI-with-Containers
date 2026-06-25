@@ -42,9 +42,7 @@ jobs:
         run: python3 .github/scripts/discover-clients.py
 
       - name: Deploy clients.json to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/clients
           destination_dir: .
-          keep_files: true   # never clobber the dashboard the Pages deploy publishes

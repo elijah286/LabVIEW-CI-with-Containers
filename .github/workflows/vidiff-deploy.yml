@@ -35,6 +35,12 @@ jobs:
     if: always()
 
     steps:
+      # Required so the local ./.github/actions/publish-gh-pages composite action
+      # is on disk. Without a checkout the deploy step fails with "Can't find
+      # 'action.yml' … under '.github/actions/publish-gh-pages'".
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
       - name: Download VIDiff artifact
         uses: actions/github-script@v8
         id: artifact
@@ -123,9 +129,8 @@ jobs:
 
       - name: Deploy VIDiff report to GitHub Pages
         if: steps.artifact.outputs.result != 'null'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: /tmp/vidiff-report
           # push-SHORT_SHA/windows or pr-NUMBER/linux
           destination_dir: >-
@@ -134,7 +139,6 @@ jobs:
               format('pr-{0}', steps.meta.outputs.pr_number) ||
               format('push-{0}', steps.meta.outputs.head_sha)
             }}/${{ steps.meta.outputs.platform }}
-          keep_files: true
 
       - name: Build report URL
         if: steps.artifact.outputs.result != 'null'

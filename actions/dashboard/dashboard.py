@@ -225,8 +225,8 @@ TOOLING_PREFIXES = ('.github/', 'actions/', '_lvci/', 'ci-out/', 'build/')
 # External dependency manifests (VI Package Configuration / VI Package). A
 # revision whose ONLY project-source change is to these touches no actual VIs
 # or LabVIEW code — it just bumps the add-on dependencies the project pulls in.
-# These can be filtered out of the dashboard (they never get per-VI CI results
-# unless dependency-change CI is enabled — see config.triggers.onDependencyChange).
+# These can be filtered out of the dashboard (a dependency-only commit changes no
+# VIs, so it never produces per-VI CI results).
 DEP_EXTS = ('.vipc', '.vip')
 
 # ── Classify a commit: does it touch project LabVIEW source? ─────
@@ -313,6 +313,31 @@ def vi_tree(sha):
     _tree_cache[sha] = vis
     return vis
 
+# ── VIDiff shape: how many VIs a revision changed vs its parent ──────────────
+# (different, new, deleted) for the VI/CTL set, keyed by file path with the git
+# blob SHA as the content fingerprint: different = same path, changed blob; new =
+# a path the parent did not have; deleted = a path the parent had and this
+# revision dropped. A rename reads as one new + one deleted (path-based, like a
+# plain git diff). Both trees come from vi_tree(), which is cached, so a parent
+# that is itself a row in the window costs no extra API call. A root commit (no
+# parent) counts everything present as new.
+_diff_counts_cache = {}
+def vidiff_counts(sha, parent):
+    key = (sha, parent)
+    if key in _diff_counts_cache:
+        return _diff_counts_cache[key]
+    cur = {v['vi_rel']: v.get('blob', '') for v in vi_tree(sha)}
+    if not parent:
+        res = (0, len(cur), 0)
+    else:
+        prev = {v['vi_rel']: v.get('blob', '') for v in vi_tree(parent)}
+        different = sum(1 for p, b in cur.items() if p in prev and prev[p] != b)
+        new       = sum(1 for p in cur if p not in prev)
+        deleted   = sum(1 for p in prev if p not in cur)
+        res = (different, new, deleted)
+    _diff_counts_cache[key] = res
+    return res
+
 # Accumulates one entry per project revision for vi-snapshots/files.json, the
 # VI Browser's snapshot-independent source of commits + file trees.
 file_commits = []
@@ -331,8 +356,7 @@ RUN_TARGETS = {
         'windows': {'wf': 'masscompile-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}},
         'linux':   {'wf': 'masscompile-linux-container.yml',   'inputs': {'commit_sha': '{sha}'}}}},
     'vi-analyzer': {'label': 'VI Analyzer', 'platforms': {
-        'windows': {'wf': 'run-vi-analyzer-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}},
-        'linux':   {'wf': 'run-vi-analyzer-linux-container.yml',   'inputs': {'commit_sha': '{sha}'}}}},
+        'windows': {'wf': 'run-vi-analyzer-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
     'vidiff': {'label': 'VIDiff', 'platforms': {
         'windows': {'wf': 'vidiff-windows-container.yml', 'inputs': {'head_sha': '{sha}', 'base_sha': '{parent}'}},
         'linux':   {'wf': 'vidiff-linux-container.yml',   'inputs': {'head_sha': '{sha}', 'base_sha': '{parent}'}}}},
@@ -359,6 +383,36 @@ RUN_TARGETS = {
     'antidoc': {'label': 'Antidoc', 'platforms': {
         'windows': {'wf': 'run-antidoc-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
 }
+
+# Gate run targets to the workflows ACTUALLY installed in this repo, so the
+# dashboard never offers a Run / Populate-history action whose workflow file is
+# absent (which would 404 on dispatch). The dashboard is built inside the consumer
+# repo, so the workflows directory on disk is this repo's installed set: a platform
+# whose workflow is missing is dropped, and a capability left with no platform is
+# removed entirely (its cells then render a plain dash, and the dialog omits it).
+# Fail open -- if the directory can't be read, keep every target (better a rare
+# 404 than hiding a working action).
+def _installed_workflow_files():
+    import glob as _glob
+    for _base in [p for p in (os.environ.get('GITHUB_WORKSPACE'), '.') if p]:
+        _wfdir = os.path.join(_base, '.github', 'workflows')
+        if os.path.isdir(_wfdir):
+            return {os.path.basename(_p)
+                    for _ext in ('*.yml', '*.yaml')
+                    for _p in _glob.glob(os.path.join(_wfdir, _ext))}
+    return None
+
+_installed_wf = _installed_workflow_files()
+if _installed_wf is not None:
+    _gated_targets = {}
+    for _cap, _cdef in RUN_TARGETS.items():
+        _plats = {_k: _v for _k, _v in (_cdef.get('platforms') or {}).items()
+                  if _v.get('wf') in _installed_wf}
+        if _plats:
+            _ncdef = dict(_cdef); _ncdef['platforms'] = _plats
+            _gated_targets[_cap] = _ncdef
+    RUN_TARGETS = _gated_targets
+
 import json as _json
 run_targets_json = _json.dumps(RUN_TARGETS)
 
@@ -377,15 +431,27 @@ for _cap, _d in RUN_TARGETS.items():
 _CAP_RUN_LABEL = {'masscompile': 'compile', 'vi-analyzer': 'analyze', 'vidiff': 'diff',
                   'snapshots': 'snapshots', 'snapshots2': '2.0 snapshots',
                   'unit-tests': 'tests', 'antidoc': 'docs'}
+_WAITING_RUN_STATUSES = {'queued', 'requested', 'waiting', 'pending'}
+
+def _target_sha_for_run(run, cap):
+    if cap == 'snapshots' and run.get('event') == 'workflow_dispatch':
+        return '*'
+    if run.get('event') == 'workflow_dispatch':
+        text = ' '.join(str(run.get(k) or '') for k in ('display_title', 'name'))
+        m = re.search(r'\b[0-9a-f]{40}\b', text, re.I)
+        if m:
+            return m.group(0).lower()
+        return ''
+    return run.get('head_sha') or ''
 
 def fetch_active_runs():
     by_sha = {}
-    for _st in ('in_progress', 'queued'):   # in_progress first so it wins over a stale 'queued'
+    for _st in ('in_progress', 'pending', 'waiting', 'requested', 'queued'):   # in_progress first so it wins over a stale queued state
         data = gh_get(f'actions/runs?status={_st}&per_page=100')
         for run in ((data or {}).get('workflow_runs') or []):
             wf = (run.get('path') or '').rsplit('/', 1)[-1]
             cap = _WF_TO_CAP.get(wf)
-            sha_ = run.get('head_sha')
+            sha_ = _target_sha_for_run(run, cap) if cap else ''
             if not cap or not sha_:
                 continue
             by_sha.setdefault(sha_, {}).setdefault(cap, run)
@@ -603,10 +669,10 @@ for c in commits_data:
         # THIS commit (it just auto-started on push), surface it as Queued/Running
         # instead of an idle run arrow - it posts its first commit status only
         # part-way through, so the live run fills that gap until then.
-        ar = active_runs.get(sha, {}).get(cap)
+        ar = active_runs.get(sha, {}).get(cap) or active_runs.get('*', {}).get(cap)
         if ar is not None:
             caps_ran.add(cap)
-            if ar.get('status') == 'queued':
+            if ar.get('status') in _WAITING_RUN_STATUSES:
                 return queued_cell(ar.get('html_url', ''))
             return running_cell(_CAP_RUN_LABEL.get(cap, cap), ar.get('html_url', ''))
         run_count['n'] += 1
@@ -657,6 +723,22 @@ for c in commits_data:
                 '<span class="run-badge" title="Queued on GitHub Actions - waiting for a runner">'
                 f'{body}</span></td>')
 
+    def active_run_cell(cap, label):
+        # If a run for THIS commit + capability is queued or in progress on GitHub
+        # right now (per the Actions API), return its Queued/Running cell — else
+        # None. Checked BEFORE a result chip so that when a capability ran on two
+        # platforms and the fast one (e.g. Linux) already posted its result, the
+        # cell still shows the OTHER platform's run is live instead of silently
+        # reverting to a finished-looking result. Matches the empty-cell behaviour
+        # in run_cell(), which already prefers an active run over an idle arrow.
+        ar = active_runs.get(sha, {}).get(cap)
+        if ar is None:
+            return None
+        caps_ran.add(cap)
+        if ar.get('status') == 'queued':
+            return queued_cell(ar.get('html_url', ''))
+        return running_cell(label, ar.get('html_url', ''))
+
     def badge(label, *contexts, url_override=None, cap=None, doc=None):
         if not is_project:
             return EMPTY_CELL
@@ -664,6 +746,12 @@ for c in commits_data:
         if run is not None:
             if cap: caps_ran.add(cap)
             return running_cell(label, run.get('target_url', ''))
+        # A sibling-platform run for this cap may still be live even though one
+        # platform already posted a terminal commit status — surface it as running.
+        if cap:
+            _live = active_run_cell(cap, label)
+            if _live is not None:
+                return _live
         s = pick_status(*contexts)
         if not s:
             return run_cell(cap) if cap else EMPTY_CELL
@@ -696,7 +784,10 @@ for c in commits_data:
         mc_badge = EMPTY_CELL
     else:
         _mc = masscompile_summary(sha)
-        if _mc and isinstance(_mc.get('percent'), int):
+        _mc_live = active_run_cell('masscompile', 'compile')
+        if _mc_live is not None:
+            mc_badge = _mc_live
+        elif _mc and isinstance(_mc.get('percent'), int):
             any_output['on'] = True
             caps_ran.add('masscompile')
             _pct = _mc['percent']
@@ -724,15 +815,51 @@ for c in commits_data:
                         f'{_chip(_kind, f"{_pct}%", _url, f"{_ok}/{_tot} project VIs compiled")}</td>')
         else:
             mc_badge = badge('compile', 'CI / Mass Compile', cap='masscompile', doc=('masscompile-report', 'masscompile'))
-    # Consider both analyzer platforms (mirrors the diff badge): a revision
-    # analyzed only on Linux still surfaces its VI Analyzer result instead of
-    # showing nothing because the Windows-only context is absent.
-    via_badge = badge('analyze',   'CI / VI Analyzer', 'CI / VI Analyzer (Linux)', cap='vi-analyzer',
+    via_badge = badge('analyze',   'CI / VI Analyzer', cap='vi-analyzer',
                       doc=('vi-analyzer-report', 'vi-analyzer'))
-    # The diff badge opens the unified VI Browser filtered to this commit's
-    # changed VIs (each links to its diff report), rather than a separate table.
-    diff_badge= badge('diff',      'CI / VIDiff (windows)', 'CI / VIDiff (linux)',
-                       url_override=f'{pages_url}/vi-snapshots/index.html?sha={sha}&changed=1', cap='vidiff')
+    # VIDiff column: rather than a single "diff" badge, show the SHAPE of the
+    # revision — how many VIs are different / new / deleted versus its parent —
+    # so the table conveys at a glance what each revision did, not just that a
+    # diff ran. The three counts are computed from the VI file trees (content
+    # blob per path) and are coloured modified-amber / added-green / deleted-red,
+    # with a tip strip spelling each out. The whole cell still links into the VI
+    # Browser filtered to this revision's changed VIs (each VI linking to its
+    # side-by-side report). When VIDiff has not produced a result yet the cell
+    # falls back to the same running / queued / one-click-run affordances as the
+    # other columns.
+    def diff_cell():
+        if not is_project:
+            return EMPTY_CELL
+        _ctxs = ('CI / VIDiff (windows)', 'CI / VIDiff (linux)')
+        _run = fresh_pending(*_ctxs)
+        if _run is not None:
+            caps_ran.add('vidiff')
+            return running_cell('diff', _run.get('target_url', ''))
+        _live = active_run_cell('vidiff', 'diff')
+        if _live is not None:
+            return _live
+        _s = pick_status(*_ctxs)
+        if not _s:
+            return run_cell('vidiff')
+        any_output['on'] = True
+        caps_ran.add('vidiff')
+        _d, _n, _del = vidiff_counts(sha, parent)
+        _url = f'{pages_url}/vi-snapshots/index.html?sha={sha}&changed=1'
+        # Spell the counts out for the tip strip; "0" parts stay quiet (greyed)
+        # so the eye lands on what actually changed.
+        _parts = (f'{_d} different', f'{_n} new', f'{_del} deleted')
+        _tip = 'VIs changed in this revision: ' + ' · '.join(_parts) + ' — click to view the diffs'
+        def _num(val, cls):
+            z = '' if val else ' ds-zero'
+            return f'<span class="{cls}{z}">{val}</span>'
+        _stat = (f'{_num(_d, "ds-mod")}<span class="ds-sep">/</span>'
+                 f'{_num(_n, "ds-add")}<span class="ds-sep">/</span>'
+                 f'{_num(_del, "ds-del")}')
+        return ('<td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" '
+                f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" '
+                f'data-ts="{_s.get("created_at","")}">'
+                f'<a href="{_url}" class="cidash-diffstat" title="{_tip}">{_stat}</a></td>')
+    diff_badge = diff_cell()
     # Snapshots column: how many of this revision's VIs have a rendered snapshot
     # (content-addressed by git blob), linking into the VI Browser for the commit.
     # Snapshots are a single content-addressed gallery (not per-platform) and are
@@ -744,9 +871,12 @@ for c in commits_data:
     else:
         _snap_run = fresh_pending('CI / VI Snapshots')
         _have, _total = snapshot_coverage(sha)
+        _snap_live = active_run_cell('snapshots', 'snapshots')
         if _snap_run is not None:
             caps_ran.add('snapshots')
             snap_badge = running_cell('snapshots', _snap_run.get('target_url', ''))
+        elif _snap_live is not None:
+            snap_badge = _snap_live
         elif _have <= 0:
             snap_badge = run_cell('snapshots')
         else:
@@ -774,9 +904,12 @@ for c in commits_data:
     else:
         _ut_run = fresh_pending('CI / Unit Tests')
         _ut = unit_tests_summary(sha)
+        _ut_live = active_run_cell('unit-tests', 'tests')
         if _ut_run is not None:
             caps_ran.add('unit-tests')
             unit_badge = running_cell('tests', _ut_run.get('target_url', ''))
+        elif _ut_live is not None:
+            unit_badge = _ut_live
         elif _ut and 'tests' in _ut:
             any_output['on'] = True
             caps_ran.add('unit-tests')
@@ -923,27 +1056,10 @@ try:
 except Exception:
     pass
 
-# Whether a dependency-only change re-runs the pipeline (config.triggers.
-# onDependencyChange, default off). When ON, dependency-only revisions DO get
-# CI results, so the dashboard shows them by default; when OFF they never get
-# per-VI results, so they are filtered out by default. Either way the user can
-# flip the "Include dependency-only revisions" toggle on the page.
+# Dependency-only revisions (whose only project change is a .vipc/.vip bump) never
+# get per-VI CI results, so they are filtered out of the dashboard by default. The
+# user can still reveal them with the "Include dependency-only revisions" toggle.
 lvci_dep_ci_on = False
-try:
-    _in_trig = False
-    for _tline in open('.github/labview-ci.yml', encoding='utf-8'):
-        if re.match(r'^\s*triggers:\s*$', _tline):
-            _in_trig = True
-            continue
-        if _in_trig:
-            _tm = re.match(r'^\s{4}onDependencyChange:\s*(\S+)', _tline)
-            if _tm:
-                lvci_dep_ci_on = (_tm.group(1).strip().lower() == 'true')
-                break
-            if re.match(r'^\s{0,3}\S', _tline):
-                _in_trig = False
-except Exception:
-    pass
 lvci_is_source = (not lvci_src_repo) or (lvci_src_repo.lower() == repo.lower())
 lvci_cfg_json  = json.dumps({
     'version': lvci_version, 'sourceRepo': lvci_src_repo,
@@ -1932,11 +2048,12 @@ run_dialog = (r"""
     }
     function bfShow(){
       var c=bfCard(); if(!c) return;
-      // Hide on a repo we've dismissed, or once anything has been queued from here
-      // ("disappear after anything is run"); otherwise show with a live count.
-      var queued = Object.keys(qLoad()).length > 0;
-      if(bfDismissed() || queued){ c.style.display='none'; return; }
       var cells=bfCells(); if(!cells.length){ c.style.display='none'; return; }
+      // Hide on a repo we've dismissed, or once this dashboard has queued one of
+      // its own cells ("disappear after anything is run"); otherwise show with a live count.
+      var queued = qLoad();
+      var queuedHere = cells.some(function(x){ return !!queued[x.cap+'|'+x.sha]; });
+      if(bfDismissed() || queuedHere){ c.style.display='none'; return; }
       var shas={}; cells.forEach(function(x){ shas[x.sha]=1; });
       var n=document.getElementById('lvci-bf-count'); if(n) n.textContent=String(Object.keys(shas).length);
       c.style.display='';
@@ -1949,6 +2066,23 @@ run_dialog = (r"""
     // and the per-revision activities oldest-first, gently throttled so a long
     // history doesn't trip GitHub's secondary rate limits. Resolves with an
     // {ok, err, total} tally; the caller owns its own status line + buttons.
+    // Turn collected dispatch failures into an accurate message. A 404 means the
+    // targeted workflow file is not installed on this repo (its LabVIEW CI tooling
+    // is out of date) -- NOT a token problem -- so callers do not re-prompt for a
+    // token in that case. .tok = whether the failure is token/permission related.
+    function dispatchFailMsg(fails){
+      fails = fails || [];
+      var has = function(code){ return fails.some(function(f){ return f.status===code; }); };
+      if(has(401)) return { html:'That saved token was rejected (401) \u2014 it is invalid or expired. <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', tok:true };
+      if(has(404)){
+        var wfs=[]; fails.forEach(function(f){ if(f.status===404 && f.wf && wfs.indexOf(f.wf)<0) wfs.push(f.wf); });
+        var list=wfs.map(function(w){ return '<code>'+esc(w)+'</code>'; }).join(', ');
+        return { html:'<strong>Not a token problem</strong> \u2014 your saved token worked, but '+(wfs.length>1?'these workflows are':'this workflow is')+' not installed on <code>'+esc(REPO)+'</code> (HTTP 404): '+list+'. This repository\u2019s LabVIEW CI tooling is out of date \u2014 update it from <strong>What\u2019s new \u2192 Update</strong> to add the missing workflow'+(wfs.length>1?'s':'')+', then queue again.', tok:false };
+      }
+      if(has(403)) return { html:'The saved token is missing the <strong>Actions: Read and write</strong> permission on <code>'+esc(REPO)+'</code> (HTTP 403). On the token page set <strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong>, then <strong>Update</strong>. <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Update token \u2197</a>', tok:true };
+      if(has(422)) return { html:'GitHub rejected the dispatch (HTTP 422) \u2014 usually a bad branch ref (<code>'+esc(BRANCH)+'</code>) or inputs.', tok:false };
+      var st=(fails[0]||{}).status; return { html:'Could not queue runs (HTTP '+esc(String(st||'?'))+'). <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View Actions \u2197</a>', tok:false };
+    }
     function dispatchCells(cells, statusFn){
       var perRev=[]; var snapShas=[]; var sawSnap=false; var snapForce=false;
       cells.forEach(function(x){
@@ -1960,7 +2094,7 @@ run_dialog = (r"""
       });
       perRev.sort(function(a,b){ return b.order - a.order; });   // oldest first
       var total=perRev.reduce(function(n,x){ return n + cellPlatforms(x).length; }, 0) + (sawSnap?1:0);
-      var t0=Date.now(); var ok=0, err=0, done=0;
+      var t0=Date.now(); var ok=0, err=0, done=0; var fails=[];
       // Paint EVERY targeted cell as "Queued" up front, in one synchronous pass, so
       // the whole batch lights up the instant you click - independent of the throttled
       // dispatch chain below. A dispatch that truly fails then reverts just its own
@@ -1976,7 +2110,7 @@ run_dialog = (r"""
           return dispatchOne('vi-snapshots.yml', inputs).then(function(r){
             done++;
             if(r.ok){ ok++; captureSnapshotRun(t0); }
-            else { err++; if(r.status===401) clearTok(); snapShas.forEach(function(sha){ qForget('snapshots', sha); }); }
+            else { err++; fails.push({wf:'vi-snapshots.yml', status:r.status}); if(r.status===401) clearTok(); snapShas.forEach(function(sha){ qForget('snapshots', sha); }); }
             statusFn('Queuing\u2026 '+done+'/'+total, null);
           }).catch(function(){ err++; });
         });
@@ -1994,6 +2128,7 @@ run_dialog = (r"""
           return Promise.all(jobs).then(function(results){
             done += results.length;
             if(results.some(function(r){return r.status===401;})) clearTok();
+            results.forEach(function(r){ if(!r.ok) fails.push({wf:r.wf, status:r.status}); });
             var okPlats=results.filter(function(r){return r.ok;}).map(function(r){return r.plat;});
             if(okPlats.length){ ok++; markQueued(x.cap, x.sha, okPlats, x.parent, t0); captureRuns(x.cap, x.sha); }
             else { err++; qForget(x.cap, x.sha); }
@@ -2002,7 +2137,7 @@ run_dialog = (r"""
         }).catch(function(){ /* one cell's error never aborts the rest */ })
           .then(function(){ return new Promise(function(res){ setTimeout(res, 650); }); });
       });
-      return chain.then(function(){ return { ok:ok, err:err, total:total }; });
+      return chain.then(function(){ return { ok:ok, err:err, total:total, fails:fails }; });
     }
     function bfRunAll(){
       var cells=bfCells();
@@ -2017,10 +2152,13 @@ run_dialog = (r"""
           bfStatus('\u2713 Queued '+res.ok+' workflow'+(res.ok>1?'s':'')+', oldest first \u2014 results appear as they finish. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
           bfDismiss();
         } else if(res.ok && res.err){
-          bfStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
+          var pm=dispatchFailMsg(res.fails);
+          bfStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched. '+pm.html, 'warn');
+          if(pm.tok) bfTokPanel(true);
         } else {
-          bfStatus('Could not queue runs. The token needs <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code> (runs dispatch on <code>'+esc(BRANCH)+'</code>). <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', 'err');
-          bfTokPanel(true);
+          var fm=dispatchFailMsg(res.fails);
+          bfStatus(fm.html, 'err');
+          if(fm.tok) bfTokPanel(true);
         }
       });
     }
@@ -2083,7 +2221,9 @@ run_dialog = (r"""
     function histInstalledCaps(){
       var seen={}; bfCells().forEach(function(x){ seen[x.cap]=1; });
       if(HIST.length && RT.snapshots2) seen.snapshots2=1;
-      return CAP_ORDER.filter(function(c){ return seen[c] || RAN[c]; });
+      // Require an installed run target (RT[c]): a capability whose workflow is not
+      // present in this repo is never offered, even if it ran here historically.
+      return CAP_ORDER.filter(function(c){ return (seen[c] || RAN[c]) && RT[c]; });
     }
     function histModal(){ return document.getElementById('cidash-hist-modal'); }
     function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
@@ -2395,11 +2535,14 @@ run_dialog = (r"""
           setTimeout(cidashHistClose, 900);
         } else if(res.ok && res.err){
           if(go) go.disabled=false;
-          histStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
+          var pm=dispatchFailMsg(res.fails);
+          histStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched. '+pm.html, 'warn');
+          if(pm.tok) histTokPanel(true);
         } else {
           if(go) go.disabled=false;
-          histStatus('Could not queue runs. The token needs <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code> (runs dispatch on <code>'+esc(BRANCH)+'</code>). <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', 'err');
-          histTokPanel(true);
+          var fm=dispatchFailMsg(res.fails);
+          histStatus(fm.html, 'err');
+          if(fm.tok) histTokPanel(true);
         }
       });
     }
@@ -2471,7 +2614,7 @@ if not any_output['on'] and not running_flag['on'] and run_count['n'] > 0:
         'so a large history backfill paces itself instead of monopolising your account&rsquo;s '
         'runners; routine pushes and tooling updates draw from the same pool. Runs beyond the '
         'limit are queued and start automatically as earlier ones finish &mdash; nothing is lost.'
-        f'<a href="#" class="lvci-bf-cfg" onclick="lvciOpen(&#39;configure.html?repo={_cfg_repo}&#39;,&#39;Configure Workers&#39;);return false;">'
+        f'<a href="#" class="lvci-bf-cfg" onclick="lvciOpen(&#39;configure.html?repo={_cfg_repo}&#39;,&#39;Configure Pipeline&#39;);return false;">'
         f'Change this for {html.escape(repo_name)} &rarr;</a>'
         '</div></details>'
     )
@@ -2608,6 +2751,21 @@ html = f"""<!DOCTYPE html>
       .cidash-chip.cc-warn{{background:#fff8c5;color:#9a6700;border-color:#9a670055}}
       .cidash-chip.cc-info{{background:#ddf4ff;color:#0969da;border-color:#0969da44}}
     }}
+    /* VIDiff "diff stat": different / new / deleted VI counts for a revision.
+       Colour-coded modified-amber / added-green / deleted-red with grey slashes;
+       zero parts dim so the eye lands on what actually changed. */
+    .cidash-diffstat{{display:inline-flex;align-items:baseline;gap:3px;padding:3px 9px;border-radius:999px;font-size:.78em;font-weight:700;font-variant-numeric:tabular-nums;text-decoration:none;border:1px solid var(--border);background:var(--surface)}}
+    .cidash-diffstat:hover{{border-color:var(--fg-muted)}}
+    .cidash-diffstat .ds-sep{{color:var(--fg-muted);font-weight:400;opacity:.6}}
+    .cidash-diffstat .ds-mod{{color:#d29922}}
+    .cidash-diffstat .ds-add{{color:#3fb950}}
+    .cidash-diffstat .ds-del{{color:#f85149}}
+    .cidash-diffstat .ds-zero{{color:var(--fg-muted);opacity:.45;font-weight:600}}
+    @media(prefers-color-scheme:light){{
+      .cidash-diffstat .ds-mod{{color:#9a6700}}
+      .cidash-diffstat .ds-add{{color:#1a7f37}}
+      .cidash-diffstat .ds-del{{color:#cf222e}}
+    }}
     /* Rich "Revision" cell: avatar + message (primary) + sha / author / date (meta). */
     .cidash-rev{{padding:8px;max-width:440px}}
     .cidash-rev-wrap{{display:flex;gap:10px;align-items:flex-start;min-width:0}}
@@ -2624,14 +2782,17 @@ html = f"""<!DOCTYPE html>
       .lvci-tablewrap{{overflow:visible}}
       #cidash-table{{display:block;width:100%;border:0;background:transparent}}
       #cidash-table thead{{display:none}}
-      #cidash-table tbody,#cidash-table tr,#cidash-table td{{display:block;width:auto}}
-      #cidash-table tr{{border:1px solid var(--border);border-radius:10px;margin:0 0 12px;padding:8px 12px;background:var(--surface)}}
-      #cidash-table td{{border:0;padding:6px 0}}
-      #cidash-table td.cidash-rev{{max-width:none;padding:2px 0 8px;border-bottom:1px solid var(--border);margin-bottom:4px}}
-      #cidash-table td:not(.cidash-rev){{display:flex!important;align-items:center;justify-content:space-between;gap:12px;text-align:left!important;min-width:0}}
-      #cidash-table td:not(.cidash-rev)::before{{content:attr(data-label);color:var(--fg-muted);font-size:.82em;font-weight:600;flex:1 1 auto;min-width:9rem;text-align:left}}
-      #cidash-table td:not(.cidash-rev)>*{{flex:0 0 auto;max-width:56%;text-align:right;justify-content:flex-end}}
-      .cidash-chip,.run-badge{{white-space:normal;text-align:right;justify-content:flex-end}}
+      #cidash-table tbody{{display:block;width:auto}}
+      /* Each card lays its capability cells out as a responsive grid of compact
+         tiles (label above value) so they fill the card width instead of leaving
+         a wide empty gutter between a left-aligned label and right-aligned badge. */
+      #cidash-table tr{{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px 14px;border:1px solid var(--border);border-radius:10px;margin:0 0 12px;padding:12px 14px;background:var(--surface)}}
+      #cidash-table td{{display:block;width:auto;border:0;padding:0}}
+      #cidash-table td.cidash-rev{{grid-column:1/-1;max-width:none;padding:2px 0 10px;border-bottom:1px solid var(--border);margin-bottom:0}}
+      #cidash-table td:not(.cidash-rev){{display:flex!important;flex-direction:column;align-items:flex-start;gap:5px;text-align:left!important;min-width:0}}
+      #cidash-table td:not(.cidash-rev)::before{{content:attr(data-label);color:var(--fg-muted);font-size:.72em;font-weight:600;text-transform:uppercase;letter-spacing:.04em;min-width:0}}
+      #cidash-table td:not(.cidash-rev)>*{{max-width:100%}}
+      .cidash-chip,.run-badge{{white-space:normal;text-align:left;justify-content:flex-start}}
     }}
     @media(max-width:520px){{
       .lvci-main{{padding:10px}}
@@ -2639,10 +2800,7 @@ html = f"""<!DOCTYPE html>
       .lvci-ctxbar .cidash-search{{padding:4px 9px}}
       .lvci-ctxbar .cidash-segfilter button{{padding:6px 8px}}
       .lvci-ctxbar .cidash-colbtn{{justify-content:flex-start;padding:7px 10px}}
-      #cidash-table tr{{padding:8px 10px;border-radius:8px}}
-      #cidash-table td:not(.cidash-rev){{gap:8px;flex-wrap:nowrap}}
-      #cidash-table td:not(.cidash-rev)::before{{flex:1 1 52%;min-width:0}}
-      #cidash-table td:not(.cidash-rev)>*{{max-width:48%}}
+      #cidash-table tr{{padding:10px 12px;border-radius:8px;gap:11px 12px}}
       .cidash-rev{{padding:8px 0}}
       .cidash-rev-msg{{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
       .cidash-rev-meta{{flex-wrap:wrap;white-space:normal}}
@@ -2656,7 +2814,7 @@ html = f"""<!DOCTYPE html>
   <div id="lvci-modal" onclick="if(event.target===this)lvciClose()" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55)">
     <div style="position:absolute;inset:24px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.5)">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
-        <strong id="lvci-modal-title" style="font-size:.95em">Configure Workers</strong>
+        <strong id="lvci-modal-title" style="font-size:.95em">Configure Pipeline</strong>
         <button onclick="lvciClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">✕ Close</button>
       </div>
       <iframe id="lvci-frame" title="LabVIEW CI dialog" src="about:blank" style="border:0;width:100%;flex:1;min-height:0"></iframe>
@@ -2931,6 +3089,9 @@ for _name, _dst in [
     ('vi-analyzer.html', 'ci-out/dashboard/vi-analyzer.html'),
     ('integrate.html', 'ci-out/dashboard/integrate.html'),
     ('unit-tests.html', 'ci-out/dashboard/unit-tests.html'),
+    # Implementation-level "How LabVIEW CI works" reference (linked from the FAQ
+    # and the site header); staged so documentation edits actually deploy.
+    ('documentation.html', 'ci-out/dashboard/documentation.html'),
     # Clients registry page (the header only surfaces it on the root repo, where
     # the discovery workflow publishes clients.json beside it).
     ('clients.html', 'ci-out/dashboard/clients.html'),
@@ -2952,7 +3113,7 @@ def _parse_vipc_packages(vipc_path):
   return sorted(set(names)), ''
 
 def _parse_container_config(path='.github/labview-ci.yml'):
-  cfg = {'use': '', 'actions': {}, 'vipc': []}
+  cfg = {'use': '', 'actions': {}, 'vipc': [], 'dragon': [], 'hasVipcList': False, 'hasDragonList': False}
   if not os.path.isfile(path):
     return cfg
   section = ''
@@ -2970,18 +3131,27 @@ def _parse_container_config(path='.github/labview-ci.yml'):
           if m:
             cfg['use'] = m.group(1).strip()
           if re.match(r'^\s{4}vipc:\s*$', line):
-            section = 'vipc'; continue
+            section = 'vipc'; current = None; cfg['hasVipcList'] = True; continue
+          if re.match(r'^\s{4}dragon:\s*$', line):
+            section = 'dragon'; current = None; cfg['hasDragonList'] = True; continue
           if re.match(r'^\s{4}actions:\s*$', line):
-            section = 'actions'; continue
-        elif section == 'vipc':
+            section = 'actions'; current = None; continue
+        elif section in ('vipc', 'dragon'):
+          if re.match(r'^\s{4}vipc:\s*$', line):
+            section = 'vipc'; current = None; cfg['hasVipcList'] = True; continue
+          if re.match(r'^\s{4}dragon:\s*$', line):
+            section = 'dragon'; current = None; cfg['hasDragonList'] = True; continue
+          if re.match(r'^\s{4}actions:\s*$', line):
+            section = 'actions'; current = None; continue
           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
           if m:
             current = {'path': m.group(1).strip(), 'monitor': True}
-            cfg['vipc'].append(current)
+            cfg[section].append(current)
             continue
           m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
-          if m and current:
-            current['monitor'] = m.group(1).lower() == 'true'
+          if m and current is not None:
+            current['monitor'] = (m.group(1).strip().lower() == 'true')
+            continue
           if re.match(r'^\s{0,4}\S', line):
             section = 'container'; current = None
         elif section == 'actions':
@@ -3007,6 +3177,19 @@ def _repo_vipcs():
         out.append(path)
   return sorted(out, key=str.lower)
 
+def _repo_dragons():
+  skip = {'.git', 'ci-out', 'build', '_lvci', '__pycache__'}
+  out = []
+  for root, dirs, files in os.walk('.'):
+    dirs[:] = [d for d in dirs if d not in skip]
+    for name in files:
+      if name.lower().endswith('.dragon'):
+        path = os.path.join(root, name).replace('\\', '/')
+        if path.startswith('./'):
+          path = path[2:]
+        out.append(path)
+  return sorted(out, key=str.lower)
+
 def _worker_manifest(platform, tag):
   if not tag or tag in ('base', 'none'):
     return None
@@ -3021,10 +3204,30 @@ def _worker_manifest(platform, tag):
 def _manifest_packages(man):
   packages = set()
   if isinstance(man, dict):
+    for pkg in man.get('vipm_packages') or []:
+      if isinstance(pkg, dict):
+        name = str(pkg.get('name') or '').strip()
+        version = str(pkg.get('version') or '').strip()
+        label = str(pkg.get('label') or '').strip()
+        for value in (name, label, f'{name}-{version}' if name and version else ''):
+          if value:
+            packages.add(value)
+      elif isinstance(pkg, str) and pkg.strip():
+        packages.add(pkg.strip())
+    if packages:
+      return sorted(packages, key=str.lower)
     for vipc in man.get('vipc') or []:
       for pkg in vipc.get('packages') or []:
         packages.add(pkg)
+    if not packages and man.get('platform') == 'windows' and man.get('copied_from_base'):
+      packages.update(_core_tooling_packages())
   return sorted(packages, key=str.lower)
+
+def _core_tooling_packages():
+  if not os.path.isfile(TOOLING_CORE_VIPC):
+    return []
+  packages, _ = _parse_vipc_packages(TOOLING_CORE_VIPC)
+  return packages
 
 # The core tooling VIPC is always baked into every worker; capability VIPCs live
 # under .github/labview/<cap>/<cap>.vipc and are baked only when that capability's
@@ -3045,21 +3248,22 @@ def _capability_enabled(cap):
   wf = _CAPABILITY_WORKFLOW.get(cap)
   return bool(wf and os.path.isfile(wf))
 
-def _vipc_role(path, config_vipc_paths, has_config_list):
-  """Classify a discovered VIPC and whether it is applied to the worker image.
+def _vipc_role(path, config_vipc, has_config_list):
+  """Classify a discovered VIPC and its monitoring state.
 
-  - core:       ci-tooling.vipc, always baked.
-  - capability: .github/labview/<cap>/<cap>.vipc, baked only when <cap> is installed.
-  - project:    anything else; baked when listed in config.container.vipc (or, when
-                no list is configured, every project VIPC is baked by default).
+  - core:       ci-tooling.vipc, always monitored and locked.
+  - capability: .github/labview/<cap>/<cap>.vipc, monitored by its capability.
+  - project:    monitored when config.container.vipc has monitor:true; when no
+                list exists yet, every project VIPC defaults to monitored.
   """
   if path == TOOLING_CORE_VIPC:
-    return 'core', '', True
+    return 'core', '', True, True, True
   cap = _capability_for_vipc(path)
   if cap:
-    return 'capability', cap, _capability_enabled(cap)
-  configured = (path in config_vipc_paths) if has_config_list else True
-  return 'project', '', configured
+    return 'capability', cap, _capability_enabled(cap), True, False
+  entry = (config_vipc or {}).get(path)
+  monitored = bool(entry and entry.get('monitor') is True) if has_config_list else True
+  return 'project', '', monitored, monitored, False
 
 def _manifest_failed_packages(man):
   """Package names a worker manifest reports as failing to install (optional).
@@ -3200,14 +3404,30 @@ def _annotate_dragon_status(dep, status_index, have_manifest):
     dep.setdefault('installed_version', '')
     dep.setdefault('message', '')
 
-def _build_dragon_section():
+def _build_dragon_section(config=None):
   """Build the Dragon dependency block for the Dependencies index (Win Beta only).
 
-  The declared dependencies come from parsing the repo's .dragon files at this
-  revision; the per-item install status is reconciled from the windows-experimental
-  worker manifest's Dragon section (when that image has been built)."""
+  Declared dependencies come from repository .dragon files. Each file carries its
+  monitor flag so the Dependencies page can suppress warnings and auto-update
+  triggers for unmonitored files while still showing the file in the table.
+  """
+  config = config or {}
+  configured = {v.get('path', ''): v for v in (config.get('dragon') or []) if v.get('path')}
+  has_config_list = bool(config.get('hasDragonList'))
   inv = _dragon_inventory()
-  if not (inv.get('files') or []):
+  files_by_path = {}
+  for f in inv.get('files') or []:
+    if f.get('source_file'):
+      files_by_path[f.get('source_file')] = f
+  for path in _repo_dragons():
+    files_by_path.setdefault(path, {'source_file': path, 'dependencies': []})
+  for path in configured:
+    files_by_path.setdefault(path, {'source_file': path, 'dependencies': []})
+  files = [files_by_path[k] for k in sorted(files_by_path, key=str.lower)]
+  for f in files:
+    entry = configured.get(f.get('source_file') or '')
+    f['monitored'] = bool(entry and entry.get('monitor') is True) if has_config_list else True
+  if not files:
     # No .dragon files in this revision: skip the experimental manifest fetch.
     return {
       'available': inv.get('available', False),
@@ -3219,22 +3439,22 @@ def _build_dragon_section():
       'install_set': [],
       'conflicts': inv.get('conflicts') or [],
     }
-  exp_man = _worker_manifest('windows-experimental', 'latest')
+  exp_man = _worker_manifest('windows-beta', 'latest')
   have_manifest = isinstance(exp_man, dict)
   status_index = _dragon_status_index(exp_man)
   exp_dragon = exp_man.get('dragon') if have_manifest else None
   for item in inv.get('install_set') or []:
     _annotate_dragon_status(item, status_index, have_manifest)
-  for f in inv.get('files') or []:
+  for f in files:
     for dep in f.get('dependencies') or []:
       _annotate_dragon_status(dep, status_index, have_manifest)
   return {
-    'available': inv.get('available', False),
+    'available': inv.get('available', False) or bool(files),
     'column': 'winExp',
     'ready': have_manifest,
     'health': (exp_dragon or {}).get('health', '') if isinstance(exp_dragon, dict) else '',
     'manifest_version': exp_man.get('version', '') if have_manifest else '',
-    'files': inv.get('files') or [],
+    'files': files,
     'install_set': inv.get('install_set') or [],
     'conflicts': inv.get('conflicts') or [],
   }
@@ -3244,7 +3464,7 @@ def _system_dependencies():
   if not has_toimages:
     return []
   has_windows = os.path.isfile('.github/workflows/vi-snapshots-json-windows.yml')
-  has_linux = os.path.isfile('.github/workflows/vi-snapshots-json.yml') and os.path.isfile('.github/workflows/build-toimages-image.yml')
+  has_linux = os.path.isfile('.github/workflows/vi-snapshots-json.yml')
   return [
     {
       'name': 'VI Browser 2.0 toimages runner',
@@ -3268,16 +3488,85 @@ def _system_dependencies():
     },
   ]
 
+def _compute_deps_pending(data):
+  """Decide whether the repo declares project dependencies that are NOT yet baked
+  into its current worker container(s). This drives the persistent dashboard
+  banner and the Dependencies dialog. Conservative: only flags a project VIPC that
+  is configured to be baked and parsed cleanly, whose packages are missing from the
+  current Windows worker manifest; plus declared Dragon deps not yet installed."""
+  cols = {c.get('key'): c for c in data.get('columns', [])}
+
+  def baked(key):
+    c = cols.get(key) or {}
+    return {str(p).lower() for p in (c.get('packages') or [])}
+
+  win_baked = baked('windows')
+  lin_baked = baked('linux')
+  pending_pkgs = set()
+  pending_files = []
+  lin_missing = False
+  for v in data.get('vipc', []):
+    if v.get('role') != 'project' or not v.get('configured') or v.get('error'):
+      continue
+    pkgs = v.get('packages') or []
+    if not pkgs:
+      continue
+    missing = [p for p in pkgs if str(p).lower() not in win_baked]
+    if missing:
+      pending_files.append(v.get('path'))
+      pending_pkgs.update(missing)
+    if any(str(p).lower() not in lin_baked for p in pkgs):
+      lin_missing = True
+
+  dragon = data.get('dragon') or {}
+  monitored_dragon_keys = set()
+  for f in dragon.get('files') or []:
+    if f.get('monitored') is False:
+      continue
+    for dep in f.get('dependencies') or []:
+      if dep.get('package_id'):
+        monitored_dragon_keys.add((str(dep.get('manager') or 'vipm'), str(dep.get('package_id')).lower()))
+  dragon_pending = []
+  for item in dragon.get('install_set') or []:
+    key = (str(item.get('manager') or 'vipm'), str(item.get('package_id') or '').lower())
+    if key not in monitored_dragon_keys:
+      continue
+    st = str(item.get('status') or '')
+    if st in ('pending', 'not_attempted', 'missing', 'wrong_version', 'conflict'):
+      dragon_pending.append({'name': item.get('name') or item.get('package_id') or '', 'status': st})
+
+  containers = []
+  if pending_files:
+    containers.append('windows')
+    if lin_missing:
+      containers.append('linux')
+  if dragon_pending:
+    containers.append('windows-beta')
+
+  return {
+    'schema': 1,
+    'pending': bool(pending_files or dragon_pending),
+    'repo': data.get('repo', ''),
+    'sha': data.get('sha', ''),
+    'packages': sorted(pending_pkgs, key=str.lower),
+    'vipcs': pending_files,
+    'dragon': dragon_pending,
+    'containers': sorted(set(containers)),
+    'generated': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+  }
+
 def _build_dependencies_index():
   config = _parse_container_config()
-  config_vipc_paths = {v.get('path', '') for v in config.get('vipc') or []}
-  has_config_list = bool(config_vipc_paths)
+  config_vipc = {v.get('path', ''): v for v in config.get('vipc') or [] if v.get('path')}
+  has_config_list = bool(config.get('hasVipcList'))
   vipcs = []
-  for path in _repo_vipcs():
-    packages, error = _parse_vipc_packages(path)
-    role, capability, configured = _vipc_role(path, config_vipc_paths, has_config_list)
+  vipc_paths = sorted(set(_repo_vipcs()) | set(config_vipc), key=str.lower)
+  for path in vipc_paths:
+    packages, error = _parse_vipc_packages(path) if os.path.isfile(path) else ([], '')
+    role, capability, configured, monitored, locked = _vipc_role(path, config_vipc, has_config_list)
     vipcs.append({'path': path, 'role': role, 'capability': capability,
-                  'configured': configured, 'packages': packages, 'error': error})
+                  'tooling': role == 'core', 'configured': configured, 'monitored': monitored,
+                  'locked': locked, 'packages': packages, 'error': error})
   columns = [
     {'key': 'windows', 'label': 'Windows', 'platform': 'windows', 'defaultTag': 'latest'},
     {'key': 'linux', 'label': 'Linux', 'platform': 'linux', 'defaultTag': 'latest'},
@@ -3321,12 +3610,21 @@ def _build_dependencies_index():
     'config': config,
     'vipc': vipcs,
     'nipm': _known_nipm_dependencies(),
-    'dragon': _build_dragon_section(),
+    'dragon': _build_dragon_section(config),
     'system': _system_dependencies(),
     'columns': columns,
   }
   with open('ci-out/dashboard/dependencies/index.json', 'w', encoding='utf-8') as fh:
     json.dump(data, fh, indent=2, ensure_ascii=True)
+  # Persistent "dependencies pending" signal, read by the shared header on every
+  # page to show the banner until the worker container(s) are updated.
+  try:
+    pending = _compute_deps_pending(data)
+  except Exception as exc:
+    print(f"WARN: could not compute deps-pending: {exc}", file=sys.stderr)
+    pending = {'schema': 1, 'pending': False}
+  with open('ci-out/dashboard/deps-pending.json', 'w', encoding='utf-8') as fh:
+    json.dump(pending, fh, ensure_ascii=True)
 
 try:
   _build_dependencies_index()

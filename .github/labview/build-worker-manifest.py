@@ -37,6 +37,7 @@ Usage:
 import argparse
 import html
 import json
+import re
 import sys
 import zipfile
 from datetime import datetime, timezone
@@ -95,6 +96,38 @@ def parse_nipkg_list(raw: str) -> list[dict]:
     return sorted(packages, key=lambda p: p["name"].lower())
 
 
+def parse_vipm_list(raw: str) -> list[dict]:
+    """
+    Best-effort parse of `vipm list --installed` output.
+
+    VIPM output varies across Windows/Linux builds. Keep the raw text for audit
+    and normalize the common forms into {name, version, label}: either
+    `name version ...` or `name-version ...`.
+    """
+    packages: dict[str, dict] = {}
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        low = stripped.lower()
+        if low.startswith(("name", "----", "====", "package")) or set(stripped) <= set("-= "):
+            continue
+        tokens = stripped.split()
+        name = tokens[0].strip()
+        version = ""
+        if len(tokens) >= 2 and re.search(r"\d", tokens[1]):
+            version = tokens[1].strip()
+        else:
+            m = re.match(r"^(.+?)-(\d[\w.\-]*)$", name)
+            if m:
+                name, version = m.group(1), m.group(2)
+        if not name or not re.match(r"^[A-Za-z0-9_][A-Za-z0-9_.\-]*$", name):
+            continue
+        label = f"{name}-{version}" if version and not name.endswith(f"-{version}") else name
+        packages[name.lower()] = {"name": name, "version": version, "label": label}
+    return sorted(packages.values(), key=lambda p: p["name"].lower())
+
+
 def build_manifest(args: argparse.Namespace) -> dict:
     nipkg_raw = ""
     if args.nipkg_list:
@@ -103,6 +136,14 @@ def build_manifest(args: argparse.Namespace) -> dict:
             nipkg_raw = p.read_text(encoding="utf-8", errors="replace")
         else:
             print(f"  WARN: nipkg list file not found: {p}", file=sys.stderr)
+
+    vipm_raw = ""
+    if args.vipm_list:
+        p = Path(args.vipm_list)
+        if p.exists():
+            vipm_raw = p.read_text(encoding="utf-8", errors="replace")
+        else:
+            print(f"  WARN: VIPM list file not found: {p}", file=sys.stderr)
 
     vipcs = []
     for vipc in args.vipc or []:
@@ -116,17 +157,23 @@ def build_manifest(args: argparse.Namespace) -> dict:
         )
 
     return {
-        "schema": 1,
+        "schema": 2,
         "platform": args.platform,
         "version": args.version,
         "labview_version": args.labview_version,
         "base_image": args.base_image,
         "base_digest": args.base_digest or "",
+        "seed_image": args.seed_image or "",
+        "seed_digest": args.seed_digest or "",
+        "worker_layer": args.worker_layer or "",
+        "copied_from_base": args.worker_layer == "seed-only-copy",
         "image_ref": args.image_ref or "",
         "build_date": args.build_date,
         "git_sha": args.git_sha,
         "run_url": args.run_url,
         "vipc": vipcs,
+        "vipm_raw": vipm_raw,
+        "vipm_packages": parse_vipm_list(vipm_raw),
         "nipkg_raw": nipkg_raw,
         "nipkg_packages": parse_nipkg_list(nipkg_raw),
     }
@@ -175,6 +222,9 @@ _PAGE = """<!DOCTYPE html>
     <tr><td class="k">Image</td><td><code>{image_ref}</code></td></tr>
     <tr><td class="k">Base image</td><td><code>{base_image}</code></td></tr>
     <tr><td class="k">Base digest</td><td><code>{base_digest}</code></td></tr>
+    <tr><td class="k">LCWC seed image</td><td><code>{seed_image}</code></td></tr>
+    <tr><td class="k">LCWC seed digest</td><td><code>{seed_digest}</code></td></tr>
+    <tr><td class="k">Worker layer</td><td>{worker_layer}</td></tr>
     <tr><td class="k">Built</td><td>{build_date}</td></tr>
     <tr><td class="k">Source commit</td><td><code>{git_sha}</code></td></tr>
     <tr><td class="k">Build run</td><td>{run_link}</td></tr>
@@ -182,6 +232,9 @@ _PAGE = """<!DOCTYPE html>
 
   <h2>Applied VI Package Configurations (.vipc)</h2>
   {vipc_section}
+
+    <h2>Installed packages (VIPM)</h2>
+    {vipm_section}
 
   <h2>Installed packages (nipkg)</h2>
   {nipkg_section}
@@ -222,6 +275,24 @@ def render_html(m: dict, pages_url: str) -> str:
     else:
         vipc_section = '<p class="muted">None. This worker applies no VI Package Configuration.</p>'
 
+    # VIPM section
+    if m.get("vipm_raw", "").strip():
+        rows = "".join(
+            f"<tr><td><code>{esc(p['name'])}</code></td><td><code>{esc(p['version'])}</code></td></tr>"
+            for p in m.get("vipm_packages", [])
+        )
+        table = (
+            f'<table><tr><th>Package</th><th>Version</th></tr>{rows}</table>'
+            if rows
+            else ""
+        )
+        vipm_section = (
+            f"{table}<details><summary class=\"muted\">Raw <code>vipm list --installed</code> output</summary>"
+            f"<pre>{esc(m['vipm_raw'])}</pre></details>"
+        )
+    else:
+        vipm_section = '<p class="muted">No VIPM installed-package listing was captured for this worker.</p>'
+
     # nipkg section
     if m["nipkg_raw"].strip():
         rows = "".join(
@@ -247,11 +318,15 @@ def render_html(m: dict, pages_url: str) -> str:
         image_ref=esc(m["image_ref"]) or "—",
         base_image=esc(m["base_image"]),
         base_digest=esc(m["base_digest"]) or "—",
+        seed_image=esc(m.get("seed_image")) or "—",
+        seed_digest=esc(m.get("seed_digest")) or "—",
+        worker_layer=esc(m.get("worker_layer")) or "—",
         build_date=esc(m["build_date"]),
         git_sha=esc(m["git_sha"]) or "—",
         run_link=run_link,
         nav=nav,
         vipc_section=vipc_section,
+        vipm_section=vipm_section,
         nipkg_section=nipkg_section,
         # Shared site header (lvci-header.js, deployed once at the Pages root).
         # Worker manifests live at workers/<platform>/<version>/manifest.html
@@ -266,16 +341,20 @@ def render_html(m: dict, pages_url: str) -> str:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Generate CI worker manifest (HTML + JSON).")
-    ap.add_argument("--platform", required=True, choices=["windows", "linux", "linux-beta"])
+    ap.add_argument("--platform", required=True, choices=["windows", "linux", "linux-beta", "windows-beta"])
     ap.add_argument("--version", required=True, help="Worker version, e.g. win-abc123def456")
     ap.add_argument("--labview-version", default="")
     ap.add_argument("--base-image", default="")
     ap.add_argument("--base-digest", default="")
+    ap.add_argument("--seed-image", default="", help="Reusable seed/base image used before any repo-specific layer")
+    ap.add_argument("--seed-digest", default="", help="Resolved digest of the reusable seed/base image")
+    ap.add_argument("--worker-layer", default="", help="Worker layer strategy, e.g. seed-only-copy or repo-vipc-layer")
     ap.add_argument("--image-ref", default="", help="Published image reference (tag)")
     ap.add_argument("--build-date", default=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
     ap.add_argument("--git-sha", default="")
     ap.add_argument("--run-url", default="")
     ap.add_argument("--nipkg-list", default="", help="Path to captured `nipkg list` output")
+    ap.add_argument("--vipm-list", default="", help="Path to captured `vipm list --installed` output")
     ap.add_argument("--vipc", action="append", default=[], help="Path to an applied .vipc (repeatable)")
     ap.add_argument("--pages-url", default="", help="Base Pages URL for nav links")
     ap.add_argument("--out-dir", required=True)

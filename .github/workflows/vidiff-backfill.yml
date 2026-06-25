@@ -79,9 +79,7 @@ jobs:
 
       - name: Deploy VIDiff reports to GitHub Pages
         if: steps.verify.outputs.ok == 'true'
-        uses: peaceiris/actions-gh-pages@v4.1.0
+        uses: ./.github/actions/publish-gh-pages
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vidiff-backfill
           destination_dir: vidiff
-          keep_files: true   # preserve existing per-commit reports
