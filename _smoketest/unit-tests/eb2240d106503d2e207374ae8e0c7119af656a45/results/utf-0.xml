@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+
+<testsuites assertions="0" name="Example.lvproj" skipped="0" skips="0" timestamp="0.000000">
+	<testsuite assertions="0" disabled="0" errors="0" failures="0" name="Example.lvproj\My Computer\Basic Functions\Add.lvtest" skipped="0" skips="0" tests="3" time="0.653562" timestamp="0.000000">
+		<testcase assertions="0" name="Test Case 1" time="0.016000" timestamp="0.000000"/>
+		<testcase assertions="0" name="Test Case 2" time="0.088000" timestamp="0.000000"/>
+		<testcase assertions="0" name="Test Case 3" time="0.086000" timestamp="0.000000"/>
+	</testsuite>
+	<testsuite assertions="0" disabled="0" errors="0" failures="0" name="Example.lvproj\My Computer\Basic Functions\Divide by Zero.lvtest" skipped="0" skips="0" tests="1" time="0.399642" timestamp="0.000000">
+		<testcase assertions="0" name="Test Case 1" time="0.043000" timestamp="0.000000"/>
+	</testsuite>
+	<testsuite assertions="0" disabled="0" errors="0" failures="0" name="Example.lvproj\My Computer\Basic Functions\Divide.lvtest" skipped="0" skips="0" tests="3" time="0.762574" timestamp="0.000000">
+		<testcase assertions="0" name="Test Case 1" time="0.043000" timestamp="0.000000"/>
+		<testcase assertions="0" name="Test Case 2" time="0.034000" timestamp="0.000000"/>
+		<testcase assertions="0" name="Test Case 3" time="0.064000" timestamp="0.000000"/>
+	</testsuite>
+	<testsuite assertions="0" disabled="0" errors="0" failures="1" name="Example.lvproj\My Computer\Basic Functions\Subtract.lvtest" skipped="0" skips="0" tests="2" time="0.472945" timestamp="0.000000">
+		<testcase assertions="0" name="Test Case 1" time="0.027000" timestamp="0.000000"/>
+		<testcase assertions="0" name="Test Case 2" time="0.085000" timestamp="0.000000">
+			<failure></failure>
+		</testcase>
+	</testsuite>
+	<testsuite assertions="0" disabled="0" errors="0" failures="1" name="Example.lvproj\My Computer\Basic Functions\Waveforms.lvlib\Waveforms.lvtest" skipped="0" skips="0" tests="1" time="1.664693" timestamp="0.000000">
+		<testcase assertions="0" name="Test Case 1" time="0.040000" timestamp="0.000000">
+			<failure></failure>
+		</testcase>
+	</testsuite>
+	<testsuite assertions="0" disabled="0" errors="0" failures="1" name="Example.lvproj\My Computer\Basic Functions\Waveforms.lvlib\Array of Waveforms.lvtest" skipped="0" skips="0" tests="1" time="1.182196" timestamp="0.000000">
+		<testcase assertions="0" name="Test Case 1" time="0.096000" timestamp="0.000000">
+			<failure></failure>
+		</testcase>
+	</testsuite>
+	<testsuite assertions="0" disabled="0" errors="0" failures="0" name="Example.lvproj\My Computer\User-Defined Test\Untitled.lvtest" skipped="0" skips="0" tests="0" time="0.000000" timestamp="0.000000"/>
+	<testsuite assertions="0" disabled="0" errors="0" failures="0" name="Example.lvproj\My Computer\User-Defined Test\User-Defined Advanced.lvtest" skipped="0" skips="0" tests="1" time="1.163631" timestamp="0.000000">
+		<testcase assertions="0" name="Test Case 1" time="1.000000" timestamp="0.000000"/>
+	</testsuite>
+	<testsuite assertions="0" disabled="0" errors="0" failures="0" name="Example.lvproj\My Computer\User-Defined Test\User-Defined Basic.lvtest" skipped="0" skips="0" tests="1" time="0.147605" timestamp="0.000000">
+		<testcase assertions="0" name="Test Case 1" time="0.000000" timestamp="0.000000"/>
+	</testsuite>
+	<testsuite assertions="0" disabled="0" errors="0" failures="0" name="Example.lvproj\My Computer\Basic Functions\Multiply.lvtest" skipped="2" skips="0" tests="0" time="0.000000" timestamp="0.000000">
+		<testcase assertions="0" name="1" time="0.000000" timestamp="0.000000">
+			<skipped></skipped>
+		</testcase>
+		<testcase assertions="0" name="2" time="0.000000" timestamp="0.000000">
+			<skipped></skipped>
+		</testcase>
+	</testsuite>
+</testsuites>
