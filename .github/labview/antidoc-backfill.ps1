@@ -153,7 +153,6 @@ try {
         if ($LASTEXITCODE -ne 0) { Write-Warning "worktree failed for $short; skipping."; continue }
 
         $reportHostDir = Join-Path $OutRoot $sha
-        New-Item -ItemType Directory -Force -Path $reportHostDir | Out-Null
 
         try {
             # Document into a CONTAINER-INTERNAL dir, then copy the result to the host.
@@ -167,7 +166,7 @@ try {
             if ($LASTEXITCODE -ne 0) { Write-Warning "run-antidoc returned $LASTEXITCODE for $short (continuing)." }
 
             # Copy the generated documentation (doc\ + meta) out of the container.
-            & docker cp "${ContainerName}:$cOut\." "$reportHostDir"
+            & docker cp "${ContainerName}:$cOut" "$reportHostDir"
             if ($LASTEXITCODE -ne 0) { Write-Warning "docker cp failed for $short (continuing)." }
             & docker exec $ContainerName powershell -NoProfile -Command "Remove-Item -Recurse -Force '$cOut' -ErrorAction SilentlyContinue" | Out-Null
 

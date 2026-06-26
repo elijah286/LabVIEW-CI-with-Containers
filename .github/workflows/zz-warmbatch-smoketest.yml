@@ -1,5 +1,5 @@
 name: zz Warm-batch smoketest (DELETE BEFORE MERGE)
-run-name: zz warm-batch smoketest - ${{ github.sha }}
+run-name: zz warm-batch smoketest (run 2, docker cp fix) - ${{ github.sha }}
 
 # TEMPORARY branch-only smoke test for the warm-container Mass Compile backfill.
 # Runs the real .github/labview/masscompile-backfill.ps1 over the latest 3

@@ -156,7 +156,6 @@ try {
         if ($LASTEXITCODE -ne 0) { Write-Warning "worktree failed for $short; skipping."; continue }
 
         $reportHostDir = Join-Path $OutRoot $sha
-        New-Item -ItemType Directory -Force -Path $reportHostDir | Out-Null
 
         try {
             # Compile into a CONTAINER-INTERNAL dir, then copy the result to the host.
@@ -170,8 +169,11 @@ try {
             if ($LASTEXITCODE -ne 0) { Write-Warning "masscompile returned $LASTEXITCODE for $short (continuing)." }
 
             # Copy the compiled report (summary.json + masscompile.log + index.html)
-            # out of the container to the host staging dir.
-            & docker cp "${ContainerName}:$cOut\." "$reportHostDir"
+            # out of the container to the host staging dir. Copy the directory
+            # itself (no trailing '\.') so docker creates <reportHostDir> with the
+            # contents inside; the '\.' content-copy form is rejected by Windows
+            # CreateFile on Windows containers.
+            & docker cp "${ContainerName}:$cOut" "$reportHostDir"
             if ($LASTEXITCODE -ne 0) { Write-Warning "docker cp failed for $short (continuing)." }
             & docker exec $ContainerName powershell -NoProfile -Command "Remove-Item -Recurse -Force '$cOut' -ErrorAction SilentlyContinue" | Out-Null
 

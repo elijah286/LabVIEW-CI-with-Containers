@@ -153,7 +153,6 @@ try {
         if ($LASTEXITCODE -ne 0) { Write-Warning "worktree failed for $short; skipping."; continue }
 
         $reportHostDir = Join-Path $OutRoot $sha
-        New-Item -ItemType Directory -Force -Path $reportHostDir | Out-Null
 
         try {
             # Analyze into a CONTAINER-INTERNAL dir, then copy the result to the host.
@@ -169,7 +168,7 @@ try {
 
             # Copy the native report (index.html / raw.html / summary.json / passes\)
             # out of the container to the host staging dir.
-            & docker cp "${ContainerName}:$cOut\." "$reportHostDir"
+            & docker cp "${ContainerName}:$cOut" "$reportHostDir"
             if ($LASTEXITCODE -ne 0) { Write-Warning "docker cp failed for $short (continuing)." }
             & docker exec $ContainerName powershell -NoProfile -Command "Remove-Item -Recurse -Force '$cOut' -ErrorAction SilentlyContinue" | Out-Null
 
