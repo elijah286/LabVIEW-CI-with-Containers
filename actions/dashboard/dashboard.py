@@ -1063,7 +1063,13 @@ for c in commits_data:
 rows = '\n'.join(rows_html)
 hist_json = _json.dumps(hist_revs)
 caps_ran_json = _json.dumps({c: 1 for c in sorted(caps_ran)})
-run_timing_json = _json.dumps(build_run_timing())
+# Best-effort: the run-time estimate is a convenience. A timing/API hiccup must
+# never break dashboard generation - the client falls back to TIMING_DEFAULT
+# whenever a capability is absent from RT_TIMING.
+try:
+    run_timing_json = _json.dumps(build_run_timing())
+except Exception:
+    run_timing_json = '{}'
 now  = __import__('datetime').datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
 
 # The "Include CI-only revisions" toggle is de-selected by default, so the
