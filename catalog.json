@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.36",
+  "version": "4.2.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.2.0",
+        "date": "2026-06-27",
+        "title": "Unit Tests: add LUnit, and ci-tooling.vipc is now a real VIPC",
+        "type": "minor",
+        "summary": "The Unit Tests capability gains Astemes' LUnit as a fourth framework alongside Caraya, VI Tester, and the NI Unit Test Framework: an LUnit configurator tab, a headless runner via the native 'LabVIEWCLI -OperationName LUnit', and merged JUnit reporting. Separately, ci-tooling.vipc is no longer a names-only stub that VIPM rejects -- build-tooling-vipc.py now resolves each package (plus its dependency closure) against the public VIPM indexes and harvests each one's REAL spec+icon, producing a genuine, VIPM-openable VIPC (tens of KB, no bundled binaries) without VIPM or Windows.",
+        "highlights": [
+          "Adds an LUnit tab to the Unit Testing configurator; run-unit-tests.ps1 runs LUnit headlessly via 'LabVIEWCLI -OperationName LUnit' and merges its JUnit output into the unified report.",
+          "ci-tooling.vipc is now a real VIPC you can open and edit in VIPM: the generator downloads each package's published spec+icon (byte-identical to VIPM's own) instead of emitting a names-only file that VIPM rejected.",
+          "Bakes base LUnit + the LUnit CLI into the Windows worker image; install-vipc.ps1 gains a wrapped-line detection fix, a parent-bundled-dependency skip, and tolerance for VIPM build-suffixed package names."
+        ]
+      },
       {
         "version": "4.1.36",
         "date": "2026-06-26",

@@ -10,7 +10,7 @@
   },
 
   "vipmPackages": {
-    "comment": "Top-level packages only - the CORE dependency set every CI action runner needs. Each is emitted as a <Package Included=false> entry, so `vipm apply_vipc` downloads it (and its dependencies, listed here for reference only) from the configured VIPM repository at build time. Pin `version` for reproducible images; set it to null to resolve to the latest available. `include:false` documents a package without baking it in. Capability-specific dependencies (e.g. Antidoc) do NOT live here - they live in their own opt-in VIPC under .github/labview/<capability>/<capability>.vipc and are baked into the worker image only when that capability is installed (see alreadyBakedElsewhere).",
+    "comment": "Top-level packages only - the CORE dependency set every CI action runner needs. build-tooling-vipc.py resolves each (plus its full dependency closure) against the public VIPM indexes and bakes every resolved package's REAL spec+icon into ci-tooling.vipc as a <Package Included=false> entry, producing a genuine VIPM-openable file; the package binaries download at image-build time. The `dependenciesAutoResolved` lists below are informational only - the generator resolves the actual closure from the indexes. Pin `version` for reproducible images; set it to null to resolve to the latest available. `include:false` documents a package without baking it in. Capability-specific dependencies (e.g. Antidoc) do NOT live here - they live in their own opt-in VIPC under .github/labview/<capability>/<capability>.vipc and are baked into the worker image only when that capability is installed (see alreadyBakedElsewhere).",
     "packages": [
       {
         "name": "jki_lib_caraya",
@@ -50,6 +50,20 @@
         "include": true,
         "summary": "G Image by dataflow_g - read/write/encode images (PNG/JPEG/BMP) in LabVIEW; used by the VI Browser snapshot generator to embed the rendered diagram and front-panel images in its HTML output.",
         "note": "Action-runner tooling, not a project dependency: the VI Snapshots (VI Browser 1.0) HTML generator uses it to encode/embed images, so it lives in the core CI tooling rather than in any one project's VIPC."
+      },
+      {
+        "name": "astemes_lib_lunit",
+        "version": null,
+        "include": true,
+        "summary": "LUnit by Astemes - xUnit-style LabVIEW unit test framework: Test Case classes, fast headless execution, parallel runs, and results visible in the LabVIEW project explorer.",
+        "note": "Core unit-test framework, treated like jki_lib_caraya / jki_vi_tester. Version left null (latest). Published in the VIPM Community (JKI) and NI Tools Network indexes, so build-tooling-vipc.py resolves its spec/icon (and dependency closure) from the public indexes like the other frameworks."
+      },
+      {
+        "name": "astemes_lib_lunit_cli",
+        "version": null,
+        "include": true,
+        "summary": "LUnit CLI by Astemes - registers the native 'LabVIEWCLI -OperationName LUnit' operation that run-unit-tests.ps1 invokes headlessly to run LUnit Test Cases and emit a JUnit report (.xml -ReportPath).",
+        "note": "REQUIRED for headless LUnit, exactly as ni_lib_utf_junit_report is for UTF: without it the 'LUnit' CLI operation cannot load and the runner fails with -350053. Its VIPM install must run AS ADMINISTRATOR on Windows (it registers a LabVIEW CLI operation under Program Files); the worker image build runs VIPM as ContainerAdministrator, so this is satisfied. Published in the VIPM Community (JKI) index. Its declared dependency astemes_lib_lunit_cli_system ships INSIDE this .vip and is not published standalone, so the resolver skips that unresolvable transitive dependency with a note. Version null (latest)."
       }
     ]
   },
