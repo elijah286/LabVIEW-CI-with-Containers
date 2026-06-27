@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "a111d8f6089773367674b564f5cd80e826cd1d1b",
+  "sha": "ddf403cd5397f89a08dda9e8b89472eb18fe44c3",
   "revisions": [
+    {
+      "sha": "ddf403cd5397f89a08dda9e8b89472eb18fe44c3",
+      "short": "ddf403c",
+      "message": "README: clear, compelling project overview + matching Apply to New Repo CTA (4.1.36)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-27T04:05:24Z"
+    },
     {
       "sha": "a111d8f6089773367674b564f5cd80e826cd1d1b",
       "short": "a111d8f",
@@ -695,13 +702,6 @@
       "message": "Clean up dependency management around VIPC files as the source of truth (v3.39.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T23:35:39Z"
-    },
-    {
-      "sha": "c4e815ef45d2cecdd6b579e1a87b45e8da7d70da",
-      "short": "c4e815e",
-      "message": "Promote VIPM-enabled Linux worker",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T23:10:31Z"
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
