@@ -460,7 +460,7 @@ jobs:
               }
               passed['greenAtLeast'] = max(passed['greenAtLeast'], passed['yellowAtLeast'])
               passed['redBelow'] = min(passed['redBelow'], passed['yellowAtLeast'])
-              ordered = [k for k in ('caraya', 'vi-tester', 'utf') if k in tools]
+              ordered = [k for k in ('caraya', 'lunit', 'vi-tester', 'utf') if k in tools]
               ordered += sorted(k for k in tools if k not in ordered)
               out = [
                   'unitTests:',

@@ -372,9 +372,9 @@ RUN_TARGETS = {
       'snapshots2': {'label': 'VI Browser 2.0 Snapshots', 'platforms': {
         'windows': {'wf': 'vi-snapshots-json-windows.yml', 'inputs': {'target_sha': '{sha}'}},
         'linux':   {'wf': 'vi-snapshots-json.yml',         'inputs': {'mode': 'head', 'target_sha': '{sha}'}}}},
-    # Unit tests run in the Windows worker only: Caraya and VI Tester are
-    # VIPM packages (Windows-only). The runner emits JUnit that
-    # build-unittest-report.py normalises into one report.
+    # Unit tests run in the Windows worker only: Caraya, VI Tester and LUnit are
+    # VIPM packages (Windows-only) and NI UTF runs via the native LabVIEW CLI. The
+    # runner emits JUnit that build-unittest-report.py normalises into one report.
     'unit-tests': {'label': 'Unit Tests', 'platforms': {
         'windows': {'wf': 'unit-tests-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
     # Antidoc (Wovalab) documentation generation runs in the Windows worker only
