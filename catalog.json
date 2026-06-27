@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.1.35",
+  "version": "4.1.36",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.1.36",
+        "date": "2026-06-26",
+        "title": "README rewritten as a clear, compelling project overview",
+        "type": "patch",
+        "summary": "The repository README is now a focused front page: a one-line value proposition, the problem it solves, a capability table, a clear path to the live dashboard, and a prominent green Apply to New Repo install button that matches the one on every dashboard. It also signposts the Documentation, FAQ, and example project, briefly explains how the container pipeline works, and adds Contributing and Versioning sections.",
+        "highlights": [
+          "README leads with what the tooling is, the problem it solves, and why it is valuable - compelling but not overwhelming for a first-time visitor.",
+          "The install call-to-action is the green Apply to New Repo button, matching the one on every dashboard, with private-repo install linked.",
+          "Corrected a stale reusable-workflow example tag (v1 -> the current major) and added clearer pointers to the Documentation, FAQ, example project, and the contributing / versioning model."
+        ]
+      },
       {
         "version": "4.1.35",
         "date": "2026-06-25",
