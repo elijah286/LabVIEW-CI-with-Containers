@@ -386,7 +386,7 @@ flowchart TD
           <tr><td><strong>Mass Compile</strong></td><td>Compiles every VI/CTL and flags broken VIs and missing dependencies.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>VI Analyzer</strong></td><td>Runs NI's static-analysis test suite for correctness, performance, style and documentation.</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>VIDiff</strong></td><td>Generates visual, side-by-side front-panel + block-diagram diffs of changed VIs between commits.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
-          <tr><td><strong>Unit Tests</strong></td><td>Runs Caraya / VI Tester / NI Unit Test Framework headlessly and merges JUnit output into one report.</td><td><span class="pill win">Win</span></td></tr>
+          <tr><td><strong>Unit Tests</strong></td><td>Runs Caraya / LUnit / VI Tester / NI Unit Test Framework headlessly and merges JUnit output into one report.</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>Antidoc</strong></td><td>Generates project documentation from the VI hierarchy using Wovalab's Antidoc CLI.</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>VI Snapshots / Browser</strong></td><td>Renders every VI to a content-addressed HTML snapshot gallery (the classic VI Browser).</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>VI Snapshots 2.0</strong></td><td>Position-aware, in-place VI Browser frames (JSON) rendered by the cross-platform toimages engine.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
@@ -1019,7 +1019,7 @@ docker run --rm `
       <p class="lead-in">This section is the single hardest part of the whole stack, and it is documented in detail
         precisely because it was painful to get right. If you ever fork the worker build or debug a baking failure,
         read it carefully — every numbered point below is a real problem that was hit and solved.</p>
-      <p>Third-party LabVIEW packages (Antidoc, Caraya, VI Tester, the UTF JUnit reporter, and project packages
+      <p>Third-party LabVIEW packages (Antidoc, Caraya, VI Tester, LUnit, the UTF JUnit reporter, and project packages
         declared in staged <code>.vipc</code> files) are <strong>baked into the Windows worker image</strong> at build
         time so they are available headless during CI. Getting the modern VIPM CLI to install packages
         non-interactively inside a <code>docker build</code> required solving several non-obvious problems,
@@ -1077,7 +1077,7 @@ docker run --rm `
         (<code>ni_lib_utf_junit_report</code> + its <code>ni_lib_junit_results_api</code> /
         <code>ni_lib_simple_xml</code> deps) <strong>first</strong> as <em>required</em>, then applies project
         <code>.vipc</code> files (also required). Tooling VIPCs (<code>ci-tooling*.vipc</code>, e.g. Antidoc / Caraya /
-        VI Tester) are <em>best-effort</em>: if a heavy add-on wedges the headless VIPM engine it is logged as a warning
+        VI Tester / LUnit) are <em>best-effort</em>: if a heavy add-on wedges the headless VIPM engine it is logged as a warning
         and the build still publishes a working, UTF-capable image. Override the required set with
         <code>VIPM_REQUIRED_PACKAGES</code>.</div>
       <div class="note"><span class="lbl">Public-index fallback</span>
@@ -1090,11 +1090,20 @@ docker run --rm `
         <code>ni_lib_utf_junit_report</code>. Without it baked in, headless UTF runs fail with error
         <code>-350053</code> ("missing or bad files in the operation folder").</div>
 
-      <h3>The tooling VIPC is generated deterministically</h3>
+      <h3>The tooling VIPC is a real, VIPM-openable file generated without VIPM</h3>
       <p><code>build-tooling-vipc.py</code> merges <code>ci-tooling.defaults.json</code> (tooling-supplied base
         packages) with <code>ci-tooling.packages.json</code> (user overrides — user wins on name collision,
-        defaults are additive) into a byte-deterministic <code>ci-tooling.vipc</code>. Determinism matters because
-        the VIPC files feed the worker-version hash; a stable input yields a stable image tag.</p>
+        defaults are additive), resolves each package and its dependency closure against the same public VIPM
+        indexes <code>install-vipc.ps1</code> uses, and downloads each package's <strong>real spec + icon</strong>
+        (every index entry exposes a <code>Spec.URL</code> / <code>Icon.URL</code>) to assemble a genuine
+        <code>ci-tooling.vipc</code> — one a developer can open and edit in VIPM, with no VIPM or Windows
+        required to build it. <code>Included=false</code> keeps the package binaries out, so the file stays small
+        (tens of KB) while remaining a valid VIPC. The harvested spec/icon bytes are byte-identical to what VIPM
+        itself stores, and the archive is written deterministically (sorted entries, fixed timestamps,
+        content-derived ID); determinism matters because the VIPC feeds the worker-version hash, so a stable
+        resolved set yields a stable image tag. Generation needs network access to the public indexes
+        (<code>download.ni.com</code>, <code>www.jkisoft.com</code>); pin versions in the manifest for fully
+        reproducible images (null = latest at generation time).</p>
 
       <!-- 16 ──────────────────────────────────────────────────────────────── -->
       <h2 id="capabilities">16. Capabilities in depth <a class="anchor" href="#capabilities">#</a></h2>
@@ -1159,7 +1168,8 @@ docker run --rm `
       <h3 id="cap-unittests">16.4 Unit Tests <a class="anchor" href="#cap-unittests">#</a></h3>
       <p>Driver: <code>run-unit-tests.ps1</code>; report: <code>build-unittest-report.py</code>. It reads
         <code>config.unitTests.tools[]</code> from the manifest, runs each enabled framework headlessly (Caraya and
-        VI Tester via <code>g-cli</code>; NI UTF via <code>LabVIEWCLI -OperationName RunUnitTests</code>), and
+        VI Tester via <code>g-cli</code>; NI UTF via <code>LabVIEWCLI -OperationName RunUnitTests</code>; LUnit via the
+        same native CLI with <code>LabVIEWCLI -OperationName LUnit</code>), and
         collects per-tool JUnit XML. The framework is inferred from the XML filename, and the "VI under test" is
         derived by stripping test affixes (e.g. <code>Foo Tests.vi → Foo.vi</code>) so results link back to source.
         The merged <code>results.json</code> carries per-tool suites, per-case status, and an overall summary.</p>
