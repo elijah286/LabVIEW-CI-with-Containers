@@ -554,8 +554,18 @@ jobs:
           $date  = '${{ steps.date.outputs.date }}'
           $wv    = '${{ steps.ver.outputs.version }}'
           $lcwcBase = '${{ steps.base.outputs.image }}'
-          $vipcCount = [int]'${{ steps.vipc.outputs.count }}'
-          $dragonCount = [int]'${{ steps.vipc.outputs.dragon_count }}'
+          # Count what labview-ci.Dockerfile will actually COPY + apply: every .vipc /
+          # .dragon staged into .github/labview/vipm. That ALWAYS includes the baseline
+          # tooling VIPC (ci-tooling.vipc -> Caraya / VI Tester / LUnit CLI / the UTF
+          # JUnit essentials) on top of any staged project deps. Previously this used
+          # steps.vipc.outputs (project + capability files only), so a repo whose deps
+          # live solely in ci-tooling.vipc (no project .vipc) reported depCount=0 and took
+          # the crane registry-copy fast path, publishing the worker as a plain copy of the
+          # LCWC base with NO tooling baked -- the registered CLI operations (e.g. LUnit)
+          # were then missing and headless unit tests failed (-350006). Match the
+          # worker-version step, which already hashes these same files.
+          $vipcCount = @(Get-ChildItem '.github/labview/vipm' -Filter *.vipc -File -ErrorAction SilentlyContinue).Count
+          $dragonCount = @(Get-ChildItem '.github/labview/vipm' -Filter *.dragon -File -ErrorAction SilentlyContinue).Count
           $depCount = $vipcCount + $dragonCount
           $unitTestsInstalled = $false
           $inActivities = $false
@@ -626,7 +636,9 @@ jobs:
           $base   = '${{ env.IMAGE_NAME }}'
           $wv     = '${{ steps.ver.outputs.version }}'
           $img    = "${base}:${wv}"
-          $workerLayer = if (([int]'${{ steps.vipc.outputs.count }}' + [int]'${{ steps.vipc.outputs.dragon_count }}') -gt 0) { 'repo-vipc-layer' } else { 'seed-only-copy' }
+          # Mirror the bake decision in build-and-push: a worker is a built layer whenever
+          # any .vipc/.dragon in .github/labview/vipm was applied (always incl. ci-tooling.vipc).
+          $workerLayer = if ((@(Get-ChildItem '.github/labview/vipm' -Filter *.vipc -File -ErrorAction SilentlyContinue).Count + @(Get-ChildItem '.github/labview/vipm' -Filter *.dragon -File -ErrorAction SilentlyContinue).Count) -gt 0) { 'repo-vipc-layer' } else { 'seed-only-copy' }
           $outDir = "ci-out/workers-pages/workers/windows/$wv"
           New-Item -ItemType Directory -Force -Path 'ci-out/worker' | Out-Null
           New-Item -ItemType File -Force -Path 'ci-out/worker/nipkg-list.txt','ci-out/worker/vipm-list.txt' | Out-Null
