@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "8bb5635b3630bcfd83201ea0095cbd45d5fcd13b",
+  "sha": "9bd01452270e776209f9bbc9c6fcb08393d05bd9",
   "revisions": [
+    {
+      "sha": "9bd01452270e776209f9bbc9c6fcb08393d05bd9",
+      "short": "9bd0145",
+      "message": "Merge remote-tracking branch 'origin/main' into feat/warm-container-batch-history",
+      "author": "Elijah Kerry",
+      "date": "2026-06-28T17:35:10Z"
+    },
     {
       "sha": "8bb5635b3630bcfd83201ea0095cbd45d5fcd13b",
       "short": "8bb5635",
@@ -18,6 +25,20 @@
       "date": "2026-06-28T17:07:04Z"
     },
     {
+      "sha": "70f0e93d7f422ee489a3e0e1a214ea1557ec073a",
+      "short": "70f0e93",
+      "message": "Merge remote-tracking branch 'origin/main' into feat/warm-container-batch-history",
+      "author": "Elijah Kerry",
+      "date": "2026-06-28T17:01:46Z"
+    },
+    {
+      "sha": "64b68477a478366b208535ff6d8b8f78e48437f9",
+      "short": "64b6847",
+      "message": "Remove throwaway warm-batch smoketest workflows (all 4 caps validated)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-28T16:54:52Z"
+    },
+    {
       "sha": "aaeeffb9be1e86372cbb58a268d4e12f8c91e0f9",
       "short": "aaeeffb",
       "message": "Unit Tests: add LUnit + make ci-tooling.vipc a real VIPC (4.2.0)",
@@ -30,6 +51,41 @@
       "message": "README: clear, compelling project overview + matching Apply to New Repo CTA (4.1.36)",
       "author": "Elijah Kerry",
       "date": "2026-06-27T04:05:24Z"
+    },
+    {
+      "sha": "a8547f3ba0b9b52b56eb898a189298959c49dca1",
+      "short": "a8547f3",
+      "message": "TEMP: warm-batch smoketests for vi-analyzer/unit-tests/antidoc (delete before merge)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-26T04:41:53Z"
+    },
+    {
+      "sha": "d7c00aac873a668c18003003a32613be4a800ae5",
+      "short": "d7c00aa",
+      "message": "dashboard: guard run-timing so an API hiccup can't break the build",
+      "author": "Elijah Kerry",
+      "date": "2026-06-26T04:31:45Z"
+    },
+    {
+      "sha": "09abdb9b65506f774714804dfccf14bf939253dc",
+      "short": "09abdb9",
+      "message": "Fix docker cp out of warm container (Windows trailing-dot rejected)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-26T00:54:04Z"
+    },
+    {
+      "sha": "288d438cf2946f6e4d7897e8fd826f13b8178270",
+      "short": "288d438",
+      "message": "TEMP: warm-batch smoketest workflow (delete before merge)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-25T23:57:18Z"
+    },
+    {
+      "sha": "70370a86a327b8033ae046e18d00ac189c3d3ed6",
+      "short": "70370a8",
+      "message": "Warm-container history backfills (opt-in) (4.2.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-25T23:56:00Z"
     },
     {
       "sha": "a111d8f6089773367674b564f5cd80e826cd1d1b",
@@ -646,55 +702,6 @@
       "message": "Parse NIPM worker manifests from package columns (v3.41.4)",
       "author": "Elijah Kerry",
       "date": "2026-06-23T02:42:10Z"
-    },
-    {
-      "sha": "ef03546c9befb9c73caaf9c4827ea62a1498bc3a",
-      "short": "ef03546",
-      "message": "Use desktop width in history activity rows",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T02:12:45Z"
-    },
-    {
-      "sha": "9c822baa93f3e9fedc344534b39a3c941344587c",
-      "short": "9c822ba",
-      "message": "Align populate history activity controls",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T02:05:20Z"
-    },
-    {
-      "sha": "6ce94e199f88bd339c723208ed6d5e9b7eb00a4e",
-      "short": "6ce94e1",
-      "message": "Clarify 2.0 snapshot reruns in Actions",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T01:46:45Z"
-    },
-    {
-      "sha": "c0de54f6ffa994a0197898f856fdcbd100776555",
-      "short": "c0de54f",
-      "message": "Optional dependency-change CI + a dashboard filter for dependency-only revisions (v3.41.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T01:36:25Z"
-    },
-    {
-      "sha": "1941eb35dda9c273d63d9fd5542a42bceba08302",
-      "short": "1941eb3",
-      "message": "Enable forced snapshot reruns from dashboard history",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T01:02:12Z"
-    },
-    {
-      "sha": "6ec5d4fec2a0a9cb0a6b65d2e449a900ac4f80ac",
-      "short": "6ec5d4f",
-      "message": "Install JKI Dragon in the Windows worker (v3.40.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T00:28:47Z"
-    },
-    {
-      "sha": "c067715b82d9cb202ae19b48abd30809fa210a6f",
-      "short": "c067715",
-      "message": "Dependencies page: declutter the header and link workers to GHCR (v3.39.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T00:04:43Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",

@@ -242,7 +242,8 @@
   </div>
   <script>
   (function(){
-    var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "antidoc": {"label": "Antidoc", "platforms": {"windows": {"wf": "run-antidoc-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
+    var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "masscompile-backfill-windows.yml", "shas_input": "shas"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "vi-analyzer-backfill-windows.yml", "shas_input": "shas"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "unit-tests-backfill-windows.yml", "shas_input": "shas"}}}}, "antidoc": {"label": "Antidoc", "platforms": {"windows": {"wf": "run-antidoc-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "antidoc-backfill-windows.yml", "shas_input": "shas"}}}}};
+    var RT_TIMING = {"masscompile": {"windows": {"total": 1088.0, "work": 30.8}, "linux": {"total": 77.0, "work": 30.8}}, "vi-analyzer": {"windows": {"total": 973.0, "work": null}}, "vidiff": {"windows": {"total": 791.0, "work": null}, "linux": {"total": 65.0, "work": null}}, "snapshots2": {"windows": {"total": 1048.5, "work": null}, "linux": {"total": 17.0, "work": null}}, "unit-tests": {"windows": {"total": 1454.5, "work": null}}, "antidoc": {"windows": {"total": 878.0, "work": null}}};
     var REPO = "elijah286/LabVIEW-CI-with-Containers";
     var BRANCH = "main";
     var TOK_KEY = "lvci_dispatch_token";
@@ -991,7 +992,8 @@
       if(has(422)) return { html:'GitHub rejected the dispatch (HTTP 422) \u2014 usually a bad branch ref (<code>'+esc(BRANCH)+'</code>) or inputs.', tok:false };
       var st=(fails[0]||{}).status; return { html:'Could not queue runs (HTTP '+esc(String(st||'?'))+'). <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View Actions \u2197</a>', tok:false };
     }
-    function dispatchCells(cells, statusFn){
+    function dispatchCells(cells, statusFn, opts){
+      opts = opts || {}; var reuse = !!opts.reuse;
       var perRev=[]; var snapShas=[]; var sawSnap=false; var snapForce=false;
       cells.forEach(function(x){
         if(x.cap==='snapshots'){
@@ -1001,14 +1003,37 @@
         else if(!(x.cap==='vidiff' && !x.parent)){ perRev.push(x); }   // a root commit has no base to diff
       });
       perRev.sort(function(a,b){ return b.order - a.order; });   // oldest first
-      var total=perRev.reduce(function(n,x){ return n + cellPlatforms(x).length; }, 0) + (sawSnap?1:0);
+      // Warm-container batch routing: when "keep one container warm" is on, every
+      // (cap, platform) that exposes a 'batch' backfill workflow is collapsed into
+      // ONE dispatch carrying the whole oldest→newest SHA list, so a single warm
+      // container renders every selected revision (docker exec per commit) instead
+      // of a fresh container per revision. A cell's platforms WITHOUT a batch
+      // target (e.g. Linux) keep dispatching per revision. x._plats holds the
+      // per-revision platforms that survive after batch ones are siphoned off.
+      var batchGroups={}; var batchOrder=[];
+      perRev.forEach(function(x){
+        var keep=[];
+        cellPlatforms(x).forEach(function(plat){
+          var p=(RT[x.cap] && RT[x.cap].platforms) ? RT[x.cap].platforms[plat] : null;
+          if(reuse && p && p.batch){
+            var key=x.cap+'|'+plat; var g=batchGroups[key];
+            if(!g){ g={cap:x.cap, plat:plat, wf:p.batch.wf, shasInput:(p.batch.shas_input||'shas'), shas:[], force:false}; batchGroups[key]=g; batchOrder.push(key); }
+            if(g.shas.indexOf(x.sha)<0) g.shas.push(x.sha);
+            if(x.mode==='rerun' || x.done) g.force=true;
+          } else { keep.push(plat); }
+        });
+        x._plats=keep;
+      });
+      var perRevActive=perRev.filter(function(x){ return x._plats.length>0; });
+      var total=perRevActive.reduce(function(n,x){ return n + x._plats.length; }, 0) + (sawSnap?1:0) + batchOrder.length;
       var t0=Date.now(); var ok=0, err=0, done=0; var fails=[];
       // Paint EVERY targeted cell as "Queued" up front, in one synchronous pass, so
       // the whole batch lights up the instant you click - independent of the throttled
       // dispatch chain below. A dispatch that truly fails then reverts just its own
       // cell, and a thrown error mid-chain can no longer leave the earlier cells un-queued.
       if(sawSnap){ snapShas.forEach(function(sha){ markQueued('snapshots', sha, ['all'], '', t0); }); }
-      perRev.forEach(function(x){ var d=RT[x.cap]; if(d) markQueued(x.cap, x.sha, cellPlatforms(x), x.parent, t0); });
+      batchOrder.forEach(function(key){ var g=batchGroups[key]; g.shas.forEach(function(sha){ markQueued(g.cap, sha, [g.plat], '', t0); }); });
+      perRevActive.forEach(function(x){ var d=RT[x.cap]; if(d) markQueued(x.cap, x.sha, x._plats, x.parent, t0); });
       statusFn('Queuing '+total+' workflow'+(total>1?'s':'')+'\u2026', null);
       var chain=Promise.resolve();
       // 1) Snapshots — one backfill run for the whole history (oldest→newest, deduped).
@@ -1023,11 +1048,26 @@
           }).catch(function(){ err++; });
         });
       }
-      // 2) Per-revision capabilities, oldest first, gently throttled.
-      perRev.forEach(function(x){
+      // 2) Warm-container batch runs — one dispatch per (cap, platform) carrying the
+      // whole SHA list; the backfill workflow walks them oldest→newest in one
+      // container. force=true when any selected revision is a re-run/already done.
+      batchOrder.forEach(function(key){
+        var g=batchGroups[key];
+        chain=chain.then(function(){
+          var inputs={}; inputs[g.shasInput]=g.shas.join(' '); if(g.force) inputs.force='true';
+          return dispatchOne(g.wf, inputs).then(function(r){
+            done++;
+            if(r.ok){ ok++; }
+            else { err++; fails.push({wf:g.wf, status:r.status}); if(r.status===401) clearTok(); g.shas.forEach(function(sha){ qForget(g.cap, sha); }); }
+            statusFn('Queuing\u2026 '+done+'/'+total, null);
+          }).catch(function(){ err++; });
+        }).then(function(){ return new Promise(function(res){ setTimeout(res, 650); }); });
+      });
+      // 3) Per-revision capabilities, oldest first, gently throttled.
+      perRevActive.forEach(function(x){
         chain=chain.then(function(){
           var def=RT[x.cap]; if(!def){ return; }
-          var plats=cellPlatforms(x);
+          var plats=x._plats;
           var jobs=plats.map(function(k){
             var p=def.platforms[k]; var inputs=bfInputs(p, x.sha, x.parent);
             if(x.cap==='snapshots2' && (x.mode==='rerun' || x.done)) inputs.force='true';
@@ -1142,6 +1182,66 @@
     }
     function histTokPanel(show){ var p=document.getElementById('cidash-hist-tok'); if(p) p.style.display = show ? 'block' : 'none'; }
     var actMode = {};                           // cap -> 'off' | 'fill' | 'rerun' (per-activity choice)
+    var reuseWarm = false;                       // opt-in: keep ONE container warm across the queued revisions
+    // ── Warm-container reuse + time estimate ───────────────────────────────
+    // A (cap, platform) is "batch-capable" when its run target carries a 'batch'
+    // backfill workflow (Windows only for now). The reuse toggle is only offered
+    // when at least one installed activity is batch-capable, and only batch-capable
+    // platforms actually collapse into a single warm-container run.
+    function capBatchPlatforms(capId){
+      var def=RT[capId]; if(!def || !def.platforms) return [];
+      return Object.keys(def.platforms).filter(function(k){ return !!(def.platforms[k] && def.platforms[k].batch); });
+    }
+    function anyBatchAvailable(){ return histInstalledCaps().some(function(c){ return capBatchPlatforms(c).length>0; }); }
+    // Default per-platform fallbacks (seconds) used only until a repo has run
+    // history to measure from. Windows containers are the slow case this feature
+    // targets; Linux start in seconds.
+    var TIMING_DEFAULT = { windows:{ startup:600, work:120 }, linux:{ startup:45, work:90 }, all:{ startup:120, work:90 } };
+    function timingFor(cap, plat){
+      // Returns {startup, work} seconds for one (cap, platform), derived from the
+      // server-injected medians (work = in-container compile time; total = whole
+      // run wall-clock; startup = total - work). Falls back to platform defaults.
+      var d=TIMING_DEFAULT[plat] || TIMING_DEFAULT.windows;
+      var t=(RT_TIMING && RT_TIMING[cap] && RT_TIMING[cap][plat]) ? RT_TIMING[cap][plat] : null;
+      var work = (t && t.work>0) ? t.work : d.work;
+      var startup;
+      if(t && t.total>0){ startup = Math.max(20, t.total - work); }
+      else { startup = d.startup; }
+      return { startup:startup, work:work, measured: !!(t && t.total>0) };
+    }
+    function fmtDur(sec){
+      sec=Math.max(0, Math.round(sec));
+      var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60);
+      if(h>0) return h+'h'+(m>0?(' '+m+'m'):'');
+      if(m>0) return m+'m';
+      return sec+'s';
+    }
+    function histEstimate(){
+      // Fresh vs warm-batch total compute time for the cells about to be queued.
+      // Fresh: every (cell, platform) pays startup+work. Warm: batch-capable
+      // (cap, platform) groups pay startup ONCE + work per revision; everything
+      // else is unchanged. Returns null when nothing measurable is selected.
+      var cells=histCells(); if(!cells.length) return null;
+      var fresh=0, warm=0, anyMeasured=false, anyBatch=false;
+      var groups={};   // cap|plat -> count (batch-capable, warm only)
+      cells.forEach(function(x){
+        if(x.cap==='snapshots') return;   // snapshots are already one backfill run
+        cellPlatforms(x).forEach(function(plat){
+          var tm=timingFor(x.cap, plat); if(tm.measured) anyMeasured=true;
+          fresh += tm.startup + tm.work;
+          var p=(RT[x.cap]&&RT[x.cap].platforms)?RT[x.cap].platforms[plat]:null;
+          if(reuseWarm && p && p.batch){
+            anyBatch=true; var key=x.cap+'|'+plat;
+            if(!groups[key]){ groups[key]={tm:tm, n:0}; }
+            groups[key].n++;
+          } else {
+            warm += tm.startup + tm.work;
+          }
+        });
+      });
+      Object.keys(groups).forEach(function(key){ var g=groups[key]; warm += g.tm.startup + g.n*g.tm.work; });
+      return { fresh:fresh, warm:warm, anyMeasured:anyMeasured, anyBatch:anyBatch };
+    }
     function histAllCells(){
       // EVERY per-revision activity cell on the table, tagged empty (a never-run run
       // glyph) vs done (a cell that already carries a result). bfCells() sees only the
@@ -1279,10 +1379,19 @@
         var row=document.getElementById('cidash-hist-actrow-'+cap); if(row) row.classList.toggle('skip', mode==='off');
       });
       var cells=histCells();
-      var shas={}; var snaps=0; var perRev=0; var anyRe=false;
-      cells.forEach(function(x){ shas[x.sha]=1; if(x.cap==='snapshots') snaps=1; else perRev++; if(x.done) anyRe=true; });
-      var runs=perRev + snaps;   // snapshots collapse into one backfill run
+      var shas={}; var snaps=0; var perRevRuns=0; var anyRe=false; var groupKeys={};
+      cells.forEach(function(x){
+        shas[x.sha]=1; if(x.done) anyRe=true;
+        if(x.cap==='snapshots'){ snaps=1; return; }
+        cellPlatforms(x).forEach(function(plat){
+          var p=(RT[x.cap]&&RT[x.cap].platforms)?RT[x.cap].platforms[plat]:null;
+          if(reuseWarm && p && p.batch){ groupKeys[x.cap+'|'+plat]=1; }   // one warm-container run per (cap,platform)
+          else { perRevRuns++; }
+        });
+      });
+      var runs=perRevRuns + Object.keys(groupKeys).length + snaps;
       var nrev=Object.keys(shas).length;
+      var est=histEstimate();
       var sum=document.getElementById('cidash-hist-summary');
       if(sum){
         if(!HIST.length){ sum.innerHTML='No project revisions to populate yet \u2014 commit some VIs first.'; }
@@ -1293,9 +1402,23 @@
           else if(anyOn){ sum.innerHTML='Nothing to queue for the selected revisions and activities.'; }
           else { sum.innerHTML='Pick at least one activity below \u2014 every one is set to <b>Skip</b>.'; }
         } else {
+          // Live, history-driven time estimate. When the warm-container option is on
+          // and at least one activity is batch-capable, show Fresh vs Warm compute
+          // and the saving; otherwise show the single estimate and nudge the option.
+          var estHtml='';
+          if(est){
+            if(reuseWarm && est.anyBatch){
+              estHtml = ' <span style="color:var(--fg-muted)">Est. compute: warm <b>'+fmtDur(est.warm)+'</b> vs fresh '+fmtDur(est.fresh)+' \u2014 saves \u2248 <b>'+fmtDur(Math.max(0,est.fresh-est.warm))+'</b> (runs serially in one container).</span>';
+            } else {
+              estHtml = ' <span style="color:var(--fg-muted)">Est. compute \u2248 '+fmtDur(est.fresh)
+                + (anyBatchAvailable()?' \u2014 tick \u201ckeep one container warm\u201d below to cut the repeated startup':'')+'.</span>';
+            }
+            if(!est.anyMeasured) estHtml += ' <span style="color:var(--fg-muted)">(approximate \u2014 no run history yet)</span>';
+          }
           sum.innerHTML='Will queue <b>'+runs+'</b> run'+(runs>1?'s':'')+' across <b>'+nrev+'</b> revision'+(nrev>1?'s':'')+', oldest first.'
             + (anyRe?' <span style="color:var(--fg-muted)">Re-runs replace the existing result.</span>':'')
-            + (runs>=20?' <span style="color:var(--fg-muted)">They queue and run in order, paced by your concurrency limit.</span>':'');
+            + (runs>=20 && !reuseWarm?' <span style="color:var(--fg-muted)">They queue and run in order, paced by your concurrency limit.</span>':'')
+            + estHtml;
         }
       }
       var go=document.getElementById('cidash-hist-go'); if(go) go.disabled = !runs;
@@ -1361,6 +1484,19 @@
           + '</span></div>';
       });
       h += '</div></div>';
+      // Opt-in warm-container reuse — only shown when at least one installed
+      // activity is batch-capable (has a backfill workflow). OFF by default, with
+      // a prominent warning that state carries over between revisions.
+      if(anyBatchAvailable()){
+        h += '<div class="cidash-hist-sec"><label style="display:flex;gap:10px;align-items:flex-start;border:1px solid #da3633;background:rgba(218,54,51,.06);border-radius:8px;padding:10px 12px;cursor:pointer">'
+          + '<input type="checkbox" id="cidash-hist-reuse" style="margin-top:3px">'
+          + '<span style="font-size:.82em;line-height:1.5">'
+          + '<b style="color:#da3633">\u26A0 Keep one container warm across revisions</b> <span style="color:var(--fg-muted)">(off by default)</span><br>'
+          + '<span style="color:var(--fg-muted)">Pays the slow Windows container startup <b>once</b> for the whole batch instead of per revision \u2014 a big saving on long histories. '
+          + 'The trade-off: container state (temp files, the LabVIEW object cache, the registry) <b>carries over</b> between revisions, so a revision whose code modifies the system can influence a later revision\u2019s result. '
+          + 'The container image itself is never changed. Only Windows activities that support batching are affected \u2014 leave this off unless you understand the risk.</span>'
+          + '</span></label></div>';
+      }
       h += '<div id="cidash-hist-tok" style="display:none;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);margin:0 0 12px">';
       h += '<div style="font-size:.82em;color:var(--fg);font-weight:600;margin-bottom:6px">One-time setup \u2014 a token to queue runs</div>';
       h += '<ol style="font-size:.8em;color:var(--fg-muted);margin:0 0 8px;padding-left:18px;line-height:1.6">';
@@ -1377,6 +1513,8 @@
       h += '<button class="cidash-btn cidash-ghost" id="cidash-hist-cancel">Cancel</button></div>';
       body.innerHTML=h;
       instCaps.forEach(function(cap){ actMode[cap]='fill'; });   // open with every activity on Fill (gaps only)
+      reuseWarm=false;   // warm-container reuse always starts OFF
+      var rchk=document.getElementById('cidash-hist-reuse'); if(rchk) rchk.addEventListener('change', function(){ reuseWarm=!!rchk.checked; histRefresh(); });
       Array.prototype.forEach.call(document.querySelectorAll('.cidash-hist-chip'), function(b){ b.addEventListener('click', function(){ histPreset(b.getAttribute('data-preset')); }); });
       Array.prototype.forEach.call(document.querySelectorAll('.cidash-seg button'), function(b){ b.addEventListener('click', function(){ if(b.disabled) return; histSetMode(b.getAttribute('data-cap'), b.getAttribute('data-mode')); }); });
       Array.prototype.forEach.call(document.querySelectorAll('.cidash-hist-plat'), function(b){ b.addEventListener('change', function(){
@@ -1432,7 +1570,7 @@
       histTokPanel(false);
       var go=document.getElementById('cidash-hist-go'); var cancel=document.getElementById('cidash-hist-cancel');
       if(go) go.disabled=true; if(cancel) cancel.disabled=true;
-      dispatchCells(cells, histStatus).then(function(res){
+      dispatchCells(cells, histStatus, {reuse: reuseWarm}).then(function(res){
         if(cancel) cancel.disabled=false;
         if(res.ok && !res.err){
           histStatus('\u2713 Queued '+res.ok+' run'+(res.ok>1?'s':'')+', oldest first \u2014 watch them fill in on the dashboard\u2026', 'ok');
@@ -1495,7 +1633,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-28 17:11 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-28 17:41 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -1542,6 +1680,24 @@
     <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9bd01452270e776209f9bbc9c6fcb08393d05bd9" class="cidash-rev-msg" title="Merge remote-tracking branch &#x27;origin/main&#x27; into feat/warm-container-batch-histor">Merge remote-tracking branch &#x27;origin/main&#x27; into feat/warm-container-batch-histor</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9bd01452270e776209f9bbc9c6fcb08393d05bd9" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">9bd0145</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-28</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(70,42%,45%)" title="lvci" aria-hidden="true">L</span>
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=8bb5635b3630bcfd83201ea0095cbd45d5fcd13b" class="cidash-rev-msg" title="Installer: Apply to New Repo prunes obsolete vendored tooling files (4.2.2)">Installer: Apply to New Repo prunes obsolete vendored tooling files (4.2.2)</a></div>
@@ -1580,6 +1736,42 @@
         <div class="cidash-rev-wrap">
           <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
           <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=70f0e93d7f422ee489a3e0e1a214ea1557ec073a" class="cidash-rev-msg" title="Merge remote-tracking branch &#x27;origin/main&#x27; into feat/warm-container-batch-histor">Merge remote-tracking branch &#x27;origin/main&#x27; into feat/warm-container-batch-histor</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=70f0e93d7f422ee489a3e0e1a214ea1557ec073a" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">70f0e93</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-28</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=64b68477a478366b208535ff6d8b8f78e48437f9" class="cidash-rev-msg" title="Remove throwaway warm-batch smoketest workflows (all 4 caps validated)">Remove throwaway warm-batch smoketest workflows (all 4 caps validated)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=64b68477a478366b208535ff6d8b8f78e48437f9" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">64b6847</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-28</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=aaeeffb9be1e86372cbb58a268d4e12f8c91e0f9" class="cidash-rev-msg" title="Unit Tests: add LUnit + make ci-tooling.vipc a real VIPC (4.2.0)">Unit Tests: add LUnit + make ci-tooling.vipc a real VIPC (4.2.0)</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=aaeeffb9be1e86372cbb58a268d4e12f8c91e0f9" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">aaeeffb</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-27</div>
           </div>
@@ -1600,6 +1792,96 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ddf403cd5397f89a08dda9e8b89472eb18fe44c3" class="cidash-rev-msg" title="README: clear, compelling project overview + matching Apply to New Repo CTA (4.1">README: clear, compelling project overview + matching Apply to New Repo CTA (4.1</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ddf403cd5397f89a08dda9e8b89472eb18fe44c3" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">ddf403c</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-27</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a8547f3ba0b9b52b56eb898a189298959c49dca1" class="cidash-rev-msg" title="TEMP: warm-batch smoketests for vi-analyzer/unit-tests/antidoc (delete before me">TEMP: warm-batch smoketests for vi-analyzer/unit-tests/antidoc (delete before me</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a8547f3ba0b9b52b56eb898a189298959c49dca1" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">a8547f3</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-26</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d7c00aac873a668c18003003a32613be4a800ae5" class="cidash-rev-msg" title="dashboard: guard run-timing so an API hiccup can&#x27;t break the build">dashboard: guard run-timing so an API hiccup can&#x27;t break the build</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d7c00aac873a668c18003003a32613be4a800ae5" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">d7c00aa</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-26</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=09abdb9b65506f774714804dfccf14bf939253dc" class="cidash-rev-msg" title="Fix docker cp out of warm container (Windows trailing-dot rejected)">Fix docker cp out of warm container (Windows trailing-dot rejected)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=09abdb9b65506f774714804dfccf14bf939253dc" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">09abdb9</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-26</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=288d438cf2946f6e4d7897e8fd826f13b8178270" class="cidash-rev-msg" title="TEMP: warm-batch smoketest workflow (delete before merge)">TEMP: warm-batch smoketest workflow (delete before merge)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=288d438cf2946f6e4d7897e8fd826f13b8178270" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">288d438</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-25</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=70370a86a327b8033ae046e18d00ac189c3d3ed6" class="cidash-rev-msg" title="Warm-container history backfills (opt-in) (4.2.0)">Warm-container history backfills (opt-in) (4.2.0)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=70370a86a327b8033ae046e18d00ac189c3d3ed6" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">70370a8</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-25</div>
           </div>
         </div>
       </td>
@@ -3184,132 +3466,6 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=dbb2a5e876a1d1c38659a6b25be2f2a77adfbc57" class="cidash-rev-msg" title="Parse NIPM worker manifests from package columns (v3.41.4)">Parse NIPM worker manifests from package columns (v3.41.4)</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=dbb2a5e876a1d1c38659a6b25be2f2a77adfbc57" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">dbb2a5e</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ef03546c9befb9c73caaf9c4827ea62a1498bc3a" class="cidash-rev-msg" title="Use desktop width in history activity rows">Use desktop width in history activity rows</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=ef03546c9befb9c73caaf9c4827ea62a1498bc3a" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">ef03546</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9c822baa93f3e9fedc344534b39a3c941344587c" class="cidash-rev-msg" title="Align populate history activity controls">Align populate history activity controls</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9c822baa93f3e9fedc344534b39a3c941344587c" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">9c822ba</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=6ce94e199f88bd339c723208ed6d5e9b7eb00a4e" class="cidash-rev-msg" title="Clarify 2.0 snapshot reruns in Actions">Clarify 2.0 snapshot reruns in Actions</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=6ce94e199f88bd339c723208ed6d5e9b7eb00a4e" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">6ce94e1</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c0de54f6ffa994a0197898f856fdcbd100776555" class="cidash-rev-msg" title="Optional dependency-change CI + a dashboard filter for dependency-only revisions">Optional dependency-change CI + a dashboard filter for dependency-only revisions</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c0de54f6ffa994a0197898f856fdcbd100776555" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">c0de54f</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=1941eb35dda9c273d63d9fd5542a42bceba08302" class="cidash-rev-msg" title="Enable forced snapshot reruns from dashboard history">Enable forced snapshot reruns from dashboard history</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=1941eb35dda9c273d63d9fd5542a42bceba08302" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">1941eb3</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=6ec5d4fec2a0a9cb0a6b65d2e449a900ac4f80ac" class="cidash-rev-msg" title="Install JKI Dragon in the Windows worker (v3.40.0)">Install JKI Dragon in the Windows worker (v3.40.0)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=6ec5d4fec2a0a9cb0a6b65d2e449a900ac4f80ac" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">6ec5d4f</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c067715b82d9cb202ae19b48abd30809fa210a6f" class="cidash-rev-msg" title="Dependencies page: declutter the header and link workers to GHCR (v3.39.4)">Dependencies page: declutter the header and link workers to GHCR (v3.39.4)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c067715b82d9cb202ae19b48abd30809fa210a6f" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">c067715</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
           </div>
         </div>
       </td>

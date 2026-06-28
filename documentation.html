@@ -665,6 +665,18 @@ flowchart TD
         revision or pull request. Queued-run state is matched against the current table's cells by capability and
         target revision (or globally for the all-history snapshot backfill) so another repository on the same Pages
         origin cannot suppress the fresh-install card.</p>
+      <p>The Populate-history chooser offers an opt-in <strong>"keep one container warm across revisions"</strong>
+        checkbox, shown only when at least one selected activity has a warm-container backfill workflow installed
+        (Windows Mass Compile, VI Analyzer, Unit Tests, Antidoc). It is always <strong>off by default</strong> and
+        carries a red warning that container state carries over between revisions (see <a href="#lifecycle">§14</a>).
+        When ticked, the chooser collapses every batch-capable <em>(activity, platform)</em> into a
+        <em>single</em> <code>workflow_dispatch</code> carrying the whole oldest→newest SHA list instead of one
+        dispatch per revision; non-batch platforms still queue per revision. The chooser also shows a live, history-driven
+        <strong>time estimate</strong> comparing fresh vs warm-batch compute: the per-activity work time is the median
+        of the durations the dashboard already loads from each <code>summary.json</code>/<code>results.json</code>, and
+        the startup time is the median run total (from the Actions API) minus that work time, falling back to per-platform
+        defaults until a repository has run history. Warm-batch is serial inside one container, so the estimate notes the
+        wall-clock vs total-cost trade-off.</p>
       <p>The shared site-wide header is <code>lvci-header.js</code>: every page declares a tiny
         <code>window.LVCI</code> config and loads the script, which injects a consistent navigation chrome
         (Dashboard / VI Browser nav, Settings &amp; Help menus, version badge, live activity pill, theme toggle).
@@ -1010,7 +1022,28 @@ docker run --rm `
       <div class="note"><span class="lbl">Container lifecycle in one sentence</span>
         A fresh container is created for each action × revision × platform, started when the action begins and
         destroyed when it ends; it is shared across all files in one action's run but never across actions or
-        revisions. The snapshot renderer is the sole exception — see <a href="#cap-snapshots">§16.6</a>.</div>
+        revisions. The snapshot renderer is the sole always-on exception — see <a href="#cap-snapshots">§16.6</a> —
+        and the opt-in <strong>warm-container history backfills</strong> below are the other.</div>
+
+      <h3>Warm-container history backfills (opt-in)</h3>
+      <p>Populating a long history one revision at a time pays the multi-GB image pull and the slow Windows LabVIEW
+        cold-start <em>once per revision</em>. The per-capability <strong>backfill</strong> workflows
+        (<code>masscompile-backfill-windows.yml</code>, <code>vi-analyzer-backfill-windows.yml</code>,
+        <code>unit-tests-backfill-windows.yml</code>, <code>antidoc-backfill-windows.yml</code>, plus the existing
+        VIDiff and snapshot backfills) instead start <strong>one</strong> long-lived container
+        (<code>docker run -d … sleep</code>) and process every requested revision through it with
+        <code>docker exec</code>, turning <em>N × (startup + work)</em> into <em>startup + N × work</em>. Each
+        revision is checked out into a throwaway <code>git worktree</code>, compiled/analyzed/tested inside the
+        container, its report <code>docker cp</code>'d back out to the host (Windows bind-mount output is unreliable),
+        and the host report builder + shared Pages publisher run exactly as in the per-commit job. The runs are
+        resumable: a skip-list built from the deployed <code>gh-pages</code> tree and a <code>TimeBudgetMinutes</code>
+        cap let a batch stop before the 6-hour job limit and continue on the next dispatch.</p>
+      <p>This is strictly <strong>opt-in</strong> and never the default, because reusing one container means its
+        mutable state — temp files, the LabVIEW object cache, the registry — <strong>carries over</strong> between
+        revisions, so a revision whose code modifies the system can influence a later revision's result. The
+        container <em>image</em> is never modified; only the short-lived instance accumulates state, and it is
+        destroyed when the batch ends. The dashboard's Populate-history chooser exposes this as a clearly-warned
+        checkbox — see <a href="#pages">§9</a>.</p>
 
       <h3>Report generation runs on the host, not in the container</h3>
       <p>The container emits raw output (a log, a native HTML report, JUnit XML, …). After it exits, a small Python
