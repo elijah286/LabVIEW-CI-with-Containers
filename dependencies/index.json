@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "aaeeffb9be1e86372cbb58a268d4e12f8c91e0f9",
+  "sha": "8bb5635b3630bcfd83201ea0095cbd45d5fcd13b",
   "revisions": [
+    {
+      "sha": "8bb5635b3630bcfd83201ea0095cbd45d5fcd13b",
+      "short": "8bb5635",
+      "message": "Installer: Apply to New Repo prunes obsolete vendored tooling files (4.2.2)",
+      "author": "lvci",
+      "date": "2026-06-28T17:09:02Z"
+    },
+    {
+      "sha": "a27882a282fac40e7273162e70f929b04f9167c6",
+      "short": "a27882a",
+      "message": "Installer: stop the false 'install already in progress' warning (4.2.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-28T17:07:04Z"
+    },
     {
       "sha": "aaeeffb9be1e86372cbb58a268d4e12f8c91e0f9",
       "short": "aaeeffb",
