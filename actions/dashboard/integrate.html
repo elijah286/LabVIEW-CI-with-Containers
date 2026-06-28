@@ -1023,28 +1023,46 @@
     // (open preferred, else most recent) and whether the install branch still exists.
     async function probeRepoInstall(repo) {
       const owner = repo.split("/")[0];
-      let pr = null, branchExists = false;
+      let pr = null, branchExists = false, prOk = false, branchOk = false;
       try {
         const pls = await ghJson(await gh(`/repos/${repo}/pulls?state=all&head=${owner}:${INSTALL_BRANCH}&per_page=5`));
+        prOk = true;
         if (Array.isArray(pls) && pls.length) {
           const chosen = pls.find(p => p.state === "open") || pls[0];
           pr = { number: chosen.number, url: chosen.html_url, state: chosen.state, merged: !!chosen.merged_at };
         }
       } catch (_) {}
-      try { const r = await gh(`/repos/${repo}/git/ref/heads/${INSTALL_BRANCH}`); branchExists = r.ok; } catch (_) {}
-      return { pr: pr, branchExists: branchExists };
+      try { const r = await gh(`/repos/${repo}/git/ref/heads/${INSTALL_BRANCH}`); branchExists = r.ok; branchOk = true; } catch (_) {}
+      return { pr: pr, branchExists: branchExists, ok: prOk && branchOk };
     }
 
-    // Is there an install already in flight for this repo (a local record in a live
-    // phase, an open install PR, or a leftover install branch)? Returns details for
-    // the duplicate-warning panel, or null when the repo is clear to install.
+    // Is there an install already in flight for this repo? Live GitHub state is
+    // authoritative: an OPEN install PR, or the install branch when its PR has not
+    // yet merged/closed. GitHub does NOT delete the head branch on merge by default,
+    // so a finished, merged install leaves `ci/install-labview-ci` behind -- that
+    // leftover branch must NOT be mistaken for an install still in progress. A local
+    // record only blocks when a dashboard is genuinely still publishing (that window
+    // has no PR/branch to probe), verified against the live dashboard; any other
+    // stale live-phase record that GitHub contradicts is forgotten so it stops
+    // nagging on every future install. Returns details for the duplicate-warning
+    // panel, or null when the repo is clear to install.
     async function detectInFlight(repo) {
       const rec = getInstall(repo);
-      let probe = { pr: null, branchExists: false };
+      let probe = { pr: null, branchExists: false, ok: false };
       try { probe = await probeRepoInstall(repo); } catch (_) {}
-      const openPr = probe.pr && probe.pr.state === "open";
-      const liveRec = !!(rec && LIVE_PHASES.indexOf(rec.phase) >= 0);
-      if (openPr || probe.branchExists || liveRec) return { pr: probe.pr, branchExists: probe.branchExists, rec: rec };
+      const openPr = !!(probe.pr && probe.pr.state === "open");
+      const prSettled = !!(probe.pr && (probe.pr.merged || probe.pr.state === "closed"));
+      const liveBranch = probe.branchExists && !prSettled;
+      if (openPr || liveBranch) return { pr: probe.pr, branchExists: liveBranch, rec: rec };
+      if (rec && rec.phase === "publishing") {
+        const dash = rec.dashUrl || dashboardUrl(repo);
+        let live = false;
+        try { live = rec.version ? await deployedAtLeast(dash, rec.version) : await publishedCatalogVersion(dash); } catch (_) {}
+        if (!live) return { pr: probe.pr, branchExists: false, rec: rec };
+        dropInstall(repo);                                   // dashboard already live -> install is done
+        return null;
+      }
+      if (probe.ok && rec && LIVE_PHASES.indexOf(rec.phase) >= 0) dropInstall(repo);   // stale leftover -> forget it
       return null;
     }
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.2.0",
+  "version": "4.2.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.2.1",
+        "date": "2026-06-28",
+        "title": "Installer stops the false 'install already in progress' warning",
+        "type": "patch",
+        "summary": "The Apply to a new repository installer no longer blocks a fresh install with 'an install already in progress' when nothing is actually running. It now treats live GitHub state as authoritative: a finished, merged install leaves its ci/install-labview-ci branch behind (GitHub does not delete the head branch on merge by default), and that leftover branch is no longer mistaken for an install in flight. Stale local records from an abandoned attempt or a closed tab are forgotten instead of nagging, and a local record only blocks while its dashboard is genuinely still publishing -- now verified against the live catalog.json.",
+        "highlights": [
+          "A leftover ci/install-labview-ci branch whose pull request has already merged or closed is treated as harmless debris (the next install fast-forwards it), not as an install still in progress.",
+          "The installer warns only on an open install pull request or an install branch whose pull request has not yet merged/closed; everything else is cleared against live GitHub state.",
+          "A stale local install record that GitHub contradicts is forgotten, and a 'publishing' record only blocks while the live dashboard catalog has not yet reached the installed version."
+        ]
+      },
       {
         "version": "4.2.0",
         "date": "2026-06-27",
