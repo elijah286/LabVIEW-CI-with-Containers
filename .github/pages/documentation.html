@@ -454,6 +454,15 @@ flowchart TD
         anyway, so a finished install never lingers as &ldquo;publishing dashboard&rdquo;. Publishing records are
         rechecked from the public dashboard URL even if the install token has since been forgotten.</p>
 
+      <p>Before starting a new install, the flow also checks whether one is genuinely already in flight, and treats
+        <em>live GitHub state as authoritative</em>: it warns only when there is an open install pull request, or the
+        <code>ci/install-labview-ci</code> branch exists and its pull request has <em>not</em> yet merged or closed.
+        GitHub does not delete a head branch on merge by default, so a finished, merged install leaves that branch
+        behind &mdash; it is treated as harmless debris (the next install fast-forwards it), not as an install still in
+        progress. A local record only blocks a re-install while its dashboard is genuinely still publishing (verified
+        against the live <code>catalog.json</code>); any other stale record that GitHub contradicts is forgotten so it
+        stops nagging on future installs.</p>
+
       <h3>What gets written into your repo</h3>
       <ul>
         <li><strong>Text files</strong> (<code>.yml .ps1 .sh .py .html .md .json .xml .viancfg</code>) have the
@@ -1286,6 +1295,11 @@ docker run --rm `
         <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
           opt-in.</li>
       </ul>
+      <p>The browser <strong>Apply to New Repo</strong> flow (re-applied on top of an existing install) mirrors the
+        same prune: when it re-vendors a tooling directory it deletes any target file the source no longer ships,
+        except the consumer's own preserved config — so re-applying after a file is removed upstream stays in sync
+        with <strong>Update&nbsp;now</strong> and never leaves an orphan (e.g. an obsolete Go source) that breaks a
+        build.</p>
       <p><code>reconfigure.yml</code> backs the <strong>Configure Pipeline</strong> dialog: it rewrites
         <code>.github/labview-ci.yml</code> from a <code>workflow_dispatch</code> form and opens a reviewable pull
         request rather than committing directly.</p>

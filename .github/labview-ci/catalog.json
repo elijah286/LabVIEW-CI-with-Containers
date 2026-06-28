@@ -24,6 +24,30 @@
         ]
       },
       {
+        "version": "4.2.2",
+        "date": "2026-06-28",
+        "title": "Apply to New Repo now prunes obsolete vendored tooling files",
+        "type": "patch",
+        "summary": "Re-applying the tooling with the browser \"Apply to New Repo\" installer now mirrors each vendored tooling directory against the source: any file the current tooling no longer ships is removed from the repository (the consumer's own preserved config is kept). This matches what one-click \"Update now\" already did, and fixes a Windows VI Browser 2.0 render failure where an obsolete Go source (viserver_windows.go and its siblings) lingered alongside the cross-platform replacement and produced duplicate-declaration build errors.",
+        "highlights": [
+          "The browser installer deletes target files under each installed tooling directory that the source has removed, so a re-Apply leaves no orphans -- matching install.py --update.",
+          "Preserved user-config files (e.g. .github/labview/vipm/ci-tooling.vipc) are never pruned.",
+          "Resolves the 'Session/viGetCtrlVariant redeclared in this block' Go build error on the Windows VI Browser 2.0 render after a stale viserver_windows.go was left behind by an older install."
+        ]
+      },
+      {
+        "version": "4.2.1",
+        "date": "2026-06-28",
+        "title": "Installer stops the false 'install already in progress' warning",
+        "type": "patch",
+        "summary": "The Apply to a new repository installer no longer blocks a fresh install with 'an install already in progress' when nothing is actually running. It now treats live GitHub state as authoritative: a finished, merged install leaves its ci/install-labview-ci branch behind (GitHub does not delete the head branch on merge by default), and that leftover branch is no longer mistaken for an install in flight. Stale local records from an abandoned attempt or a closed tab are forgotten instead of nagging, and a local record only blocks while its dashboard is genuinely still publishing -- now verified against the live catalog.json.",
+        "highlights": [
+          "A leftover ci/install-labview-ci branch whose pull request has already merged or closed is treated as harmless debris (the next install fast-forwards it), not as an install still in progress.",
+          "The installer warns only on an open install pull request or an install branch whose pull request has not yet merged/closed; everything else is cleared against live GitHub state.",
+          "A stale local install record that GitHub contradicts is forgotten, and a 'publishing' record only blocks while the live dashboard catalog has not yet reached the installed version."
+        ]
+      },
+      {
         "version": "4.2.0",
         "date": "2026-06-27",
         "title": "Unit Tests: add LUnit, and ci-tooling.vipc is now a real VIPC",
