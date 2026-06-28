@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.2.2",
+  "version": "4.3.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.3.0",
+        "date": "2026-06-25",
+        "title": "Warm-container history backfills",
+        "type": "minor",
+        "summary": "Populate history can now reuse one warm container across many revisions for Mass Compile, VI Analyzer, Unit Tests, and Antidoc on Windows, paying the slow image pull and LabVIEW cold-start once for the whole batch instead of once per revision. The option is off by default and clearly warned because container state carries over between revisions.",
+        "highlights": [
+          "Adds opt-in warm-container backfill workflows and scripts for Mass Compile, VI Analyzer, Unit Tests, and Antidoc that walk a revision list through a single container, resumable via a skip-list and a time budget.",
+          "Adds a 'keep one container warm across revisions' checkbox to the Populate history chooser -- off by default, with a red warning that state carries over between revisions.",
+          "Shows a live, history-driven estimate in the chooser comparing fresh vs warm-batch compute time so the saving is visible before you queue."
+        ]
+      },
       {
         "version": "4.2.2",
         "date": "2026-06-28",
