@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  VI Analyzer configuration for LabVIEW-CI-with-Containers
+  C:\wt\src-d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5 is replaced at runtime by the bash CI script
+  with the absolute container path (/workspace on Linux).
+  NOTE: LabVIEW requires path values to be wrapped in double-quotes inside the XML.
+-->
+<Config>
+	<FileFormatVersion>1</FileFormatVersion>
+	<AnalyzeProject>FALSE</AnalyzeProject>
+	<ProjectPath>""</ProjectPath>
+	<TargetIndex>0</TargetIndex>
+	<ItemsToAnalyze>
+		<Item>
+			<Path>"C:\wt\src-d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5"</Path>
+			<Removed>FALSE</Removed>
+		</Item>
+	</ItemsToAnalyze>
+	<TestConfigData>
+	</TestConfigData>
+	<ExclusionData>
+	</ExclusionData>
+</Config>

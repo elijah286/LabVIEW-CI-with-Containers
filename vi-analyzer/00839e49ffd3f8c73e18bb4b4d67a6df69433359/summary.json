@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
+    "short": "00839e4",
+    "platform": "windows",
+    "repo": "elijah286/LabVIEW-CI-with-Containers",
+    "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers",
+    "pages_base": "../..",
+    "commit": {
+      "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T18:57:47-05:00"
+    },
+    "generated_utc": "2026-06-28 21:17 UTC",
+    "analysis_date": "Sunday, June 28, 2026 9:17:51 PM",
+    "duration": "00:00:02.00",
+    "configs": [
+      {
+        "label": "actions/vi-analyzer/via-config-default.viancfg",
+        "scope": "all other VIs"
+      }
+    ]
+  },
+  "summary": {
+    "vis_analyzed": 1,
+    "tests_run": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "findings": 0,
+    "vis_with_findings": 0
+  },
+  "errors": {
+    "vi_not_loadable": 0,
+    "test_not_loadable": 0,
+    "test_not_runnable": 0,
+    "test_error_out": 0
+  },
+  "rule_counts": []
+}
