@@ -260,10 +260,45 @@ def copy_entry(entry: str, source_root: Path, target_root: Path,
         if not src.is_dir():
             warn(f"missing source directory {entry} - skipping.")
             return
+        source_files = set()
         for child in sorted(src.rglob("*")):
             if child.is_file():
                 rel = child.relative_to(source_root).as_posix()
+                source_files.add(rel)
                 copy_one(child, target_root / rel, rel, subs, force, dry_run, stats, preserve, update)
+        # On update, mirror the source: prune tooling files that the source has
+        # REMOVED so a vendored directory matches the source exactly. Without this,
+        # a file the tooling deletes (e.g. an obsolete Go source) lingers on the
+        # consumer and can break the build - duplicate Go declarations broke the
+        # Windows VI Browser 2.0 render after viserver_windows.go was removed. Only
+        # prune real orphans (never a file still in source) and never the consumer's
+        # own preserved config files.
+        if update:
+            tgt_dir = target_root / entry
+            if tgt_dir.is_dir():
+                for child in sorted(tgt_dir.rglob("*"), reverse=True):
+                    if not child.is_file():
+                        continue
+                    rel = child.relative_to(target_root).as_posix()
+                    if rel in source_files or rel in preserve:
+                        continue
+                    if dry_run:
+                        stats["planned"] += 1
+                        log(f"  would prune     {rel}")
+                        continue
+                    try:
+                        child.unlink()
+                        stats["pruned"] += 1
+                        log(f"  prune (removed) {rel}")
+                    except OSError as exc:
+                        warn(f"could not prune {rel}: {exc}")
+                if not dry_run:
+                    for child in sorted(tgt_dir.rglob("*"), reverse=True):
+                        if child.is_dir():
+                            try:
+                                child.rmdir()  # only succeeds when empty
+                            except OSError:
+                                pass
     else:
         if not src.is_file():
             warn(f"missing source file {entry} - skipping.")
@@ -917,7 +952,7 @@ def main() -> int:
     file_list = resolve_file_list(catalog, activities, os_list)
     if args.provider == "gitlab":
         file_list = [f for f in file_list if not f.replace("\\", "/").startswith(GITHUB_WORKFLOW_PREFIX)]
-    stats = {"installed": 0, "updated": 0, "skipped": 0, "planned": 0, "preserved": 0}
+    stats = {"installed": 0, "updated": 0, "skipped": 0, "planned": 0, "preserved": 0, "pruned": 0}
     for entry in file_list:
         copy_entry(entry, source_root, target_root, subs, force, args.dry_run, stats,
                    preserve, update)
@@ -943,12 +978,15 @@ def main() -> int:
     if args.dry_run:
         verb = "updated" if update else "installed"
         extra = f", {stats['preserved']} config file(s) preserved" if update else ""
+        if update and stats["pruned"]:
+            extra += f", {stats['pruned']} removed file(s) would be pruned"
         log(f"Dry run: {stats['planned']} file(s) would be {verb}, {stats['skipped']} already present{extra}.")
         log("Re-run without --dry-run to apply" + ("." if update else " (add --force to overwrite existing files)."))
         return 0
     if update:
+        pruned = f", {stats['pruned']} removed file(s) pruned" if stats["pruned"] else ""
         log(f"Update complete: {stats['updated']} file(s) refreshed, {stats['installed']} new, "
-            f"{stats['preserved']} config file(s) preserved.")
+            f"{stats['preserved']} config file(s) preserved{pruned}.")
         log("")
         log("Next steps")
         log("  1. Review what changed:  git diff")
