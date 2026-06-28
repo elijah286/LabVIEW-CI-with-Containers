@@ -2694,6 +2694,27 @@
         files.filter(f => f.isText).forEach(f => {
           treeItems.push({ path: f.path, mode: "100644", type: "blob", content: f.content });
         });
+        // Mirror each installed directory entry against the source: an earlier install
+        // (or an older tooling version) may have shipped files the current tooling has
+        // since REMOVED. Left inside a vendored directory they can break the build --
+        // e.g. an orphaned viserver_windows.go duplicated Go declarations and broke the
+        // Windows VI Browser 2.0 render after that file was dropped. Delete target files
+        // under each installed dir entry that the source no longer ships, except the
+        // consumer's own preserved config files. Mirrors install.py's update-mode prune
+        // so the browser "Apply" path stays in sync with "Update now". Best-effort: a
+        // listing failure must never abort the install.
+        try {
+          const dirEntries = wanted.filter(e => e.endsWith("/"));
+          if (dirEntries.length) {
+            const tgtTree = await ghWrite(`/repos/${repo}/git/trees/${baseTree}?recursive=1`, null, "list your repository's tooling files");
+            const writing = new Set(files.map(f => f.path));
+            (tgtTree.tree || [])
+              .filter(t => t.type === "blob" && t.path)
+              .map(t => t.path)
+              .filter(p => dirEntries.some(d => p.startsWith(d)) && !paths.has(p) && !writing.has(p) && !isUserConfig(p))
+              .forEach(p => { if (!setup.removed.includes(p)) setup.removed.push(p); });
+          }
+        } catch (_) { /* best-effort prune */ }
         // Remove stale tooling files (sha:null deletes the path from base_tree).
         (setup.removed || []).forEach(p => treeItems.push({ path: p, mode: "100644", type: "blob", sha: null }));
 

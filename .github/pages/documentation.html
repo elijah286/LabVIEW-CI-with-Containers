@@ -1262,6 +1262,11 @@ docker run --rm `
         <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
           opt-in.</li>
       </ul>
+      <p>The browser <strong>Apply to New Repo</strong> flow (re-applied on top of an existing install) mirrors the
+        same prune: when it re-vendors a tooling directory it deletes any target file the source no longer ships,
+        except the consumer's own preserved config — so re-applying after a file is removed upstream stays in sync
+        with <strong>Update&nbsp;now</strong> and never leaves an orphan (e.g. an obsolete Go source) that breaks a
+        build.</p>
       <p><code>reconfigure.yml</code> backs the <strong>Configure Pipeline</strong> dialog: it rewrites
         <code>.github/labview-ci.yml</code> from a <code>workflow_dispatch</code> form and opens a reviewable pull
         request rather than committing directly.</p>
