@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.2.1",
+  "version": "4.2.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.2.2",
+        "date": "2026-06-28",
+        "title": "Apply to New Repo now prunes obsolete vendored tooling files",
+        "type": "patch",
+        "summary": "Re-applying the tooling with the browser \"Apply to New Repo\" installer now mirrors each vendored tooling directory against the source: any file the current tooling no longer ships is removed from the repository (the consumer's own preserved config is kept). This matches what one-click \"Update now\" already did, and fixes a Windows VI Browser 2.0 render failure where an obsolete Go source (viserver_windows.go and its siblings) lingered alongside the cross-platform replacement and produced duplicate-declaration build errors.",
+        "highlights": [
+          "The browser installer deletes target files under each installed tooling directory that the source has removed, so a re-Apply leaves no orphans -- matching install.py --update.",
+          "Preserved user-config files (e.g. .github/labview/vipm/ci-tooling.vipc) are never pruned.",
+          "Resolves the 'Session/viGetCtrlVariant redeclared in this block' Go build error on the Windows VI Browser 2.0 render after a stale viserver_windows.go was left behind by an older install."
+        ]
+      },
       {
         "version": "4.2.1",
         "date": "2026-06-28",
