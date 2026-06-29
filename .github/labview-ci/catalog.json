@@ -4042,7 +4042,7 @@
     {
       "id": "unit-tests",
       "name": "Unit Tests",
-      "summary": "Run a LabVIEW unit-test framework (e.g. Caraya or VI Tester) in CI and publish pass/fail results to the dashboard.",
+      "summary": "Run a LabVIEW unit-test framework (Caraya, LUnit, JKI VI Tester, or the NI Unit Test Framework) in CI and publish pass/fail results to the dashboard.",
       "status": "stable",
       "recommended": false,
       "supportsOs": [
@@ -4064,7 +4064,7 @@
         ],
         "linux": []
       },
-      "notes": "Runs the configured LabVIEW unit-test frameworks (Caraya, JKI VI Tester) headlessly in the Windows worker via g-cli, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Windows-only because Caraya and VI Tester are VIPM packages; choose which tools run and where their tests live on the Unit Testing page. NI UTF headless execution is scaffolded (coming soon)."
+      "notes": "Runs the configured LabVIEW unit-test frameworks headlessly in the Windows worker, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Supports Caraya, LUnit, JKI VI Tester, and the NI Unit Test Framework. Windows-only because the frameworks ship as VIPM packages; choose which tools run and where their tests live on the Unit Testing page."
     },
     {
       "id": "antidoc",
