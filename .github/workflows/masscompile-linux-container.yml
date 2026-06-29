@@ -40,6 +40,7 @@ permissions:
   pages: write
   statuses: write
   packages: read
+  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
 # No shared concurrency group: this Linux report deploys to gh-pages directly
 # with no group. The Windows report workflows
@@ -138,6 +139,14 @@ jobs:
             exit 0
           fi
           bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}" "$LINUX_WORKER_WORKFLOW"
+
+      - name: Log in to GHCR
+        if: env.LABVIEW_CONTAINER_IMAGE != 'nationalinstruments/labview:latest-linux'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull LabVIEW Linux container
         id: pull
