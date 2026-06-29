@@ -135,29 +135,36 @@ def snapshot2_coverage(sha, platform):
     return res
 
 _mc_cache = {}
-def masscompile_summary(sha):
+def masscompile_summary(sha, platform='windows'):
     # {total, ok, bad, percent, status, exit, duration} written by masscompile.ps1
-    # and deployed alongside the report at masscompile/<sha>/summary.json. Lets the
-    # Mass Compile column show the % of project VIs that compiled instead of a
-    # binary pass/fail (most VIs compile even when a few depend on libraries absent
-    # from the CI image).
-    if sha in _mc_cache:
-        return _mc_cache[sha]
-    data = http_json(f"{pages_url}/masscompile/{sha}/summary.json")
-    _mc_cache[sha] = data if isinstance(data, dict) else None
-    return _mc_cache[sha]
+    # and deployed alongside the report at masscompile/<sha>/summary.json (Windows)
+    # and masscompile/<sha>/linux/summary.json (Linux). Lets the Mass Compile
+    # column show the % of project VIs that compiled instead of a binary pass/fail
+    # (most VIs compile even when a few depend on libraries absent from the CI
+    # image), and lets the cell report Windows and Linux separately since the two
+    # platforms can compile a different set of VIs.
+    key = (sha, platform)
+    if key in _mc_cache:
+        return _mc_cache[key]
+    sub = 'linux/' if platform == 'linux' else ''
+    data = http_json(f"{pages_url}/masscompile/{sha}/{sub}summary.json")
+    _mc_cache[key] = data if isinstance(data, dict) else None
+    return _mc_cache[key]
 
 _ut_cache = {}
-def unit_tests_summary(sha):
+def unit_tests_summary(sha, platform='windows'):
     # build-unittest-report.py deploys the same model that renders the friendly
     # report. Reading it lets the dashboard show the actual failure percentage
-    # instead of a binary pass/fail status.
-    if sha in _ut_cache:
-        return _ut_cache[sha]
-    data = http_json(f"{pages_url}/unit-tests/{sha}/results.json")
+    # instead of a binary pass/fail status. Linux results (when present) live under
+    # unit-tests/<sha>/linux/ so the cell can report both platforms.
+    key = (sha, platform)
+    if key in _ut_cache:
+        return _ut_cache[key]
+    sub = 'linux/' if platform == 'linux' else ''
+    data = http_json(f"{pages_url}/unit-tests/{sha}/{sub}results.json")
     summary = (data or {}).get('summary') if isinstance(data, dict) else None
-    _ut_cache[sha] = summary if isinstance(summary, dict) else None
-    return _ut_cache[sha]
+    _ut_cache[key] = summary if isinstance(summary, dict) else None
+    return _ut_cache[key]
 
 def _pct_threshold(value, default):
     try:
@@ -875,23 +882,22 @@ for c in commits_data:
     if not is_project:
         mc_badge = EMPTY_CELL
     else:
-        _mc = masscompile_summary(sha)
+        _mc_win = masscompile_summary(sha, 'windows')
+        _mc_lin = masscompile_summary(sha, 'linux')
         _mc_live = active_run_cell('masscompile', 'compile')
+        def _mc_kind(_s):
+            _p = _s.get('percent')
+            _st = _s.get('status')
+            _f = (_st == 'failed') or (_st is None and _p <= 0)
+            _ps = (_st == 'passed') or (_st is None and _p >= 100)
+            return 'pass' if _ps else ('fail' if _f else 'warn')
+        _present = [(plat, s) for plat, s in (('windows', _mc_win), ('linux', _mc_lin))
+                    if s and isinstance(s.get('percent'), int)]
         if _mc_live is not None:
             mc_badge = _mc_live
-        elif _mc and isinstance(_mc.get('percent'), int):
+        elif _present:
             any_output['on'] = True
             caps_ran.add('masscompile')
-            _pct = _mc['percent']
-            _ok, _tot = _mc.get('ok', 0), _mc.get('total', 0)
-            # Yellow whenever SOME VIs failed (a partial compile); red is reserved
-            # for a true failure (0% — nothing compiled / LabVIEW errored); green
-            # only at a clean 100%. Prefer the run's own status word, falling back
-            # to the percentage for older summaries that predate it.
-            _st = _mc.get('status')
-            _failed = (_st == 'failed') or (_st is None and _pct <= 0)
-            _passed = (_st == 'passed') or (_st is None and _pct >= 100)
-            _kind = 'pass' if _passed else ('fail' if _failed else 'warn')
             # The Mass Compile report opens framed inside the dashboard chrome
             # (report-viewer.html), so the header stays put and even older
             # reports that carry no header of their own still appear under it,
@@ -901,10 +907,24 @@ for c in commits_data:
             # data-cap/sha/parent/ts). This is what lets the Populate-history dialog
             # see Mass Compile as "done" (so its Re-run is offered, not greyed out)
             # and lets the optimistic "Queued" overlay land on the cell on a re-run.
-            _mc_ts = (pick_status('CI / Mass Compile') or {}).get('created_at', '')
+            _mc_ts = (pick_status('CI / Mass Compile') or pick_status('CI / Mass Compile (Linux)') or {}).get('created_at', '')
+            if len(_present) == 2:
+                # Windows and Linux can compile a different set of VIs, so show
+                # both as a two-number pill (Windows / Linux), worst colour wins.
+                _wp, _lp = _mc_win['percent'], _mc_lin['percent']
+                _kinds = (_mc_kind(_mc_win), _mc_kind(_mc_lin))
+                _kind = 'fail' if 'fail' in _kinds else ('warn' if 'warn' in _kinds else 'pass')
+                _label = f'{_wp}% / {_lp}%'
+                _tip = (f'Windows {_wp}% ({_mc_win.get("ok",0)}/{_mc_win.get("total",0)}) · '
+                        f'Linux {_lp}% ({_mc_lin.get("ok",0)}/{_mc_lin.get("total",0)}) project VIs compiled')
+            else:
+                _plat, _mc = _present[0]
+                _kind = _mc_kind(_mc)
+                _label = f'{_mc["percent"]}%'
+                _tip = f'{_plat.capitalize()}: {_mc.get("ok",0)}/{_mc.get("total",0)} project VIs compiled'
             mc_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" '
                         f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_mc_ts}">'
-                        f'{_chip(_kind, f"{_pct}%", _url, f"{_ok}/{_tot} project VIs compiled")}</td>')
+                        f'{_chip(_kind, _label, _url, _tip)}</td>')
         else:
             mc_badge = badge('compile', 'CI / Mass Compile', cap='masscompile', doc=('masscompile-report', 'masscompile'))
     via_badge = badge('analyze',   'CI / VI Analyzer', cap='vi-analyzer',
@@ -995,31 +1015,51 @@ for c in commits_data:
         unit_badge = EMPTY_CELL
     else:
         _ut_run = fresh_pending('CI / Unit Tests')
-        _ut = unit_tests_summary(sha)
+        _ut_win = unit_tests_summary(sha, 'windows')
+        _ut_lin = unit_tests_summary(sha, 'linux')
+        _ut_present = [(plat, s) for plat, s in (('windows', _ut_win), ('linux', _ut_lin))
+                       if s and 'tests' in s]
         _ut_live = active_run_cell('unit-tests', 'tests')
         if _ut_run is not None:
             caps_ran.add('unit-tests')
             unit_badge = running_cell('tests', _ut_run.get('target_url', ''), cap='unit-tests')
         elif _ut_live is not None:
             unit_badge = _ut_live
-        elif _ut and 'tests' in _ut:
+        elif _ut_present:
             any_output['on'] = True
             caps_ran.add('unit-tests')
-            _total = max(0, int(_ut.get('tests') or 0))
-            _passed = max(0, int(_ut.get('passed') or 0))
-            _failed = max(0, int(_ut.get('failed') or 0) + int(_ut.get('errored') or 0))
-            _failed_pct = round(100 * _failed / _total) if _total else 0
-            _pass_pct = round(100 * _passed / _total) if _total else 100
-            _kind = unit_test_badge_kind(_pass_pct)
+            def _ut_fail_pct(_s):
+                _t = max(0, int(_s.get('tests') or 0))
+                _fl = max(0, int(_s.get('failed') or 0) + int(_s.get('errored') or 0))
+                return round(100 * _fl / _t) if _t else 0
+            def _ut_pass_pct(_s):
+                _t = max(0, int(_s.get('tests') or 0))
+                _p = max(0, int(_s.get('passed') or 0))
+                return round(100 * _p / _t) if _t else 100
             _url = viewer_url(f'{pages_url}/unit-tests/{sha}/index.html', 'unit-tests-report', sha, short)
-            _ut_ts = (pick_status('CI / Unit Tests') or {}).get('created_at', '')
-            _tip = (f'{_failed} of {_total} unit tests failed; pass rate {_pass_pct}%. '
-                    f'Green >= {UNIT_TEST_THRESHOLDS["greenAtLeast"]}% passed, '
-                    f'yellow >= {UNIT_TEST_THRESHOLDS["yellowAtLeast"]}%, '
-                    f'red < {UNIT_TEST_THRESHOLDS["redBelow"]}%.') if _total else 'No unit tests found; 0% failed.'
+            _ut_ts = (pick_status('CI / Unit Tests') or pick_status('CI / Unit Tests (Linux)') or {}).get('created_at', '')
+            if len(_ut_present) == 2:
+                # Windows and Linux can run a different set of tests, so show both
+                # failure rates as a two-number pill (Windows / Linux); worst wins.
+                _wf, _lf = _ut_fail_pct(_ut_win), _ut_fail_pct(_ut_lin)
+                _kind = unit_test_badge_kind(min(_ut_pass_pct(_ut_win), _ut_pass_pct(_ut_lin)))
+                _label = f'{_wf}% / {_lf}% failed'
+                _tip = f'Windows {_wf}% failed · Linux {_lf}% failed (green pass rate >= {UNIT_TEST_THRESHOLDS["greenAtLeast"]}%)'
+            else:
+                _plat, _ut = _ut_present[0]
+                _failed_pct = _ut_fail_pct(_ut)
+                _pass_pct = _ut_pass_pct(_ut)
+                _kind = unit_test_badge_kind(_pass_pct)
+                _label = f'{_failed_pct}% failed'
+                _total = max(0, int(_ut.get('tests') or 0))
+                _failed = max(0, int(_ut.get('failed') or 0) + int(_ut.get('errored') or 0))
+                _tip = (f'{_plat.capitalize()}: {_failed} of {_total} unit tests failed; pass rate {_pass_pct}%. '
+                        f'Green >= {UNIT_TEST_THRESHOLDS["greenAtLeast"]}% passed, '
+                        f'yellow >= {UNIT_TEST_THRESHOLDS["yellowAtLeast"]}%, '
+                        f'red < {UNIT_TEST_THRESHOLDS["redBelow"]}%.') if _total else 'No unit tests found; 0% failed.'
             unit_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="unit-tests" '
                           f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_ut_ts}">'
-                          f'{_chip(_kind, f"{_failed_pct}% failed", _url, _tip)}</td>')
+                          f'{_chip(_kind, _label, _url, _tip)}</td>')
         else:
             unit_badge = badge('tests', 'CI / Unit Tests', cap='unit-tests',
                                doc=('unit-tests-report', 'unit-tests'))

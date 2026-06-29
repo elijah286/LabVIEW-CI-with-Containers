@@ -1177,6 +1177,11 @@ docker run --rm `
         report builder enumerates the repo's own VIs (excluding <code>.github/</code>, <code>ci-out/</code>,
         <code>build/</code>) as the denominator and emits <code>problems.json</code> (per-VI, grouped by top-level
         folder) plus <code>summary.json</code> (<code>{total, ok, bad, percent, status, missing_deps}</code>).</p>
+      <p>Windows and Linux deploy to disjoint paths &mdash; <code>masscompile/&lt;sha&gt;/summary.json</code> (Windows)
+        and <code>masscompile/&lt;sha&gt;/linux/summary.json</code> (Linux) &mdash; so the two platforms keep separate
+        results. The dashboard reads both and shows a two-number pill (<code>Windows% / Linux%</code>, worst colour
+        wins) when both ran, since the same revision can compile a different set of VIs on each platform; if only one
+        ran it shows that single percentage. Unit Tests use the same two-number pill when Linux results are present.</p>
       <div class="note"><span class="lbl">Exit-code semantics</span>
         <code>0</code> = all compiled; <code>3</code> = partial (some bad VIs, not a container failure); any other
         non-zero = a real container/configuration error. The Python reader also handles UTF-16 BOMs that Windows
