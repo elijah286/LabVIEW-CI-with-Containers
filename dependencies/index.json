@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "694c0e62804b4b5ba1b2171b638aecbf3dc3d001",
+  "sha": "9d6190e06d1060d24fb42a443f81466987db3548",
   "revisions": [
+    {
+      "sha": "9d6190e06d1060d24fb42a443f81466987db3548",
+      "short": "9d6190e",
+      "message": "Populate history: re-run an in-flight (queued/running) activity (4.3.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-29T02:35:41Z"
+    },
     {
       "sha": "694c0e62804b4b5ba1b2171b638aecbf3dc3d001",
       "short": "694c0e6",
@@ -695,13 +702,6 @@
       "message": "Show .dragon dependencies under the VIPM and NI Packages tabs (v3.42.1)",
       "author": "lcwc",
       "date": "2026-06-23T11:43:09Z"
-    },
-    {
-      "sha": "7d7cd3923620578e0f2a2653c339fef53d9b7aa3",
-      "short": "7d7cd39",
-      "message": "Discover and surface JKI Dragon (.dragon) dependencies (v3.42.0)",
-      "author": "lcwc",
-      "date": "2026-06-23T03:43:39Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",

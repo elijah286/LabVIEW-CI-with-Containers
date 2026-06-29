@@ -1246,8 +1246,9 @@
       // EVERY per-revision activity cell on the table, tagged empty (a never-run run
       // glyph) vs done (a cell that already carries a result). bfCells() sees only the
       // empty glyphs; gathering the result cells too is what lets this dialog RE-RUN
-      // an activity, not just fill the blanks. Active (queued/running) cells carry no
-      // data attributes and so are skipped - you can't re-queue what's already running.
+      // an activity, not just fill the blanks. A queued/running cell (cidash-active-cell)
+      // is gathered too as "done" so an in-flight activity stays re-runnable (the new run
+      // replaces it via concurrency) instead of showing "none in scope".
       var out=[]; var rows=document.querySelectorAll('tbody tr[data-project]');
       Array.prototype.forEach.call(rows, function(tr, idx){
         Array.prototype.forEach.call(tr.querySelectorAll('a.cidash-run'), function(a){
@@ -1258,6 +1259,10 @@
           var done = td.getAttribute('data-done') === 'false' ? false : true;
           out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
                      parent:td.getAttribute('data-parent')||'', order:idx, done:done });
+        });
+        Array.prototype.forEach.call(tr.querySelectorAll('td.cidash-active-cell'), function(td){
+          out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
+                     parent:td.getAttribute('data-parent')||'', order:idx, done:true });
         });
       });
       if(RT.snapshots2){
@@ -1633,7 +1638,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-06-29 02:20 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-29 02:38 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -1677,6 +1682,24 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9d6190e06d1060d24fb42a443f81466987db3548" class="cidash-rev-msg" title="Populate history: re-run an in-flight (queued/running) activity (4.3.1)">Populate history: re-run an in-flight (queued/running) activity (4.3.1)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9d6190e06d1060d24fb42a443f81466987db3548" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">9d6190e</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-29</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -3448,24 +3471,6 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=be6f1618a3c724f73bead145f8ce1dc740256fc8" class="cidash-rev-msg" title="Show .dragon dependencies under the VIPM and NI Packages tabs (v3.42.1)">Show .dragon dependencies under the VIPM and NI Packages tabs (v3.42.1)</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=be6f1618a3c724f73bead145f8ce1dc740256fc8" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">be6f161</a><span class="cidash-rev-dot">&middot;</span>lcwc<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(65,42%,45%)" title="lcwc" aria-hidden="true">L</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7d7cd3923620578e0f2a2653c339fef53d9b7aa3" class="cidash-rev-msg" title="Discover and surface JKI Dragon (.dragon) dependencies (v3.42.0)">Discover and surface JKI Dragon (.dragon) dependencies (v3.42.0)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7d7cd3923620578e0f2a2653c339fef53d9b7aa3" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">7d7cd39</a><span class="cidash-rev-dot">&middot;</span>lcwc<span class="cidash-rev-dot">&middot;</span>2026-06-23</div>
           </div>
         </div>
       </td>
