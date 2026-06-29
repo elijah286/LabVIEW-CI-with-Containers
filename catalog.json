@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.3.0",
+  "version": "4.3.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.3.1",
+        "date": "2026-06-28",
+        "title": "Populate history can re-run an in-flight activity",
+        "type": "patch",
+        "summary": "The Populate history dialog no longer greys out an activity whose cell is currently queued or running. A queued/running cell is now tagged so the dialog counts it as in scope, so Mass Compile (and any other activity) stays re-runnable while a run is in flight instead of showing none in scope. Re-run replaces the in-flight run via the workflow concurrency group; Fill still leaves running cells alone.",
+        "highlights": [
+          "Queued/running cells gain cidash-active-cell tags so Re-run is offered for in-flight activities, not just empty or finished ones.",
+          "Fixes Mass Compile, Unit Tests, and Antidoc showing none in scope with Re-run greyed while their run was queued."
+        ]
+      },
       {
         "version": "4.3.0",
         "date": "2026-06-25",
