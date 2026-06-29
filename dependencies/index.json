@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "9bd01452270e776209f9bbc9c6fcb08393d05bd9",
+  "sha": "694c0e62804b4b5ba1b2171b638aecbf3dc3d001",
   "revisions": [
+    {
+      "sha": "694c0e62804b4b5ba1b2171b638aecbf3dc3d001",
+      "short": "694c0e6",
+      "message": "Bake a no-VIPM-repo package by committing its .vip (#15)",
+      "author": "Anton Sundqvist",
+      "date": "2026-06-29T02:16:49Z"
+    },
     {
       "sha": "9bd01452270e776209f9bbc9c6fcb08393d05bd9",
       "short": "9bd0145",
@@ -695,13 +702,6 @@
       "message": "Discover and surface JKI Dragon (.dragon) dependencies (v3.42.0)",
       "author": "lcwc",
       "date": "2026-06-23T03:43:39Z"
-    },
-    {
-      "sha": "dbb2a5e876a1d1c38659a6b25be2f2a77adfbc57",
-      "short": "dbb2a5e",
-      "message": "Parse NIPM worker manifests from package columns (v3.41.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T02:42:10Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
