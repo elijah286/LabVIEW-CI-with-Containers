@@ -40,6 +40,7 @@ permissions:
   pages: write
   statuses: write
   packages: read
+  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
 # No shared concurrency group: this Linux report deploys to gh-pages directly
 # with no group. The Windows report workflows
