@@ -87,6 +87,26 @@ To add **custom** project dependencies: commit a `.vipc` (made in the VIPM
 editor, or generated like `ci-tooling.vipc`) at the repo root or under
 `.github/labview/vipm/`, then rebuild the image. No script changes are needed.
 
+### Baking a package that is on no VIPM repository (commit its `.vip`)
+
+A package published on **no** VIPM repository — e.g. an in-house framework — cannot
+be resolved by name from the public indexes. Rather than standing up a private VIPM
+mirror, **commit the package's `.vip` file to the repo** and reference the package in
+a `.vipc`:
+
+1. Commit the `.vip` anywhere outside `.github/` (the build stages every repo `*.vip`
+   into `.github/labview/vipm/`, next to the VIPCs). Keep VIPM's canonical export name
+   `<package-id>-<version>.vip` so its id + version are read correctly.
+2. Reference that package (id + version) in a `.vipc` you apply (a project
+   `Dependencies.vipc` or `ci-tooling`). The `.vipc` must also list the package's
+   dependency closure (OpenG, etc.), because dependencies are **not** read out of the
+   committed `.vip` — they are resolved from the `.vipc` like any other package.
+
+When applying that `.vipc`, `install-vipc.ps1` uses the committed `.vip` **in preference
+to the public mirror** (and it is the only way a no-index package resolves at all). A
+committed `.vip` that is **not** referenced by any applied `.vipc` is never installed on
+its own.
+
 ---
 
 ## What we learned getting VIPM to run headless in a Windows container

@@ -1127,6 +1127,17 @@ docker run --rm `
         repositories, including old OpenG <code>sf://opengtoolkit</code> URLs and the legacy
         <code>jki_vi_tester</code> alias. Private/custom VIPM repositories still require either a populated VIPM
         resolver cache, a committed offline VIPC that embeds package files, or direct package-file URLs.</div>
+      <div class="note"><span class="lbl">Baking a package on no VIPM repository</span>
+        A package published on <strong>no</strong> public index (e.g. an in-house framework) can be baked without a
+        private mirror by <strong>committing its <code>.vip</code></strong> anywhere outside <code>.github/</code>; the
+        build stages every repo <code>*.vip</code> into <code>.github/labview/vipm/</code> next to the VIPCs (the glob
+        <code>*.vip</code> does not match <code>*.vipc</code>, and the worker-version hash matches the exact extension so
+        VIPCs are not double-counted). Reference the package by id + version in an applied <code>.vipc</code> and keep
+        VIPM's canonical export name <code>&lt;package-id&gt;-&lt;version&gt;.vip</code> so its id + version parse. When that
+        <code>.vipc</code> is applied, <code>install-vipc.ps1</code> uses the committed <code>.vip</code> in preference to
+        the public mirror, and it is the only way a no-index package resolves at all. The <code>.vipc</code> must still
+        enumerate the package's dependency closure (OpenG, etc.) — deps are not parsed from the committed <code>.vip</code>
+        — and a committed <code>.vip</code> that no applied <code>.vipc</code> references is never installed on its own.</div>
       <div class="warn"><span class="lbl">Why the UTF JUnit reporter is mandatory for unit tests</span>
         The built-in <code>LabVIEWCLI -OperationName RunUnitTests</code> links against
         <code>ni_lib_utf_junit_report</code>. Without it baked in, headless UTF runs fail with error

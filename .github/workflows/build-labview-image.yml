@@ -435,9 +435,29 @@ jobs:
                   print('Configured Dragon not found (skipping):', p)
           if not dstaged:
               print('No Dragon files to stage.')
+
+          # Project .vip package files: a package published on NO VIPM repository
+          # (e.g. an in-house framework) can be committed as a raw .vip and baked
+          # directly. Discover every repo *.vip outside .github/ and stage it next to
+          # the VIPCs; install-vipc.ps1 uses it in preference to the public mirror, but
+          # ONLY when a .vipc being applied references that package. (glob '*.vip' does
+          # not match '*.vipc', so no extension collision here.)
+          vpaths = sorted(
+              p for p in glob.glob('**/*.vip', recursive=True)
+              if not p.replace(os.sep, '/').startswith('.github/')
+          )
+          vstaged = 0
+          for p in vpaths:
+              if os.path.isfile(p):
+                  shutil.copy2(p, dest / os.path.basename(p))
+                  print('Staged VIP:', p); vstaged += 1
+          if not vstaged:
+              print('No VIP files to stage.')
+
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
               out.write(f'count={staged}\n')
               out.write(f'dragon_count={dstaged}\n')
+              out.write(f'vip_count={vstaged}\n')
           PY
       - name: Ensure Docker daemon is running
         shell: powershell
@@ -520,18 +540,23 @@ jobs:
         run: |
           $vipcFiles = @(Get-ChildItem '.github/labview/vipm' -Filter *.vipc -File | Sort-Object Name)
           $dragonFiles = @(Get-ChildItem '.github/labview/vipm' -Filter *.dragon -File | Sort-Object Name)
+          # -Filter '*.vip' also matches '*.vipc' (Windows 8.3 wildcard); match the exact
+          # extension so committed local .vip payloads are hashed without double-counting VIPCs.
+          $vipFiles = @(Get-ChildItem '.github/labview/vipm' -File | Where-Object { $_.Extension -eq '.vip' } | Sort-Object Name)
           $files = @()
-          if ($vipcFiles.Count -gt 0 -or $dragonFiles.Count -gt 0) {
+          if ($vipcFiles.Count -gt 0 -or $dragonFiles.Count -gt 0 -or $vipFiles.Count -gt 0) {
             $files += '.github/docker/labview-ci.Dockerfile'
             $files += '.github/labview/vipm/install-vipc.ps1'
             $files += ($vipcFiles | ForEach-Object FullName)
             $files += ($dragonFiles | ForEach-Object FullName)
+            $files += ($vipFiles | ForEach-Object FullName)
           }
           $parts = @(
             'lcwc-base-image=${{ steps.base.outputs.image }}',
             'lcwc-base-digest=${{ steps.base.outputs.digest }}',
             ('vipc-count={0}' -f $vipcFiles.Count),
-            ('dragon-count={0}' -f $dragonFiles.Count)
+            ('dragon-count={0}' -f $dragonFiles.Count),
+            ('vip-count={0}' -f $vipFiles.Count)
           )
           $parts += foreach ($f in $files) {
             if (Test-Path -LiteralPath $f) {

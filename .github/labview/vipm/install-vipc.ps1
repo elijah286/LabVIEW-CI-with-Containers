@@ -491,8 +491,79 @@ function Save-PublicVipmPackage($Package, [string] $OutDir) {
     return $outFile
 }
 
+# Index the local .vip package files staged into the worker (C:\vipm) so a
+# VIPC-referenced package can be installed FROM THE COMMITTED .vip instead of being
+# downloaded from the public mirrors. This is the supported way to bake a package
+# that is published on NO VIPM repository (e.g. an in-house framework) without a
+# private mirror: commit its .vip and reference the package in a .vipc. A loose .vip
+# is only ever used when an applied .vipc references it - it is never installed on
+# its own.
+#
+# NOTE: -Filter '*.vip' ALSO matches '*.vipc' (Windows 8.3 wildcard), so enumerate
+# and filter on the exact extension instead. Package id + version come from the file
+# name (VIPM's canonical export form '<package-id>-<version>.vip'); the package's
+# internal 'spec' is read as a best-effort override when the file was renamed.
+function Get-LocalVipFileIndex([string] $Dir) {
+    $index = New-Object System.Collections.Generic.List[object]
+    if (-not $Dir -or -not (Test-Path -LiteralPath $Dir)) { return @($index.ToArray()) }
+    $vipFiles = @(Get-ChildItem -LiteralPath $Dir -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -eq '.vip' })
+    foreach ($f in $vipFiles) {
+        $name = ''
+        $version = ''
+        $base = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
+        if ($base -match '^(?<n>.+)-(?<v>\d+(?:\.\d+)+)(?:-\d+)?$') {
+            $name = $Matches.n
+            $version = $Matches.v
+        }
+        # Best-effort override from the package's internal 'spec' (a .vip is a zip).
+        try {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($f.FullName)
+            try {
+                $entry = $zip.Entries | Where-Object { $_.Name -eq 'spec' } | Select-Object -First 1
+                if ($entry) {
+                    $reader = New-Object System.IO.StreamReader($entry.Open())
+                    try { $specText = $reader.ReadToEnd() } finally { $reader.Close() }
+                    $mN = [regex]::Match($specText, '(?im)^\s*Package(?:\s*Name)?\s*=\s*"?(?<v>[A-Za-z0-9_.\-]+)"?\s*$')
+                    if ($mN.Success) { $name = $mN.Groups['v'].Value.Trim() }
+                    $mV = [regex]::Match($specText, '(?im)^\s*Version\s*=\s*"?(?<v>\d+(?:\.\d+)+)"?')
+                    if ($mV.Success) { $version = $mV.Groups['v'].Value.Trim() }
+                }
+            } finally { $zip.Dispose() }
+        } catch { }
+        if (-not $name) { $name = $base }
+        $index.Add([pscustomobject]@{
+            Name       = $name
+            Version    = $version
+            VersionKey = Get-NumericVersionKey $version
+            File       = $f.FullName
+        })
+    }
+    return @($index.ToArray())
+}
+
+# Pick the best local .vip for a request, mirroring Select-PublicVipmPackage's
+# name + (exact | minimum) version matching.
+function Select-LocalVipPackage($Request, [object[]] $LocalVips) {
+    $cands = @($LocalVips | Where-Object { $_.Name -ieq $Request.Name })
+    if ($cands.Count -eq 0) { return $null }
+    if ($Request.Version) {
+        if ($Request.Minimum) {
+            $minKey = Get-NumericVersionKey $Request.Version
+            $cands = @($cands | Where-Object { $_.VersionKey -ge $minKey })
+        } else {
+            $cands = @($cands | Where-Object { $_.Version -eq $Request.Version })
+        }
+    }
+    if ($cands.Count -eq 0) { return $null }
+    return @($cands | Sort-Object VersionKey -Descending | Select-Object -First 1)[0]
+}
+
 function Get-LocalVipFilesForSpecs([string[]] $Specs) {
     $repoPackages = @(Get-PublicVipmRepositoryPackages)
+    # Committed .vip files take priority over the public mirrors when applying.
+    $localVips = @(Get-LocalVipFileIndex $VipcDir)
     $rootRequests = @($Specs | ForEach-Object { Split-VipmPackageSpec $_ })
     $exactByName = @{}
     foreach ($root in $rootRequests) {
@@ -511,6 +582,25 @@ function Get-LocalVipFilesForSpecs([string[]] $Specs) {
         if ($visited.ContainsKey($key)) { return }
         if ($visiting.ContainsKey($key)) { return }
         $visiting[$key] = $true
+        # Prefer a committed local .vip over the public mirrors. This also resolves a
+        # package that is in NO public index (e.g. an in-house framework): its
+        # dependencies are not parsed from the .vip - they come from the .vipc, which
+        # enumerates the full closure as separate specs that resolve on their own.
+        $local = Select-LocalVipPackage $Request $localVips
+        if ($local) {
+            if (-not $visitedPackageIds.ContainsKey($local.File)) {
+                $resolved.Add([pscustomobject]@{
+                    Id        = ('{0}-{1}' -f $local.Name, $local.Version)
+                    Name      = $local.Name
+                    Version   = $local.Version
+                    LocalFile = $local.File
+                })
+                $visitedPackageIds[$local.File] = $true
+            }
+            $visited[$key] = $true
+            $visiting.Remove($key)
+            return
+        }
         $pkg = Select-PublicVipmPackage $Request $repoPackages
         if (-not $pkg) {
             $vtext = if ($Request.Version) { " version '$($Request.Version)'" } else { '' }
@@ -543,7 +633,14 @@ function Get-LocalVipFilesForSpecs([string[]] $Specs) {
     foreach ($root in $rootRequests) { Resolve-One $root $false }
     $downloadDir = Join-Path $env:TEMP 'vipm-package-files'
     $files = New-Object System.Collections.Generic.List[string]
-    foreach ($pkg in $resolved) { $files.Add((Save-PublicVipmPackage $pkg $downloadDir)) }
+    foreach ($pkg in $resolved) {
+        if ($pkg.PSObject.Properties.Name -contains 'LocalFile' -and $pkg.LocalFile) {
+            Write-Host "  Using committed local .vip for $($pkg.Id): $(Split-Path $pkg.LocalFile -Leaf)"
+            $files.Add($pkg.LocalFile)
+        } else {
+            $files.Add((Save-PublicVipmPackage $pkg $downloadDir))
+        }
+    }
     return @($files.ToArray() | Select-Object -Unique)
 }
 
