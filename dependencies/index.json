@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "9d6190e06d1060d24fb42a443f81466987db3548",
+  "sha": "3e16c29ae53dcfd462d75bf5bf3147e0ffea6be2",
   "revisions": [
+    {
+      "sha": "3e16c29ae53dcfd462d75bf5bf3147e0ffea6be2",
+      "short": "3e16c29",
+      "message": "Mass Compile cell: Windows/Linux two-number pill (4.3.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-29T02:59:01Z"
+    },
+    {
+      "sha": "d3ca09a5cff09f1d458bdffbc23e5f604623817e",
+      "short": "d3ca09a",
+      "message": "Bake tooling VIPC when a repo has no project .vipc (#14)",
+      "author": "Anton Sundqvist",
+      "date": "2026-06-29T02:40:33Z"
+    },
     {
       "sha": "9d6190e06d1060d24fb42a443f81466987db3548",
       "short": "9d6190e",
@@ -688,20 +702,6 @@
       "message": "Apply to New Repo: verify token write access before installing (v3.43.1)",
       "author": "elijahkerry",
       "date": "2026-06-23T11:49:01Z"
-    },
-    {
-      "sha": "0c45453810833fa489819a6ba5b1ea8c9ad06e15",
-      "short": "0c45453",
-      "message": "Unify Settings/Tools nav everywhere + Populate history / Re-run from any page (v3.43.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T11:47:53Z"
-    },
-    {
-      "sha": "be6f1618a3c724f73bead145f8ce1dc740256fc8",
-      "short": "be6f161",
-      "message": "Show .dragon dependencies under the VIPM and NI Packages tabs (v3.42.1)",
-      "author": "lcwc",
-      "date": "2026-06-23T11:43:09Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
