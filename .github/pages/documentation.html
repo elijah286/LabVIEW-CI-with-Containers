@@ -665,6 +665,11 @@ flowchart TD
         revision or pull request. Queued-run state is matched against the current table's cells by capability and
         target revision (or globally for the all-history snapshot backfill) so another repository on the same Pages
         origin cannot suppress the fresh-install card.</p>
+      <p>Each activity in the chooser is set independently to <strong>Skip</strong>, <strong>Fill</strong> (queue only
+        the revisions missing that result), or <strong>Re-run</strong> (queue every selected revision, replacing
+        existing results). An activity is offered for Re-run when any selected revision has a result, an empty cell, or
+        an <em>in-flight</em> queued/running cell — the latter are tagged <code>cidash-active-cell</code> so a re-run
+        replaces the in-flight run via concurrency instead of greying out as &ldquo;none in scope.&rdquo;</p>
       <p>The Populate-history chooser offers an opt-in <strong>"keep one container warm across revisions"</strong>
         checkbox, shown only when at least one selected activity has a warm-container backfill workflow installed
         (Windows Mass Compile, VI Analyzer, Unit Tests, Antidoc). It is always <strong>off by default</strong> and

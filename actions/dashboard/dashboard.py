@@ -753,8 +753,8 @@ for c in commits_data:
         if ar is not None:
             caps_ran.add(cap)
             if ar.get('status') in _WAITING_RUN_STATUSES:
-                return queued_cell(ar.get('html_url', ''))
-            return running_cell(_CAP_RUN_LABEL.get(cap, cap), ar.get('html_url', ''))
+                return queued_cell(ar.get('html_url', ''), cap=cap)
+            return running_cell(_CAP_RUN_LABEL.get(cap, cap), ar.get('html_url', ''), cap=cap)
         run_count['n'] += 1
         return ('<td style="text-align:center">'
                 f'<a href="#" class="cidash-run" data-cap="{cap}" data-sha="{sha}" '
@@ -779,18 +779,30 @@ for c in commits_data:
             return None
         return best
 
-    def running_cell(label, url):
+    def _active_attrs(cap):
+        # A queued/running cell carries no result yet, but it IS for a re-runnable
+        # capability + this commit. Tag it (cidash-active-cell + cap/sha) so the
+        # "Populate history" dialog can offer Re-run for an activity that is merely
+        # in-flight, instead of greying it out as "none in scope". The optimistic
+        # overlay (cidash-cap-cell) is left untouched, so the cell keeps its live
+        # Queued/Running badge.
+        if not cap or cap not in RUN_TARGETS:
+            return ''
+        return (f' class="cidash-active-cell" data-cap="{cap}" data-sha="{sha}"'
+                f' data-parent="{parent}" data-short="{short}" data-active="true"')
+
+    def running_cell(label, url, cap=None):
         # A spinning "running" indicator linking straight to the live workflow run
         # so the user can jump to it and see where it is.
         running_flag['on'] = True
         inner = f'<span class="run-spin"></span>{label}'
         body  = (f'<a href="{url}" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">{inner}</a>'
                  if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
-        return ('<td style="text-align:center">'
+        return (f'<td style="text-align:center"{_active_attrs(cap)}>'
                 '<span class="run-badge" title="Running — click to view progress">'
                 f'{body}</span></td>')
 
-    def queued_cell(url):
+    def queued_cell(url, cap=None):
         # A run that is QUEUED on GitHub Actions but has not started yet, so it has
         # posted no commit status. Mirrors running_cell but reads "Queued", so a
         # brand-new revision shows its activities are already on their way rather
@@ -799,7 +811,7 @@ for c in commits_data:
         inner = '<span class="run-spin"></span>Queued'
         body  = (f'<a href="{url}" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">{inner}</a>'
                  if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
-        return ('<td style="text-align:center">'
+        return (f'<td style="text-align:center"{_active_attrs(cap)}>'
                 '<span class="run-badge" title="Queued on GitHub Actions - waiting for a runner">'
                 f'{body}</span></td>')
 
@@ -816,8 +828,8 @@ for c in commits_data:
             return None
         caps_ran.add(cap)
         if ar.get('status') == 'queued':
-            return queued_cell(ar.get('html_url', ''))
-        return running_cell(label, ar.get('html_url', ''))
+            return queued_cell(ar.get('html_url', ''), cap=cap)
+        return running_cell(label, ar.get('html_url', ''), cap=cap)
 
     def badge(label, *contexts, url_override=None, cap=None, doc=None):
         if not is_project:
@@ -825,7 +837,7 @@ for c in commits_data:
         run = fresh_pending(*contexts)
         if run is not None:
             if cap: caps_ran.add(cap)
-            return running_cell(label, run.get('target_url', ''))
+            return running_cell(label, run.get('target_url', ''), cap=cap)
         # A sibling-platform run for this cap may still be live even though one
         # platform already posted a terminal commit status — surface it as running.
         if cap:
@@ -914,7 +926,7 @@ for c in commits_data:
         _run = fresh_pending(*_ctxs)
         if _run is not None:
             caps_ran.add('vidiff')
-            return running_cell('diff', _run.get('target_url', ''))
+            return running_cell('diff', _run.get('target_url', ''), cap='vidiff')
         _live = active_run_cell('vidiff', 'diff')
         if _live is not None:
             return _live
@@ -954,7 +966,7 @@ for c in commits_data:
         _snap_live = active_run_cell('snapshots', 'snapshots')
         if _snap_run is not None:
             caps_ran.add('snapshots')
-            snap_badge = running_cell('snapshots', _snap_run.get('target_url', ''))
+            snap_badge = running_cell('snapshots', _snap_run.get('target_url', ''), cap='snapshots')
         elif _snap_live is not None:
             snap_badge = _snap_live
         elif _have <= 0:
@@ -987,7 +999,7 @@ for c in commits_data:
         _ut_live = active_run_cell('unit-tests', 'tests')
         if _ut_run is not None:
             caps_ran.add('unit-tests')
-            unit_badge = running_cell('tests', _ut_run.get('target_url', ''))
+            unit_badge = running_cell('tests', _ut_run.get('target_url', ''), cap='unit-tests')
         elif _ut_live is not None:
             unit_badge = _ut_live
         elif _ut and 'tests' in _ut:
@@ -2425,8 +2437,9 @@ run_dialog = (r"""
       // EVERY per-revision activity cell on the table, tagged empty (a never-run run
       // glyph) vs done (a cell that already carries a result). bfCells() sees only the
       // empty glyphs; gathering the result cells too is what lets this dialog RE-RUN
-      // an activity, not just fill the blanks. Active (queued/running) cells carry no
-      // data attributes and so are skipped - you can't re-queue what's already running.
+      // an activity, not just fill the blanks. A queued/running cell (cidash-active-cell)
+      // is gathered too as "done" so an in-flight activity stays re-runnable (the new run
+      // replaces it via concurrency) instead of showing "none in scope".
       var out=[]; var rows=document.querySelectorAll('tbody tr[data-project]');
       Array.prototype.forEach.call(rows, function(tr, idx){
         Array.prototype.forEach.call(tr.querySelectorAll('a.cidash-run'), function(a){
@@ -2437,6 +2450,10 @@ run_dialog = (r"""
           var done = td.getAttribute('data-done') === 'false' ? false : true;
           out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
                      parent:td.getAttribute('data-parent')||'', order:idx, done:done });
+        });
+        Array.prototype.forEach.call(tr.querySelectorAll('td.cidash-active-cell'), function(td){
+          out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
+                     parent:td.getAttribute('data-parent')||'', order:idx, done:true });
         });
       });
       if(RT.snapshots2){
