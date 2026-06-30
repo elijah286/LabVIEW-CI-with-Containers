@@ -1,8 +1,29 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "67149ec53d5863d13d6b0a197589524a68cbe25f",
+  "sha": "56035bb3e34276d7e064c01254b255fb7070bea2",
   "revisions": [
+    {
+      "sha": "56035bb3e34276d7e064c01254b255fb7070bea2",
+      "short": "56035bb",
+      "message": "Mass Compile: colour Win/Linux percentages separately + instant platform mouse-over (4.3.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-30T18:22:05Z"
+    },
+    {
+      "sha": "b26a7eab9ecdf3b197a184c848cfe05ab145cdfb",
+      "short": "b26a7ea",
+      "message": "fix: authenticate to GHCR before pulling Linux worker images (#17)",
+      "author": "Anton Sundqvist",
+      "date": "2026-06-29T18:07:26Z"
+    },
+    {
+      "sha": "d20b765ae055b516de9b7b9c57531b491efc0613",
+      "short": "d20b765",
+      "message": "catalog: list LUnit on the Unit Tests capability card (#16)",
+      "author": "Anton Sundqvist",
+      "date": "2026-06-29T18:06:48Z"
+    },
     {
       "sha": "67149ec53d5863d13d6b0a197589524a68cbe25f",
       "short": "67149ec",
@@ -681,27 +702,6 @@
       "message": "Consistent sub-item navigation: render page sub-views in the shared sub-header (v3.45.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-23T12:18:51Z"
-    },
-    {
-      "sha": "4805d20895ad3246be7cda64504551d494949055",
-      "short": "4805d20",
-      "message": "Populate history dialog: activity controls always fit and line up (v3.44.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T12:16:08Z"
-    },
-    {
-      "sha": "c5ca8ab04d83d79f64cf29ad12c8c26986b566e0",
-      "short": "c5ca8ab",
-      "message": "Unit Testing config: pick which .lvproj projects the Unit Test Framework runs (v3.44.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T12:14:40Z"
-    },
-    {
-      "sha": "a691be2738887333d8b3481022426de6b8ac1550",
-      "short": "a691be2",
-      "message": "Bake ni_lib_junit_results_api into the CI worker tooling (v3.43.2)",
-      "author": "lcwc",
-      "date": "2026-06-23T11:58:18Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
