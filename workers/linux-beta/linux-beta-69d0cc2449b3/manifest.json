@@ -1,0 +1,84 @@
+{
+  "schema": 2,
+  "platform": "linux-beta",
+  "version": "linux-beta-69d0cc2449b3",
+  "labview_version": "2026",
+  "base_image": "nationalinstruments/labview:latest-linux",
+  "base_digest": "ghcr.io/elijah286/labview-ci-with-containers-labview@sha256:bad6586ebd5d69d3ac55e5c16fcff2b8411bd0fc108b760b7616e62b6f23f4e4",
+  "seed_image": "",
+  "seed_digest": "",
+  "worker_layer": "",
+  "copied_from_base": false,
+  "image_ref": "ghcr.io/elijah286/labview-ci-with-containers-labview:linux-beta-69d0cc2449b3",
+  "build_date": "2026-07-01T06:40:06Z",
+  "git_sha": "56035bb3e34276d7e064c01254b255fb7070bea2",
+  "run_url": "https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/28498228603",
+  "vipc": [
+    {
+      "file": "Dependencies.vipc",
+      "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
+        "ni_lib_junit_results_api-1.0.1.6",
+        "ni_lib_simple_xml-1.0.0.4",
+        "ni_lib_utf_junit_report-1.0.1.43",
+        "oglib_appcontrol-4.1.0.7",
+        "oglib_array-4.1.0.13",
+        "oglib_error-4.2.0.23",
+        "oglib_file-4.0.0.20",
+        "oglib_lvdata-4.2.0.21",
+        "oglib_string-4.1.0.12"
+      ],
+      "present": true
+    }
+  ],
+  "vipm_raw": "Installed packages (8):\n  dataflow_g_lib_g_image v0.5.0.1\n  ni_lib_junit_results_api v1.0.1.6\n  ni_lib_simple_xml v1.0.0.4\n  ni_lib_utf_junit_report v1.0.1.43\n  oglib_appcontrol v4.1.0.7\n  oglib_error v4.2.0.23\n  oglib_lvdata v4.2.0.21\n  oglib_string v4.1.0.12\n",
+  "vipm_packages": [
+    {
+      "name": "dataflow_g_lib_g_image",
+      "version": "v0.5.0.1",
+      "label": "dataflow_g_lib_g_image-v0.5.0.1"
+    },
+    {
+      "name": "Installed",
+      "version": "",
+      "label": "Installed"
+    },
+    {
+      "name": "ni_lib_junit_results_api",
+      "version": "v1.0.1.6",
+      "label": "ni_lib_junit_results_api-v1.0.1.6"
+    },
+    {
+      "name": "ni_lib_simple_xml",
+      "version": "v1.0.0.4",
+      "label": "ni_lib_simple_xml-v1.0.0.4"
+    },
+    {
+      "name": "ni_lib_utf_junit_report",
+      "version": "v1.0.1.43",
+      "label": "ni_lib_utf_junit_report-v1.0.1.43"
+    },
+    {
+      "name": "oglib_appcontrol",
+      "version": "v4.1.0.7",
+      "label": "oglib_appcontrol-v4.1.0.7"
+    },
+    {
+      "name": "oglib_error",
+      "version": "v4.2.0.23",
+      "label": "oglib_error-v4.2.0.23"
+    },
+    {
+      "name": "oglib_lvdata",
+      "version": "v4.2.0.21",
+      "label": "oglib_lvdata-v4.2.0.21"
+    },
+    {
+      "name": "oglib_string",
+      "version": "v4.1.0.12",
+      "label": "oglib_string-v4.1.0.12"
+    }
+  ],
+  "nipkg_raw": "",
+  "nipkg_packages": []
+}
