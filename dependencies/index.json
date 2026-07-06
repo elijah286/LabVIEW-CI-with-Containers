@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "56035bb3e34276d7e064c01254b255fb7070bea2",
+  "sha": "55606adfc90e5069d252369c721196468f8b3d08",
   "revisions": [
+    {
+      "sha": "55606adfc90e5069d252369c721196468f8b3d08",
+      "short": "55606ad",
+      "message": "Fix Linux worker image build failing on \"vipm-linux not found\" (4.3.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-06T11:49:16Z"
+    },
     {
       "sha": "56035bb3e34276d7e064c01254b255fb7070bea2",
       "short": "56035bb",
@@ -697,13 +704,6 @@
       "date": "2026-06-23T12:23:42Z"
     },
     {
-      "sha": "e503f67c17926105153edc031020c953713ec582",
-      "short": "e503f67",
-      "message": "Consistent sub-item navigation: render page sub-views in the shared sub-header (v3.45.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T12:18:51Z"
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1002,9 +1002,9 @@
   "dragon": {
     "available": true,
     "column": "winExp",
-    "ready": false,
+    "ready": true,
     "health": "",
-    "manifest_version": "",
+    "manifest_version": "win-beta-2e755247d7ba",
     "files": [
       {
         "source_file": "example/Example.dragon",
@@ -1017,7 +1017,7 @@
             "declared_version": "6.0.1.20",
             "feed_name": null,
             "source_file": "example/Example.dragon",
-            "status": "pending",
+            "status": "not_attempted",
             "installed_version": "",
             "message": ""
           },
@@ -1027,7 +1027,7 @@
             "declared_version": "6.0.0.9",
             "feed_name": null,
             "source_file": "example/Example.dragon",
-            "status": "pending",
+            "status": "not_attempted",
             "installed_version": "",
             "message": ""
           }
@@ -1048,7 +1048,7 @@
           "example/Example.dragon"
         ],
         "conflict": false,
-        "status": "pending",
+        "status": "not_attempted",
         "installed_version": "",
         "message": ""
       },
@@ -1064,7 +1064,7 @@
           "example/Example.dragon"
         ],
         "conflict": false,
-        "status": "pending",
+        "status": "not_attempted",
         "installed_version": "",
         "message": ""
       }
@@ -1114,19 +1114,39 @@
       "tag": "latest",
       "ready": true,
       "packages": [
-        "dataflow_g_lib_g_image-0.5.0.1",
-        "jki_lib_caraya-1.4.4.148",
-        "jki_vi_tester",
-        "ni_lib_junit_results_api-1.0.1.6",
-        "ni_lib_simple_xml-1.0.0.4",
-        "ni_lib_utf_junit_report-1.0.1.43",
-        "oglib_appcontrol-4.1.0.7",
-        "oglib_array-4.1.0.13",
-        "oglib_error-4.2.0.23",
-        "oglib_file-4.0.0.20",
-        "oglib_lvdata-4.2.0.21",
-        "oglib_string-4.1.0.12",
-        "wovalab_lib_antidoc_cli-3.3.0.117"
+        "astemes_lib_lunit",
+        "astemes_lib_lunit-v2.0.13.6",
+        "astemes_lib_lunit_cli",
+        "astemes_lib_lunit_cli-v1.6.1.23",
+        "dataflow_g_lib_g_image",
+        "dataflow_g_lib_g_image-v0.5.0.1",
+        "Installed",
+        "ni_lib_junit_results_api",
+        "ni_lib_junit_results_api-v1.0.1.6",
+        "ni_lib_simple_xml",
+        "ni_lib_simple_xml-v1.0.0.4",
+        "ni_lib_utf_junit_report",
+        "ni_lib_utf_junit_report-v1.0.1.43",
+        "oglib_appcontrol",
+        "oglib_appcontrol-v4.1.0.7",
+        "oglib_array",
+        "oglib_array-v4.1.0.13",
+        "oglib_error",
+        "oglib_error-v4.2.0.23",
+        "oglib_file",
+        "oglib_file-v4.0.0.20",
+        "oglib_lvdata",
+        "oglib_lvdata-v4.2.0.21",
+        "oglib_string",
+        "oglib_string-v4.1.0.12",
+        "wiresmith_technology_lib_g_cli",
+        "wiresmith_technology_lib_g_cli-v3.0.1.98",
+        "wovalab_lib_antidoc",
+        "wovalab_lib_antidoc-v3.3.0.870",
+        "wovalab_lib_antidoc_cli",
+        "wovalab_lib_antidoc_cli-v3.3.0.117",
+        "wovalab_lib_asciidoc_for_labview",
+        "wovalab_lib_asciidoc_for_labview-v1.12.0.485"
       ],
       "failed_packages": [],
       "nipkg_ready": true,
@@ -1134,6 +1154,10 @@
         {
           "name": "eula-jki-vimp",
           "version": "26.0.0.49245-0+f93"
+        },
+        {
+          "name": "eula-ms-dotnet-4.8",
+          "version": "23.3.0.49243-0+f91"
         },
         {
           "name": "eula-ms-dotnet-4.8",
@@ -3438,14 +3462,10 @@
         {
           "name": "system-windows-x86",
           "version": "20.6.0.49316-0+f164"
-        },
-        {
-          "name": "\ufeffeula-ms-dotnet-4.8",
-          "version": "23.3.0.49243-0+f91"
         }
       ],
       "labview_version": "2026",
-      "version": "win-6f1d9f40a7ca"
+      "version": "win-54fdaa7d3ea1"
     },
     {
       "key": "linux",
