@@ -36,7 +36,7 @@ ARG CI_WORKER_VERSION=dev
 ARG LABVIEW_VERSION=2026
 
 COPY .github/labview/vipm/install-vipc-linux.sh /opt/lvci/vipm/install-vipc-linux.sh
-COPY .github/labview/vipm-linux/ /opt/lvci/vipc/
+COPY .github/labview/vipm/ /opt/lvci/vipc/
 
 RUN set -eux; \
       chmod +x /opt/lvci/vipm/install-vipc-linux.sh; \

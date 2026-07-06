@@ -280,7 +280,7 @@ jobs:
                 pathlib.Path('.github/docker/labview-ci-linux.Dockerfile'),
                 pathlib.Path('.github/labview/vipm/install-vipc-linux.sh'),
             ]
-            files += sorted(pathlib.Path('.github/labview/vipm-linux').glob('*.vipc'), key=lambda p: p.name.lower())
+            files += sorted(pathlib.Path('.github/labview/vipm').glob('*.vipc'), key=lambda p: p.name.lower())
             # The VI Browser 2.0 render engine (lvctl + runner) is baked into this
             # worker, so its source must factor into the version -- an engine change
             # must yield a new worker image so clients pick it up on the next copy.
@@ -381,7 +381,7 @@ jobs:
             base_digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$image_ref" 2>/dev/null || true)
             while IFS= read -r -d '' vipc_file; do
               vipc_args+=(--vipc "$vipc_file")
-            done < <(find .github/labview/vipm-linux -maxdepth 1 -type f -iname '*.vipc' -print0 | sort -z)
+            done < <(find .github/labview/vipm -maxdepth 1 -type f -iname '*.vipc' -print0 | sort -z)
           fi
 
           python3 .github/labview/build-worker-manifest.py \
