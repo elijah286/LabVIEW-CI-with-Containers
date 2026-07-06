@@ -1186,6 +1186,19 @@ docker run --rm `
         <code>0</code> = all compiled; <code>3</code> = partial (some bad VIs, not a container failure); any other
         non-zero = a real container/configuration error. The Python reader also handles UTF-16 BOMs that Windows
         <code>Tee-Object</code> can emit.</div>
+      <p>The dashboard's <strong>Mass Compile</strong> column colours the compiled-percentage badge with
+        configurable thresholds (like the Unit Tests column) so revisions read at a glance instead of a near-flat
+        amber: <strong>green</strong> at or above <code>greenAtLeast</code> (default 95%), <strong>yellow</strong>
+        at or above <code>yellowAtLeast</code> (default 80%), and <strong>red</strong> below <code>redBelow</code>
+        (default 80%). A true compile failure (LabVIEW could not finish the compile &mdash; <code>status: failed</code>,
+        which zeroes the percentage) is drawn as a <strong>solid, bright-red filled pill</strong> to distinguish it
+        from a merely low percentage. Override the thresholds in <code>.github/labview-ci.yml</code>:</p>
+      <pre><code>massCompile:
+  thresholds:
+    compiledPercent:
+      greenAtLeast: 95
+      yellowAtLeast: 80
+      redBelow: 80</code></pre>
 
       <h3 id="cap-vianalyzer">16.2 VI Analyzer <a class="anchor" href="#cap-vianalyzer">#</a></h3>
       <p>Driver: <code>run-vi-analyzer.ps1</code> <span class="pill win">Windows</span>; report:

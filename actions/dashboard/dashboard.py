@@ -213,6 +213,56 @@ def unit_test_badge_kind(pass_pct):
         return 'fail'
     return 'warn'
 
+def masscompile_thresholds():
+    # The Mass Compile badge shows the % of project VIs that compiled. Colour it
+    # with configurable thresholds (like the Unit Tests column) instead of a
+    # near-flat amber. Defaults: green >= 95% compiled, yellow >= 80%, red below
+    # 80%. Read from .github/labview-ci.yml under massCompile.thresholds. A true
+    # compile failure (LabVIEW could not finish the compile) is handled
+    # separately and always renders as a solid bright-red pill.
+    vals = {'greenAtLeast': 95, 'yellowAtLeast': 80, 'redBelow': 80}
+    try:
+        in_mc = in_thresholds = in_pct = False
+        for raw in open('.github/labview-ci.yml', encoding='utf-8'):
+            line = raw.replace('\t', '    ').rstrip('\n')
+            if re.match(r'^massCompile:\s*$', line):
+                in_mc = True; in_thresholds = False; in_pct = False; continue
+            if in_mc and re.match(r'^\S', line):
+                break
+            if not in_mc:
+                continue
+            if re.match(r'^\s{2}thresholds:\s*$', line):
+                in_thresholds = True; in_pct = False; continue
+            if in_thresholds and re.match(r'^\s{4}(compiledPercent|compilePercent|percent):\s*$', line):
+                in_pct = True; continue
+            if in_pct:
+                m = re.match(r'^\s{6}(greenAtLeast|yellowAtLeast|redBelow):\s*([^#\s]+)', line)
+                if m:
+                    vals[m.group(1)] = _pct_threshold(m.group(2), vals[m.group(1)])
+                    continue
+                if re.match(r'^\s{0,5}\S', line):
+                    in_pct = False
+    except Exception:
+        pass
+    vals['greenAtLeast'] = max(vals['greenAtLeast'], vals['yellowAtLeast'])
+    vals['redBelow'] = min(vals['redBelow'], vals['yellowAtLeast'])
+    return vals
+
+MASSCOMPILE_THRESHOLDS = masscompile_thresholds()
+
+def masscompile_badge_kind(percent, status=None):
+    # Returns (chip-kind, solid) for a Mass Compile percentage. A true failure
+    # (LabVIEW could not complete the compile) is always a solid, bright-red pill
+    # regardless of the numeric value; otherwise colour by the configurable
+    # compiled-percentage thresholds (green/yellow/red).
+    if status == 'failed':
+        return 'fail', True
+    if percent >= MASSCOMPILE_THRESHOLDS['greenAtLeast']:
+        return 'pass', False
+    if percent >= MASSCOMPILE_THRESHOLDS['yellowAtLeast']:
+        return 'warn', False
+    return 'fail', False
+
 # LabVIEW / NI source-file extensions. A revision that touches one of
 # these (outside the CI tooling — see below) is a change to the actual
 # project, as opposed to a CI/docs/tooling revision.
@@ -570,21 +620,26 @@ _CHIP_ICON = {
 }
 _STATE_KIND = {'success': 'pass', 'failure': 'fail', 'error': 'fail', 'pending': 'warn'}
 
-def _chip(kind, label, url='', title=''):
+def _chip(kind, label, url='', title='', solid=False):
     """Render a status pill. ``kind`` in {pass,fail,warn,info}; ``label`` is the
-    text; ``url`` makes it a link; ``title`` is an optional tooltip."""
+    text; ``url`` makes it a link; ``title`` is an optional tooltip. ``solid``
+    fills the pill with its state colour (used for a hard failure -- e.g. a Mass
+    Compile run LabVIEW could not complete -- so it reads as bright, filled red)."""
     icon = _CHIP_ICON.get(kind, '')
     lab  = f'<a href="{url}" style="color:inherit">{label}</a>' if url else label
     ttl  = f' title="{title}"' if title else ''
-    return f'<span class="cidash-chip cc-{kind}"{ttl}>{icon}{lab}</span>'
+    cls  = f'cc-{kind}' + (' cc-solid' if solid else '')
+    return f'<span class="cidash-chip {cls}"{ttl}>{icon}{lab}</span>'
 
 def _chip_split(segments, url='', title=''):
     """Render a neutral status pill whose individual values carry their own
     colour, instead of tinting the whole pill one (worst-wins) colour. Use it
     when one cell reports two values that can legitimately differ in state -
     e.g. the Windows vs Linux mass-compile percentages - so each value's colour
-    tells its own story. ``segments`` is a list of ``(kind, text, label)``
-    tuples joined by a muted separator; ``label`` is shown as an instant
+    tells its own story. ``segments`` is a list of ``(kind, text, label)`` or
+    ``(kind, text, label, solid)`` tuples joined by a muted separator; a
+    ``solid`` segment is filled with its state colour (used for a hard compile
+    failure). ``label`` is shown as an instant
     (CSS-driven, no native-tooltip delay) mouse-over naming the value, e.g.
     "Windows" or "Linux". ``url`` makes it a link; ``title`` is an optional
     pill-level tooltip. A failing segment keeps the ``cc-fail`` class so the
@@ -593,8 +648,10 @@ def _chip_split(segments, url='', title=''):
     for seg in segments:
         _k, _t = seg[0], seg[1]
         _lab = seg[2] if len(seg) > 2 else ''
+        _solid = seg[3] if len(seg) > 3 else False
         _tip = f' data-tip="{_lab}"' if _lab else ''
-        parts.append(f'<span class="cidash-vseg cc-{_k}"{_tip}>{_t}</span>')
+        _cls = f'cc-{_k}' + (' cc-solid' if _solid else '')
+        parts.append(f'<span class="cidash-vseg {_cls}"{_tip}>{_t}</span>')
     inner = '<span class="cidash-vseg-sep">/</span>'.join(parts)
     body  = f'<a href="{url}" style="color:inherit">{inner}</a>' if url else inner
     ttl   = f' title="{title}"' if title else ''
@@ -908,11 +965,7 @@ for c in commits_data:
         _mc_lin = masscompile_summary(sha, 'linux')
         _mc_live = active_run_cell('masscompile', 'compile')
         def _mc_kind(_s):
-            _p = _s.get('percent')
-            _st = _s.get('status')
-            _f = (_st == 'failed') or (_st is None and _p <= 0)
-            _ps = (_st == 'passed') or (_st is None and _p >= 100)
-            return 'pass' if _ps else ('fail' if _f else 'warn')
+            return masscompile_badge_kind(_s.get('percent') or 0, _s.get('status'))
         _present = [(plat, s) for plat, s in (('windows', _mc_win), ('linux', _mc_lin))
                     if s and isinstance(s.get('percent'), int)]
         if _mc_live is not None:
@@ -930,6 +983,9 @@ for c in commits_data:
             # see Mass Compile as "done" (so its Re-run is offered, not greyed out)
             # and lets the optimistic "Queued" overlay land on the cell on a re-run.
             _mc_ts = (pick_status('CI / Mass Compile') or pick_status('CI / Mass Compile (Linux)') or {}).get('created_at', '')
+            _gt = MASSCOMPILE_THRESHOLDS
+            _gate = (f'green >= {_gt["greenAtLeast"]}%, yellow >= {_gt["yellowAtLeast"]}%, '
+                     f'red < {_gt["redBelow"]}% (a compile failure is solid red)')
             if len(_present) == 2:
                 # Windows and Linux can compile a different set of VIs, so show
                 # both as a two-number pill (Windows / Linux). Their results can
@@ -939,17 +995,20 @@ for c in commits_data:
                 # the single worst colour. Each value also carries an instant
                 # mouse-over naming its platform (Windows / Linux).
                 _wp, _lp = _mc_win['percent'], _mc_lin['percent']
-                _wk, _lk = _mc_kind(_mc_win), _mc_kind(_mc_lin)
+                _wk, _ws = _mc_kind(_mc_win)
+                _lk, _ls = _mc_kind(_mc_lin)
                 _tip = (f'Windows {_wp}% ({_mc_win.get("ok",0)}/{_mc_win.get("total",0)}) · '
-                        f'Linux {_lp}% ({_mc_lin.get("ok",0)}/{_mc_lin.get("total",0)}) project VIs compiled')
-                _chip_html = _chip_split([(_wk, f'{_wp}%', 'Windows'),
-                                          (_lk, f'{_lp}%', 'Linux')], _url, _tip)
+                        f'Linux {_lp}% ({_mc_lin.get("ok",0)}/{_mc_lin.get("total",0)}) project VIs compiled; '
+                        f'{_gate}')
+                _chip_html = _chip_split([(_wk, f'{_wp}%', 'Windows', _ws),
+                                          (_lk, f'{_lp}%', 'Linux', _ls)], _url, _tip)
             else:
                 _plat, _mc = _present[0]
-                _kind = _mc_kind(_mc)
+                _kind, _solid = _mc_kind(_mc)
                 _label = f'{_mc["percent"]}%'
-                _tip = f'{_plat.capitalize()}: {_mc.get("ok",0)}/{_mc.get("total",0)} project VIs compiled'
-                _chip_html = _chip(_kind, _label, _url, _tip)
+                _tip = (f'{_plat.capitalize()}: {_mc.get("ok",0)}/{_mc.get("total",0)} project VIs compiled; '
+                        f'{_gate}')
+                _chip_html = _chip(_kind, _label, _url, _tip, solid=_solid)
             mc_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" '
                         f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_mc_ts}">'
                         f'{_chip_html}</td>')
@@ -3055,6 +3114,11 @@ html = f"""<!DOCTYPE html>
     .cidash-chip.cc-fail{{background:rgba(248,81,73,.16);color:#f85149;border-color:rgba(248,81,73,.4)}}
     .cidash-chip.cc-warn{{background:rgba(210,153,34,.16);color:#d29922;border-color:rgba(210,153,34,.35)}}
     .cidash-chip.cc-info{{background:rgba(56,139,253,.16);color:#58a6ff;border-color:rgba(56,139,253,.3)}}
+    /* Solid pill: a hard failure (e.g. a Mass Compile run LabVIEW could not
+       complete) fills the pill with a bright, saturated red so it stands out
+       from a merely low percentage (which stays a subtly-tinted red). */
+    .cidash-chip.cc-fail.cc-solid{{background:#da3633;color:#fff;border-color:#da3633}}
+    .cidash-chip.cc-fail.cc-solid svg{{color:#fff}}
     /* Split pill: a neutral container whose individual values colour themselves
        (used when one cell reports two values that can differ in state, e.g. the
        Windows / Linux mass-compile percentages). Each value has an instant
@@ -3064,6 +3128,9 @@ html = f"""<!DOCTYPE html>
     .cidash-chip .cidash-vseg.cc-pass{{color:#3fb950}}
     .cidash-chip .cidash-vseg.cc-fail{{color:#f85149}}
     .cidash-chip .cidash-vseg.cc-warn{{color:#d29922}}
+    /* A hard-failed segment in a split pill is filled bright red (a small solid
+       badge) so it reads as a failure, not just a low number. */
+    .cidash-chip .cidash-vseg.cc-fail.cc-solid{{background:#da3633;color:#fff;padding:1px 7px;border-radius:6px}}
     .cidash-chip .cidash-vseg-sep{{opacity:.5;margin:0 4px;font-weight:400}}
     .cidash-chip .cidash-vseg[data-tip]:hover::after{{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);background:#1c2128;color:#e6edf3;border:1px solid #30363d;padding:2px 7px;border-radius:6px;font-size:.95em;font-weight:600;white-space:nowrap;pointer-events:none;z-index:30;box-shadow:0 2px 8px rgba(0,0,0,.4)}}
     .cidash-chip .cidash-vseg[data-tip]:hover::before{{content:"";position:absolute;left:50%;bottom:calc(100% + 2px);transform:translateX(-50%);border:5px solid transparent;border-top-color:#30363d;pointer-events:none;z-index:30}}
@@ -3073,9 +3140,11 @@ html = f"""<!DOCTYPE html>
       .cidash-chip.cc-warn{{background:#fff8c5;color:#9a6700;border-color:#9a670055}}
       .cidash-chip.cc-info{{background:#ddf4ff;color:#0969da;border-color:#0969da44}}
       .cidash-chip.cc-split{{background:#eaeef2;color:#57606a;border-color:#d0d7de}}
+      .cidash-chip.cc-fail.cc-solid{{background:#cf222e;color:#fff;border-color:#cf222e}}
       .cidash-chip .cidash-vseg.cc-pass{{color:#1a7f37}}
       .cidash-chip .cidash-vseg.cc-fail{{color:#cf222e}}
       .cidash-chip .cidash-vseg.cc-warn{{color:#9a6700}}
+      .cidash-chip .cidash-vseg.cc-fail.cc-solid{{background:#cf222e;color:#fff}}
       .cidash-chip .cidash-vseg[data-tip]:hover::after{{background:#fff;color:#1f2328;border-color:#d0d7de;box-shadow:0 2px 8px rgba(140,149,159,.35)}}
       .cidash-chip .cidash-vseg[data-tip]:hover::before{{border-top-color:#d0d7de}}
     }}

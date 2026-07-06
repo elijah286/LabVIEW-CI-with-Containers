@@ -23,6 +23,18 @@ activities:
   - snapshots-2
   - unit-tests
 
+# Mass-compile badge thresholds. The dashboard's Mass Compile column shows the
+# percentage of project VIs that compiled; these thresholds colour it (like the
+# Unit Tests column) instead of a near-flat amber. Defaults: green at >= 95%
+# compiled, yellow at >= 80%, red below 80%. A true compile failure (LabVIEW
+# could not finish the compile) always renders as a solid bright-red pill.
+massCompile:
+  thresholds:
+    compiledPercent:
+      greenAtLeast: 95
+      yellowAtLeast: 80
+      redBelow: 80
+
 # Unit-test frameworks to run in CI, plus the pass-rate thresholds that color the
 # dashboard's failed-test percentage badge. Read by run-unit-tests.ps1 (per-tool
 # enabled + locations) and written by the Unit Testing configurator page. The example
