@@ -315,6 +315,20 @@
     '.lvci-alertbar .lvci-alert-x svg{width:15px;height:15px}',
     '.lvci-alertbar .lvci-alert-x:hover{background:rgba(248,81,73,.18);color:#e6edf3}',
     '@media(prefers-color-scheme:light){.lvci-alertbar{background:#ffebe9;border-bottom-color:#ffc1bc;color:#1f2328}.lvci-alertbar .lvci-alert-x:hover{color:#1f2328}}',
+    // Update-available bar: an amber, dismissible nudge on consumer repos when the
+    // source tooling is newer than the installed build, linking to What's New.
+    '.lvci-updbar{display:none;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(210,153,34,.45);background:rgba(210,153,34,.14);color:#e6edf3;font-size:12.5px;line-height:1.5}',
+    '.lvci-updbar.show{display:flex}',
+    '.lvci-updbar .lvci-upd-ico{flex:0 0 auto;display:inline-flex;color:#d29922}',
+    '.lvci-updbar .lvci-upd-ico svg{width:16px;height:16px}',
+    '.lvci-updbar .lvci-upd-msg{flex:1 1 auto;min-width:0}',
+    '.lvci-updbar .lvci-upd-msg code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(210,153,34,.16);padding:1px 5px;border-radius:4px}',
+    '.lvci-updbar .lvci-upd-cta{flex:0 0 auto;color:#f0b72f;font-weight:600;text-decoration:none;white-space:nowrap}',
+    '.lvci-updbar .lvci-upd-cta:hover{text-decoration:underline}',
+    '.lvci-updbar .lvci-upd-x{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:0;background:transparent;color:#8b949e;cursor:pointer;border-radius:6px;padding:0}',
+    '.lvci-updbar .lvci-upd-x svg{width:15px;height:15px}',
+    '.lvci-updbar .lvci-upd-x:hover{background:rgba(210,153,34,.18);color:#e6edf3}',
+    '@media(prefers-color-scheme:light){.lvci-updbar{background:#fff8c5;border-bottom-color:#eedc82;color:#1f2328}.lvci-updbar .lvci-upd-ico{color:#9a6700}.lvci-updbar .lvci-upd-cta{color:#9a6700}.lvci-updbar .lvci-upd-x:hover{color:#1f2328}}',
     // ── Mobile menu ───────────────────────────────────────────────────────
     '.lvci-menu{display:none}',
     '@media(max-width:820px){',
@@ -337,7 +351,7 @@
     '@media(max-width:820px){body{overflow-x:hidden}}',
     // Printing (Share -> Print, or the browser's own Print): drop the chrome so a
     // printout is just the report / snapshot content, not the surrounding header.
-    '@media print{.lvci-hdr,.lvci-status,.lvci-tok,.lvci-rebuild,.lvci-depbar,.lvci-alertbar,.lvci-ctxbar,.lvci-menu,.lvci-dropdown-menu{display:none !important}}',
+    '@media print{.lvci-hdr,.lvci-status,.lvci-tok,.lvci-rebuild,.lvci-depbar,.lvci-alertbar,.lvci-updbar,.lvci-ctxbar,.lvci-menu,.lvci-dropdown-menu{display:none !important}}',
     // ── Manual appearance override (Appearance control in the menu) ───────────
     // "System" keeps the prefers-color-scheme rules above. Forcing light/dark
     // sets data-lvci-theme on <html>; these rules re-assert the matching tokens
@@ -397,8 +411,13 @@
     ':root[data-lvci-theme=light] .lvci-depbar a{color:#9a6700}',
     ':root[data-lvci-theme=light] .lvci-alertbar{background:#ffebe9;border-bottom-color:#ffc1bc;color:#1f2328}',
     ':root[data-lvci-theme=light] .lvci-alertbar .lvci-alert-x:hover{color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-updbar{background:#fff8c5;border-bottom-color:#eedc82;color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-updbar .lvci-upd-ico{color:#9a6700}',
+    ':root[data-lvci-theme=light] .lvci-updbar .lvci-upd-cta{color:#9a6700}',
+    ':root[data-lvci-theme=light] .lvci-updbar .lvci-upd-x:hover{color:#1f2328}',
     // Forced DARK — counteract an OS light preference
     ':root[data-lvci-theme=dark] .lvci-alertbar{background:rgba(248,81,73,.13);border-bottom-color:rgba(248,81,73,.4);color:#e6edf3}',
+    ':root[data-lvci-theme=dark] .lvci-updbar{background:rgba(210,153,34,.14);border-bottom-color:rgba(210,153,34,.45);color:#e6edf3}',
     ':root[data-lvci-theme=dark] .lvci-hdr{background:rgba(22,27,34,.86);border-bottom-color:#30363d;color:#e6edf3}',
     ':root[data-lvci-theme=dark] .lvci-brand .lvci-kicker,:root[data-lvci-theme=dark] .lvci-brand .lvci-sub{color:#8b949e}',
     ':root[data-lvci-theme=dark] .lvci-brand .lvci-sub{border-color:#30363d}',
@@ -1670,6 +1689,25 @@
       renderAlert();
     });
 
+    // Update-available bar — hidden until loadVersion finds the source tooling is
+    // newer than this (consumer) repo's installed build; nudges the owner to
+    // upgrade and links to What's New. Dismissible per target version.
+    var updBar = document.createElement('div');
+    updBar.id = 'lvci-updbar';
+    updBar.className = 'lvci-updbar';
+    updBar.setAttribute('role', 'status');
+    updBar.setAttribute('aria-live', 'polite');
+    updBar.innerHTML =
+      '<span class="lvci-upd-ico" aria-hidden="true">' + ICON.update + '</span>' +
+      '<span class="lvci-upd-msg"></span>' +
+      '<a class="lvci-upd-cta" href="#"></a>' +
+      '<button type="button" class="lvci-upd-x" aria-label="Dismiss this update notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>';
+    updBar.querySelector('.lvci-upd-x').addEventListener('click', function () {
+      var to = updBar.getAttribute('data-to');
+      if (to) updBarDismiss(to);
+      renderUpdateBar(true);
+    });
+
     // Persistent context bar — the revision selector for per-revision reports,
     // in one consistent place under the header (only built when there's a revision).
     // On config pages it instead holds the Settings sub-nav (section tabs).
@@ -1714,6 +1752,7 @@
     document.body.insertBefore(depbar, menu);                 // dependency/container rebuild bar
     document.body.insertBefore(pendbar, menu);                // persistent "dependencies pending" bar
     document.body.insertBefore(alertBar, menu);               // global attention bar, directly under the header
+    document.body.insertBefore(updBar, menu);                 // update-available nudge (consumer repos)
     if (rebuild) document.body.insertBefore(rebuild, menu);   // directly under the bar
 
     renderBadge();   // initial paint (idle, or the persisted "Updating" flag)
@@ -1993,6 +2032,28 @@
   function alertDismiss(id) {
     try { var a = alertDismissedIds(); if (a.indexOf(String(id)) < 0) a.push(String(id)); while (a.length > 50) a.shift(); localStorage.setItem(ALERT_DKEY, JSON.stringify(a)); } catch (e) {}
   }
+  // Update-available bar: remembers the LAST target version the owner dismissed,
+  // so a freshly released newer version brings the nudge back.
+  var UPDBAR_DKEY = 'lvci_updbar_dismissed';
+  function updBarDismissedVer() { try { return String(localStorage.getItem(UPDBAR_DKEY) || ''); } catch (e) { return ''; } }
+  function updBarDismiss(v) { try { localStorage.setItem(UPDBAR_DKEY, String(v || '')); } catch (e) {} }
+  // Paint the update-available nudge. `behind` is the same signal the version menu
+  // entry uses (a newer source build exists and no update is mid-flight); the bar
+  // stays hidden while an update is running or once dismissed for this version.
+  function renderUpdateBar(behind) {
+    var bar = document.getElementById('lvci-updbar');
+    if (!bar) return;
+    var to = verState.to;
+    var show = behind && isConsumer && !!to && updBarDismissedVer() !== String(to);
+    if (!show) { bar.classList.remove('show'); bar.removeAttribute('data-to'); return; }
+    var msg = bar.querySelector('.lvci-upd-msg');
+    if (msg) msg.innerHTML = '<strong>A newer version of LabVIEW CI is available.</strong> '
+      + 'You\u2019re on <code>v' + esc(verState.v) + '</code>; <code>v' + esc(to) + '</code> is ready to install.';
+    var cta = bar.querySelector('.lvci-upd-cta');
+    if (cta) { cta.href = whatsNewUrl(); cta.textContent = 'See what\u2019s new & update \u2192'; }
+    bar.setAttribute('data-to', String(to));
+    bar.classList.add('show');
+  }
   function renderAlert() {
     var bar = document.getElementById('lvci-alertbar');
     if (!bar) return;
@@ -2166,6 +2227,9 @@
         a.title = verState.v ? ('LabVIEW CI v' + verState.v) : 'LabVIEW CI';
       }
     });
+
+    // 4) Prominent update-available banner under the header (consumer repos).
+    renderUpdateBar(behind);
   }
 
   // The What's New dialog dispatches the update then calls window.lvciMarkUpdating

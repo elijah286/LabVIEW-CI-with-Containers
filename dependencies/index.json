@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "3958d87823fd277051069fcdae52b689e3e33ec7",
+  "sha": "f2527d43a1c4f76fff51010a7f7bde6e14705bab",
   "revisions": [
+    {
+      "sha": "f2527d43a1c4f76fff51010a7f7bde6e14705bab",
+      "short": "f2527d4",
+      "message": "dashboard: add update-available banner nudging owners to upgrade (v4.4.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-07T17:07:43Z"
+    },
     {
       "sha": "3958d87823fd277051069fcdae52b689e3e33ec7",
       "short": "3958d87",
@@ -695,13 +702,6 @@
       "message": "Guard capability edits that build worker images",
       "author": "Elijah Kerry",
       "date": "2026-06-23T17:06:17Z"
-    },
-    {
-      "sha": "2d13949522d3c7aea63abf01a398e8ff0714f986",
-      "short": "2d13949",
-      "message": "Apply flow: show GitLab install target (v3.46.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T16:59:15Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
