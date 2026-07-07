@@ -28,9 +28,11 @@
     .upd-radio{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-size:.9em;cursor:pointer}
     .upd-radio input{margin-top:3px}
     .upd-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px}
-    .upd-btn{display:inline-block;padding:9px 16px;border-radius:7px;background:var(--accent);color:var(--accent-fg);font-weight:600;font-size:.9em;text-decoration:none}
+    .upd-btn{display:inline-block;padding:9px 16px;border:0;border-radius:7px;background:var(--accent);color:var(--accent-fg);font-family:inherit;font-weight:600;font-size:.9em;line-height:1.4;text-decoration:none;cursor:pointer}
     .upd-btn:hover{filter:brightness(1.06);text-decoration:none}
+    .upd-btn:disabled{opacity:.6;cursor:not-allowed;filter:none}
     .upd-hint{color:var(--fg-muted);font-size:.82em;max-width:520px}
+    .upd-run-status{margin-top:10px}
     .upd-hint code{background:var(--chip);padding:1px 5px;border-radius:4px;font-family:ui-monospace,Menlo,monospace}
   </style>
   <style>
@@ -141,6 +143,7 @@
     let currentColStates = {};
     let currentPlatformStates = {};
     let monitorDirty = false;
+    let pendingTokenAction = null;
 
     function repoFromUrl(){
       if (cfg.repo) return cfg.repo;
@@ -402,7 +405,7 @@
     function monitorInputs(){ return { container_vipc:encodeMonitorList(currentVipcs), container_dragon:encodeMonitorList(currentDragonFiles) }; }
     async function dispatchMonitor(){
       if (!repo.includes("/")) { setMonitorStatus("Could not determine repository.", "err"); return; }
-      if (!token()) { showTokenPanel(); setMonitorStatus("Paste a token to queue Reconfigure."); return; }
+      if (!token()) { pendingTokenAction = dispatchMonitor; showTokenPanel(); setMonitorStatus("Paste a token to queue Reconfigure."); return; }
       const btn = $("saveMonitor");
       if (btn) { btn.disabled = true; btn.textContent = "Queuing..."; }
       setMonitorStatus("Queuing Reconfigure...");
@@ -450,7 +453,7 @@
         const inp = $("tokInput"); const v = (inp && inp.value || "").trim();
         if (!v) { if (inp) inp.focus(); return; }
         try { localStorage.setItem(TOK_KEY, v); } catch (_) {}
-        dispatchMonitor();
+        (pendingTokenAction || dispatchMonitor)();
       });
       const inp = $("tokInput"); if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); const b = $("tokSave"); if (b) b.click(); } });
     }
@@ -803,13 +806,53 @@
       updateMonitorUi();
     }
 
+    function selectedUpdateMode(){
+      const el = $("updatePanel");
+      const checked = el && el.querySelector('input[name=updMode]:checked');
+      return (checked && checked.value) || "replace";
+    }
+    function imageWorkflowUrl(){ return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/build-labview-image.yml" : "https://github.com/actions/workflows/build-labview-image.yml"; }
+    function setUpdateStatus(html, kind){
+      const st = $("updStatus"); if (!st) return;
+      st.innerHTML = html || "";
+      st.className = "status upd-run-status" + (kind ? " " + kind : "");
+    }
+    async function dispatchContainerUpdate(){
+      if (!repo.includes("/")) { setUpdateStatus("Could not determine repository.", "err"); return; }
+      const mode = selectedUpdateMode();
+      if (!token()) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("Running the container update needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setUpdateStatus("Paste a token to run the container update."); return; }
+      const btn = $("updRun");
+      if (btn) { btn.disabled = true; btn.textContent = "Starting\u2026"; }
+      setUpdateStatus("Starting the container update (update_mode = " + esc(mode) + ")\u2026");
+      try {
+        const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/build-labview-image.yml/dispatches", {
+          method:"POST",
+          headers:{ "Authorization":"Bearer " + token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json" },
+          body:JSON.stringify({ ref:workflowRef(), inputs:{ update_mode:mode } })
+        });
+        if (btn) { btn.disabled = false; btn.textContent = "Run the container update"; }
+        if (r.status === 204) {
+          hideTokenPanel();
+          pendingTokenAction = null;
+          setUpdateStatus("Container update started (update_mode = <code>" + esc(mode) + "</code>). <a href=\"" + imageWorkflowUrl() + "\" target=\"_blank\" rel=\"noopener\">View run \u2197</a>", "ok");
+          return;
+        }
+        if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} pendingTokenAction = dispatchContainerUpdate; showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setUpdateStatus("Token rejected (401).", "err"); return; }
+        if (r.status === 403) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code>" + esc(repo) + "</code>."); setUpdateStatus("Dispatch forbidden (403).", "err"); return; }
+        if (r.status === 404) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("The saved token cannot see <code>" + esc(repo) + "</code>, or this repo does not have <code>build-labview-image.yml</code> installed."); setUpdateStatus("Workflow not found or repo not accessible (404).", "err"); return; }
+        setUpdateStatus("Dispatch failed (HTTP " + r.status + ").", "err");
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = "Run the container update"; }
+        setUpdateStatus("Network error: " + esc(String(e && e.message || e)), "err");
+      }
+    }
+
     async function renderUpdatePanel(){
       const el = $("updatePanel");
       if (!el) return;
       let d = null;
       try { d = await fetchJson(base + "deps-pending.json"); } catch(_) {}
       if (!d || !d.pending) { el.classList.add("hidden"); el.innerHTML = ""; return; }
-      const wfUrl = "https://github.com/" + repo + "/actions/workflows/build-labview-image.yml";
       el.classList.remove("hidden");
       el.innerHTML =
         '<h2 class="upd-h">\u26A0\uFE0F Dependency update needed</h2>' +
@@ -819,14 +862,17 @@
         '<label class="upd-radio"><input type="radio" name="updMode" value="replace" checked> <span><strong>Replace existing containers</strong> (default) &mdash; rebuild in place; your pipeline actions keep using them automatically.</span></label>' +
         '<label class="upd-radio"><input type="radio" name="updMode" value="new"> <span><strong>Create new containers</strong> &mdash; publish a new tagged container alongside the current one; select it per action in Configure Pipeline.</span></label>' +
         '</div>' +
-        '<div class="upd-actions"><a class="upd-btn" id="updRun" target="_blank" rel="noopener" href="' + wfUrl + '">Run the container update \u2197</a>' +
-        '<span class="upd-hint">Opens the <strong>Build LabVIEW CI Image</strong> workflow. Click <strong>Run workflow</strong>, set <code>update_mode</code> = <code>replace</code>, and run it.</span></div>' +
+        '<div class="upd-actions"><button type="button" class="upd-btn" id="updRun">Run the container update</button>' +
+        '<span class="upd-hint">Starts the <strong>Build LabVIEW CI Image</strong> workflow with <code>update_mode</code> = <code>replace</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.</span></div>' +
+        '<div class="status upd-run-status" id="updStatus"></div>' +
         '<p class="upd-auto">Prefer file changes to rebuild containers automatically? Keep <strong>Monitored</strong> checked for that dependency file here, click <strong>Save monitored files</strong>, and files saved with <code>monitor: true</code> will trigger a rebuild when they change on a submission.</p>';
       el.querySelectorAll('input[name=updMode]').forEach(r => r.addEventListener("change", () => {
         const mode = (el.querySelector('input[name=updMode]:checked') || {}).value || "replace";
         const hint = el.querySelector(".upd-hint");
-        if (hint) hint.innerHTML = 'Opens the <strong>Build LabVIEW CI Image</strong> workflow. Click <strong>Run workflow</strong>, set <code>update_mode</code> = <code>' + esc(mode) + '</code>, and run it.';
+        if (hint) hint.innerHTML = 'Starts the <strong>Build LabVIEW CI Image</strong> workflow with <code>update_mode</code> = <code>' + esc(mode) + '</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.';
       }));
+      const runBtn = $("updRun");
+      if (runBtn) runBtn.addEventListener("click", dispatchContainerUpdate);
     }
 
     async function init(){

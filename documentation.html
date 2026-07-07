@@ -954,8 +954,10 @@ ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, o
 
       <h3>When images rebuild</h3>
       <p>A worker rebuild is a heavy, opt-in operation. It runs when you apply a dependency update from the dashboard's
-        <em>Review &amp; update dependencies</em> dialog, on the monthly cron (to pick up base-image security updates),
-        or by manual dispatch. Adding or changing a project <code>.vipc</code> never triggers a rebuild on its own &mdash;
+        <em>Review &amp; update dependencies</em> dialog &mdash; the Dependencies page's <em>Run the container update</em>
+        button dispatches the <em>Build LabVIEW CI Image</em> workflow directly with your chosen <code>update_mode</code>
+        (<code>replace</code> or <code>new</code>), prompting once for a fine-grained token with <strong>Actions: write</strong>
+        &mdash; on the monthly cron (to pick up base-image security updates), or by manual dispatch. Adding or changing a project <code>.vipc</code> never triggers a rebuild on its own &mdash;
         the dashboard simply flags that dependencies need installing until you choose to run the update.</p>
 
       <h3>Dependency gate (activities wait for the rebuild)</h3>
