@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.4.0",
+  "version": "4.4.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {"version": "4.4.1", "date": "2026-07-07", "notes": "Dependencies page: the \"Run the container update\" button now dispatches the Build LabVIEW CI Image workflow directly with your chosen update_mode (replace or new) using your saved token, instead of only linking to the Actions tab"},
       {"version": "4.4.0", "date": "2026-07-06", "notes": "Mass Compile dashboard column now colours the compiled-percentage pill by configurable thresholds (green >= 95%, yellow >= 80%, red below 80%, set in .github/labview-ci.yml under massCompile.thresholds.compiledPercent) and draws a true compile failure as a solid, filled bright-red pill"},
       {"version": "4.3.5", "date": "2026-07-06", "notes": "Fix the Linux worker image build (apply dependencies) failing with \".github/labview/vipm-linux not found\": the VIPC bake now reads the staged .github/labview/vipm directory that the build writes to"},
       {"version": "4.3.4", "date": "2026-06-30", "notes": "Mass Compile two-number pill colours Windows and Linux percentages separately and shows an instant Windows/Linux mouse-over on each"},
