@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "f2527d43a1c4f76fff51010a7f7bde6e14705bab",
+  "sha": "4698a1014fde7e0358b204a63d6683e5b8eed8f3",
   "revisions": [
+    {
+      "sha": "4698a1014fde7e0358b204a63d6683e5b8eed8f3",
+      "short": "4698a10",
+      "message": "Dependencies: live progress bar tracking the container update run (4.4.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-08T14:47:13Z"
+    },
     {
       "sha": "f2527d43a1c4f76fff51010a7f7bde6e14705bab",
       "short": "f2527d4",
@@ -695,13 +702,6 @@
       "message": "Keep capability chooser closed on load",
       "author": "Elijah Kerry",
       "date": "2026-06-23T17:13:30Z"
-    },
-    {
-      "sha": "60764e773522b0e6d9a33eea6bd8ad0cfcfb2a9c",
-      "short": "60764e7",
-      "message": "Guard capability edits that build worker images",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T17:06:17Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
