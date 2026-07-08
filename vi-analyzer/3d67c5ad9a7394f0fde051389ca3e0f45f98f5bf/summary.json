@@ -11,9 +11,9 @@
       "author": "Elijah Kerry",
       "date": "2026-06-21T09:19:51-05:00"
     },
-    "generated_utc": "2026-06-22 03:57 UTC",
-    "analysis_date": "Monday, June 22, 2026 3:57:08 AM",
-    "duration": "00:00:40.22",
+    "generated_utc": "2026-07-08 21:00 UTC",
+    "analysis_date": "Wednesday, July 8, 2026 9:00:39 PM",
+    "duration": "00:00:02.00",
     "configs": [
       {
         "label": "actions/vi-analyzer/via-config-default.viancfg",

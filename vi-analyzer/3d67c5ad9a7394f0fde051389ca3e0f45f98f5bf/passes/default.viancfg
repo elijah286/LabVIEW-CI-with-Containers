@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
   VI Analyzer configuration for LabVIEW-CI-with-Containers
-  C:\workspace is replaced at runtime by the bash CI script
+  C:\wt\src-3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf is replaced at runtime by the bash CI script
   with the absolute container path (/workspace on Linux).
   NOTE: LabVIEW requires path values to be wrapped in double-quotes inside the XML.
 -->
@@ -12,7 +12,7 @@
 	<TargetIndex>0</TargetIndex>
 	<ItemsToAnalyze>
 		<Item>
-			<Path>"C:\workspace"</Path>
+			<Path>"C:\wt\src-3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf"</Path>
 			<Removed>FALSE</Removed>
 		</Item>
 	</ItemsToAnalyze>
