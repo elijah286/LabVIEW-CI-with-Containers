@@ -677,6 +677,10 @@ function Invoke-VipmInstall {
         $out = & $VipmExe install @Targets 2>&1
         $out | Out-Host
     }
+    # Capture the vipm exit code before any further work: 124 is the CLI's timeout
+    # exit (the operation ran the full VIPM_TIMEOUT and was killed), which is the
+    # by-name install's symptom of an unresponsive engine.
+    $vipmExit = $LASTEXITCODE
     # Stash the CLI text so callers can distinguish failure causes that share exit
     # code 8 (IO_ERROR) - e.g. the engine-startup timeout vs. the engine rejecting
     # the .vipc file itself. Capture WIDE: Out-String wraps at the host buffer width
@@ -686,10 +690,23 @@ function Invoke-VipmInstall {
     $script:LastVipmOutput = ($out | Out-String -Width 8192)
     # Match against a whitespace-flattened copy so a wrap can never hide the phrase.
     $flatVipmOutput = ($script:LastVipmOutput -replace '\s+', ' ')
-    # A 'wait for VIPM startup' timeout means the engine is wedged for the rest of
-    # this build; record it so callers stop hammering it (each retry costs ~900s).
-    if ($flatVipmOutput -match 'wait for VIPM startup') { $script:VipmEngineDead = $true }
-    return $LASTEXITCODE
+    # A wedged VIPM engine means every subsequent 'vipm install' burns another full
+    # VIPM_TIMEOUT (~900s) before failing, so record it once and let callers bail
+    # instead of stacking 15-minute timeouts into a multi-hour hang (build
+    # 28951187926 ran ~2h that way). The engine is wedged when EITHER:
+    #   * the CLI reports the startup handshake timed out ('wait for VIPM startup'),
+    #     which the local-file fallback path surfaces; OR
+    #   * a plain 'vipm install' hits the full VIPM_TIMEOUT -- the by-name path does
+    #     NOT print 'wait for VIPM startup', it prints "operation 'install' timed out
+    #     after <VIPM_TIMEOUT>s" and exits 124. That timeout was previously missed,
+    #     so the four essentials retried one-by-one at 900s each before the fallback
+    #     finally tripped the detector. Match the timeout message AND exit 124 too.
+    if ($vipmExit -eq 124 -or
+        $flatVipmOutput -match 'wait for VIPM startup' -or
+        $flatVipmOutput -match "operation '[^']*' timed out after") {
+        $script:VipmEngineDead = $true
+    }
+    return $vipmExit
 }
 
 # Install a set of package SPECS (name@version) using the by-name path first and,
@@ -705,6 +722,7 @@ function Install-VipmSpecs {
     if ($rc -ne 0) {
         Write-Host "  batch install failed (exit $rc); retrying each package individually ..."
         foreach ($spec in $Specs) {
+            if ($script:VipmEngineDead) { Write-Warning '  VIPM engine wedged; stopping per-package retries.'; return $false }
             $rc = Invoke-VipmInstall $spec
             if ($rc -ne 0) { Write-Warning "  package '$spec' failed (exit $rc)."; $failed = $true }
             if ($script:VipmEngineDead) { Write-Warning '  VIPM engine wedged; stopping per-package retries.'; return $false }
@@ -721,6 +739,7 @@ function Install-VipmSpecs {
         Write-Host "  local VIP file batch install failed (exit $rc); retrying each file individually ..."
         $localFailed = $false
         foreach ($vipFile in $vipFiles) {
+            if ($script:VipmEngineDead) { Write-Warning '  VIPM engine wedged; stopping per-file retries.'; return $false }
             $rc = Invoke-VipmInstall $vipFile
             if ($rc -ne 0) { Write-Warning "  local package file '$vipFile' failed (exit $rc)."; $localFailed = $true }
             if ($script:VipmEngineDead) { Write-Warning '  VIPM engine wedged; stopping per-file retries.'; return $false }

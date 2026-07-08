@@ -1130,6 +1130,14 @@ docker run --rm `
         VI Tester / LUnit) are <em>best-effort</em>: if a heavy add-on wedges the headless VIPM engine it is logged as a warning
         and the build still publishes a working, UTF-capable image. Override the required set with
         <code>VIPM_REQUIRED_PACKAGES</code>.</div>
+      <div class="note"><span class="lbl">Fast-abort on a wedged engine</span>
+        The VIPM engine (the LabVIEW-runtime <code>VI Package Manager.exe</code>) occasionally fails to finish starting
+        inside the container, after which every <code>vipm install</code> blocks for the full <code>VIPM_TIMEOUT</code>
+        (~900s) before failing. <code>install-vipc.ps1</code> detects that wedged state on the <em>first</em> such
+        timeout — a <code>wait for VIPM startup</code> handshake timeout, an <code>operation '...' timed out after</code>
+        message, or CLI exit <code>124</code> — and stops the remaining install attempts immediately instead of stacking
+        one 900s timeout per package (which previously turned a dead engine into a multi-hour build). A wedged engine is
+        environmental and usually clears on a re-run of the image build.</div>
       <div class="note"><span class="lbl">Public-index fallback</span>
         The resolver-bypass fallback covers packages in the built-in NI LabVIEW Tools Network and VIPM Community
         repositories, including old OpenG <code>sf://opengtoolkit</code> URLs and the legacy
