@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "4698a1014fde7e0358b204a63d6683e5b8eed8f3",
+  "sha": "f30dacf285ce27a084b06072a39143d4d3f11fba",
   "revisions": [
+    {
+      "sha": "f30dacf285ce27a084b06072a39143d4d3f11fba",
+      "short": "f30dacf",
+      "message": "Fast-abort worker build when VIPM engine wedges (4.4.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-08T19:43:38Z"
+    },
     {
       "sha": "4698a1014fde7e0358b204a63d6683e5b8eed8f3",
       "short": "4698a10",
@@ -695,13 +702,6 @@
       "message": "Apply flow: add GitLab browser install",
       "author": "Elijah Kerry",
       "date": "2026-06-23T17:19:41Z"
-    },
-    {
-      "sha": "7e678a7003be76df236d8a6f0afe417bc83637d4",
-      "short": "7e678a7",
-      "message": "Keep capability chooser closed on load",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T17:13:30Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
