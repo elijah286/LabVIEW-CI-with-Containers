@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.4.3",
+  "version": "4.4.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {"version": "4.4.4", "date": "2026-07-08", "notes": "Windows worker image build now fails fast when the headless VIPM engine wedges: install-vipc.ps1 treats any full VIPM_TIMEOUT install timeout (an operation-timed-out message or CLI exit 124) as a dead engine, so a stuck engine aborts in seconds instead of stacking a 900s timeout per package into a multi-hour build"},
       {"version": "4.4.3", "date": "2026-07-08", "notes": "Dependencies page now shows a live progress bar for the container update: after you click \"Run the container update\" (or on page load while a build is running) it tracks the Build LabVIEW CI Image run through queued, building (step N of M), and complete/failed"},
       {"version": "4.4.2", "date": "2026-07-07", "notes": "Dashboard now shows a dismissible update-available banner under the header on client repos when a newer version of the tooling has been released, nudging the repo owner to review What's new and upgrade; the notice reappears when a further version ships"},
       {"version": "4.4.1", "date": "2026-07-07", "notes": "Dependencies page: the \"Run the container update\" button now dispatches the Build LabVIEW CI Image workflow directly with your chosen update_mode (replace or new) using your saved token, instead of only linking to the Actions tab"},
