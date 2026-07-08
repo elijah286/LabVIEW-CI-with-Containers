@@ -21,6 +21,13 @@ Push a commit and this pipeline spins up headless LabVIEW inside a throwaway Doc
 > is enabled (Settings ▸ Pages ▸ deploy from the `gh-pages` branch) and the
 > dashboard/configurator workflows have run.
 
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=dXeF1d6HBmg">
+    <img src="https://img.youtube.com/vi/dXeF1d6HBmg/maxresdefault.jpg" alt="5-minute overview of LabVIEW CI with Containers" width="640">
+  </a>
+  <br><em>5-minute overview — click to watch on YouTube</em>
+</p>
+
 ---
 
 ## The problem it solves
