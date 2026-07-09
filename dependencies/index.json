@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "f30dacf285ce27a084b06072a39143d4d3f11fba",
+  "sha": "db68dd6b05bde3c0684e71e2a5597161a8aa425a",
   "revisions": [
+    {
+      "sha": "db68dd6b05bde3c0684e71e2a5597161a8aa425a",
+      "short": "db68dd6",
+      "message": "vipm: self-heal a wedged headless VIPM engine (restart-and-retry) (4.4.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-09T12:11:19Z"
+    },
+    {
+      "sha": "ccc7b5c4186eec1879cfef35c8785ce50827aa0c",
+      "short": "ccc7b5c",
+      "message": "readme: add 5-minute YouTube overview video thumbnail",
+      "author": "Elijah Kerry",
+      "date": "2026-07-08T21:35:41Z"
+    },
     {
       "sha": "f30dacf285ce27a084b06072a39143d4d3f11fba",
       "short": "f30dacf",
@@ -688,20 +702,6 @@
       "message": "Improve install progress visibility",
       "author": "Elijah Kerry",
       "date": "2026-06-23T17:41:52Z"
-    },
-    {
-      "sha": "dd8daf3028f64728ca25b27ec0f06b725564bcf7",
-      "short": "dd8daf3",
-      "message": "Apply flow: handle GitLab tree lookup misses",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T17:35:30Z"
-    },
-    {
-      "sha": "f950f60f08aa3445e9ef29b0e5bd2a9c0cf9a0d4",
-      "short": "f950f60",
-      "message": "Apply flow: add GitLab browser install",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T17:19:41Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
@@ -3465,7 +3465,7 @@
         }
       ],
       "labview_version": "2026",
-      "version": "win-54fdaa7d3ea1"
+      "version": "win-b9bd8c192096"
     },
     {
       "key": "linux",
