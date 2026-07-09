@@ -248,10 +248,17 @@ CommunityEdition 0="TRUE"
         Write-Warning ("Could not seed VIPM Settings.ini (" + $_.Exception.Message + "); vipm install may fail to load.")
     }
 }
-if ($lvExe) {
+# Launch headless LabVIEW for VIPM. Factored into a function so a wedged VIPM
+# stack can be torn down and relaunched mid-build (see Restart-VipmStack) instead
+# of failing the whole image on a transient cold-start race.
+function Start-HeadlessLabVIEW {
+    if (-not $lvExe) {
+        Write-Warning 'LabVIEW.exe not found; attempting VIPM install without pre-launching LabVIEW.'
+        return
+    }
     Write-Host "Launching headless LabVIEW for VIPM: $lvExe"
     try {
-        $LabVIEWProc = Start-Process -FilePath $lvExe -ArgumentList '--headless' -PassThru
+        $script:LabVIEWProc = Start-Process -FilePath $lvExe -ArgumentList '--headless' -PassThru
         $deadline = (Get-Date).AddSeconds(180)
         $ready = $false
         while ((Get-Date) -lt $deadline) {
@@ -266,8 +273,6 @@ if ($lvExe) {
     } catch {
         Write-Warning ("Could not launch headless LabVIEW (" + $_.Exception.Message + "); attempting VIPM install anyway.")
     }
-} else {
-    Write-Warning 'LabVIEW.exe not found; attempting VIPM install without pre-launching LabVIEW.'
 }
 
 # The vipm CLI does not install packages itself -- it delegates to the VIPM "engine"
@@ -279,14 +284,16 @@ if ($lvExe) {
 # engine is already running. Pre-launch the engine here (best-effort) and give it
 # time to come up so the install can attach to an already-running engine.
 $VipmEngineProc = $null
-$vipmEngineExe = @(
+$script:VipmEngineExe = @(
     (Join-Path $VipmDir 'VI Package Manager.exe'),
     'C:\Program Files (x86)\JKI\VI Package Manager\VI Package Manager.exe'
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-if ($vipmEngineExe -and -not (Get-Process -Name 'VI Package Manager' -ErrorAction SilentlyContinue)) {
-    Write-Host "Pre-launching VIPM engine so the CLI can attach: $vipmEngineExe"
+function Start-VipmEngineProcess {
+    if (-not $script:VipmEngineExe) { return }
+    if (Get-Process -Name 'VI Package Manager' -ErrorAction SilentlyContinue) { return }
+    Write-Host "Pre-launching VIPM engine so the CLI can attach: $script:VipmEngineExe"
     try {
-        $VipmEngineProc = Start-Process -FilePath $vipmEngineExe -PassThru -ErrorAction Stop
+        $script:VipmEngineProc = Start-Process -FilePath $script:VipmEngineExe -PassThru -ErrorAction Stop
         # Give the LabVIEW-runtime engine time to initialize before the first install.
         Start-Sleep -Seconds 45
         Write-Host 'VIPM engine launch requested (allowed 45s to initialize).'
@@ -294,6 +301,42 @@ if ($vipmEngineExe -and -not (Get-Process -Name 'VI Package Manager' -ErrorActio
         Write-Warning ("Could not pre-launch the VIPM engine (" + $_.Exception.Message + "); the CLI will try to start it itself.")
     }
 }
+
+# -- VIPM engine crash-recovery budget ----------------------------------------
+# A cold headless VIPM engine occasionally never finishes its startup handshake,
+# so the FIRST 'vipm install' burns the full VIPM_TIMEOUT and the engine stays
+# wedged for the rest of the build (build 28951187926 failed exactly this way, yet
+# the identical code succeeded on the very next run -- a transient cold-start race).
+# Rather than fail the whole image on that transient, tear the stack down and
+# relaunch it, then retry the install. Bounded by a build-wide budget so a
+# genuinely-broken engine still fails fast instead of hanging for hours. Override
+# with VIPM_MAX_ENGINE_RESTARTS (0 disables recovery, restoring the old
+# fail-fast-on-first-wedge behavior).
+$script:VipmMaxEngineRestarts  = if ($Env:VIPM_MAX_ENGINE_RESTARTS -match '^\d+$') { [int]$Env:VIPM_MAX_ENGINE_RESTARTS } else { 2 }
+$script:VipmEngineRestartsUsed = 0
+
+# Kill the whole VIPM stack (CLI, engine, headless LabVIEW) and relaunch it, then
+# clear the wedged flag so the caller can retry. If the relaunched engine wedges
+# again the next 'vipm install' re-sets the flag and the budget check stops the loop.
+function Restart-VipmStack {
+    param([int] $Attempt)
+    Write-Warning ("  VIPM engine wedged; restarting the VIPM stack (attempt " + $Attempt + "/" + $script:VipmMaxEngineRestarts + ") and retrying ...")
+    foreach ($procName in @('vipm', 'VI Package Manager', 'LabVIEW', 'LabVIEWCLI')) {
+        Get-Process -Name $procName -ErrorAction SilentlyContinue |
+            Stop-Process -Force -ErrorAction SilentlyContinue
+    }
+    $script:LabVIEWProc    = $null
+    $script:VipmEngineProc = $null
+    # Let the killed processes release the VI Server port (3363) and file locks.
+    Start-Sleep -Seconds 10
+    Start-HeadlessLabVIEW
+    Start-VipmEngineProcess
+    $script:VipmEngineDead = $false
+}
+
+# Launch the VIPM stack for the first time.
+Start-HeadlessLabVIEW
+Start-VipmEngineProcess
 
 # NOTE: this vipm CLI (2026.1.0) has NO standalone 'refresh' command; the package
 # list is refreshed via the global '--refresh' option passed to 'install' below.
@@ -668,7 +711,9 @@ $GlobalFlags = @('--labview-version', $LabVIEWVersion, '--labview-bitness', $Lab
 # Run 'vipm install' with the global LabVIEW target flags in front of the subcommand.
 # Exit 2 (COMMAND_SYNTAX_ERROR) means this CLI build rejected the flag position; fall
 # back to the bare form, which targets the active LabVIEW from the seeded Settings.ini.
-function Invoke-VipmInstall {
+# This is the single-attempt worker; callers go through Invoke-VipmInstall, which adds
+# the wedged-engine restart-and-retry recovery on top of it.
+function Invoke-VipmInstallOnce {
     param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Targets)
     $out = & $VipmExe @GlobalFlags install @Targets 2>&1
     $out | Out-Host
@@ -705,6 +750,25 @@ function Invoke-VipmInstall {
         $flatVipmOutput -match 'wait for VIPM startup' -or
         $flatVipmOutput -match "operation '[^']*' timed out after") {
         $script:VipmEngineDead = $true
+    }
+    return $vipmExit
+}
+
+# Wedged-engine recovery wrapper around Invoke-VipmInstallOnce. If a 'vipm install'
+# wedges the headless VIPM engine (the transient cold-start race that fails ~1 build
+# in N), tear the whole VIPM stack down and relaunch it, then retry the SAME install.
+# Restart-VipmStack clears $script:VipmEngineDead so the loop can retry; if the
+# relaunched engine wedges again the next attempt re-sets the flag and the build-wide
+# restart budget stops the loop, falling through to the existing fast-abort path so a
+# genuinely-broken engine still fails fast instead of hanging for hours.
+function Invoke-VipmInstall {
+    param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Targets)
+    $vipmExit = Invoke-VipmInstallOnce @Targets
+    while ($script:VipmEngineDead -and $script:VipmEngineRestartsUsed -lt $script:VipmMaxEngineRestarts) {
+        $script:VipmEngineRestartsUsed++
+        Restart-VipmStack $script:VipmEngineRestartsUsed
+        Write-Host ("  Retrying 'vipm install' after VIPM engine restart " + $script:VipmEngineRestartsUsed + "/" + $script:VipmMaxEngineRestarts + " ...")
+        $vipmExit = Invoke-VipmInstallOnce @Targets
     }
     return $vipmExit
 }
