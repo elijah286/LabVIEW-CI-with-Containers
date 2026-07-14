@@ -1639,6 +1639,16 @@ run_dialog = (r"""
     var qQueuePos = null, qQueueTotal = 0, qQueueAt = 0;
     function qLoad(){ try{ return JSON.parse(localStorage.getItem(QKEY)||"{}")||{}; }catch(e){ return {}; } }
     function qSave(o){ try{ localStorage.setItem(QKEY, JSON.stringify(o)); }catch(e){} }
+    function resultCell(c, sha){
+      // The cell carrying a re-runnable activity's result OR its in-flight run - both
+      // are valid targets to overlay an optimistic "Queued" spinner onto. A finished
+      // result is a cidash-cap-cell; a queued/running auto-run is a cidash-active-cell
+      // (tagged so the Populate-history dialog can re-run an in-flight activity). Matching
+      // both is what lets a re-run of an in-flight cell show its Queued badge, not just
+      // re-runs of finished ones (the latest revision's activity is usually still in flight).
+      return document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]')
+          || document.querySelector('td.cidash-active-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+    }
     function qPaint(td, c, sha){
       // Overlay the spinning "Queued" badge onto the cell, replacing its run glyph.
       // The badge is now a BUTTON (not a link): clicking it opens the manage dialog
@@ -1743,7 +1753,7 @@ run_dialog = (r"""
           // result cell and remember its original badge so a failed/cancelled dispatch
           // can restore it. Same bridge the report viewer's "Re-run" uses (see qSync),
           // now reachable from the Populate-history dialog's per-activity "Re-run".
-          var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+          var rc = resultCell(c, sha);
           if(rc){
             var oR = qLoad(); var kR = c+'|'+sha;
             if(oR[kR] && !oR[kR].orig){ oR[kR].orig = rc.innerHTML; qSave(oR); }
@@ -1972,7 +1982,7 @@ run_dialog = (r"""
         if(!e){ delete o[key]; changed = true; return; }
         var painted = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
         var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
-        var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+        var rc = resultCell(c, sha);
         if(e.failed){
           if(rc){
             var frts = Date.parse(rc.getAttribute('data-ts')||'') || 0;

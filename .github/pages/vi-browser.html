@@ -42,6 +42,10 @@
         --error:#cf222e;
       }
     }
+    /* Re-assert page-specific tokens the shared header's theme toggle doesn't
+       manage, so a forced Light/Dark choice fully re-themes this page. */
+    :root[data-lvci-theme=dark]{--sidebar:#161b22;--sidebar-hover:#1c2128;--sidebar-active:#1f6feb33;--item:#c9d1d9;--viewer-bg:#ffffff;--error:#da3633}
+    :root[data-lvci-theme=light]{--sidebar:#f6f8fa;--sidebar-hover:#eef2f6;--sidebar-active:#0969da22;--item:#1f2328;--viewer-bg:#ffffff;--error:#cf222e}
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
          background:var(--bg);color:var(--fg);display:flex;height:100vh;overflow:hidden}
