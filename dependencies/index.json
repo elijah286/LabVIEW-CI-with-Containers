@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "39f802bfbc151b2f484a4705506a3a546ff75e5c",
+  "sha": "b4dc48ed204ddabbbb1a4eb802d14e4519df88b6",
   "revisions": [
+    {
+      "sha": "b4dc48ed204ddabbbb1a4eb802d14e4519df88b6",
+      "short": "b4dc48e",
+      "message": "vi-analyzer: don't auto-select a CI action-source config as the project default (blank-report fix)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-14T15:41:29Z"
+    },
     {
       "sha": "39f802bfbc151b2f484a4705506a3a546ff75e5c",
       "short": "39f802b",
@@ -695,13 +702,6 @@
       "message": "docs: explain private repository installs",
       "author": "Elijah Kerry",
       "date": "2026-06-23T18:01:38Z"
-    },
-    {
-      "sha": "2e465879d80741af5162746c5f718d3480bf7348",
-      "short": "2e46587",
-      "message": "Apply flow: initialize empty GitLab projects",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T17:53:23Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
