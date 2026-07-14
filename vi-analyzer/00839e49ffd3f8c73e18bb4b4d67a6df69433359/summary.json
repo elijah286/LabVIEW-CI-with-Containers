@@ -11,12 +11,12 @@
       "author": "Elijah Kerry",
       "date": "2026-06-22T18:57:47-05:00"
     },
-    "generated_utc": "2026-07-14 16:20 UTC",
-    "analysis_date": "Tuesday, July 14, 2026 4:20:16 PM",
-    "duration": "00:00:43.62",
+    "generated_utc": "2026-07-14 22:08 UTC",
+    "analysis_date": "Tuesday, July 14, 2026 10:08:02 PM",
+    "duration": "00:00:36.28",
     "configs": [
       {
-        "label": "actions/vi-analyzer/via-config-default.viancfg",
+        "label": "example/lower cyclomatic complexity.viancfg",
         "scope": "all other VIs"
       }
     ]
