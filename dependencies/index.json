@@ -1146,7 +1146,7 @@
         "wovalab_lib_antidoc_cli",
         "wovalab_lib_antidoc_cli-v3.3.0.117",
         "wovalab_lib_asciidoc_for_labview",
-        "wovalab_lib_asciidoc_for_labview-v1.12.0.485"
+        "wovalab_lib_asciidoc_for_labview-v1.12.1.492"
       ],
       "failed_packages": [],
       "nipkg_ready": true,
@@ -3465,7 +3465,7 @@
         }
       ],
       "labview_version": "2026",
-      "version": "win-c8a1c93c0d98"
+      "version": "win-f4057a2b1922"
     },
     {
       "key": "linux",
