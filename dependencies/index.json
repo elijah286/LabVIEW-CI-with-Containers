@@ -732,6 +732,13 @@
       "date": "2026-06-22T23:35:39Z"
     },
     {
+      "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
+      "short": "590495f",
+      "message": "example: add UTF JUnit reporter deps to Dependencies.vipc",
+      "author": "Elijah Kerry",
+      "date": "2026-06-21T16:35:54Z"
+    },
+    {
       "sha": "eb2240d106503d2e207374ae8e0c7119af656a45",
       "short": "eb2240d",
       "message": "example: run UTF tests from Example project",
