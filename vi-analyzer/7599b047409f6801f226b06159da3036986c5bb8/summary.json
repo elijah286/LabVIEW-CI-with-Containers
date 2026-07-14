@@ -11,18 +11,18 @@
       "author": "Elijah Kerry",
       "date": "2024-11-04T11:44:47+01:00"
     },
-    "generated_utc": "2026-07-08 20:39 UTC",
-    "analysis_date": "Wednesday, July 8, 2026 8:39:04 PM",
-    "duration": "00:01:42.63"
+    "generated_utc": "2026-07-14 19:35 UTC",
+    "analysis_date": "Tuesday, July 14, 2026 7:35:03 PM",
+    "duration": "00:02:03.00"
   },
   "summary": {
-    "vis_analyzed": 31,
-    "tests_run": 3224,
-    "passed": 2877,
-    "failed": 347,
+    "vis_analyzed": 40,
+    "tests_run": 4160,
+    "passed": 3741,
+    "failed": 419,
     "skipped": 0,
-    "findings": 526,
-    "vis_with_findings": 31
+    "findings": 452,
+    "vis_with_findings": 22
   },
   "errors": {
     "vi_not_loadable": 0,
@@ -34,38 +34,32 @@
     {
       "test": "Wire Bends",
       "severity": "style",
-      "count": 57,
+      "count": 52,
+      "vi_count": 15
+    },
+    {
+      "test": "Error Cluster Wired",
+      "severity": "correctness",
+      "count": 43,
       "vi_count": 18
     },
     {
       "test": "Spell Check",
       "severity": "documentation",
-      "count": 50,
-      "vi_count": 23
-    },
-    {
-      "test": "Error Cluster Wired",
-      "severity": "correctness",
-      "count": 46,
-      "vi_count": 20
-    },
-    {
-      "test": "VI Documentation",
-      "severity": "documentation",
-      "count": 31,
-      "vi_count": 31
+      "count": 29,
+      "vi_count": 15
     },
     {
       "test": "Wires Under Objects",
       "severity": "style",
-      "count": 28,
-      "vi_count": 13
+      "count": 23,
+      "vi_count": 10
     },
     {
-      "test": "Comment Usage",
+      "test": "VI Documentation",
       "severity": "documentation",
-      "count": 21,
-      "vi_count": 21
+      "count": 22,
+      "vi_count": 22
     },
     {
       "test": "Auto Error Handling Enabled",
@@ -86,22 +80,10 @@
       "vi_count": 9
     },
     {
-      "test": "Panel Size and Position",
-      "severity": "style",
-      "count": 19,
-      "vi_count": 16
-    },
-    {
       "test": "Backwards Wires",
       "severity": "style",
       "count": 18,
       "vi_count": 6
-    },
-    {
-      "test": "Diagram Size",
-      "severity": "style",
-      "count": 18,
-      "vi_count": 18
     },
     {
       "test": "Default Icon",
@@ -110,10 +92,28 @@
       "vi_count": 17
     },
     {
+      "test": "Panel Size and Position",
+      "severity": "style",
+      "count": 16,
+      "vi_count": 13
+    },
+    {
+      "test": "Comment Usage",
+      "severity": "documentation",
+      "count": 15,
+      "vi_count": 15
+    },
+    {
+      "test": "Diagram Size",
+      "severity": "style",
+      "count": 15,
+      "vi_count": 15
+    },
+    {
       "test": "Tunnel Position",
       "severity": "style",
-      "count": 13,
-      "vi_count": 7
+      "count": 12,
+      "vi_count": 6
     },
     {
       "test": "Array Default Values",
@@ -132,12 +132,6 @@
       "severity": "performance",
       "count": 10,
       "vi_count": 5
-    },
-    {
-      "test": "Control Alignment",
-      "severity": "style",
-      "count": 7,
-      "vi_count": 7
     },
     {
       "test": "Parallelizable Loops",
@@ -170,14 +164,8 @@
       "vi_count": 2
     },
     {
-      "test": "Indexer Datatype",
-      "severity": "correctness",
-      "count": 5,
-      "vi_count": 2
-    },
-    {
-      "test": "Inlinable VIs",
-      "severity": "performance",
+      "test": "Control Alignment",
+      "severity": "style",
       "count": 5,
       "vi_count": 5
     },
@@ -192,12 +180,6 @@
       "severity": "performance",
       "count": 4,
       "vi_count": 2
-    },
-    {
-      "test": "Control Terminal Wiring",
-      "severity": "style",
-      "count": 4,
-      "vi_count": 4
     },
     {
       "test": "Dialog Controls",
@@ -218,10 +200,10 @@
       "vi_count": 1
     },
     {
-      "test": "Code Simplification",
-      "severity": "performance",
+      "test": "Control Terminal Wiring",
+      "severity": "style",
       "count": 3,
-      "vi_count": 2
+      "vi_count": 3
     },
     {
       "test": "For Loop Iteration Count",
@@ -242,32 +224,20 @@
       "vi_count": 3
     },
     {
-      "test": "Reentrant VI Issues",
-      "severity": "correctness",
-      "count": 3,
-      "vi_count": 3
-    },
-    {
       "test": "Wired Terminals in Subdiagrams",
       "severity": "correctness",
       "count": 3,
       "vi_count": 1
     },
     {
-      "test": "Array Constant Style",
-      "severity": "style",
-      "count": 2,
-      "vi_count": 2
-    },
-    {
-      "test": "Built Application Compatibility",
-      "severity": "correctness",
-      "count": 2,
-      "vi_count": 2
-    },
-    {
       "test": "Cluster Sized to Fit",
       "severity": "style",
+      "count": 2,
+      "vi_count": 1
+    },
+    {
+      "test": "Code Simplification",
+      "severity": "performance",
       "count": 2,
       "vi_count": 1
     },
@@ -286,12 +256,6 @@
     {
       "test": "Empty List Items",
       "severity": "correctness",
-      "count": 2,
-      "vi_count": 2
-    },
-    {
-      "test": "In Place Element Structure Usage",
-      "severity": "performance",
       "count": 2,
       "vi_count": 2
     },
@@ -320,7 +284,19 @@
       "vi_count": 2
     },
     {
+      "test": "Array Constant Style",
+      "severity": "style",
+      "count": 1,
+      "vi_count": 1
+    },
+    {
       "test": "Broken VI",
+      "severity": "correctness",
+      "count": 1,
+      "vi_count": 1
+    },
+    {
+      "test": "Built Application Compatibility",
       "severity": "correctness",
       "count": 1,
       "vi_count": 1
@@ -328,6 +304,24 @@
     {
       "test": "Icon Size and Border",
       "severity": "style",
+      "count": 1,
+      "vi_count": 1
+    },
+    {
+      "test": "In Place Element Structure Usage",
+      "severity": "performance",
+      "count": 1,
+      "vi_count": 1
+    },
+    {
+      "test": "Indexer Datatype",
+      "severity": "correctness",
+      "count": 1,
+      "vi_count": 1
+    },
+    {
+      "test": "Reentrant VI Issues",
+      "severity": "correctness",
       "count": 1,
       "vi_count": 1
     },
