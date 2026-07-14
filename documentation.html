@@ -15,15 +15,21 @@
     :root{
       --bg:#0d1117;--surface:#161b22;--surface2:#1c2230;--border:#30363d;
       --fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;
-      --warn:#d29922;--danger:#f85149;--code:#79c0ff;--plain:#a371f7;
+      --warn-clr:#d29922;--danger:#f85149;--code-clr:#79c0ff;--plain:#a371f7;
     }
     @media(prefers-color-scheme:light){
       :root{
         --bg:#ffffff;--surface:#f6f8fa;--surface2:#eef1f5;--border:#d0d7de;
         --fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--accent:#1f883d;
-        --warn:#9a6700;--danger:#cf222e;--code:#0550ae;--plain:#8250df;
+        --warn-clr:#9a6700;--danger:#cf222e;--code-clr:#0550ae;--plain:#8250df;
       }
     }
+    /* Re-assert page-specific tokens the shared header's theme toggle doesn't
+       manage, so a forced Light/Dark choice fully re-themes this page. The
+       syntax-colour tokens are named *-clr to avoid colliding with the header's
+       standard --code / --warn UI tokens. */
+    :root[data-lvci-theme=dark]{--surface2:#1c2230;--warn-clr:#d29922;--danger:#f85149;--code-clr:#79c0ff;--plain:#a371f7}
+    :root[data-lvci-theme=light]{--surface2:#eef1f5;--warn-clr:#9a6700;--danger:#cf222e;--code-clr:#0550ae;--plain:#8250df}
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -60,7 +66,7 @@
                color:var(--accent);font-weight:700}
     .part-head:first-of-type{margin-top:30px}
     .content p.lead-in{font-size:.98em;color:var(--fg-muted);margin:0 0 16px}
-    code{background:var(--surface);padding:2px 6px;border-radius:5px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:.86em;color:var(--code)}
+    code{background:var(--surface);padding:2px 6px;border-radius:5px;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:.86em;color:var(--code-clr)}
     pre{background:var(--surface);border:1px solid var(--border);padding:14px 16px;border-radius:8px;overflow-x:auto;
         margin:14px 0;font-size:.82em;line-height:1.55}
     pre code{background:none;padding:0;border-radius:0;color:var(--fg)}
@@ -71,12 +77,12 @@
     .note,.warn,.tip,.plain{margin:16px 0;padding:12px 16px;border:1px solid var(--border);border-left-width:4px;
          border-radius:6px;background:var(--surface);font-size:.92em}
     .note{border-left-color:var(--link)}
-    .warn{border-left-color:var(--warn)}
+    .warn{border-left-color:var(--warn-clr)}
     .tip{border-left-color:var(--accent)}
     .plain{border-left-color:var(--plain)}
     .note .lbl,.warn .lbl,.tip .lbl,.plain .lbl{display:block;font-weight:700;font-size:.8em;text-transform:uppercase;
          letter-spacing:.05em;margin-bottom:4px}
-    .note .lbl{color:var(--link)}.warn .lbl{color:var(--warn)}.tip .lbl{color:var(--accent)}.plain .lbl{color:var(--plain)}
+    .note .lbl{color:var(--link)}.warn .lbl{color:var(--warn-clr)}.tip .lbl{color:var(--accent)}.plain .lbl{color:var(--plain)}
     /* Glossary */
     dl.glossary{margin:14px 0}
     dl.glossary dt{font-weight:700;color:var(--fg);margin-top:15px}
@@ -669,7 +675,9 @@ flowchart TD
         the revisions missing that result), or <strong>Re-run</strong> (queue every selected revision, replacing
         existing results). An activity is offered for Re-run when any selected revision has a result, an empty cell, or
         an <em>in-flight</em> queued/running cell — the latter are tagged <code>cidash-active-cell</code> so a re-run
-        replaces the in-flight run via concurrency instead of greying out as &ldquo;none in scope.&rdquo;</p>
+        replaces the in-flight run via concurrency instead of greying out as &ldquo;none in scope.&rdquo; The optimistic
+        &ldquo;Queued&rdquo; badge overlays that in-flight cell too, so re-running the latest revision's still-running
+        activity shows its Queued spinner immediately rather than silently doing nothing.</p>
       <p>The Populate-history chooser offers an opt-in <strong>"keep one container warm across revisions"</strong>
         checkbox, shown only when at least one selected activity has a warm-container backfill workflow installed
         (Windows Mass Compile, VI Analyzer, Unit Tests, Antidoc). It is always <strong>off by default</strong> and
@@ -954,11 +962,8 @@ ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, o
 
       <h3>When images rebuild</h3>
       <p>A worker rebuild is a heavy, opt-in operation. It runs when you apply a dependency update from the dashboard's
-        <em>Review &amp; update dependencies</em> dialog &mdash; the Dependencies page's <em>Run the container update</em>
-        button dispatches the <em>Build LabVIEW CI Image</em> workflow directly with your chosen <code>update_mode</code>
-        (<code>replace</code> or <code>new</code>), prompting once for a fine-grained token with <strong>Actions: write</strong>, then tracking the
-        run's live progress (queued, building, complete) on the page
-        &mdash; on the monthly cron (to pick up base-image security updates), or by manual dispatch. Adding or changing a project <code>.vipc</code> never triggers a rebuild on its own &mdash;
+        <em>Review &amp; update dependencies</em> dialog, on the monthly cron (to pick up base-image security updates),
+        or by manual dispatch. Adding or changing a project <code>.vipc</code> never triggers a rebuild on its own &mdash;
         the dashboard simply flags that dependencies need installing until you choose to run the update.</p>
 
       <h3>Dependency gate (activities wait for the rebuild)</h3>
@@ -1130,19 +1135,6 @@ docker run --rm `
         VI Tester / LUnit) are <em>best-effort</em>: if a heavy add-on wedges the headless VIPM engine it is logged as a warning
         and the build still publishes a working, UTF-capable image. Override the required set with
         <code>VIPM_REQUIRED_PACKAGES</code>.</div>
-      <div class="note"><span class="lbl">Self-healing restart on a wedged engine</span>
-        The VIPM engine (the LabVIEW-runtime <code>VI Package Manager.exe</code>) occasionally fails to finish starting
-        inside the container, after which every <code>vipm install</code> blocks for the full <code>VIPM_TIMEOUT</code>
-        (~900s) before failing. <code>install-vipc.ps1</code> detects that wedged state — a
-        <code>wait for VIPM startup</code> handshake timeout, an <code>operation '...' timed out after</code> message,
-        or CLI exit <code>124</code> — and, because that hang is a transient cold-start race (the same build usually
-        succeeds on a re-run), it <strong>tears the whole VIPM stack down and relaunches it</strong> (kills the CLI, the
-        engine and the headless LabVIEW, then re-launches LabVIEW and the engine) and retries the same install. Restarts
-        are bounded by a build-wide budget (<code>VIPM_MAX_ENGINE_RESTARTS</code>, default <code>2</code>; set
-        <code>0</code> to disable). Once that budget is spent the script falls back to the original fast-abort: it stops
-        the remaining install attempts immediately instead of stacking one 900s timeout per package (which previously
-        turned a dead engine into a multi-hour build), so a genuinely-broken engine still fails fast rather than hanging
-        for hours.</div>
       <div class="note"><span class="lbl">Public-index fallback</span>
         The resolver-bypass fallback covers packages in the built-in NI LabVIEW Tools Network and VIPM Community
         repositories, including old OpenG <code>sf://opengtoolkit</code> URLs and the legacy

@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "db68dd6b05bde3c0684e71e2a5597161a8aa425a",
+  "sha": "39f802bfbc151b2f484a4705506a3a546ff75e5c",
   "revisions": [
+    {
+      "sha": "39f802bfbc151b2f484a4705506a3a546ff75e5c",
+      "short": "39f802b",
+      "message": "dashboard: show Queued badge when re-running an in-flight activity; force-theme fix",
+      "author": "Elijah Kerry",
+      "date": "2026-07-14T02:10:54Z"
+    },
     {
       "sha": "db68dd6b05bde3c0684e71e2a5597161a8aa425a",
       "short": "db68dd6",
@@ -697,13 +704,6 @@
       "date": "2026-06-23T17:53:23Z"
     },
     {
-      "sha": "d5d758cc1868458237275f7a4dc331703cfd320d",
-      "short": "d5d758c",
-      "message": "Improve install progress visibility",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T17:41:52Z"
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -730,13 +730,6 @@
       "message": "Clean up dependency management around VIPC files as the source of truth (v3.39.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-22T23:35:39Z"
-    },
-    {
-      "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
-      "short": "590495f",
-      "message": "example: add UTF JUnit reporter deps to Dependencies.vipc",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T16:35:54Z"
     },
     {
       "sha": "eb2240d106503d2e207374ae8e0c7119af656a45",
