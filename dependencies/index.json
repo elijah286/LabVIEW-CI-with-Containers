@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "b4dc48ed204ddabbbb1a4eb802d14e4519df88b6",
+  "sha": "07381993887c2136c1072628da0715fb5a97c4c6",
   "revisions": [
+    {
+      "sha": "07381993887c2136c1072628da0715fb5a97c4c6",
+      "short": "0738199",
+      "message": "vi-analyzer settings: warn when a .viancfg sits in the tooling-managed .github area",
+      "author": "Elijah Kerry",
+      "date": "2026-07-14T15:49:15Z"
+    },
     {
       "sha": "b4dc48ed204ddabbbb1a4eb802d14e4519df88b6",
       "short": "b4dc48e",
@@ -695,13 +702,6 @@
       "message": "Apply flow: clarify GitLab Pages publishing status",
       "author": "Elijah Kerry",
       "date": "2026-06-23T18:33:18Z"
-    },
-    {
-      "sha": "07e31994c075e720625030e28f359829e3db07e0",
-      "short": "07e3199",
-      "message": "docs: explain private repository installs",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T18:01:38Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
