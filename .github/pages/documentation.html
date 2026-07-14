@@ -1212,9 +1212,13 @@ docker run --rm `
       <p>Driver: <code>run-vi-analyzer.ps1</code> <span class="pill win">Windows</span>; report:
         <code>build-analyzer-report.py</code>. It runs
         <code>LabVIEWCLI -OperationName RunVIAnalyzer</code> against a <code>.viancfg</code> configuration. The
-        default template (<code>via-config-default.viancfg</code>) has a <code>__WORKSPACE_PATH__</code> placeholder
-        substituted with the mounted workspace; an empty <code>TestConfigData</code> means "run the full built-in
-        suite".</p>
+        full built-in suite runs in <em>directory mode</em> — passing the mounted workspace directory itself makes
+        LabVIEWCLI apply every default test to every VI under it. A committed <code>.viancfg</code> instead applies its
+        own <code>TestConfigData</code>; a config whose <code>TestConfigData</code> is <em>empty</em> runs zero tests
+        (a blank report), so when a project commits a config but doesn't pick one, the pipeline auto-selects the first
+        <code>.viancfg</code> in the repo — excluding CI-internal directories (<code>.github/</code>,
+        <code>actions/</code>, <code>ci-out/</code>, <code>build/</code>) so a bundled action-source template
+        (<code>via-config-default.viancfg</code>, which has empty <code>TestConfigData</code>) is never chosen.</p>
       <p>Configuration is layered. The manifest's <code>config.viAnalyzer</code> can name a <code>default</code>
         config and a list of per-path <code>rules</code> (e.g. strict rules for <code>src/critical/**</code>,
         relaxed for <code>tests/**</code>). VI Analyzer runs on Windows only; Linux is not offered in the
