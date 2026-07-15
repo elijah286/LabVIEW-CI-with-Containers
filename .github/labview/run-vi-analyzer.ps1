@@ -274,17 +274,31 @@ Write-Host "=== Pre-analysis MassCompile (upgrade VIs to image LabVIEW version) 
 $preStart = Get-Date
 $prevEAP  = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
-try {
-    & $CliExe `
-        -LogToConsole       TRUE `
-        -OperationName      MassCompile `
-        -DirectoryToCompile $WorkspaceRoot `
-        -LabVIEWPath        $LabVIEWPath `
-        -Headless 2>&1 | Out-Host
-    Write-Host ("  MassCompile exit={0} duration={1}s" -f $LASTEXITCODE, [math]::Round(((Get-Date) - $preStart).TotalSeconds, 1))
-} catch {
-    Write-Warning "  Pre-analysis MassCompile skipped: $($_.Exception.Message)"
+# Compile the PROJECT's VIs one top-level folder at a time, EXCLUDING the CI's own
+# tooling under .github (and .git/actions/ci-out/build). The vendored VI Browser 2.0
+# render engine under .github/labview/toimages carries VIs whose dependencies live
+# only in its own Linux render image (e.g. "LV AI Core.lvlib"), so compiling the whole
+# workspace root hit those first (alphabetically) and FAILED the MassCompile before
+# reaching the project VIs -> they were never upgraded to this image's LabVIEW version
+# and RunVIAnalyzer then silently skipped them ("0 VIs analyzed").
+$compileExclude = @('.git', '.github', 'actions', 'ci-out', 'build')
+$compileDirs = @(Get-ChildItem -LiteralPath $WorkspaceRoot -Directory -Force -ErrorAction SilentlyContinue |
+    Where-Object { $compileExclude -notcontains $_.Name })
+if ($compileDirs.Count -eq 0) { $compileDirs = @(Get-Item -LiteralPath $WorkspaceRoot) }
+foreach ($compileDir in $compileDirs) {
+    try {
+        & $CliExe `
+            -LogToConsole       TRUE `
+            -OperationName      MassCompile `
+            -DirectoryToCompile $compileDir.FullName `
+            -LabVIEWPath        $LabVIEWPath `
+            -Headless 2>&1 | Out-Host
+        Write-Host ("  MassCompile '{0}' exit={1}" -f $compileDir.Name, $LASTEXITCODE)
+    } catch {
+        Write-Warning "  MassCompile '$($compileDir.Name)' skipped: $($_.Exception.Message)"
+    }
 }
+Write-Host ("  Pre-analysis MassCompile duration={0}s" -f [math]::Round(((Get-Date) - $preStart).TotalSeconds, 1))
 $ErrorActionPreference = $prevEAP
 Write-Host ""
 

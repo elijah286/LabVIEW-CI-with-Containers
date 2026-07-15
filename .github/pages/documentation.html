@@ -1229,6 +1229,14 @@ docker run --rm `
         configurator or Populate history. The report builder maps each failed test to a category
         (correctness / performance / style / documentation) for the dashboard's coloured breakdown and preserves the
         LabVIEW-native HTML as <code>raw.html</code>.</p>
+      <p>Before analyzing, the driver runs a headless <strong>Mass Compile</strong> to upgrade the project's VIs
+        to the image's LabVIEW version &mdash; VI Analyzer silently skips VIs saved in an older version, which
+        would otherwise report &ldquo;0&nbsp;VIs analyzed.&rdquo; That pre-pass compiles each top-level project
+        folder <em>individually</em> and <strong>excludes the CI's own tooling</strong> under <code>.github/</code>
+        (plus <code>.git/</code>, <code>actions/</code>, <code>ci-out/</code>, <code>build/</code>), so a broken
+        tooling VI &mdash; e.g. the VI Browser render engine under <code>.github/labview/toimages</code>, whose
+        dependencies live only in its own Linux image &mdash; can no longer fail the compile before the project
+        VIs are upgraded.</p>
 
       <h3 id="cap-vidiff">16.3 VIDiff <a class="anchor" href="#cap-vidiff">#</a></h3>
       <p>Driver: <code>vidiff.ps1</code> / <code>.sh</code>; history walker: <code>vidiff-backfill.ps1</code> /
