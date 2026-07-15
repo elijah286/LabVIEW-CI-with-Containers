@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "07381993887c2136c1072628da0715fb5a97c4c6",
+  "sha": "a701b930a2d6e6b4a5e162839535832a3b78840c",
   "revisions": [
+    {
+      "sha": "a701b930a2d6e6b4a5e162839535832a3b78840c",
+      "short": "a701b93",
+      "message": "update: don't re-enable activities the repo turned off",
+      "author": "Elijah Kerry",
+      "date": "2026-07-15T15:58:22Z"
+    },
     {
       "sha": "07381993887c2136c1072628da0715fb5a97c4c6",
       "short": "0738199",
@@ -695,13 +702,6 @@
       "message": "Apply flow: fix GitLab dashboard builder indentation",
       "author": "Elijah Kerry",
       "date": "2026-06-23T18:41:48Z"
-    },
-    {
-      "sha": "d651281be563f7327566c1f7c5ebf84be19950dc",
-      "short": "d651281",
-      "message": "Apply flow: clarify GitLab Pages publishing status",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T18:33:18Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
