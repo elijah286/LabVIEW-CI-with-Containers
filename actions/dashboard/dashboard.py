@@ -3616,16 +3616,26 @@ def _manifest_packages(man):
         name = str(pkg.get('name') or '').strip()
         version = str(pkg.get('version') or '').strip()
         label = str(pkg.get('label') or '').strip()
-        for value in (name, label, f'{name}-{version}' if name and version else ''):
+        # VIPM records versions with a leading "v" (e.g. "v0.5.0.1") and
+        # labels like "name-v0.5.0.1", but VIPC-declared identifiers carry no
+        # "v" (e.g. "name-0.5.0.1"). Emit BOTH forms so the pending
+        # comparison (an exact match against VIPC package ids) matches either.
+        bare = version[1:] if version[:1] in ('v', 'V') else version
+        for value in (name, label,
+                      f'{name}-{version}' if name and version else '',
+                      f'{name}-{bare}' if name and bare else ''):
           if value:
             packages.add(value)
       elif isinstance(pkg, str) and pkg.strip():
         packages.add(pkg.strip())
-    if packages:
-      return sorted(packages, key=str.lower)
+    # Always union the manifest's own vipc[].packages, which are stored in the
+    # SAME identifier form the VIPC files declare (no "v" prefix) and include
+    # every installed version of a package. Never return early on vipm_packages
+    # alone -- that list can differ in version format and omit second versions.
     for vipc in man.get('vipc') or []:
       for pkg in vipc.get('packages') or []:
-        packages.add(pkg)
+        if pkg:
+          packages.add(pkg)
     if not packages and man.get('platform') == 'windows' and man.get('copied_from_base'):
       packages.update(_core_tooling_packages())
   return sorted(packages, key=str.lower)

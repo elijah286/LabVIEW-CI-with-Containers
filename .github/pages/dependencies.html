@@ -22,7 +22,7 @@
     .upd-block{margin:10px 0}
     .upd-k{color:var(--fg-muted);font-size:.74em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
     .upd-pills{display:flex;flex-wrap:wrap;gap:5px}
-    .upd-pill{display:inline-block;font-size:.82em;padding:2px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--fg)}
+    .upd-pill{display:inline-block;font-size:.82em;padding:2px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--fg)}.upd-files{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}.upd-files li{font-size:.86em;display:flex;align-items:center;gap:7px}.upd-files code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;word-break:break-all}
     .upd-pill.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78em}
     .upd-exp{margin:12px 0}
     .upd-radio{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-size:.9em;cursor:pointer}
@@ -956,6 +956,28 @@
       }
     }
 
+    // Build an itemized list of exactly which dependency files, VIPM
+    // packages and .dragon deps are pending, so the panel names what is
+    // triggering the update instead of only a generic sentence.
+    function updMissingList(d){
+      var out = '';
+      var files = (d && d.vipcs) || [];
+      var pkgs = (d && d.packages) || [];
+      var dragon = (d && d.dragon) || [];
+      if (files.length){
+        out += '<div class="upd-block"><div class="upd-k">Dependency files with missing packages (' + files.length + ')</div><ul class="upd-files">' +
+          files.map(function(f){ return '<li><span class="upd-warn-glyph">\u26A0</span> <code>' + esc(f) + '</code></li>'; }).join('') + '</ul></div>';
+      }
+      if (pkgs.length){
+        out += '<div class="upd-block"><div class="upd-k">Missing VIPM packages (' + pkgs.length + ')</div><div class="upd-pills">' +
+          pkgs.map(function(p){ return '<span class="upd-pill"><span class="upd-warn-glyph">\u26A0</span> ' + esc(p) + '</span>'; }).join('') + '</div></div>';
+      }
+      if (dragon.length){
+        out += '<div class="upd-block"><div class="upd-k">Missing .dragon dependencies (' + dragon.length + ')</div><div class="upd-pills">' +
+          dragon.map(function(x){ var n = (x && (x.name || x.package_id)) || x; var st = x && x.status ? ' \u00b7 ' + esc(x.status) : ''; return '<span class="upd-pill"><span class="upd-warn-glyph">\u26A0</span> ' + esc(n) + st + '</span>'; }).join('') + '</div></div>';
+      }
+      return out;
+    }
     async function renderUpdatePanel(){
       const el = $("updatePanel");
       if (!el) return;
@@ -966,6 +988,7 @@
       el.innerHTML =
         '<h2 class="upd-h">\u26A0\uFE0F Dependency update needed</h2>' +
         '<p class="upd-sub">Your project declares dependencies &mdash; in <strong>VIPC files</strong> (VIPM packages) or <strong>.dragon files</strong> (NIPM packages) &mdash; that are <strong>not yet baked</strong> into the worker container(s). Each missing item is marked with a <span class="upd-warn-glyph">\u26A0</span> in the table below; until you run this update, container CI may fail or show broken code.</p>' +
+        updMissingList(d) +
         '<div class="note warn upd-exp"><strong>This is a long operation.</strong> It rebuilds the worker container(s) by installing your dependencies with VIPM, which can take a while depending on the dependencies. <strong>Do not run other CI actions until it completes</strong> &mdash; they would run against the old container and may error.</div>' +
         '<div class="upd-block"><div class="upd-k">How to apply</div>' +
         '<label class="upd-radio"><input type="radio" name="updMode" value="replace" checked> <span><strong>Replace existing containers</strong> (default) &mdash; rebuild in place; your pipeline actions keep using them automatically.</span></label>' +
