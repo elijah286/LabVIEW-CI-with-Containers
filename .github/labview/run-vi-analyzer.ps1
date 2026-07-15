@@ -110,7 +110,7 @@ function Read-ViaConfig([string]$ManifestPath) {
 # when the project committed a config but didn't pick one in the dialog.
 function Get-FirstViancfg([string]$Root) {
     $found = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter '*.viancfg' -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '[\\/](\.github|ci-out|build)[\\/]' } |
+        Where-Object { $_.FullName -notmatch '[\\/](\.github|actions|ci-out|build)[\\/]' } |
         Sort-Object FullName)
     if ($found.Count -gt 0) {
         return ($found[0].FullName.Substring($Root.Length).TrimStart('\', '/') -replace '\\', '/')

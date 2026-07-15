@@ -26,9 +26,9 @@ on:
         required: false
         default: ''
       enable_new_capabilities:
-        description: 'Also enable newly published capabilities in this repo'
+        description: 'Also re-enable every stable capability not currently selected (including ones you removed). Off by default so your activity selection is preserved across updates.'
         type: boolean
-        default: true
+        default: false
 
 concurrency:
   group: apply-tooling-update
@@ -124,7 +124,7 @@ jobs:
                   m = re.match(r'^\s*-\s*(\S+)', line)
                   if m: cur.append(m.group(1)); continue
                   in_acts = False
-          if os.environ.get('ENABLE_NEW', 'true').lower() == 'true':
+          if os.environ.get('ENABLE_NEW', 'false').lower() == 'true':
               cat = json.load(open(os.path.join(os.environ['SRC_DIR'], '.github/labview-ci/catalog.json'), encoding='utf-8'))
               for c in cat.get('capabilities', []):
                   if c.get('status') == 'stable' and c['id'] not in cur:
