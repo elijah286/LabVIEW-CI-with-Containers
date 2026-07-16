@@ -17,12 +17,28 @@
         "version": "3.3.0.117",
         "include": true,
         "summary": "Antidoc CLI by Wovalab - generate LabVIEW project documentation headlessly (the supported CI/CD path).",
-        "dependenciesAutoResolved": [
-          "wovalab_lib_antidoc",
-          "wovalab_lib_asciidoc_for_labview",
-          "wiresmith_technology_lib_g_cli"
-        ],
         "note": "Doc generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default); only the doc-gen step needs that network, not the install."
+      },
+      {
+        "name": "wovalab_lib_antidoc",
+        "version": "3.3.0.870",
+        "include": true,
+        "summary": "Antidoc tooling from Wovalab to employ support framework",
+        "note": "Needs an add-on to support creation."
+      },
+      {
+        "name": "wovalab_lib_asciidoc_for_labview",
+        "version": "1.12.0.485",
+        "include": true,
+        "summary": "ASCIIdoc processing for LabVIEW by Wovalab.",
+        "note": "This toolkit provides a set of vis that helps you builds plain-text file using asciidoc syntax."
+      },
+      {
+        "name": "wiresmith_technology_lib_g_cli",
+        "version": "3.0.1.98",
+        "include": true,
+        "summary": "LabVIEW Toolkit for CLI interactions by Wiresmith Technology",
+        "note": "Command line support for Antidoc processing."
       }
     ]
   }
