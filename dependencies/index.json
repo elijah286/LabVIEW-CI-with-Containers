@@ -1,8 +1,35 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "90e22a710235970dd9cc29db9bd25585a970f559",
+  "sha": "6c8f6fc0a76f2ce0653810ecc45ceab8d11bf8ba",
   "revisions": [
+    {
+      "sha": "6c8f6fc0a76f2ce0653810ecc45ceab8d11bf8ba",
+      "short": "6c8f6fc",
+      "message": "Merge branch 'main' of https://github.com/elijah286/LabVIEW-CI-with-Containers",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T20:54:27Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "c3394babc0e984a45c9bb2854ab5b54693b6cb29",
+      "short": "c3394ba",
+      "message": "Added a Build Spec",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T20:54:23Z",
+      "project": true,
+      "dep_only": false
+    },
+    {
+      "sha": "df722bc4d9724689d281af26707fdd5bff692e07",
+      "short": "df722bc",
+      "message": "Populate-history overlay: dim the host page so the report stays visible (4.4.18)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T20:52:00Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "90e22a710235970dd9cc29db9bd25585a970f559",
       "short": "90e22a7",
@@ -877,33 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "3644eb3393419ef4f8e85ff5320d3f8678da5b6c",
-      "short": "3644eb3",
-      "message": "catalog: split VI Snapshots 2.0 into its own Windows+Linux capability (3.51.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T05:00:08Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "361828e301284e85c625d7ae5c4192d465edc408",
-      "short": "361828e",
-      "message": "install: fix contradictory Capabilities hint about dependencies",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T04:43:46Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "32e747c79e5056455f5c4aaf0fc301d35b84e8f7",
-      "short": "32e747c",
-      "message": "docs: note opt-in per-file Monitor auto-rebuild in Configure (off by default)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T04:38:00Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1044,33 +1044,6 @@
       "message": "Added new excercises",
       "author": "Elijah Kerry",
       "date": "2024-11-21T16:58:11Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "f96842dc7fd776c01e186bb089eb7079444390f1",
-      "short": "f96842d",
-      "message": "improved resize appearance",
-      "author": "Elijah Kerry",
-      "date": "2024-11-04T12:09:33Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "e2ee064d41e45456d7d51afd63c3fce28713fc94",
-      "short": "e2ee064",
-      "message": "mass compiled on windows",
-      "author": "Elijah Kerry",
-      "date": "2024-11-04T12:06:41Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "abb3a165d423dff26829fa296e1039bbc3903ece",
-      "short": "abb3a16",
-      "message": "Windows bug",
-      "author": "Elijah Kerry",
-      "date": "2024-11-04T11:57:48Z",
       "project": true,
       "dep_only": false
     }
