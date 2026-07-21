@@ -129,10 +129,14 @@ jobs:
                   emit(False, 'no .vipc/.dragon changed -> skip')
 
               # Read per-file monitor flags from config.container.vipc and
-              # config.container.dragon. A dependency file auto-rebuilds the worker
-              # ONLY when it is explicitly monitor: true. Anything not listed, or
-              # listed without monitor: true, defaults to OFF.
+              # config.container.dragon. A dependency file auto-rebuilds THIS
+              # (Windows) worker ONLY when it is monitor: true AND monitored for
+              # Windows -- i.e. its optional monitorOn list includes 'windows', or
+              # no monitorOn is set (monitor:true with no list = every platform).
+              # Anything not listed, or listed without monitor: true, defaults OFF.
+              PLATFORM = 'windows'
               monitor = {}
+              monitor_on = {}
               cfg = pathlib.Path('.github/labview-ci.yml')
               if cfg.exists():
                   in_c = False; in_list = None; cur = None
@@ -153,16 +157,20 @@ jobs:
                           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
                           if m:
                               cur = m.group(1).strip().replace('\\', '/')
-                              monitor.setdefault(cur, False); continue
+                              monitor.setdefault(cur, False); monitor_on.setdefault(cur, None); continue
+                          m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+                          if m and cur is not None:
+                              monitor_on[cur] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]; continue
                           m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                           if m and cur is not None:
                               monitor[cur] = (m.group(1).strip().lower() == 'true')
 
               for f in dep_changed:
                   key = f.replace(os.sep, '/')
-                  if monitor.get(key, False):
+                  on = monitor_on.get(key)
+                  if monitor.get(key, False) and (on is None or PLATFORM in on):
                       emit(True, 'monitored dependency changed: ' + f)
-              emit(False, 'changed dependencies are not monitored -> skip')
+              emit(False, 'changed dependencies are not monitored for ' + PLATFORM + ' -> skip')
           except SystemExit:
               raise
           except Exception as e:
@@ -348,13 +356,17 @@ jobs:
           import os, re, glob, shutil, pathlib
           dest = pathlib.Path('.github/labview/vipm'); dest.mkdir(parents=True, exist_ok=True)
           cfg = pathlib.Path('.github/labview-ci.yml')
+          PLATFORM = 'windows'
 
           def configured_paths(kind):
-              selected = []
+              # Files monitored for THIS platform (monitor:true AND monitorOn
+              # includes it, or no monitorOn = every platform). Collect first, then
+              # filter, so a trailing monitorOn line is always seen.
+              entries = []
               saw_list = False
               cur = None
               if not cfg.exists():
-                  return selected, saw_list
+                  return [], saw_list
               in_c = False
               in_list = None
               for line in cfg.read_text(encoding='utf-8').splitlines():
@@ -375,13 +387,17 @@ jobs:
                   if in_list:
                       m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
                       if m:
-                          cur = m.group(1).strip().replace('\\', '/')
+                          cur = {'path': m.group(1).strip().replace('\\', '/'), 'monitor': False, 'on': None}
+                          entries.append(cur); continue
+                      m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+                      if m and cur is not None:
+                          cur['on'] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]
                           continue
                       m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                       if m and cur is not None:
-                          if m.group(1).strip().lower() == 'true':
-                              selected.append(cur)
-                          cur = None
+                          cur['monitor'] = (m.group(1).strip().lower() == 'true'); continue
+              selected = [e['path'] for e in entries
+                          if e['monitor'] and (e['on'] is None or PLATFORM in e['on'])]
               return selected, saw_list
 
           paths, saw_vipc_list = configured_paths('vipc')

@@ -109,7 +109,12 @@ jobs:
                   emit(False, 'no project .vipc changed -> skip')
 
               # Per-file monitor flags from config.container.vipc (default OFF).
+              # This (Linux) worker only auto-rebuilds for a file that is
+              # monitor: true AND monitored for Linux (its monitorOn list includes
+              # 'linux', or no monitorOn is set = every platform).
+              PLATFORM = 'linux'
               monitor = {}
+              monitor_on = {}
               cfg = pathlib.Path('.github/labview-ci.yml')
               if cfg.exists():
                   in_c = False; in_list = None; cur = None
@@ -130,16 +135,20 @@ jobs:
                           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
                           if m:
                               cur = m.group(1).strip().replace('\\', '/')
-                              monitor.setdefault(cur, False); continue
+                              monitor.setdefault(cur, False); monitor_on.setdefault(cur, None); continue
+                          m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+                          if m and cur is not None:
+                              monitor_on[cur] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]; continue
                           m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                           if m and cur is not None:
                               monitor[cur] = (m.group(1).strip().lower() == 'true')
 
               for f in dep_changed:
                   key = f.replace(os.sep, '/')
-                  if monitor.get(key, False):
+                  on = monitor_on.get(key)
+                  if monitor.get(key, False) and (on is None or PLATFORM in on):
                       emit(True, 'monitored .vipc changed: ' + f)
-              emit(False, 'changed .vipc are not monitored -> skip')
+              emit(False, 'changed .vipc are not monitored for ' + PLATFORM + ' -> skip')
           except SystemExit:
               raise
           except Exception as e:
@@ -210,13 +219,17 @@ jobs:
           import os, re, glob, shutil, pathlib
           dest = pathlib.Path('.github/labview/vipm'); dest.mkdir(parents=True, exist_ok=True)
           cfg = pathlib.Path('.github/labview-ci.yml')
+          PLATFORM = 'linux'
 
           def configured_vipcs():
-            selected = []
+            # VIPC files monitored for THIS (Linux) worker: monitor:true AND either
+            # no monitorOn list (= every platform) or 'linux' in monitorOn. Collect
+            # first, then filter, so a trailing monitorOn line is always seen.
+            entries = []
             saw_list = False
             cur = None
             if not cfg.exists():
-              return selected, saw_list
+              return [], saw_list
             in_c = False
             in_v = False
             for line in cfg.read_text(encoding='utf-8').splitlines():
@@ -235,13 +248,18 @@ jobs:
               if in_v:
                 m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
                 if m:
-                  cur = m.group(1).strip().replace('\\', '/')
+                  cur = {'path': m.group(1).strip().replace('\\', '/'), 'monitor': False, 'on': None}
+                  entries.append(cur)
+                  continue
+                m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+                if m and cur is not None:
+                  cur['on'] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]
                   continue
                 m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                 if m and cur is not None:
-                  if m.group(1).strip().lower() == 'true':
-                    selected.append(cur)
-                  cur = None
+                  cur['monitor'] = (m.group(1).strip().lower() == 'true')
+            selected = [e['path'] for e in entries
+                        if e['monitor'] and (e['on'] is None or PLATFORM in e['on'])]
             return selected, saw_list
 
           paths, saw_vipc_list = configured_vipcs()

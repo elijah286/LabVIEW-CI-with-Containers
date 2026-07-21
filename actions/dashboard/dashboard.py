@@ -3630,8 +3630,12 @@ def _parse_container_config(path='.github/labview-ci.yml'):
             section = 'actions'; current = None; continue
           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
           if m:
-            current = {'path': m.group(1).strip(), 'monitor': True}
+            current = {'path': m.group(1).strip(), 'monitor': True, 'monitorOn': None}
             cfg[section].append(current)
+            continue
+          m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+          if m and current is not None:
+            current['monitorOn'] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]
             continue
           m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
           if m and current is not None:
@@ -4117,11 +4121,15 @@ def _compute_deps_pending(data):
     pkgs = v.get('packages') or []
     if not pkgs:
       continue
-    win_missing = [p for p in pkgs if str(p).lower() not in win_baked]
-    if win_missing:
-      pending_files.append(v.get('path'))
-      pending_pkgs.update(win_missing)
-    if lin_active:
+    mon = v.get('monitorOn')
+    if mon is None:
+      mon = ['windows', 'linux']
+    if 'windows' in mon:
+      win_missing = [p for p in pkgs if str(p).lower() not in win_baked]
+      if win_missing:
+        pending_files.append(v.get('path'))
+        pending_pkgs.update(win_missing)
+    if lin_active and 'linux' in mon:
       lin_missing_pkgs = [p for p in pkgs if str(p).lower() not in lin_baked]
       if lin_missing_pkgs:
         lin_pending_files.append(v.get('path'))
@@ -4166,6 +4174,24 @@ def _compute_deps_pending(data):
     'generated': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
   }
 
+MONITOR_PLATFORMS = ['windows', 'linux']
+
+def _monitor_on(entry, has_config_list, is_core):
+  """Worker platforms a dependency file is monitored for. Back-compat: monitor:true
+  with no monitorOn list = every platform; and when no config list exists yet every
+  project file defaults to all platforms."""
+  if is_core:
+    return list(MONITOR_PLATFORMS)
+  if not has_config_list:
+    return list(MONITOR_PLATFORMS)
+  if not entry or entry.get('monitor') is not True:
+    return []
+  on = entry.get('monitorOn')
+  if isinstance(on, list) and on:
+    low = [str(x).lower() for x in on]
+    return [p for p in MONITOR_PLATFORMS if p in low]
+  return list(MONITOR_PLATFORMS)
+
 def _build_dependencies_index():
   config = _parse_container_config()
   config_vipc = {v.get('path', ''): v for v in config.get('vipc') or [] if v.get('path')}
@@ -4175,8 +4201,10 @@ def _build_dependencies_index():
   for path in vipc_paths:
     packages, error = _parse_vipc_packages(path) if os.path.isfile(path) else ([], '')
     role, capability, configured, monitored, locked = _vipc_role(path, config_vipc, has_config_list)
+    monitor_on = _monitor_on(config_vipc.get(path), has_config_list, role == 'core')
     vipcs.append({'path': path, 'role': role, 'capability': capability,
                   'tooling': role == 'core', 'configured': configured, 'monitored': monitored,
+                  'monitorOn': monitor_on,
                   'locked': locked, 'packages': packages, 'error': error})
   columns = [
     {'key': 'windows', 'label': 'Windows', 'platform': 'windows', 'defaultTag': 'latest'},

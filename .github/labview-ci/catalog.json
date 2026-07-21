@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.4.18",
+  "version": "4.5.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.5.0",
+        "date": "2026-07-21",
+        "title": "Per-container dependency monitoring",
+        "summary": "The Dependencies page now monitors each VIPC/Dragon file per worker container (Windows and/or Linux) instead of a single on/off toggle, and the experimental Beta columns were removed.",
+        "highlights": [
+          "Monitor a dependency file for Windows, Linux, or both -- each worker only rebuilds and bakes the files monitored for it",
+          "Config gains an optional container.vipc[].monitorOn / container.dragon[].monitorOn platform list (monitor: true with no monitorOn still means every platform)",
+          "Removed the Linux Beta and Win Beta columns from the Dependencies table"
+        ]
+      },
       {"version": "4.4.18", "date": "2026-07-21", "notes": "Fix the report viewer\u2019s \u201cRe-run analysis\u201d / \u201cPopulate history\u201d overlay so the report you are viewing stays visible (dimmed) behind the dialog instead of the background going blank. The dialog is hosted in a transparent iframe of the dashboard; the dim backdrop is now drawn by the overlay itself on the host page \u2014 a semi-transparent element inside a transparent iframe does not reliably composite over the host, which had left the report looking blank behind the popup"},
       {
         "version": "4.4.17",

@@ -36,11 +36,11 @@ on:
         required: false
         default: ''
       container_vipc:
-        description: 'Monitored VIPC files as path::monitor pairs separated by ; (blank = keep current)'
+        description: 'Monitored VIPC files as path::platforms pairs separated by ; (platforms joined by +, e.g. windows+linux, or "none"; legacy true/false accepted; blank = keep current)'
         required: false
         default: ''
       container_dragon:
-        description: 'Monitored Dragon (NIPM) files as path::monitor pairs separated by ; (blank = keep current)'
+        description: 'Monitored Dragon (NIPM) files as path::platforms pairs separated by ; (platforms joined by +, e.g. windows+linux, or "none"; legacy true/false accepted; blank = keep current)'
         required: false
         default: ''
       container_actions:
@@ -197,7 +197,9 @@ jobs:
                       if re.match(r'^\s{4}actions:\s*$', line): in_actions = True; in_vipc = False; continue
                       if in_vipc:
                           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
-                          if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': False}; prev['vipc'].append(cur_vipc); continue
+                          if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': False, 'monitorOn': None}; prev['vipc'].append(cur_vipc); continue
+                          m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+                          if m and cur_vipc is not None: cur_vipc['monitorOn'] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]; continue
                           m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                           if m and cur_vipc is not None: cur_vipc['monitor'] = (m.group(1).strip().lower() == 'true'); continue
                       if in_actions:
@@ -235,7 +237,10 @@ jobs:
                   if in_d:
                       m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
                       if m:
-                          cur = {'path': m.group(1).strip(), 'monitor': False}; out.append(cur); continue
+                          cur = {'path': m.group(1).strip(), 'monitor': False, 'monitorOn': None}; out.append(cur); continue
+                      m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+                      if m and cur is not None:
+                          cur['monitorOn'] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]; continue
                       m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                       if m and cur is not None:
                           cur['monitor'] = (m.group(1).strip().lower() == 'true')
@@ -254,6 +259,17 @@ jobs:
 
           # Container: explicit input wins; blank keeps whatever the manifest had.
           container_use = container_use_in or prev['container_use'] or 'latest'
+          # Worker platforms a dependency file can be monitored for. A file with
+          # monitor:true and no monitorOn is monitored for ALL of them (back-compat
+          # with configs written before per-container monitoring).
+          ALL_MON_PLATFORMS = ['windows', 'linux']
+          def _norm_on(v):
+              if not v.get('monitor'):
+                  return []
+              on = v.get('monitorOn')
+              if on is None:
+                  return list(ALL_MON_PLATFORMS)
+              return [p for p in ALL_MON_PLATFORMS if p in on]
           def _parse_vipc(s):
               out = []
               for entry in s.split(';'):
@@ -261,9 +277,16 @@ jobs:
                   if not entry: continue
                   if '::' in entry:
                       path, mon = entry.rsplit('::', 1)
-                      out.append({'path': path.strip(), 'monitor': mon.strip().lower() not in ('0', 'false', 'no', 'off')})
+                      low = mon.strip().lower()
+                      if low in ('1', 'true', 'yes', 'on'):
+                          on = list(ALL_MON_PLATFORMS)
+                      elif low in ('', '0', 'false', 'no', 'off', 'none', '-'):
+                          on = []
+                      else:
+                          on = [p for p in low.split('+') if p in ALL_MON_PLATFORMS]
+                      out.append({'path': path.strip(), 'monitor': bool(on), 'monitorOn': on})
                   else:
-                      out.append({'path': entry, 'monitor': False})
+                      out.append({'path': entry, 'monitor': False, 'monitorOn': []})
               return out
           vipc = _parse_vipc(container_vipc_in) if container_vipc_in else prev['vipc']
           dragon = _parse_vipc(container_dragon_in) if container_dragon_in else prev['dragon']
@@ -398,14 +421,20 @@ jobs:
               lines.append('    vipc:')
               for v in vipc:
                   p = str(v['path']).replace('"', '')
+                  on = _norm_on(v)
                   lines.append(f'      - path: "{p}"')
-                  lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
+                  lines.append(f"        monitor: {'true' if on else 'false'}")
+                  if on and set(on) != set(ALL_MON_PLATFORMS):
+                      lines.append(f"        monitorOn: {'+'.join(on)}")
           if dragon:
               lines.append('    dragon:')
               for v in dragon:
                   p = str(v['path']).replace('"', '')
+                  on = _norm_on(v)
                   lines.append(f'      - path: "{p}"')
-                  lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
+                  lines.append(f"        monitor: {'true' if on else 'false'}")
+                  if on and set(on) != set(ALL_MON_PLATFORMS):
+                      lines.append(f"        monitorOn: {'+'.join(on)}")
           if container_actions:
               lines.append('    actions:')
               for _id in sorted(container_actions):
