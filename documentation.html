@@ -912,14 +912,19 @@ mass-compile:
           monitored <code>.dragon</code> file is selected, applies it through the JKI&nbsp;Dragon CLI the base image provides).
           Dependency monitoring is configured on the <strong>Dependencies</strong> page, not Configure. Every discovered
           project <code>.vipc</code> and <code>.dragon</code> is checked by default on a fresh repo, while
-          <code>.github/labview/vipm/ci-tooling.vipc</code> is always checked and locked. Checked files are saved in
-          <code>.github/labview-ci.yml</code> (<code>container.vipc[]</code> / <code>container.dragon[]</code>) with their
-          <code>monitor</code> flag. They produce dependency warnings; unchecked files are shown as unmonitored and do
-          not turn missing packages into warnings. Installation remains separate: dependencies are not installed before
+          <code>.github/labview/vipm/ci-tooling.vipc</code> is always checked and locked. Monitoring is
+          <strong>per worker container</strong>: the Dependencies table shows a <em>Windows</em> and a <em>Linux</em>
+          column, and each file carries a Monitor checkbox for each. Selections are saved in
+          <code>.github/labview-ci.yml</code> (<code>container.vipc[]</code> / <code>container.dragon[]</code>) as a
+          <code>monitor</code> flag plus an optional <code>monitorOn</code> list of platforms (for example
+          <code>monitorOn: windows</code>); <code>monitor: true</code> with no <code>monitorOn</code> means every worker
+          platform, for backward compatibility. A file monitored for a platform is baked into that worker and produces
+          dependency warnings there; platforms it is not monitored for are shown as unmonitored and do not turn missing
+          packages into warnings. Installation remains separate: dependencies are not installed before
           actions unless the Configure page's automatic dependency installation policy is enabled, or you dispatch the
-          dependency build yourself. On a push, the <code>gate</code> rebuilds only when a changed dependency file is
-          saved with <code>monitor: true</code>; entries saved with <code>monitor: false</code> do not trigger automatic
-          worker updates. The dashboard also writes <code>dependencies/index.json</code> during every publish so a fresh
+          dependency build yourself. On a push, each platform's <code>gate</code> rebuilds its worker only when a
+          changed dependency file is monitored <em>for that platform</em>; files not monitored for a platform (or saved
+          with <code>monitor: false</code>) do not trigger an automatic worker update there. The dashboard also writes <code>dependencies/index.json</code> during every publish so a fresh
           install or revision change can immediately show the dependency table from metadata alone: checked boxes mean
           a worker manifest proves the package is baked, a yellow bang means the platform supports a monitored
           dependency but the current worker is missing it or has not published its manifest yet, and <code>N/A</code> is

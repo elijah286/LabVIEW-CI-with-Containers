@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "6c8f6fc0a76f2ce0653810ecc45ceab8d11bf8ba",
+  "sha": "744340cab47302fe28f9a57c2d640b814a0a447a",
   "revisions": [
+    {
+      "sha": "744340cab47302fe28f9a57c2d640b814a0a447a",
+      "short": "744340c",
+      "message": "deps: per-container (Windows/Linux) dependency monitoring; remove Beta columns (v4.5.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T21:27:15Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "6c8f6fc0a76f2ce0653810ecc45ceab8d11bf8ba",
       "short": "6c8f6fc",
@@ -895,15 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "efa2a95ca3f620a6bec75f172b84b9c7aaa40edc",
-      "short": "efa2a95",
-      "message": "configure: simplify to a single Configure Pipeline page (3.52.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T05:15:25Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1037,15 +1037,6 @@
       "date": "2024-11-21T17:20:04Z",
       "project": true,
       "dep_only": false
-    },
-    {
-      "sha": "f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5",
-      "short": "f4640da",
-      "message": "Added new excercises",
-      "author": "Elijah Kerry",
-      "date": "2024-11-21T16:58:11Z",
-      "project": true,
-      "dep_only": false
     }
   ],
   "config": {
@@ -1064,6 +1055,10 @@
       "tooling": false,
       "configured": true,
       "monitored": true,
+      "monitorOn": [
+        "windows",
+        "linux"
+      ],
       "locked": false,
       "packages": [
         "graphbuilder-2.3.0.7",
@@ -1084,6 +1079,10 @@
       "tooling": false,
       "configured": true,
       "monitored": true,
+      "monitorOn": [
+        "windows",
+        "linux"
+      ],
       "locked": false,
       "packages": [
         "wovalab_lib_antidoc_cli-3.3.0.117"
@@ -1097,6 +1096,10 @@
       "tooling": true,
       "configured": true,
       "monitored": true,
+      "monitorOn": [
+        "windows",
+        "linux"
+      ],
       "locked": true,
       "packages": [
         "astemes_lib_lunit-2.0.13.6",
@@ -1136,6 +1139,10 @@
       "tooling": false,
       "configured": true,
       "monitored": true,
+      "monitorOn": [
+        "windows",
+        "linux"
+      ],
       "locked": false,
       "packages": [
         "dataflow_g_lib_g_image-0.5.0.1",
