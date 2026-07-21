@@ -1350,11 +1350,19 @@ docker run --rm `
         </tbody>
       </table>
       <p>A per-revision report is considered "available" when its <code>summary.json</code> exists at
-        <code>&lt;prefix&gt;/&lt;sha&gt;/</code>. The header's "Regenerate for this revision" action dispatches the
-        capability's workflow with <code>inputs.commit_sha</code>; the dashboard's optimistic queued bridge keys on
-        <code>&lt;cap&gt;|&lt;sha&gt;</code>. These conventions are codified in the <code>DOCTYPES</code> table in
-        <code>lvci-header.js</code> — adding a new report type is a single entry there plus emitting the matching
-        <code>window.LVCI</code> config from its generator.</p>
+        <code>&lt;prefix&gt;/&lt;sha&gt;/</code>. The header's re-run action ("Re-run analysis", "Regenerate report",
+        etc.) opens the dashboard's <strong>Populate history</strong> chooser <em>pre-scoped to exactly the report on
+        screen</em> — that activity set to <strong>Re-run</strong>, every other activity to Skip, and the revision
+        scope narrowed to the viewed commit (resolved via <code>currentRevisionSha()</code>, with the platform when the
+        activity is platform-split). On the dashboard the chooser opens inline; on a report page it opens in a floating
+        overlay iframe that loads the dashboard with <code>?lvci-populate=1&amp;lvci-embed=1&amp;cap&amp;sha&amp;platform</code>
+        — embed mode hides the dashboard chrome so only the dialog shows, and the user stays on the report page
+        (the framed dashboard posts <code>lvci:hist-close</code> when the dialog closes, dismissing the overlay).
+        Queuing dispatches the capability's workflow with <code>inputs.commit_sha</code>; the dashboard's optimistic
+        queued bridge keys on <code>&lt;cap&gt;|&lt;sha&gt;</code>. The pre-select matches the viewed revision against
+        the dialog's history via <code>histIdxIn(HIST, sha)</code>. These conventions are codified in the
+        <code>DOCTYPES</code> table in <code>lvci-header.js</code> — adding a new report type is a single entry
+        there plus emitting the matching <code>window.LVCI</code> config from its generator.</p>
 
       <!-- 18 ──────────────────────────────────────────────────────────────── -->
       <h2 id="versioning">18. Versioning &amp; updates <a class="anchor" href="#versioning">#</a></h2>

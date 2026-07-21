@@ -885,14 +885,51 @@
     // On the dashboard the dialog lives inline (window.lvciRunHistory); pass the
     // optional {cap, sha, platform} straight through so it can open pre-selected
     // to re-run a single document. On every OTHER page that hook is absent, so
-    // route to the dashboard and let it auto-open the dialog from the URL (the
-    // dashboard reads ?lvci-populate=1[&cap&sha&platform]).
+    // open the dashboard's dialog in an iframe OVERLAY - the user stays on the
+    // current page (the dashboard reads ?lvci-populate=1[&cap&sha&platform] and,
+    // with &lvci-embed=1, hides its chrome so only the dialog shows; it posts
+    // 'lvci:hist-close' when the dialog closes so this overlay self-dismisses).
     if (typeof window.lvciRunHistory === 'function') { window.lvciRunHistory(opts || undefined); return; }
     var u = base + '/?lvci-populate=1';
     if (opts && opts.cap) u += '&cap=' + encodeURIComponent(opts.cap);
     if (opts && opts.sha) u += '&sha=' + encodeURIComponent(opts.sha);
     if (opts && opts.platform) u += '&platform=' + encodeURIComponent(opts.platform);
-    window.location.href = u;
+    _openHistOverlay(u);
+  }
+
+  // Open the dashboard's populate-history dialog as a floating overlay iframe so
+  // the user stays on the current report page. The iframe loads the dashboard in
+  // embedded "dialog only" mode (&lvci-embed=1): the dashboard hides its chrome
+  // and table and goes transparent, so the iframe reads as a plain modal over the
+  // dimmed report page. The dashboard auto-opens the pre-configured dialog and
+  // signals closure via postMessage, at which point this overlay removes itself.
+  function _openHistOverlay(url) {
+    var existing = document.getElementById('lvci-hist-overlay');
+    if (existing) { existing.remove(); }
+    var frameUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'lvci-embed=1';
+    var ov = document.createElement('div');
+    ov.id = 'lvci-hist-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9990;background:transparent';
+    var frame = document.createElement('iframe');
+    frame.src = frameUrl;
+    frame.title = 'Populate dashboard history';
+    frame.setAttribute('allowtransparency', 'true');
+    frame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent';
+    function closeOv() {
+      ov.remove();
+      document.removeEventListener('keydown', onOvKey, true);
+      window.removeEventListener('message', onOvMsg);
+    }
+    function onOvKey(e) { if (e.key === 'Escape') { e.stopPropagation(); closeOv(); } }
+    function onOvMsg(e) {
+      if (!e.isTrusted) return;
+      try { if (new URL(frameUrl, location.href).origin !== e.origin) return; } catch (ex) { return; }
+      if (e.data === 'lvci:hist-close' || e.data === 'lvci:hist-done') closeOv();
+    }
+    document.addEventListener('keydown', onOvKey, true);
+    window.addEventListener('message', onOvMsg);
+    ov.appendChild(frame);
+    document.body.appendChild(ov);
   }
 
   // Settings sub-navigation: the per-repo configuration sections as a tab strip in
@@ -1055,7 +1092,11 @@
     // the user can confirm scope/platform before queuing. (The inline dispatch
     // path - doDispatch + the header token panel - remains for any surface that
     // still calls it directly; the report Re-run button now routes here.)
-    if (DOC && cfg.sha) { runHistory({ cap: DOC.cap, sha: cfg.sha, platform: cfg.platform }); return; }
+    // Resolve the revision the user is actually viewing (cfg.sha, else the ?sha
+    // param or the header's revision picker) and always pass the cap, so the
+    // dialog scopes to exactly that document + revision instead of the full history.
+    var sha = (typeof currentRevisionSha === 'function' ? currentRevisionSha() : '') || cfg.sha || '';
+    if (DOC) { runHistory({ cap: DOC.cap, sha: sha, platform: cfg.platform }); return; }
     runHistory();
   }
 

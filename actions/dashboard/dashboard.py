@@ -2510,7 +2510,7 @@ run_dialog = (r"""
       return CAP_ORDER.filter(function(c){ return (seen[c] || RAN[c]) && RT[c]; });
     }
     function histModal(){ return document.getElementById('cidash-hist-modal'); }
-    function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
+    function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; try{ if(window.parent!==window) window.parent.postMessage('lvci:hist-close',location.origin); }catch(e){} }
     function histStatus(html, kind){
       var s=document.getElementById('cidash-hist-status'); if(!s) return;
       var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
@@ -2941,7 +2941,7 @@ run_dialog = (r"""
       // platform-split - limit to the document's platform. Falls back silently to
       // the normal full dialog when the revision/activity isn't on this dashboard.
       try{
-        if(opts.sha && histIdx(opts.sha)>=0){
+        if(opts.sha && histIdxIn(HIST, opts.sha)>=0){
           var sp=document.querySelector('input[name="cidash-hist-scope"][value="specific"]'); if(sp){ sp.checked=true; histScopeApply(); }
           Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=(b.value===opts.sha); });
         }
@@ -2986,6 +2986,23 @@ run_dialog = (r"""
     }
     // Exposed for the shared header's "Populate history" menu item.
     window.lvciRunHistory = histOpen;
+    // When the dialog is opened inside an overlay iframe from a report page's
+    // "Re-run" (host requests ?lvci-embed=1), show ONLY the dialog: hide the
+    // dashboard header/table and make the page transparent, so the iframe reads
+    // as a plain modal over the dimmed host page, not the whole dashboard behind it.
+    function lvciEmbedMode(){
+      try{
+        var d=document.documentElement; if(d.classList.contains('lvci-embed')) return; d.classList.add('lvci-embed');
+        var st=document.createElement('style');
+        st.textContent='html.lvci-embed,html.lvci-embed body{background:transparent!important}'
+          +'html.lvci-embed body>*:not(#cidash-hist-modal){display:none!important}'
+          +'html.lvci-embed #cidash-hist-modal{background:rgba(0,0,0,.55)!important}';
+        (document.head||document.documentElement).appendChild(st);
+      }catch(e){}
+    }
+    // Apply embed hiding synchronously - this script runs while the page is still
+    // parsing (before <main>/the table below), so the chrome is never painted.
+    try{ if(new URLSearchParams(location.search||'').get('lvci-embed')==='1') lvciEmbedMode(); }catch(e){}
     // Exposed because the modal's "× Close" button and backdrop use inline onclick
     // handlers, which resolve against window — not this IIFE's scope. Without this
     // the close button silently did nothing (the Cancel button and Esc, which call
@@ -3004,9 +3021,11 @@ run_dialog = (r"""
       try{
         var p=new URLSearchParams(location.search||'');
         if(p.get('lvci-populate')!=='1') return;
+        var embed=(p.get('lvci-embed')==='1');
         var opts={ cap:(p.get('cap')||''), sha:(p.get('sha')||''), platform:(p.get('platform')||'') };
-        try{ ['lvci-populate','cap','sha','platform'].forEach(function(k){ p.delete(k); });
+        try{ ['lvci-populate','lvci-embed','cap','sha','platform'].forEach(function(k){ p.delete(k); });
              var qs=p.toString(); history.replaceState(null,'',location.pathname+(qs?('?'+qs):'')+location.hash); }catch(e){}
+        if(embed) lvciEmbedMode();
         histOpen((opts.cap||opts.sha)?opts:undefined);
       }catch(e){}
     }
