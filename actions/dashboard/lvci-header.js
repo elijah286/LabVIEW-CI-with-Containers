@@ -619,6 +619,7 @@
     'masscompile-report': 'dashboard',
     'unit-tests-report': 'dashboard',
     'antidoc-report': 'dashboard',
+    'builds-report': 'dashboard',
     'unit-tests-config': 'settings',
     'worker-manifest': 'dashboard',
     'report-viewer': 'dashboard',
@@ -663,13 +664,19 @@
       prefix: 'antidoc', cap: 'antidoc', label: 'Antidoc',
       regenLabel: 'Regenerate docs', rawLabel: 'Run log', rawName: 'antidoc.log',
       workflow: { windows: 'run-antidoc-windows-container.yml' }
+    },
+    'builds-report': {
+      prefix: 'builds', cap: 'builds', label: 'Builds',
+      regenLabel: 'Rebuild', rawLabel: 'Build log', rawName: 'builds.log',
+      workflow: { windows: 'build-binaries-windows-container.yml',
+                  linux:   'build-binaries-linux-container.yml' }
     }
   };
   var DOC = DOCTYPES[ctx] || null;   // non-null only on a per-revision report
 
   // Order the per-revision activities appear in the context-bar Activity picker
   // (the report half of the unified Activity switcher; per-VI lenses join later).
-  var LENS_ORDER = ['snapshots', 'masscompile-report', 'vi-analyzer-report', 'unit-tests-report', 'antidoc-report'];
+  var LENS_ORDER = ['snapshots', 'masscompile-report', 'vi-analyzer-report', 'unit-tests-report', 'antidoc-report', 'builds-report'];
 
   var SHA_RE = /^[0-9a-f]{7,40}$/i;
   var revisionListCache = {};
@@ -797,7 +804,8 @@
       { label: 'Mass Compile', svg: ICON.configure, activity: 'masscompile-report' },
       { label: 'VI Analyzer', svg: ICON.vianalyzer, activity: 'vi-analyzer-report' },
       { label: 'Unit Tests', svg: ICON.tests, activity: 'unit-tests-report' },
-      { label: 'Antidoc', svg: ICON.docs, activity: 'antidoc-report' }
+      { label: 'Antidoc', svg: ICON.docs, activity: 'antidoc-report' },
+      { label: 'Builds', svg: ICON.builds, activity: 'builds-report' }
     ];
   }
 
@@ -1441,7 +1449,7 @@
     var LENS_GROUPS = [
       { label: 'Code & changes', keys: ['snapshots'] },
       { label: 'Quality',        keys: ['masscompile-report', 'vi-analyzer-report', 'unit-tests-report'] },
-      { label: 'Artifacts',      keys: ['antidoc-report'] }
+      { label: 'Artifacts',      keys: ['antidoc-report', 'builds-report'] }
     ];
     function lensLabel(key) {
       if (key === 'snapshots') return 'Snapshots';

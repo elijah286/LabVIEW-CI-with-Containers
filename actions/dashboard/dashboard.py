@@ -687,7 +687,7 @@ def _chip_split(segments, url='', title=''):
 # is opened, and reports that predate the header (or carry none of their own)
 # still appear inside the chrome. Diff/Snapshots already open the VI Browser (its
 # own headered page), so only these two doctypes are wrapped here.
-DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile', 'unit-tests-report': 'Unit Tests', 'antidoc-report': 'Antidoc'}
+DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile', 'unit-tests-report': 'Unit Tests', 'antidoc-report': 'Antidoc', 'builds-report': 'Builds'}
 
 def viewer_url(report_url, doctype, sha, short, platform=''):
     """Wrap a deployed report's absolute Pages URL so it opens framed under the
@@ -1208,7 +1208,10 @@ for c in commits_data:
         any_output['on'] = True
         caps_ran.add('builds')
         _ts = (pick_status('CI / Builds') or pick_status('CI / Builds (Linux)') or {}).get('created_at', '')
-        _url = f'{pages_url}/builds/{sha}/index.html'
+        # Open the Builds report framed in the dashboard chrome (report-viewer),
+        # so it carries the shared header, a revision picker and a Rebuild button
+        # like the other report columns.
+        _url = viewer_url(f'{pages_url}/builds/{sha}/index.html', 'builds-report', sha, short)
         _tip = (f'{_built} built, {_failed} failed'
                 + (f', {_skipped} skipped' if _skipped else '')
                 + f' of {_total} build specification(s)')
