@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Dependencies - LabVIEW CI</title>
-  <script>window.LVCI={context:'dependencies',subnav:{label:'Dependencies',active:'vipc',tabs:[{key:'vipc',label:'VIPM / VIPC'},{key:'nipm',label:'NI Packages'},{key:'system',label:'System Components'}]}};</script>
+  <script>window.LVCI={context:'dependencies'};</script>
   <script src="lvci-header.js" defer></script>
   <style>
     :root{--bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;--chip:#21262d;--code:#010409;--warn:#9a6700;--ok:#2ea043;--bad:#f85149}
@@ -63,6 +63,13 @@
     .upd-modal-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:12px}
     .dep-missing{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(210,153,34,.65);border-radius:50%;background:rgba(210,153,34,.16);color:var(--warn);font-weight:800;font-size:12px;line-height:1}.dep-na{color:var(--fg-muted);font-size:.72em;font-weight:700;letter-spacing:.04em}.monitorbar{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:12px 13px;margin-bottom:16px}.monitorbar strong{display:block;font-size:.9em}.monitor-help{color:var(--fg-muted);font-size:.84em}.monitor-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.primary{border-color:transparent;background:var(--accent);color:var(--accent-fg);font-weight:700}.primary:hover{border-color:transparent;filter:brightness(1.05)}button:disabled{opacity:.55;cursor:not-allowed}.status{font-size:.84em;color:var(--fg-muted)}.status.ok{color:var(--ok)}.status.err{color:var(--bad)}.tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px 13px;background:var(--surface);margin:-6px 0 16px;font-size:.84em}.tokpanel[hidden]{display:none}.tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--surface2);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.monitor-label{display:inline-flex;align-items:center;gap:7px;font-size:.82em;font-weight:700;color:var(--fg);margin-left:10px;vertical-align:middle}.monitor-label input{width:16px;height:16px;accent-color:var(--ok);margin:0}.monitor-label input:disabled{opacity:.5}.monitor-col{width:150px;min-width:150px;max-width:150px;text-align:center}.file-table{min-width:640px}.file-table .pkg{white-space:normal}.dep-subtitle{font-size:.92em;margin:14px 0 6px}.locked{opacity:.75}.vipc-child-row td{background:linear-gradient(to right, rgba(88,166,255,.09), rgba(88,166,255,.02) 240px, rgba(88,166,255,0) 360px)}.vipc-child-row .pkg-child{position:relative;padding:0 9px 0 42px}.vipc-child-row .pkg-child::before{content:"";position:absolute;left:16px;top:-1px;bottom:-1px;border-left:1px solid var(--border);opacity:.78}.vipc-child-row .pkg-indent{position:absolute;left:16px;top:50%;width:14px;border-top:1px solid var(--border);transform:translateY(-50%);opacity:.9}.vipc-child-row .pkg-label{position:relative;z-index:1;display:inline-block;padding:4px 10px;border:1px solid rgba(88,166,255,.28);background:rgba(88,166,255,.08);border-radius:8px}.vipc-child-row .pkg-error .pkg-label{font-style:italic;color:var(--fg-muted);border-color:rgba(139,148,158,.35);background:rgba(139,148,158,.07)}.vipc-child-row .pkg-child::after{content:"";position:absolute;left:24px;right:8px;top:4px;bottom:4px;border:1px solid var(--border);border-left:0;border-radius:0 8px 8px 0;opacity:.55;pointer-events:none}.vipc-child-row:not(.vipc-child-first) .pkg-child::after{border-top-color:transparent;border-top-right-radius:0}.vipc-child-row:not(.vipc-child-last) .pkg-child::after{border-bottom-color:transparent;border-bottom-right-radius:0}
   </style>
+  <style>
+    .dep-global-tabs{margin:8px 0 12px}
+    .dep-global-tabs .dep-tablist{margin:0}
+    .dep-file-state{display:inline-block;font-size:.77em;padding:1px 8px;border-radius:999px;border:1px solid var(--border);margin-left:8px;font-weight:700}
+    .dep-file-state.installed{background:rgba(46,160,67,.14);border-color:rgba(46,160,67,.45);color:var(--ok)}
+    .dep-file-state.missing{background:rgba(210,153,34,.14);border-color:rgba(210,153,34,.55);color:var(--warn)}
+  </style>
 </head>
 <body>
   <main class="wrap">
@@ -87,6 +94,13 @@
     <div class="note" id="configCard">Loading container configuration...</div>
     <div class="note" id="status">Loading dependency inventory...</div>
     <div id="updatePanel" class="upd hidden" role="region" aria-label="Dependency update needed"></div>
+    <div class="dep-global-tabs" aria-label="Dependency sections">
+      <div class="dep-tablist" role="tablist" aria-label="Dependency sections">
+        <button class="dep-tab active" id="tab-vipc" type="button" role="tab" aria-selected="true" aria-controls="panel-vipc" data-key="vipc">VIPM / VIPC</button>
+        <button class="dep-tab" id="tab-nipm" type="button" role="tab" aria-selected="false" aria-controls="panel-nipm" data-key="nipm">NI Packages</button>
+        <button class="dep-tab" id="tab-system" type="button" role="tab" aria-selected="false" aria-controls="panel-system" data-key="system">System Components</button>
+      </div>
+    </div>
     <div class="monitorbar">
       <div>
         <strong>Monitored dependency files</strong>
@@ -173,13 +187,33 @@
     async function fetchText(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.text(); }
     function selectDependencyTab(key){
       Array.from(document.querySelectorAll('.dep-panel')).forEach(panel => panel.classList.toggle('active', panel.id === 'panel-' + key));
-      if (typeof window.lvciSetSubnavActive === 'function') window.lvciSetSubnavActive(key);
+      Array.from(document.querySelectorAll('.dep-tablist .dep-tab')).forEach(tab => {
+        const active = tab.getAttribute('data-key') === key;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
     }
     function initDependencyTabs(){
-      // Sub-view tabs live in the shared header sub-nav (window.LVCI.subnav); the
-      // header fires 'lvci:subnav' when one is chosen so every document switches
-      // sub-items from the same consistent place instead of a separate in-body bar.
-      window.addEventListener('lvci:subnav', e => { if (e && e.detail && e.detail.key) selectDependencyTab(e.detail.key); });
+      Array.from(document.querySelectorAll('.dep-tablist .dep-tab')).forEach(tab => {
+        tab.addEventListener('click', () => selectDependencyTab(tab.getAttribute('data-key') || 'vipc'));
+      });
+    }
+
+    function pendingVipcPathSet(){
+      const list = (updPending && Array.isArray(updPending.vipcs)) ? updPending.vipcs : [];
+      return new Set(list.map(normPath));
+    }
+    function vipcFileState(path){
+      const pending = pendingVipcPathSet().has(normPath(path));
+      return pending
+        ? '<span class="dep-file-state missing" title="This file contributes to the global missing-dependency alert">missing</span>'
+        : '<span class="dep-file-state installed" title="No missing packages currently reported for this file">installed</span>';
+    }
+    function dragonFileState(){
+      const hasMissing = !!(updPending && Array.isArray(updPending.dragon) && updPending.dragon.length);
+      return hasMissing
+        ? '<span class="dep-file-state missing" title="A .dragon dependency is currently unresolved">missing</span>'
+        : '<span class="dep-file-state installed" title="No unresolved .dragon dependencies reported">installed</span>';
     }
 
     function parseManifestYaml(text){
@@ -833,6 +867,8 @@
       }));
       const runBtn = $("updRun");
       if (runBtn) runBtn.addEventListener("click", openUpdateApprovalDialog);
+      if (currentVipcs.length) renderVipc(currentVipcs, currentColStates);
+      if (currentDragons.length) renderDragonFiles(currentDragons);
       resumeContainerTracking();
     }
     function presentCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><input class="dep-check" type="checkbox" checked disabled aria-label="Present"></td>'; }
@@ -926,7 +962,7 @@
         const checked = v.monitored !== false;
         const locked = v.locked === true;
         const monitor = '<label class="monitor-label' + (locked ? ' locked' : '') + '" title="' + (locked ? 'CI tooling dependency is always monitored' : 'Monitor this dependency file') + '"><input type="checkbox" data-monitor-kind="vipc" data-monitor-path="' + esc(v.path) + '" ' + (checked ? 'checked ' : '') + (locked ? 'disabled ' : '') + '><span>Monitored</span></label>';
-        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span> ' + monitor + ' <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + (checked ? '' : ' <span class="pill">unmonitored</span>') + (locked ? ' <span class="pill">locked</span>' : '') + '</td></tr>');
+        rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span>' + vipcFileState(v.path) + ' ' + monitor + ' <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + (checked ? '' : ' <span class="pill">unmonitored</span>') + (locked ? ' <span class="pill">locked</span>' : '') + '</td></tr>');
         if (v.open) {
           const children = [];
           if (v.error) children.push({ error:true, text:v.error });
@@ -950,7 +986,7 @@
       if (!dragons.length) { host.innerHTML = '<div class="empty">No Dragon dependency files were found in this revision.</div>'; return; }
       const rows = dragons.map(d => {
         const checked = d.monitored !== false;
-        return '<tr><td class="pkg"><strong>' + esc(d.path) + '</strong><br><span class="why">Dragon dependency file</span></td><td class="monitor-col"><label class="monitor-label" title="Monitor this dependency file"><input type="checkbox" data-monitor-kind="dragon" data-monitor-path="' + esc(d.path) + '" ' + (checked ? 'checked ' : '') + '><span>Monitored</span></label></td></tr>';
+        return '<tr><td class="pkg"><strong>' + esc(d.path) + '</strong>' + dragonFileState() + '<br><span class="why">Dragon dependency file</span></td><td class="monitor-col"><label class="monitor-label" title="Monitor this dependency file"><input type="checkbox" data-monitor-kind="dragon" data-monitor-path="' + esc(d.path) + '" ' + (checked ? 'checked ' : '') + '><span>Monitored</span></label></td></tr>';
       });
       host.innerHTML = '<table class="file-table"><thead><tr><th>Dragon File</th><th class="monitor-col">Monitored</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
       Array.from(document.querySelectorAll('input[data-monitor-kind="dragon"]')).forEach(cb => cb.addEventListener('change', () => setFileMonitor('dragon', cb.getAttribute('data-monitor-path'), cb.checked)));
@@ -1007,7 +1043,7 @@
       const dragonPaths = Array.from(new Set((discovered.dragon || []).concat(manifest.dragon.map(v => v.path)).map(normPath).filter(Boolean))).sort((a,b) => a.localeCompare(b));
       const vipcs = await Promise.all(vipcPaths.map(async path => {
         const cls = classifyVipc(path, vipcConfig, vipcHasConfig);
-        const item = { path, role:cls.role, configured:cls.configured, monitored:cls.monitored, locked:cls.locked, packages:[], open:true, error:"" };
+        const item = { path, role:cls.role, configured:cls.configured, monitored:cls.monitored, locked:cls.locked, packages:[], open:false, error:"" };
         try { item.packages = await vipcPackages(path, sha); }
         catch (e) { item.error = "Could not parse " + path + ": " + e.message; }
         return item;
@@ -1050,7 +1086,7 @@
       const generatedVipcs = (data.vipc || []).map(v => {
         const cls = classifyVipc(v.path, vipcConfig, vipcHasConfig);
         const tooling = v.tooling === true || cls.role === 'core';
-        return { path:v.path, role:v.role || (tooling ? 'core' : 'project'), tooling, configured:tooling || cls.configured, monitored:tooling || cls.monitored, locked:tooling || cls.locked, packages:v.packages || [], error:v.error || "", open:true };
+        return { path:v.path, role:v.role || (tooling ? 'core' : 'project'), tooling, configured:tooling || cls.configured, monitored:tooling || cls.monitored, locked:tooling || cls.locked, packages:v.packages || [], error:v.error || "", open:false };
       });
       const dragonFiles = Array.isArray(data.dragon)
         ? data.dragon
