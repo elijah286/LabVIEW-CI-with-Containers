@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "9a0e1c6251e0c7d5f9f35ec1387fcdae3803602a",
+  "sha": "a782f16015604f2565f95b1bd77aa8b31bf9c328",
   "revisions": [
+    {
+      "sha": "a782f16015604f2565f95b1bd77aa8b31bf9c328",
+      "short": "a782f16",
+      "message": "deps: remove duplicate repaired VIPC artifacts (#30)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T18:12:24Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "9a0e1c6251e0c7d5f9f35ec1387fcdae3803602a",
       "short": "9a0e1c6",
@@ -895,15 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "e2e4e60d71e28d6e865a5f05c7761ffe19a573d7",
-      "short": "e2e4e60",
-      "message": "docs: clarify install-vs-upgrade container management + add Mermaid diagram (3.47.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T01:57:03Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1114,26 +1114,6 @@
       "error": ""
     },
     {
-      "path": ".github/labview/antidoc/antidoc_repaired.vipc",
-      "role": "capability",
-      "capability": "antidoc",
-      "tooling": false,
-      "configured": true,
-      "monitored": true,
-      "locked": false,
-      "packages": [
-        "graphbuilder-2.3.0.7",
-        "wiresmith_technology_lib_g_cli-3.0.1.98",
-        "wovalab_lib_antidoc-3.3.1.879",
-        "wovalab_lib_antidoc_add_on_labview_project_documentation-3.2.0.358",
-        "wovalab_lib_antidoc_add_on_labview_toolkit_documentation-3.0.0.77",
-        "wovalab_lib_antidoc_add_on_teststand-3.1.0.202",
-        "wovalab_lib_antidoc_cli-3.4.0.126",
-        "wovalab_lib_asciidoc_for_labview-1.12.1.492"
-      ],
-      "error": ""
-    },
-    {
       "path": ".github/labview/experimental.vipc",
       "role": "project",
       "capability": "",
@@ -1154,45 +1134,6 @@
       "configured": true,
       "monitored": true,
       "locked": true,
-      "packages": [
-        "astemes_lib_lunit-2.0.13.6",
-        "astemes_lib_lunit_cli-1.6.1.23",
-        "astemes_lib_lunit_coverage_analysis_add_on-1.0.0.2",
-        "astemes_lib_lunit_global_fixture_add_on-1.0.5.4",
-        "astemes_lib_lunit_parameterized_add_on-1.1.10.8",
-        "astemes_lib_lunit_test_inheritance_add_on-1.0.5.4",
-        "dataflow_g_lib_g_image-0.5.0.1",
-        "felipefoz_lib_lv_rainbow_terminal-1.1.1.5",
-        "jki_lib_caraya-1.4.4.148",
-        "jki_lib_state_machine-2024.0.3.23",
-        "jki_rsc_toolkits_palette-1.1-1",
-        "labview_open_source_lib_epoch_datetime-1.3.0.8",
-        "labview_open_source_project_lib_labview_open_source_palette-1.0.2.7",
-        "labview_open_source_project_lib_openuri-1.4.0.13",
-        "lvos_lib_caraya_cli_extension-2.0.0.7",
-        "ni_lib_junit_results_api-1.0.1.6",
-        "ni_lib_simple_xml-1.0.0.4",
-        "ni_lib_utf_junit_report-1.0.1.43",
-        "oglib_array-6.0.1.20",
-        "oglib_error-6.0.0.26",
-        "oglib_file-6.0.2.28",
-        "oglib_lvdata-6.0.0.45",
-        "oglib_string-6.0.2.35",
-        "pnr_lib_caraya_junit_for_azure_pipelines-1.2.0.11",
-        "pnr_lib_junit_xml-1.0.0.4",
-        "sas_workshops_lib_lunit_for_g_cli-1.2.1.85",
-        "wiresmith_technology_lib_g_cli-3.0.1.98"
-      ],
-      "error": ""
-    },
-    {
-      "path": ".github/labview/vipm/ci-tooling_repaired.vipc",
-      "role": "project",
-      "capability": "",
-      "tooling": false,
-      "configured": true,
-      "monitored": true,
-      "locked": false,
       "packages": [
         "astemes_lib_lunit-2.0.13.6",
         "astemes_lib_lunit_cli-1.6.1.23",
