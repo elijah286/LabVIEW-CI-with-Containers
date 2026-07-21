@@ -118,6 +118,29 @@ function Get-FirstViancfg([string]$Root) {
     return ''
 }
 
+# Enumerate the project's analyzable VIs recursively, EXCLUDING the CI tooling
+# (.git/.github/actions/ci-out/build/_lvci). A committed .viancfg is applied as
+# the default pass over 'the whole project'; the VI Analyzer recurses a directory
+# only in built-in DIRECTORY mode, NOT when a folder is listed as a .viancfg
+# <Item> (which then analyzes a single VI). So we list each project VI as its own
+# explicit <Item> -- the same mechanism the working single-VI re-run uses -- which
+# analyzes the full stack and simply flags any VI that will not load.
+function Get-ProjectVIs([string]$Root) {
+    $exclude = @('.git', '.github', 'actions', 'ci-out', 'build', '_lvci')
+    $out = New-Object System.Collections.Generic.List[string]
+    Get-ChildItem -LiteralPath $Root -File -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -imatch '^\.vim?$' } |
+        ForEach-Object { $out.Add($_.FullName) }
+    Get-ChildItem -LiteralPath $Root -Directory -Force -ErrorAction SilentlyContinue |
+        Where-Object { $exclude -notcontains $_.Name } |
+        ForEach-Object {
+            Get-ChildItem -LiteralPath $_.FullName -Recurse -File -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Extension -imatch '^\.vim?$' } |
+                ForEach-Object { $out.Add($_.FullName) }
+        }
+    return ,($out.ToArray())
+}
+
 function ConvertTo-ContainerPath([string]$Root, [string]$Rel) {
     return (Join-Path $Root ($Rel -replace '/', '\'))
 }
@@ -128,7 +151,21 @@ function ConvertTo-ContainerPath([string]$Root, [string]$Rel) {
 function Build-ScopedConfig([string]$BaseConfigPath, [string[]]$ItemAbsPaths, [string]$OutPath, [string]$Workspace) {
     $xml = Get-Content -LiteralPath $BaseConfigPath -Raw
     $xml = $xml -replace '__WORKSPACE_PATH__', $Workspace
-    $itemXml = ($ItemAbsPaths | ForEach-Object {
+    # A folder listed as a .viancfg <Item> is analyzed as a single VI (the VI
+    # Analyzer does not recurse it), so expand any directory scope into the VIs
+    # it contains; explicit VI paths pass through unchanged.
+    $resolvedItems = New-Object System.Collections.Generic.List[string]
+    foreach ($it in $ItemAbsPaths) {
+        if (Test-Path -LiteralPath $it -PathType Container) {
+            Get-ChildItem -LiteralPath $it -Recurse -File -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Extension -imatch '^\.vim?$' } |
+                ForEach-Object { $resolvedItems.Add($_.FullName) }
+        } else {
+            $resolvedItems.Add($it)
+        }
+    }
+    if ($resolvedItems.Count -eq 0) { $resolvedItems.Add($Workspace) }
+    $itemXml = ($resolvedItems | ForEach-Object {
         "`t`t<Item>`r`n`t`t`t<Path>`"$_`"</Path>`r`n`t`t`t<Removed>FALSE</Removed>`r`n`t`t</Item>"
     }) -join "`r`n"
     $block = "<ItemsToAnalyze>`r`n$itemXml`r`n`t</ItemsToAnalyze>"
@@ -254,7 +291,13 @@ if ($filterList.Count -gt 0) {
             $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
         } elseif ($def -ne 'none') {
             $scoped = Join-Path $PassesDir 'default.viancfg'
-            Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) @($WorkspaceRoot) $scoped $WorkspaceRoot
+            $wsVIs = @(Get-ProjectVIs $WorkspaceRoot)
+            if ($wsVIs.Count -gt 0) {
+                Write-Host ("  Default pass: analyzing {0} project VI(s) with {1}" -f $wsVIs.Count, $def)
+                Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $wsVIs $scoped $WorkspaceRoot
+            } else {
+                Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) @($WorkspaceRoot) $scoped $WorkspaceRoot
+            }
             $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html' }
         }
     }
