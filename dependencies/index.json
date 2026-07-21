@@ -1,847 +1,1087 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "333db43002ac632f7fe172d3ecb6cfe7a00bee5c",
+  "sha": "2e6c84f26ce5d2344b07412d73913a627ef53e30",
   "revisions": [
+    {
+      "sha": "2e6c84f26ce5d2344b07412d73913a627ef53e30",
+      "short": "2e6c84f",
+      "message": "Revision pickers: shared searchable widget that filters to LabVIEW code (4.4.14)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T16:36:25Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "333db43002ac632f7fe172d3ecb6cfe7a00bee5c",
       "short": "333db43",
       "message": "Merge pull request #27 from elijah286/fix/deps-pending-version-mismatch",
       "author": "Elijah Kerry",
-      "date": "2026-07-21T16:13:58Z"
+      "date": "2026-07-21T16:13:58Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "c187e7c49057b7780c0c068bcee90c8f7fd7b95b",
       "short": "c187e7c",
       "message": "dependencies: handle object-shaped dragon payload in generated index",
       "author": "Elijah Kerry",
-      "date": "2026-07-21T16:13:43Z"
+      "date": "2026-07-21T16:13:43Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "565141022e094c39ff77a7914df2c6b36a5548b7",
       "short": "5651410",
       "message": "Populate-history: filter revision picker to LabVIEW code + add search (4.4.13)",
       "author": "Elijah Kerry",
-      "date": "2026-07-21T16:04:59Z"
+      "date": "2026-07-21T16:04:59Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "023c7e6ebb50bcb4cdfef117173e850628329ee9",
       "short": "023c7e6",
       "message": "Merge pull request #26 from elijah286/fix/deps-pending-version-mismatch",
       "author": "Elijah Kerry",
-      "date": "2026-07-21T15:52:45Z"
+      "date": "2026-07-21T15:52:45Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "9f5bdf304f95ec413b5ba7a8be7e2e53b9e7986e",
       "short": "9f5bdf3",
       "message": "Merge origin/main into fix/deps-pending-version-mismatch",
       "author": "Elijah Kerry",
-      "date": "2026-07-21T15:52:33Z"
+      "date": "2026-07-21T15:52:33Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "23c2efaa2af60a56cf9bc258d802040f7eabdec9",
       "short": "23c2efa",
       "message": "vipc: make committed VIPCs authoritative and sync dependency surfaces",
       "author": "Elijah Kerry",
-      "date": "2026-07-21T15:46:11Z"
+      "date": "2026-07-21T15:46:11Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "381d6f37833788e7a99a0ceb1264b881e8da6a57",
       "short": "381d6f3",
       "message": "Add repaired Antidoc VIPC file",
       "author": "Elijah Kerry",
-      "date": "2026-07-21T15:34:29Z"
+      "date": "2026-07-21T15:34:29Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "dec7497cde71bdd9b320f1bcea5667fb611447aa",
       "short": "dec7497",
       "message": "Create ci-tooling_repaired.vipc",
       "author": "Elijah Kerry",
-      "date": "2026-07-21T15:27:29Z"
+      "date": "2026-07-21T15:27:29Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "75407454bf88c53975afff48833b72bbf14c6858",
       "short": "7540745",
       "message": "vi-analyzer: pre-analysis Mass Compile now excludes CI tooling (.github)",
       "author": "Elijah Kerry",
-      "date": "2026-07-15T20:53:26Z"
+      "date": "2026-07-15T20:53:26Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "3c542fdee324c995acbe03d84013ed90c0e3c7b9",
       "short": "3c542fd",
       "message": "Merge pull request #20 from elijah286/fix/deps-pending-version-mismatch",
       "author": "Elijah Kerry",
-      "date": "2026-07-15T20:50:59Z"
+      "date": "2026-07-15T20:50:59Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "eca6c35d539c2364f80cba395c371dbe146772da",
       "short": "eca6c35",
       "message": "Merge remote-tracking branch 'origin/main' into HEAD",
       "author": "Elijah Kerry",
-      "date": "2026-07-15T20:50:24Z"
+      "date": "2026-07-15T20:50:24Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "a701b930a2d6e6b4a5e162839535832a3b78840c",
       "short": "a701b93",
       "message": "update: don't re-enable activities the repo turned off",
       "author": "Elijah Kerry",
-      "date": "2026-07-15T15:58:22Z"
+      "date": "2026-07-15T15:58:22Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "07381993887c2136c1072628da0715fb5a97c4c6",
       "short": "0738199",
       "message": "vi-analyzer settings: warn when a .viancfg sits in the tooling-managed .github area",
       "author": "Elijah Kerry",
-      "date": "2026-07-14T15:49:15Z"
+      "date": "2026-07-14T15:49:15Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "b4dc48ed204ddabbbb1a4eb802d14e4519df88b6",
       "short": "b4dc48e",
       "message": "vi-analyzer: don't auto-select a CI action-source config as the project default (blank-report fix)",
       "author": "Elijah Kerry",
-      "date": "2026-07-14T15:41:29Z"
+      "date": "2026-07-14T15:41:29Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "32e898b12d2b3cf411865855b9dfa45afbe32791",
       "short": "32e898b",
       "message": "Dependencies: fix false 'update needed' from VIPM v-prefix mismatch; itemize missing deps (4.4.8)",
       "author": "Elijah Kerry",
-      "date": "2026-07-14T15:30:07Z"
+      "date": "2026-07-14T15:30:07Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "39f802bfbc151b2f484a4705506a3a546ff75e5c",
       "short": "39f802b",
       "message": "dashboard: show Queued badge when re-running an in-flight activity; force-theme fix",
       "author": "Elijah Kerry",
-      "date": "2026-07-14T02:10:54Z"
+      "date": "2026-07-14T02:10:54Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "db68dd6b05bde3c0684e71e2a5597161a8aa425a",
       "short": "db68dd6",
       "message": "vipm: self-heal a wedged headless VIPM engine (restart-and-retry) (4.4.5)",
       "author": "Elijah Kerry",
-      "date": "2026-07-09T12:11:19Z"
+      "date": "2026-07-09T12:11:19Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "ccc7b5c4186eec1879cfef35c8785ce50827aa0c",
       "short": "ccc7b5c",
       "message": "readme: add 5-minute YouTube overview video thumbnail",
       "author": "Elijah Kerry",
-      "date": "2026-07-08T21:35:41Z"
+      "date": "2026-07-08T21:35:41Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "f30dacf285ce27a084b06072a39143d4d3f11fba",
       "short": "f30dacf",
       "message": "Fast-abort worker build when VIPM engine wedges (4.4.4)",
       "author": "Elijah Kerry",
-      "date": "2026-07-08T19:43:38Z"
+      "date": "2026-07-08T19:43:38Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "4698a1014fde7e0358b204a63d6683e5b8eed8f3",
       "short": "4698a10",
       "message": "Dependencies: live progress bar tracking the container update run (4.4.3)",
       "author": "Elijah Kerry",
-      "date": "2026-07-08T14:47:13Z"
+      "date": "2026-07-08T14:47:13Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "f2527d43a1c4f76fff51010a7f7bde6e14705bab",
       "short": "f2527d4",
       "message": "dashboard: add update-available banner nudging owners to upgrade (v4.4.2)",
       "author": "Elijah Kerry",
-      "date": "2026-07-07T17:07:43Z"
+      "date": "2026-07-07T17:07:43Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "3958d87823fd277051069fcdae52b689e3e33ec7",
       "short": "3958d87",
       "message": "Dependencies: Run the container update button dispatches the build workflow (4.4.1)",
       "author": "Elijah Kerry",
-      "date": "2026-07-07T16:56:13Z"
+      "date": "2026-07-07T16:56:13Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "1b13d0e9b628b6f3f18ba7dcc398aa8ba2a5a856",
       "short": "1b13d0e",
       "message": "Mass Compile column: threshold-based colours + solid-red failure (4.4.0)",
       "author": "Elijah Kerry",
-      "date": "2026-07-06T13:19:52Z"
+      "date": "2026-07-06T13:19:52Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "55606adfc90e5069d252369c721196468f8b3d08",
       "short": "55606ad",
       "message": "Fix Linux worker image build failing on \"vipm-linux not found\" (4.3.5)",
       "author": "Elijah Kerry",
-      "date": "2026-07-06T11:49:16Z"
+      "date": "2026-07-06T11:49:16Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "56035bb3e34276d7e064c01254b255fb7070bea2",
       "short": "56035bb",
       "message": "Mass Compile: colour Win/Linux percentages separately + instant platform mouse-over (4.3.4)",
       "author": "Elijah Kerry",
-      "date": "2026-06-30T18:22:05Z"
+      "date": "2026-06-30T18:22:05Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "b26a7eab9ecdf3b197a184c848cfe05ab145cdfb",
       "short": "b26a7ea",
       "message": "fix: authenticate to GHCR before pulling Linux worker images (#17)",
       "author": "Anton Sundqvist",
-      "date": "2026-06-29T18:07:26Z"
+      "date": "2026-06-29T18:07:26Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "d20b765ae055b516de9b7b9c57531b491efc0613",
       "short": "d20b765",
       "message": "catalog: list LUnit on the Unit Tests capability card (#16)",
       "author": "Anton Sundqvist",
-      "date": "2026-06-29T18:06:48Z"
+      "date": "2026-06-29T18:06:48Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "67149ec53d5863d13d6b0a197589524a68cbe25f",
       "short": "67149ec",
       "message": "catalog: list all four frameworks on Unit Tests card (4.3.3)",
       "author": "Elijah Kerry",
-      "date": "2026-06-29T18:02:25Z"
+      "date": "2026-06-29T18:02:25Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "3e16c29ae53dcfd462d75bf5bf3147e0ffea6be2",
       "short": "3e16c29",
       "message": "Mass Compile cell: Windows/Linux two-number pill (4.3.2)",
       "author": "Elijah Kerry",
-      "date": "2026-06-29T02:59:01Z"
+      "date": "2026-06-29T02:59:01Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "d3ca09a5cff09f1d458bdffbc23e5f604623817e",
       "short": "d3ca09a",
       "message": "Bake tooling VIPC when a repo has no project .vipc (#14)",
       "author": "Anton Sundqvist",
-      "date": "2026-06-29T02:40:33Z"
+      "date": "2026-06-29T02:40:33Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "9d6190e06d1060d24fb42a443f81466987db3548",
       "short": "9d6190e",
       "message": "Populate history: re-run an in-flight (queued/running) activity (4.3.1)",
       "author": "Elijah Kerry",
-      "date": "2026-06-29T02:35:41Z"
+      "date": "2026-06-29T02:35:41Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "694c0e62804b4b5ba1b2171b638aecbf3dc3d001",
       "short": "694c0e6",
       "message": "Bake a no-VIPM-repo package by committing its .vip (#15)",
       "author": "Anton Sundqvist",
-      "date": "2026-06-29T02:16:49Z"
+      "date": "2026-06-29T02:16:49Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "9bd01452270e776209f9bbc9c6fcb08393d05bd9",
       "short": "9bd0145",
       "message": "Merge remote-tracking branch 'origin/main' into feat/warm-container-batch-history",
       "author": "Elijah Kerry",
-      "date": "2026-06-28T17:35:10Z"
+      "date": "2026-06-28T17:35:10Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "8bb5635b3630bcfd83201ea0095cbd45d5fcd13b",
       "short": "8bb5635",
       "message": "Installer: Apply to New Repo prunes obsolete vendored tooling files (4.2.2)",
       "author": "lvci",
-      "date": "2026-06-28T17:09:02Z"
+      "date": "2026-06-28T17:09:02Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "a27882a282fac40e7273162e70f929b04f9167c6",
       "short": "a27882a",
       "message": "Installer: stop the false 'install already in progress' warning (4.2.1)",
       "author": "Elijah Kerry",
-      "date": "2026-06-28T17:07:04Z"
+      "date": "2026-06-28T17:07:04Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "70f0e93d7f422ee489a3e0e1a214ea1557ec073a",
       "short": "70f0e93",
       "message": "Merge remote-tracking branch 'origin/main' into feat/warm-container-batch-history",
       "author": "Elijah Kerry",
-      "date": "2026-06-28T17:01:46Z"
+      "date": "2026-06-28T17:01:46Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "64b68477a478366b208535ff6d8b8f78e48437f9",
       "short": "64b6847",
       "message": "Remove throwaway warm-batch smoketest workflows (all 4 caps validated)",
       "author": "Elijah Kerry",
-      "date": "2026-06-28T16:54:52Z"
+      "date": "2026-06-28T16:54:52Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "aaeeffb9be1e86372cbb58a268d4e12f8c91e0f9",
       "short": "aaeeffb",
       "message": "Unit Tests: add LUnit + make ci-tooling.vipc a real VIPC (4.2.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-27T11:01:39Z"
+      "date": "2026-06-27T11:01:39Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "ddf403cd5397f89a08dda9e8b89472eb18fe44c3",
       "short": "ddf403c",
       "message": "README: clear, compelling project overview + matching Apply to New Repo CTA (4.1.36)",
       "author": "Elijah Kerry",
-      "date": "2026-06-27T04:05:24Z"
+      "date": "2026-06-27T04:05:24Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "a8547f3ba0b9b52b56eb898a189298959c49dca1",
       "short": "a8547f3",
       "message": "TEMP: warm-batch smoketests for vi-analyzer/unit-tests/antidoc (delete before merge)",
       "author": "Elijah Kerry",
-      "date": "2026-06-26T04:41:53Z"
+      "date": "2026-06-26T04:41:53Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "d7c00aac873a668c18003003a32613be4a800ae5",
       "short": "d7c00aa",
       "message": "dashboard: guard run-timing so an API hiccup can't break the build",
       "author": "Elijah Kerry",
-      "date": "2026-06-26T04:31:45Z"
+      "date": "2026-06-26T04:31:45Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "09abdb9b65506f774714804dfccf14bf939253dc",
       "short": "09abdb9",
       "message": "Fix docker cp out of warm container (Windows trailing-dot rejected)",
       "author": "Elijah Kerry",
-      "date": "2026-06-26T00:54:04Z"
+      "date": "2026-06-26T00:54:04Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "288d438cf2946f6e4d7897e8fd826f13b8178270",
       "short": "288d438",
       "message": "TEMP: warm-batch smoketest workflow (delete before merge)",
       "author": "Elijah Kerry",
-      "date": "2026-06-25T23:57:18Z"
+      "date": "2026-06-25T23:57:18Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "70370a86a327b8033ae046e18d00ac189c3d3ed6",
       "short": "70370a8",
       "message": "Warm-container history backfills (opt-in) (4.2.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-25T23:56:00Z"
+      "date": "2026-06-25T23:56:00Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "a111d8f6089773367674b564f5cd80e826cd1d1b",
       "short": "a111d8f",
       "message": "wait-for-worker-image: wait long enough for a cold first build (4.1.35)",
       "author": "Elijah Kerry",
-      "date": "2026-06-25T19:50:54Z"
+      "date": "2026-06-25T19:50:54Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "c3f67085e3f01a239c67fe388f832f3b10f94860",
       "short": "c3f6708",
       "message": "install: prune vendored tooling files removed from source on update (4.1.34)",
       "author": "Elijah Kerry",
-      "date": "2026-06-25T18:54:44Z"
+      "date": "2026-06-25T18:54:44Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "c9b67767107642488c2f51650c840dd17e527ab5",
       "short": "c9b6776",
       "message": "integrate: clear finished installs from the 'Installs in progress' panel (4.1.33)",
       "author": "Elijah Kerry",
-      "date": "2026-06-25T17:50:34Z"
+      "date": "2026-06-25T17:50:34Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "09fedca5ed7da52f105c8bbd4ac4f3a7564296e2",
       "short": "09fedca",
       "message": "docs: rewrite Documentation for LabVIEW users new to CI (4.1.32)",
       "author": "Elijah Kerry",
-      "date": "2026-06-25T16:25:39Z"
+      "date": "2026-06-25T16:25:39Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "53cc6c05a3e4b1f7bdf21e958192da23d836cba1",
       "short": "53cc6c0",
       "message": "vidiff-deploy: checkout repo before local publish-gh-pages action (4.1.31)",
       "author": "Elijah Kerry",
-      "date": "2026-06-25T02:54:02Z"
+      "date": "2026-06-25T02:54:02Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "0a77185af24ca3bd9c6acbfe4d5d9f97bc249b64",
       "short": "0a77185",
       "message": "Show queued manual runs on dashboard",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T22:33:55Z"
+      "date": "2026-06-24T22:33:55Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "195e779f3ca648882d5ffe014cf4f3784ac6c816",
       "short": "195e779",
       "message": "Make VI Analyzer Windows-only",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T22:04:16Z"
+      "date": "2026-06-24T22:04:16Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "8b8e98448b14797d575ff8cfd6b3029a79ea1611",
       "short": "8b8e984",
       "message": "Handle missing report documents without Pages 404",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T21:56:42Z"
+      "date": "2026-06-24T21:56:42Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "b9d5fd561094d030cbb496ba7f72e815d0233690",
       "short": "b9d5fd5",
       "message": "Restore Pages publisher for history backfills",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T21:47:43Z"
+      "date": "2026-06-24T21:47:43Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "2db555e9609fd41389ad7bf3d61dd489d47582d3",
       "short": "2db555e",
       "message": "Use installed VIPM inventory for dependency status",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T21:41:40Z"
+      "date": "2026-06-24T21:41:40Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "cfabf8973b77d98b21a06d6a5f4094b520c9b860",
       "short": "cfabf89",
       "message": "Fix Linux Beta VIPC staging directory",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T21:19:39Z"
+      "date": "2026-06-24T21:19:39Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "36e64157c17aa51726f7df725e635e51a9b1aad7",
       "short": "36e6415",
       "message": "Move dependency monitoring to Dependencies page",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T21:18:14Z"
+      "date": "2026-06-24T21:18:14Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "889d3fd3d31673b7bca8cb245019bae13e7d6918",
       "short": "889d3fd",
       "message": "dashboard: compact tile grid for mobile revision cards (4.1.24)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T20:58:37Z"
+      "date": "2026-06-24T20:58:37Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "e57206380f2a014c3c700007be6712d76da8e3fb",
       "short": "e572063",
       "message": "Bake VI Browser 2.0 render engine into the Linux worker (4.1.23)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T19:45:28Z"
+      "date": "2026-06-24T19:45:28Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "4eda8af4a0d3a6c16ecc35b0fb727b9d7d02d5fe",
       "short": "4eda8af",
       "message": "Don't run VI Snapshots when installing the pipeline (4.1.22)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T19:15:09Z"
+      "date": "2026-06-24T19:15:09Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "f103d9ae882510ae9cc9bf3c30afa72e237eaf8a",
       "short": "f103d9a",
       "message": "Centralize gh-pages publishing into one retry-safe composite action (4.1.21)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T18:59:44Z"
+      "date": "2026-06-24T18:59:44Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "502bdf80c01d2bf68b71dd36671a85348a1a4866",
       "short": "502bdf8",
       "message": "Fix worker-manifest gh-pages publish race (Copy Linux worker failure) (4.1.20)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T18:40:36Z"
+      "date": "2026-06-24T18:40:36Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "63bb4b9da14710d38ff337b59c9facd1c79f9d83",
       "short": "63bb4b9",
       "message": "Make the Linux worker symmetric with Windows: opt-in bake, separate install copy (4.1.19)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T18:21:56Z"
+      "date": "2026-06-24T18:21:56Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "909dea81a9b89e587ef37e0209f58346d67d3ec3",
       "short": "909dea8",
       "message": "Configure auto-dependency-update UI; Dependencies links to it (4.1.18)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T18:02:22Z"
+      "date": "2026-06-24T18:02:22Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "526ae3cedaa11537f19f5faca77206c24924a50f",
       "short": "526ae3c",
       "message": "Restore opt-in monitored auto-rebuild for the worker (4.1.17)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T17:42:29Z"
+      "date": "2026-06-24T17:42:29Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "8f62e6141cc7e019f08dd0ba210c8c1185dc9bb1",
       "short": "8f62e61",
       "message": "Split worker image Build and Copy into two distinct workflows (4.1.16)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T17:06:59Z"
+      "date": "2026-06-24T17:06:59Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "7a808d7039e5e1c39587eb522c1f974daf079e4a",
       "short": "7a808d7",
       "message": "Installer setup times match observed fresh installs (4.1.15)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T16:55:30Z"
+      "date": "2026-06-24T16:55:30Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "63e8b72c2e9b582530744946a54957619cd6355d",
       "short": "63e8b72",
       "message": "dashboard: retry the gh-pages deploy on a push race (4.1.14)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T16:41:40Z"
+      "date": "2026-06-24T16:41:40Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "8ee6e2953e49241b19e02641ac7e9fd851b0bbed",
       "short": "8ee6e29",
       "message": "installer: repoint a stale README dashboard link to the target repo (4.1.13)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T15:56:55Z"
+      "date": "2026-06-24T15:56:55Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "cbe9cc942cdb31e0538ddbd63010d61342c869f1",
       "short": "cbe9cc9",
       "message": "Wire experimental-gated Windows Beta copy + dashboard lane (4.1.12)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T15:23:21Z"
+      "date": "2026-06-24T15:23:21Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "69b1f7c35371a14f7411bbff49e87286d3998380",
       "short": "69b1f7c",
       "message": "Add Windows Beta worker image build (fourth LCWC container) (4.1.11)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T15:16:54Z"
+      "date": "2026-06-24T15:16:54Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "8aa49525cb2fed574d5777a2034f129a0cb39c9a",
       "short": "8aa4952",
       "message": "One-time reset: rebase Beta container recipes onto Core (4.1.10)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T15:00:04Z"
+      "date": "2026-06-24T15:00:04Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "4c4046338834c65b7b22679e15b209c69ea2dc4d",
       "short": "4c40463",
       "message": "Graduate VI Snapshots 2.0 to a core feature; add experimental.vipc (4.1.9)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T14:49:31Z"
+      "date": "2026-06-24T14:49:31Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "9accee13f65d68296e28bbe4269e1e2fd13d758f",
       "short": "9accee1",
       "message": "Name worker-image runs Copy vs Build to reflect what they do (4.1.8)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T14:17:20Z"
+      "date": "2026-06-24T14:17:20Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "b1ddf9344568b8406bd6da89cfb2ecfe5fcbb8e6",
       "short": "b1ddf93",
       "message": "Install: dispatch the Windows worker build with copy_only=true (4.1.7)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T14:09:55Z"
+      "date": "2026-06-24T14:09:55Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "cf88c13aa243e84c0a7b4e518a226038532c7f3e",
       "short": "cf88c13",
       "message": "Linux installs copy the shared LCWC base (source/client split) like Windows (4.1.6)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T13:43:41Z"
+      "date": "2026-06-24T13:43:41Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "09e3368e9c6cc19c367321b224938a4a063125cf",
       "short": "09e3368",
       "message": "Linux installs seed without baking project deps; constant install time (4.1.5)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T13:13:16Z"
+      "date": "2026-06-24T13:13:16Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "70f406ffdf36f7869e8704e945e34ef9e14b9414",
       "short": "70f406f",
       "message": "Run copy_only worker install on ubuntu-latest for a fast image copy (4.1.4)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T12:52:04Z"
+      "date": "2026-06-24T12:52:04Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "aa86909f40e4d343507db2df2b26de2721b698a6",
       "short": "aa86909",
       "message": "installer: always copy the worker image, never bake at install (4.1.3)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T12:17:15Z"
+      "date": "2026-06-24T12:17:15Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "8c2f0498ec7eabe98f6648ac53cc27cf3e985315",
       "short": "8c2f049",
       "message": "dashboard: gate Run/Populate to installed workflows; accurate dispatch errors (4.1.2)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T11:44:25Z"
+      "date": "2026-06-24T11:44:25Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "700439845692d64504ef8e6778020babaa73c3e3",
       "short": "7004398",
       "message": "dashboard: keep a running activity visible until all platforms finish (4.1.1)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T11:41:29Z"
+      "date": "2026-06-24T11:41:29Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "5eefd59a44dfeb0b9e9a7b71cf9f75242c9f50e9",
       "short": "5eefd59",
       "message": "VIDiff column: show different / new / deleted VI counts per revision (4.1.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T11:38:46Z"
+      "date": "2026-06-24T11:38:46Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "71bcde99d751433095535fdbeaa4a84b45a3c789",
       "short": "71bcde9",
       "message": "dashboard-pages: rebuild when catalog.json changes",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T11:07:05Z"
+      "date": "2026-06-24T11:07:05Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "5d0c82931da1aa6ebc10f2556074a3418a6508e4",
       "short": "5d0c829",
       "message": "release: bump to 4.0.0 (major)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T05:29:19Z"
+      "date": "2026-06-24T05:29:19Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "04aecf0efb2e3f4515f7c1b495331cf6c0f10b96",
       "short": "04aecf0",
       "message": "rename 'Configure Workers' -> 'Configure Pipeline' across the site",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T05:27:11Z"
+      "date": "2026-06-24T05:27:11Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "efa2a95ca3f620a6bec75f172b84b9c7aaa40edc",
       "short": "efa2a95",
       "message": "configure: simplify to a single Configure Pipeline page (3.52.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T05:15:25Z"
+      "date": "2026-06-24T05:15:25Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "3644eb3393419ef4f8e85ff5320d3f8678da5b6c",
       "short": "3644eb3",
       "message": "catalog: split VI Snapshots 2.0 into its own Windows+Linux capability (3.51.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T05:00:08Z"
+      "date": "2026-06-24T05:00:08Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "361828e301284e85c625d7ae5c4192d465edc408",
       "short": "361828e",
       "message": "install: fix contradictory Capabilities hint about dependencies",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T04:43:46Z"
+      "date": "2026-06-24T04:43:46Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "32e747c79e5056455f5c4aaf0fc301d35b84e8f7",
       "short": "32e747c",
       "message": "docs: note opt-in per-file Monitor auto-rebuild in Configure (off by default)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T04:38:00Z"
+      "date": "2026-06-24T04:38:00Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "ced05c23599837fe9f3406a066086a60a5a54bbf",
       "short": "ced05c2",
       "message": "configure: Container & Dependencies tab; auto-rebuild Monitor opt-in, OFF by default (3.50.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T04:31:59Z"
+      "date": "2026-06-24T04:31:59Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "65aff5dc69883236c65a2a225367b5c2e4c66b66",
       "short": "65aff5d",
       "message": "clients: tabular view with version + staleness column (3.49.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T04:20:19Z"
+      "date": "2026-06-24T04:20:19Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "01f4fb179002f96b63052653bc44e51315b22a9c",
       "short": "01f4fb1",
       "message": "installer: track in-flight installs you can leave and return to (3.48.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T03:58:13Z"
+      "date": "2026-06-24T03:58:13Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "29cf6897f88beb4c3645725690051cf76c7e1894",
       "short": "29cf689",
       "message": "deps table: link VIPC/.dragon file names to GitHub (latest) (3.47.3)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T03:46:13Z"
+      "date": "2026-06-24T03:46:13Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "18271f46b5105b5adb297abfc13a1181a6d830a9",
       "short": "18271f4",
       "message": "deps: clearer update dialog + flag missing items in the table (3.47.2)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T02:48:18Z"
+      "date": "2026-06-24T02:48:18Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "e2e4e60d71e28d6e865a5f05c7761ffe19a573d7",
       "short": "e2e4e60",
       "message": "docs: clarify install-vs-upgrade container management + add Mermaid diagram (3.47.1)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T01:57:03Z"
+      "date": "2026-06-24T01:57:03Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "0c62d04394d8a6c1eb3af891bbb8f601820afb2d",
       "short": "0c62d04",
       "message": "configure: Actions table with per-action Linux/Windows platforms + dependency-policy options (3.47.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T01:21:44Z"
+      "date": "2026-06-24T01:21:44Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "62ff9987faa4a028b0a9ddbaf09fed8e953b9d3a",
       "short": "62ff998",
       "message": "feat(deps): adding a VIPC never auto-rebuilds the worker (3.46.22)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T01:05:01Z"
+      "date": "2026-06-24T01:05:01Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "02f53476df9a2bc700b6f446705d2d9ae004bf77",
       "short": "02f5347",
       "message": "feat(deps): move dependency sub-views into the page as tabs over the table (3.46.21)",
       "author": "Elijah Kerry",
-      "date": "2026-06-24T00:55:41Z"
+      "date": "2026-06-24T00:55:41Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "a9c241b72bbf19cc3fb8bc99b733bdace3d7510a",
       "short": "a9c241b",
       "message": "feat(deps): explicit opt-in dependency container updates (3.46.20)",
       "author": "Elijah Kerry",
-      "date": "2026-06-23T23:45:40Z"
+      "date": "2026-06-23T23:45:40Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "9bf61998cf8511ddcddb050804dfd6ee196c4950",
       "short": "9bf6199",
       "message": "apply page: remove install-time container-build estimates (v3.46.19)",
       "author": "Elijah Kerry",
-      "date": "2026-06-23T23:19:58Z"
-    },
-    {
-      "sha": "113cbc3197cdf4691f091dc9b0bc024d4266511b",
-      "short": "113cbc3",
-      "message": "worker build: use crane for registry-native base copy (v3.46.18)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T23:13:52Z"
+      "date": "2026-06-23T23:19:58Z",
+      "project": false,
+      "dep_only": false
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
       "author": "Elijah Kerry",
-      "date": "2026-06-22T23:57:47Z"
+      "date": "2026-06-22T23:57:47Z",
+      "project": true,
+      "dep_only": true
     },
     {
       "sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e",
       "short": "87482e2",
       "message": "G Image moves into the core CI tooling VIPC (v3.39.2)",
       "author": "Elijah Kerry",
-      "date": "2026-06-22T23:49:40Z"
+      "date": "2026-06-22T23:49:40Z",
+      "project": true,
+      "dep_only": true
     },
     {
       "sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5",
       "short": "d56ded4",
       "message": "Restore Linux-applicable example VIPC artifact (v3.39.1)",
       "author": "Elijah Kerry",
-      "date": "2026-06-22T23:46:25Z"
+      "date": "2026-06-22T23:46:25Z",
+      "project": true,
+      "dep_only": true
     },
     {
       "sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a",
       "short": "197c1be",
       "message": "Clean up dependency management around VIPC files as the source of truth (v3.39.0)",
       "author": "Elijah Kerry",
-      "date": "2026-06-22T23:35:39Z"
+      "date": "2026-06-22T23:35:39Z",
+      "project": true,
+      "dep_only": true
     },
     {
       "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
       "short": "590495f",
       "message": "example: add UTF JUnit reporter deps to Dependencies.vipc",
       "author": "Elijah Kerry",
-      "date": "2026-06-21T16:35:54Z"
+      "date": "2026-06-21T16:35:54Z",
+      "project": true,
+      "dep_only": true
     },
     {
       "sha": "eb2240d106503d2e207374ae8e0c7119af656a45",
       "short": "eb2240d",
       "message": "example: run UTF tests from Example project",
       "author": "Elijah Kerry",
-      "date": "2026-06-21T15:00:06Z"
+      "date": "2026-06-21T15:00:06Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf",
       "short": "3d67c5a",
       "message": "Add VIPC-baked Windows base image workflow",
       "author": "Elijah Kerry",
-      "date": "2026-06-21T14:19:51Z"
+      "date": "2026-06-21T14:19:51Z",
+      "project": true,
+      "dep_only": true
     },
     {
       "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
       "short": "12553d6",
       "message": "added utf files",
       "author": "Elijah Kerry",
-      "date": "2026-06-18T23:03:10Z"
+      "date": "2026-06-18T23:03:10Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "df868ea07cef49f7ed721442b627ec78ba306e7f",
       "short": "df868ea",
       "message": "resized the graph",
       "author": "Elijah Kerry",
-      "date": "2026-06-01T08:20:17Z"
+      "date": "2026-06-01T08:20:17Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "c433e9e5e28492955ffa4d83f0434159b64d3fb7",
       "short": "c433e9e",
       "message": "moved a constant",
       "author": "Elijah Kerry",
-      "date": "2026-05-29T12:38:27Z"
+      "date": "2026-05-29T12:38:27Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1",
       "short": "d1705cb",
       "message": "moved the send command button",
       "author": "Elijah Kerry",
-      "date": "2026-05-29T12:27:27Z"
+      "date": "2026-05-29T12:27:27Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "d1a86a8741bec13cfa11446d0e72d12479a209ae",
       "short": "d1a86a8",
       "message": "fixed errors in motor VIs",
       "author": "Elijah Kerry",
-      "date": "2024-11-21T22:32:29Z"
+      "date": "2024-11-21T22:32:29Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6",
       "short": "2b5f1aa",
       "message": "Minor refinements",
       "author": "Elijah Kerry",
-      "date": "2024-11-21T17:52:34Z"
+      "date": "2024-11-21T17:52:34Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "3d513473c8dce75e22b08294b87de2fb37fd9798",
       "short": "3d51347",
       "message": "Excercise manual correction",
       "author": "Elijah Kerry",
-      "date": "2024-11-21T17:25:43Z"
+      "date": "2024-11-21T17:25:43Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "1b00b2d59dd388f8fb93de6661d429025e320a6b",
       "short": "1b00b2d",
       "message": "Copy of excercise generated",
       "author": "Elijah Kerry",
-      "date": "2024-11-21T17:20:04Z"
+      "date": "2024-11-21T17:20:04Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5",
       "short": "f4640da",
       "message": "Added new excercises",
       "author": "Elijah Kerry",
-      "date": "2024-11-21T16:58:11Z"
+      "date": "2024-11-21T16:58:11Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "f96842dc7fd776c01e186bb089eb7079444390f1",
       "short": "f96842d",
       "message": "improved resize appearance",
       "author": "Elijah Kerry",
-      "date": "2024-11-04T12:09:33Z"
+      "date": "2024-11-04T12:09:33Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "e2ee064d41e45456d7d51afd63c3fce28713fc94",
       "short": "e2ee064",
       "message": "mass compiled on windows",
       "author": "Elijah Kerry",
-      "date": "2024-11-04T12:06:41Z"
+      "date": "2024-11-04T12:06:41Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "abb3a165d423dff26829fa296e1039bbc3903ece",
       "short": "abb3a16",
       "message": "Windows bug",
       "author": "Elijah Kerry",
-      "date": "2024-11-04T11:57:48Z"
+      "date": "2024-11-04T11:57:48Z",
+      "project": true,
+      "dep_only": false
     },
     {
       "sha": "7599b047409f6801f226b06159da3036986c5bb8",
       "short": "7599b04",
       "message": "debugging the assignment of visa resources to curriculum code",
       "author": "Elijah Kerry",
-      "date": "2024-11-04T10:44:47Z"
+      "date": "2024-11-04T10:44:47Z",
+      "project": true,
+      "dep_only": false
     }
   ],
   "config": {
