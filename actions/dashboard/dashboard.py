@@ -791,6 +791,7 @@ for c in commits_data:
             'sha': sha,
             'short': short,
             'msg': msg,
+            'dep_only': bool(_info.get('is_dep_only')),
             'snapshots2': {
                 'windows': {'have': _s2w_have, 'total': _s2w_total},
                 'linux': {'have': _s2l_have, 'total': _s2l_total},
@@ -1479,6 +1480,12 @@ run_dialog_css = (
     '.cidash-hist-specitem input{accent-color:var(--link);width:14px;height:14px;margin:0;flex:0 0 auto}'
     '.cidash-hist-specitem .sh{font-family:ui-monospace,Menlo,monospace;color:var(--fg-muted);flex:0 0 auto}'
     '.cidash-hist-specitem .ms{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}'
+    '.cidash-hist-revfilter{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px}'
+    '.cidash-hist-search{flex:1 1 220px;min-width:150px;padding:7px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.85em;font-family:inherit}'
+    '.cidash-hist-inclchk{display:inline-flex;align-items:center;gap:6px;font-size:.82em;color:var(--fg-muted);cursor:pointer;white-space:nowrap}'
+    '.cidash-hist-inclchk input{accent-color:var(--link);width:14px;height:14px;margin:0}'
+    '.cidash-hist-specitem .cidash-hist-deptag{margin-left:auto;font-size:.7em;color:var(--fg-muted);border:1px solid var(--border);border-radius:4px;padding:0 5px;flex:0 0 auto}'
+    '.cidash-hist-specempty{color:var(--fg-muted);font-size:.84em;padding:8px}'
     # Intro line + the Activities header row (label on the left, quick-preset chips
     # on the right).
     '.cidash-hist-intro{margin:0 0 16px;color:var(--fg-muted);font-size:.86em;line-height:1.55}'
@@ -2605,10 +2612,24 @@ run_dialog = (r"""
       return out;
     }
     function histScopeMode(){ var r=document.querySelector('input[name="cidash-hist-scope"]:checked'); return r ? r.value : 'all'; }
-    function histIdx(sha){ for(var i=0;i<HIST.length;i++){ if(HIST[i].sha===sha) return i; } return -1; }
+    // The revision pickers mirror the dashboard table: dependency-only revisions
+    // (only a .vipc/.vip changed) are hidden unless "Show dependency-only" is on,
+    // and a free-text search narrows by short SHA or commit title. histVisible() is
+    // the newest-first set every scope (all / range / specific) actually operates on.
+    var histSearch = '';
+    var histInclDep = false;
+    function histMatchSearch(r){
+      if(!histSearch) return true;
+      var q=histSearch.toLowerCase();
+      return (String(r.short||'').toLowerCase().indexOf(q)>=0)
+          || (String(r.sha||'').toLowerCase().indexOf(q)>=0)
+          || (String(r.msg||'').toLowerCase().indexOf(q)>=0);
+    }
+    function histVisible(){ return HIST.filter(function(r){ return (histInclDep || !r.dep_only) && histMatchSearch(r); }); }
+    function histIdxIn(list, sha){ for(var i=0;i<list.length;i++){ if(list[i].sha===sha) return i; } return -1; }
     function histIncludedShas(){
-      // Three scopes drive which revisions are queued (HIST is newest-first):
-      //   all      -> every revision
+      // Three scopes drive which revisions are queued (visible set is newest-first):
+      //   all      -> every visible revision
       //   range    -> Start (older bound) .. Stop (newer bound), inclusive; a blank
       //               Start = oldest and a blank Stop = newest, and a reversed pair
       //               is swapped so the range is always valid
@@ -2618,17 +2639,45 @@ run_dialog = (r"""
         Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec:checked'), function(b){ inc[b.value]=1; });
         return inc;
       }
+      var vis=histVisible();
       if(mode==='range'){
         var f=document.getElementById('cidash-hist-from'); var t=document.getElementById('cidash-hist-to');
-        var iFrom = (f && f.value) ? histIdx(f.value) : HIST.length-1;   // '' = oldest
-        var iTo   = (t && t.value) ? histIdx(t.value) : 0;               // '' = newest
-        if(iFrom<0) iFrom=HIST.length-1; if(iTo<0) iTo=0;
+        var iFrom = (f && f.value) ? histIdxIn(vis, f.value) : vis.length-1;   // '' = oldest
+        var iTo   = (t && t.value) ? histIdxIn(vis, t.value) : 0;              // '' = newest
+        if(iFrom<0) iFrom=vis.length-1; if(iTo<0) iTo=0;
         var lo=Math.min(iFrom,iTo), hi=Math.max(iFrom,iTo);
-        for(var j=lo;j<=hi;j++){ if(HIST[j]) inc[HIST[j].sha]=1; }
+        for(var j=lo;j<=hi;j++){ if(vis[j]) inc[vis[j].sha]=1; }
         return inc;
       }
-      HIST.forEach(function(r){ inc[r.sha]=1; });
+      vis.forEach(function(r){ inc[r.sha]=1; });
       return inc;
+    }
+    function histRenderRevList(){
+      // (Re)build the "All" count, the range dropdowns and the specific checklist
+      // from histVisible(), preserving current selections where the revision is
+      // still visible. Called on open and whenever the search / dep toggle changes.
+      var vis=histVisible();
+      var ac=document.getElementById('cidash-hist-allcount');
+      if(ac) ac.textContent='All '+vis.length+' revision'+(vis.length===1?'':'s');
+      var optsHtml=vis.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
+      ['cidash-hist-from','cidash-hist-to'].forEach(function(id){
+        var sel=document.getElementById(id); if(!sel) return;
+        var prev=sel.value;
+        var head=(id==='cidash-hist-from')?'<option value="">Oldest (beginning)</option>':'<option value="">Newest (latest)</option>';
+        sel.innerHTML=head+optsHtml;
+        sel.value=(prev && vis.some(function(r){return r.sha===prev;}))?prev:'';
+      });
+      var checked={};
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec:checked'), function(b){ checked[b.value]=1; });
+      var host=document.getElementById('cidash-hist-speclist'); if(!host) return;
+      if(!vis.length){ host.innerHTML='<div class="cidash-hist-specempty">No revisions match.</div>'; return; }
+      host.innerHTML=vis.map(function(r){
+        return '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"'+(checked[r.sha]?' checked':'')+'>'
+          + '<span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span>'
+          + (r.dep_only?'<span class="cidash-hist-deptag" title="Only an external dependency (.vipc/.vip) changed in this revision">dep</span>':'')
+          + '</label>';
+      }).join('');
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
     }
     function histScopeApply(){
       // Reveal only the sub-control for the chosen scope.
@@ -2776,20 +2825,23 @@ run_dialog = (r"""
       var body=document.getElementById('cidash-hist-body'); if(!body) return;
       var h='';
       h += '<p class="cidash-hist-intro">Queue CI for revisions that already exist so the dashboard fills in. Runs <strong>oldest \u2192 newest</strong>. For each activity, choose to <b>Fill</b> only the missing results or <b>Re-run</b> every selected revision.</p>';
-      var optsHtml = HIST.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
-      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label><div class="cidash-hist-scope">';
-      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> All '+HIST.length+' revision'+(HIST.length===1?'':'s')+' <span class="sub">\u2014 the full history</span></label>';
+      var anyDep = HIST.some(function(r){ return r.dep_only; });
+      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label>';
+      h += '<div class="cidash-hist-revfilter"><input type="text" id="cidash-hist-revsearch" class="cidash-hist-search" placeholder="Search by title or SHA\u2026" autocomplete="off" spellcheck="false" value="'+esc(histSearch)+'">';
+      if(anyDep) h += '<label class="cidash-hist-inclchk" title="Revisions whose only change is an external dependency (.vipc/.vip). Hidden by default, matching the dashboard."><input type="checkbox" id="cidash-hist-incldep"'+(histInclDep?' checked':'')+'> Show dependency-only revisions</label>';
+      h += '</div>';
+      h += '<div class="cidash-hist-scope">';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> <span id="cidash-hist-allcount">All revisions</span> <span class="sub">\u2014 the full history</span></label>';
       h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="range"> A range of history</label>';
       h += '<div class="cidash-hist-rangerow" id="cidash-hist-rangerow" style="display:none">';
-      h += '<label>Start at <select id="cidash-hist-from"><option value="">Oldest (beginning)</option>'+optsHtml+'</select></label>';
-      h += '<label>stop at <select id="cidash-hist-to"><option value="">Newest (latest)</option>'+optsHtml+'</select></label>';
+      h += '<label>Start at <select id="cidash-hist-from"></select></label>';
+      h += '<label>stop at <select id="cidash-hist-to"></select></label>';
       h += '</div>';
       h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="specific"> Specific revision(s)</label>';
       h += '<div id="cidash-hist-specwrap" style="display:none">';
       h += '<div class="cidash-hist-spectools"><a href="#" id="cidash-hist-spec-all">Select all</a><a href="#" id="cidash-hist-spec-none">Clear</a></div>';
-      h += '<div class="cidash-hist-speclist" id="cidash-hist-speclist">';
-      HIST.forEach(function(r){ h += '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"><span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span></label>'; });
-      h += '</div></div>';
+      h += '<div class="cidash-hist-speclist" id="cidash-hist-speclist"></div>';
+      h += '</div>';
       h += '</div></div>';
       var instCaps=histInstalledCaps();
       h += '<div class="cidash-hist-sec"><div class="cidash-hist-actshead"><label class="cidash-hist-lbl" style="margin:0">Activities</label>';
@@ -2845,6 +2897,13 @@ run_dialog = (r"""
       h += '<button class="cidash-btn cidash-go" id="cidash-hist-go">\u25B6 Queue runs</button>';
       h += '<button class="cidash-btn cidash-ghost" id="cidash-hist-cancel">Cancel</button></div>';
       body.innerHTML=h;
+      // Mirror the dashboard's current dependency-only filter so the dialog shows
+      // the same revisions the table does; populate the pickers from the visible set.
+      var _dd=document.getElementById('show-deponly'); histInclDep=!!(_dd && _dd.checked);
+      var _idp=document.getElementById('cidash-hist-incldep'); if(_idp) _idp.checked=histInclDep;
+      histRenderRevList();
+      var _rs=document.getElementById('cidash-hist-revsearch'); if(_rs) _rs.addEventListener('input', function(){ histSearch=_rs.value.trim(); histRenderRevList(); histRefresh(); });
+      if(_idp) _idp.addEventListener('change', function(){ histInclDep=!!_idp.checked; histRenderRevList(); histRefresh(); });
       instCaps.forEach(function(cap){ actMode[cap]='fill'; });   // open with every activity on Fill (gaps only)
       reuseWarm=false;   // warm-container reuse always starts OFF
       var rchk=document.getElementById('cidash-hist-reuse'); if(rchk) rchk.addEventListener('change', function(){ reuseWarm=!!rchk.checked; histRefresh(); });
@@ -2860,7 +2919,6 @@ run_dialog = (r"""
       Array.prototype.forEach.call(document.querySelectorAll('input[name="cidash-hist-scope"]'), function(r){ r.addEventListener('change', function(){ histScopeApply(); histRefresh(); }); });
       var hf=document.getElementById('cidash-hist-from'); if(hf) hf.addEventListener('change', histRefresh);
       var ht=document.getElementById('cidash-hist-to'); if(ht) ht.addEventListener('change', histRefresh);
-      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
       var spa=document.getElementById('cidash-hist-spec-all'); if(spa) spa.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=true; }); histRefresh(); });
       var spn=document.getElementById('cidash-hist-spec-none'); if(spn) spn.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=false; }); histRefresh(); });
       var go=document.getElementById('cidash-hist-go'); if(go) go.addEventListener('click', histRun);
