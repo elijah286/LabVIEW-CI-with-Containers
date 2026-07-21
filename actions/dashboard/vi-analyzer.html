@@ -194,6 +194,7 @@
     let viaDefault = "";
     let viaRules = [];
     let viaConfigs = [];            // discovered .viancfg paths in the repo
+    let viaToolingConfigs = [];     // .viancfg files under CI-tooling dirs (.github/ etc.) - a common misplacement
     let viaPathSuggest = [];        // discovered folders + VIs (datalist suggestions)
     let viaDefaultTouched = false;  // user explicitly chose a default
     let activities = null;          // null until the manifest is read
@@ -337,9 +338,16 @@
       if (off) off.hidden = !(activities && activities.length && !activities.includes("vi-analyzer"));
       const note = $("viaConfigNote");
       if (note) {
-        note.innerHTML = viaConfigs.length
-          ? ("Found " + viaConfigs.length + " <code class=\"inl\">.viancfg</code> file" + (viaConfigs.length === 1 ? "" : "s") + " in the repository.")
-          : "No <code class=\"inl\">.viancfg</code> files found yet \u2014 CI uses the built-in full test suite. Author a configuration in LabVIEW (Tools \u203a VI Analyzer), <strong>Save Configuration</strong>, and commit the <code class=\"inl\">.viancfg</code>; it then appears here.";
+        if (viaConfigs.length) {
+          note.className = "note";
+          note.innerHTML = "Found " + viaConfigs.length + " <code class=\"inl\">.viancfg</code> file" + (viaConfigs.length === 1 ? "" : "s") + " in the repository.";
+        } else if (viaToolingConfigs.length) {
+          note.className = "warnnote";
+          note.innerHTML = "A <code class=\"inl\">.viancfg</code> was found under <code class=\"inl\">" + escapeHtml(viaToolingConfigs[0]) + "</code>, but that folder is part of the CI tooling \u2014 it is <strong>overwritten on every tooling update</strong> and is not scanned for configs. Commit your VI Analyzer config <strong>in your project tree</strong> (for example the repo root, not under <code class=\"inl\">.github/</code>) and it will appear here to select as the default. Author it in LabVIEW (Tools \u203a VI Analyzer \u203a <strong>Save Configuration</strong>).";
+        } else {
+          note.className = "note";
+          note.innerHTML = "No <code class=\"inl\">.viancfg</code> files found yet \u2014 CI uses the built-in full test suite. Author a configuration in LabVIEW (Tools \u203a VI Analyzer), <strong>Save Configuration</strong>, and commit the <code class=\"inl\">.viancfg</code> <strong>in your project tree</strong> (not under <code class=\"inl\">.github/</code>); it then appears here.";
+        }
       }
       const dl = $("viaPathSuggest");
       if (dl) dl.innerHTML = viaPathSuggest.map(p => "<option value=\"" + escapeHtml(p) + "\">").join("");
@@ -430,6 +438,7 @@
         const data = await r.json();
         const isTooling = (p) => /^(\.github|ci-out|build)\//i.test(p);
         viaConfigs = (data.tree || []).filter(t => t.type === "blob" && /\.viancfg$/i.test(t.path) && !isTooling(t.path)).map(t => t.path).sort();
+        viaToolingConfigs = (data.tree || []).filter(t => t.type === "blob" && /\.viancfg$/i.test(t.path) && isTooling(t.path)).map(t => t.path).sort();
         const folders = [], vis = [];
         (data.tree || []).forEach(t => {
           if (isTooling(t.path)) return;
