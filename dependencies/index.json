@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "fd8c52b5ad66808531691988a1b45c17f0bdaae3",
+  "sha": "3c72a97b4ed618123a07b6cc834b9060c9c93cd0",
   "revisions": [
+    {
+      "sha": "3c72a97b4ed618123a07b6cc834b9060c9c93cd0",
+      "short": "3c72a97",
+      "message": "dependencies: select Windows/Linux/both for container update; evaluate Linux column like Windows (4.6.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T23:17:35Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "fd8c52b5ad66808531691988a1b45c17f0bdaae3",
       "short": "fd8c52b",
@@ -895,15 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "8c2f0498ec7eabe98f6648ac53cc27cf3e985315",
-      "short": "8c2f049",
-      "message": "dashboard: gate Run/Populate to installed workflows; accurate dispatch errors (4.1.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T11:44:25Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -981,15 +981,6 @@
       "message": "resized the graph",
       "author": "Elijah Kerry",
       "date": "2026-06-01T08:20:17Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "c433e9e5e28492955ffa4d83f0434159b64d3fb7",
-      "short": "c433e9e",
-      "message": "moved a constant",
-      "author": "Elijah Kerry",
-      "date": "2026-05-29T12:38:27Z",
       "project": true,
       "dep_only": false
     }
