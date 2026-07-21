@@ -517,19 +517,8 @@ jobs:
         run: |
           for VIPC in .github/labview/vipm/ci-tooling.vipc .github/labview/antidoc/antidoc.vipc; do
             if [ -f "$VIPC" ]; then
-              python3 - "$VIPC" <<'PY'
-import sys
-import zipfile
-import xml.etree.ElementTree as ET
-
-path = sys.argv[1]
-with zipfile.ZipFile(path, 'r') as zf:
-    if 'config.xml' not in zf.namelist():
-        raise SystemExit(f'{path} is missing config.xml')
-    ET.fromstring(zf.read('config.xml'))
-print('Validated committed VIPC:', path)
-PY
-          else
+              python3 -c 'import sys, zipfile, xml.etree.ElementTree as ET; p = sys.argv[1]; z = zipfile.ZipFile(p); assert "config.xml" in z.namelist(), p + " is missing config.xml"; ET.fromstring(z.read("config.xml")); print("Validated committed VIPC:", p)' "$VIPC"
+            else
               echo "No committed VIPC found at $VIPC; skipping validation."
             fi
           done
