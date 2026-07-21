@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.6.3",
+  "version": "4.6.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.6.4",
+        "date": "2026-07-21",
+        "title": "Builds report opens framed in the dashboard",
+        "summary": "The dashboard Builds pill now opens the Builds report framed under the shared header (report-viewer) with a revision picker and a Rebuild button, matching the other report columns, and Builds joins the activity switcher and dashboard navigation.",
+        "highlights": [
+          "Builds report opens in the dashboard chrome with a revision picker and Rebuild action",
+          "Builds added to the per-revision activity switcher (Artifacts group) and the dashboard nav"
+        ]
+      },
       {
         "version": "4.6.3",
         "date": "2026-07-21",
