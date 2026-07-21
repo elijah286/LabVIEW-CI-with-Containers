@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "1a15012f944547f2477a9584841d65db7aac74db",
+  "sha": "3922f5704c17f82c88bfdf3408c7e575f96a4712",
   "revisions": [
+    {
+      "sha": "3922f5704c17f82c88bfdf3408c7e575f96a4712",
+      "short": "3922f57",
+      "message": "dependencies: global update card + collapsed file groups with status pills (#34)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T20:00:41Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "1a15012f944547f2477a9584841d65db7aac74db",
       "short": "1a15012",
@@ -891,15 +900,6 @@
       "message": "configure: Container & Dependencies tab; auto-rebuild Monitor opt-in, OFF by default (3.50.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T04:31:59Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "65aff5dc69883236c65a2a225367b5c2e4c66b66",
-      "short": "65aff5d",
-      "message": "clients: tabular view with version + staleness column (3.49.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T04:20:19Z",
       "project": false,
       "dep_only": false
     },
