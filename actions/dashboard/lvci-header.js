@@ -900,16 +900,19 @@
   // Open the dashboard's populate-history dialog as a floating overlay iframe so
   // the user stays on the current report page. The iframe loads the dashboard in
   // embedded "dialog only" mode (&lvci-embed=1): the dashboard hides its chrome
-  // and table and goes transparent, so the iframe reads as a plain modal over the
-  // dimmed report page. The dashboard auto-opens the pre-configured dialog and
-  // signals closure via postMessage, at which point this overlay removes itself.
+  // and table and goes fully transparent, so only the dialog panel shows. THIS
+  // overlay div provides the dim backdrop (a semi-transparent element inside a
+  // transparent iframe does not reliably composite over the host page, which left
+  // the report looking blanked), so the report stays visible-but-dimmed behind the
+  // dialog. The dashboard auto-opens the pre-configured dialog and signals closure
+  // via postMessage, at which point this overlay removes itself.
   function _openHistOverlay(url) {
     var existing = document.getElementById('lvci-hist-overlay');
     if (existing) { existing.remove(); }
     var frameUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'lvci-embed=1';
     var ov = document.createElement('div');
     ov.id = 'lvci-hist-overlay';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:9990;background:transparent';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.55)';
     var frame = document.createElement('iframe');
     frame.src = frameUrl;
     frame.title = 'Populate dashboard history';
