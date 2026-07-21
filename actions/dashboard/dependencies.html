@@ -48,6 +48,19 @@
     .upd-prog-bar.indeterminate{width:35%;animation:upd-slide 1.5s ease-in-out infinite}
     @keyframes upd-slide{0%{left:-35%}50%{left:50%}100%{left:100%}}
     .upd-hint code{background:var(--chip);padding:1px 5px;border-radius:4px;font-family:ui-monospace,Menlo,monospace}
+    .upd-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:110}
+    .upd-modal-backdrop.hidden{display:none}
+    .upd-modal{width:min(980px,96vw);max-height:88vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+    .upd-modal h3{margin:0 0 6px;font-size:1.1em}
+    .upd-modal p{margin:0 0 10px;color:var(--fg-muted);font-size:.9em}
+    .upd-cmp{width:100%;border-collapse:collapse;margin:10px 0 12px;table-layout:fixed}
+    .upd-cmp th,.upd-cmp td{border:1px solid var(--border);padding:7px 8px;vertical-align:top;font-size:.85em}
+    .upd-cmp th{background:var(--surface2);text-align:left}
+    .upd-cmp td.num{text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .upd-cmp-note{font-size:.82em;color:var(--fg-muted)}
+    .upd-cmp-list{display:flex;flex-wrap:wrap;gap:5px;margin:5px 0 0}
+    .upd-cmp-list .pill{font-size:.78em}
+    .upd-modal-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:12px}
     .dep-missing{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(210,153,34,.65);border-radius:50%;background:rgba(210,153,34,.16);color:var(--warn);font-weight:800;font-size:12px;line-height:1}.dep-na{color:var(--fg-muted);font-size:.72em;font-weight:700;letter-spacing:.04em}.monitorbar{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:12px 13px;margin-bottom:16px}.monitorbar strong{display:block;font-size:.9em}.monitor-help{color:var(--fg-muted);font-size:.84em}.monitor-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.primary{border-color:transparent;background:var(--accent);color:var(--accent-fg);font-weight:700}.primary:hover{border-color:transparent;filter:brightness(1.05)}button:disabled{opacity:.55;cursor:not-allowed}.status{font-size:.84em;color:var(--fg-muted)}.status.ok{color:var(--ok)}.status.err{color:var(--bad)}.tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px 13px;background:var(--surface);margin:-6px 0 16px;font-size:.84em}.tokpanel[hidden]{display:none}.tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--surface2);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.monitor-label{display:inline-flex;align-items:center;gap:7px;font-size:.82em;font-weight:700;color:var(--fg);margin-left:10px;vertical-align:middle}.monitor-label input{width:16px;height:16px;accent-color:var(--ok);margin:0}.monitor-label input:disabled{opacity:.5}.monitor-col{width:150px;min-width:150px;max-width:150px;text-align:center}.file-table{min-width:640px}.file-table .pkg{white-space:normal}.dep-subtitle{font-size:.92em;margin:14px 0 6px}.locked{opacity:.75}
   </style>
 </head>
@@ -138,6 +151,7 @@
     let monitorDirty = false;
     let pendingTokenAction = null;
     let updTracker = null;
+    let updModal = null;
 
     function repoFromUrl(){
       if (cfg.repo) return cfg.repo;
@@ -591,6 +605,140 @@
         setUpdateStatus("Network error: " + esc(String(e && e.message || e)), "err");
       }
     }
+    function splitPkgId(pkg){
+      const s = String(pkg || '').trim();
+      if (!s) return { base:'', version:'' };
+      let idx = -1;
+      for (let i = 0; i < s.length - 1; i++) {
+        if (s[i] !== '-' || !/\d/.test(s[i + 1])) continue;
+        const suf = s.slice(i + 1);
+        if (/^[0-9A-Za-z][0-9A-Za-z.-]*$/.test(suf) && suf.indexOf('.') >= 0) { idx = i; break; }
+      }
+      if (idx < 0) idx = s.lastIndexOf('-');
+      if (idx <= 0) return { base:s, version:'' };
+      return { base:s.slice(0, idx), version:s.slice(idx + 1) };
+    }
+    function buildByBase(ids){
+      const out = new Map();
+      (ids || []).forEach(id => {
+        const p = splitPkgId(id);
+        if (!p.base) return;
+        if (!out.has(p.base)) out.set(p.base, []);
+        out.get(p.base).push(String(id));
+      });
+      return out;
+    }
+    function desiredVipmSetForContainer(_containerKey){
+      const set = new Set();
+      currentVipcs.forEach(v => {
+        if (!v || v.monitored === false || v.configured === false) return;
+        (v.packages || []).forEach(p => { if (p) set.add(String(p)); });
+      });
+      return set;
+    }
+    function containerDiff(containerKey){
+      const st = currentColStates[containerKey] || {};
+      const cur = (st.packages instanceof Set) ? st.packages : new Set(Array.isArray(st.packages) ? st.packages : []);
+      const des = desiredVipmSetForContainer(containerKey);
+      let added = Array.from(des).filter(p => !cur.has(p));
+      let removed = Array.from(cur).filter(p => !des.has(p));
+      const upgrades = [];
+      const addByBase = buildByBase(added);
+      const remByBase = buildByBase(removed);
+      const consumeAdd = new Set();
+      const consumeRem = new Set();
+      addByBase.forEach((toIds, base) => {
+        const fromIds = remByBase.get(base) || [];
+        if (!fromIds.length) return;
+        upgrades.push({ base, from:fromIds.slice(), to:toIds.slice() });
+        fromIds.forEach(x => consumeRem.add(x));
+        toIds.forEach(x => consumeAdd.add(x));
+      });
+      added = added.filter(x => !consumeAdd.has(x)).sort((a,b) => a.localeCompare(b));
+      removed = removed.filter(x => !consumeRem.has(x)).sort((a,b) => a.localeCompare(b));
+      upgrades.sort((a,b) => a.base.localeCompare(b.base));
+      return {
+        currentCount: cur.size,
+        targetCount: des.size,
+        added,
+        removed,
+        upgrades,
+        notes: st.unsupported ? (st.unsupportedReason || 'unsupported') : (!st.ready ? 'worker manifest unavailable' : '')
+      };
+    }
+    function previewPills(items, max){
+      const arr = Array.isArray(items) ? items : [];
+      if (!arr.length) return '<span class="upd-cmp-note">none</span>';
+      const shown = arr.slice(0, max).map(p => '<span class="pill">' + esc(p) + '</span>').join('');
+      const more = arr.length > max ? '<span class="pill">+' + (arr.length - max) + ' more</span>' : '';
+      return '<div class="upd-cmp-list">' + shown + more + '</div>';
+    }
+    function ensureUpdateModal(){
+      if (updModal) return updModal;
+      const host = document.createElement('div');
+      host.id = 'updConfirmBackdrop';
+      host.className = 'upd-modal-backdrop hidden';
+      host.innerHTML =
+        '<div class="upd-modal" role="dialog" aria-modal="true" aria-labelledby="updConfirmTitle">' +
+        '<h3 id="updConfirmTitle">Confirm container dependency update</h3>' +
+        '<p id="updConfirmSub"></p>' +
+        '<div id="updConfirmBody"></div>' +
+        '<div class="upd-modal-actions">' +
+        '<button type="button" id="updConfirmCancel">Cancel</button>' +
+        '<button type="button" class="upd-btn" id="updConfirmApprove">Approve and start update</button>' +
+        '</div></div>';
+      document.body.appendChild(host);
+      host.addEventListener('click', e => { if (e.target === host) host.classList.add('hidden'); });
+      const cancel = host.querySelector('#updConfirmCancel');
+      if (cancel) cancel.addEventListener('click', () => host.classList.add('hidden'));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') host.classList.add('hidden'); });
+      updModal = host;
+      return updModal;
+    }
+    function openUpdateApprovalDialog(){
+      const mode = selectedUpdateMode();
+      const modal = ensureUpdateModal();
+      const sub = modal.querySelector('#updConfirmSub');
+      const body = modal.querySelector('#updConfirmBody');
+      const targets = [
+        { key:'windows', label:'Windows', dispatch:true },
+        { key:'linux', label:'Linux', dispatch:false },
+      ];
+      const rows = [];
+      const details = [];
+      targets.forEach(t => {
+        const d = containerDiff(t.key);
+        const note = [];
+        if (!t.dispatch) note.push('this action dispatches Windows rebuild only');
+        if (d.notes) note.push(d.notes);
+        rows.push('<tr>' +
+          '<td><strong>' + esc(t.label) + '</strong></td>' +
+          '<td class="num">' + d.currentCount + '</td>' +
+          '<td class="num">' + d.targetCount + '</td>' +
+          '<td class="num">' + d.added.length + '</td>' +
+          '<td class="num">' + d.upgrades.length + '</td>' +
+          '<td class="num">' + d.removed.length + '</td>' +
+          '<td class="upd-cmp-note">' + esc(note.join(' · ') || (t.dispatch ? 'will apply' : 'not selected')) + '</td>' +
+          '</tr>');
+        details.push('<div class="upd-block"><div class="upd-k">' + esc(t.label) + ' preview</div>' +
+          '<div class="upd-cmp-note">Added</div>' + previewPills(d.added, 8) +
+          '<div class="upd-cmp-note" style="margin-top:6px">Version changes</div>' + previewPills(d.upgrades.map(u => u.base + ': ' + u.from.join(', ') + ' -> ' + u.to.join(', ')), 6) +
+          '<div class="upd-cmp-note" style="margin-top:6px">Removed</div>' + previewPills(d.removed, 8) +
+          '</div>');
+      });
+      if (sub) sub.innerHTML = 'Final approval required before starting. Mode: <strong>' + esc(mode) + '</strong>.';
+      if (body) body.innerHTML =
+        '<table class="upd-cmp"><thead><tr><th>Container</th><th>Current</th><th>Target</th><th>Add</th><th>Upgrade</th><th>Remove</th><th>Notes</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>' +
+        details.join('');
+      const approve = modal.querySelector('#updConfirmApprove');
+      if (approve) {
+        approve.onclick = () => {
+          modal.classList.add('hidden');
+          dispatchContainerUpdate();
+        };
+      }
+      modal.classList.remove('hidden');
+    }
     function updMissingList(d){
       let out = '';
       const files = (d && d.vipcs) || [];
@@ -637,7 +785,7 @@
         if (hint) hint.innerHTML = 'Starts the <strong>Build LabVIEW CI Image</strong> workflow with <code>update_mode</code> = <code>' + esc(mode) + '</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.';
       }));
       const runBtn = $("updRun");
-      if (runBtn) runBtn.addEventListener("click", dispatchContainerUpdate);
+      if (runBtn) runBtn.addEventListener("click", openUpdateApprovalDialog);
       resumeContainerTracking();
     }
     function presentCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><input class="dep-check" type="checkbox" checked disabled aria-label="Present"></td>'; }
