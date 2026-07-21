@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.4.16",
+  "version": "4.4.17",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,11 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.4.17",
+        "date": "2026-07-21",
+        "notes": "Linux worker dependency updates reach parity with Windows. The Dependencies page\u2019s \u201cRun the container update\u201d flow now dispatches the Linux worker build (build-labview-linux-image.yml) alongside the Windows build for whichever container is behind, each with the chosen update_mode, and its progress bar tracks both runs at once. build-labview-linux-image.yml gained the update_mode input (replace rebuilds the moving linux tags in place; new publishes a dated tag alongside), and the dashboard\u2019s deps-pending signal now flags a Linux dependency gap independently of Windows."
+      },
       {
         "version": "4.4.16",
         "date": "2026-07-21",

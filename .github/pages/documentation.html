@@ -1108,6 +1108,12 @@ docker run --rm `
         non-interactively inside a <code>docker build</code> required solving several non-obvious problems,
         documented in <code>.github/labview/vipm/README.md</code> and implemented by
         <code>install-vipc.ps1</code>:</p>
+      <div class="note"><span class="lbl">Linux bakes the same dependencies</span>
+        The Linux worker (<code>labview-ci-linux.Dockerfile</code>) installs VIPM from the native Debian package and
+        applies the same staged repository <code>.vipc</code> files during its build via
+        <code>install-vipc-linux.sh</code> (VIPM CLI under <code>Xvfb</code> + headless LabVIEW), publishing a
+        <code>workers/linux</code> manifest just like Windows. So the Dependencies page shows real per-package Linux
+        coverage and its columns are first-class, not &ldquo;pending&rdquo;.</div>
       <ol>
         <li><strong>Use VIPM 2026 Q3</strong> from the JKI CDN — the older NI-feed CLI times out on
           <code>library_list</code> with no diagnostic.</li>
@@ -1544,7 +1550,19 @@ flowchart TD
         <strong>bake-only</strong>: a project dependency change does <strong>not</strong> rebuild the worker by default
         (the &ldquo;dependencies need to be installed&rdquo; banner prompts an on-demand update), and a push rebuilds
         automatically only when it changes a <strong>monitored</strong> <code>.vipc</code> &mdash; exactly the opt-in
-        behavior of the Windows worker. (The Linux&nbsp;Beta builds directly on <code>ubuntu-latest</code> with no separate gate; the VI&nbsp;Browser 2.0 render engine is now baked into the Linux worker, so there is no separate render image.)</div>
+        behavior of the Windows worker. It also accepts the same <code>update_mode</code> dispatch input
+        (<code>replace</code> rebuilds the moving <code>linux-latest</code>/<code>linux-&lt;year&gt;</code> tags in place;
+        <code>new</code> publishes a fresh <code>&lt;tag&gt;-deps-&lt;date&gt;</code> tag alongside without moving them).
+        (The Linux&nbsp;Beta builds directly on <code>ubuntu-latest</code> with no separate gate; the VI&nbsp;Browser 2.0 render engine is now baked into the Linux worker, so there is no separate render image.)</div>
+      <div class="note"><span class="lbl">On-demand updates cover both workers</span>
+        The Dependencies page&rsquo;s &ldquo;Run the container update&rdquo; flow dispatches the worker build for every
+        container it flags as behind: <code>build-labview-image.yml</code> for Windows and
+        <code>build-labview-linux-image.yml</code> for Linux, each with the selected <code>update_mode</code>, and its
+        live progress bar tracks both runs at once. The <code>deps-pending.json</code> contract drives this: the
+        dashboard compares each project VIPC&rsquo;s packages against the <em>per-platform</em> baked worker manifest, so
+        its <code>containers</code> array lists <code>windows</code> and/or <code>linux</code> independently (a Linux gap
+        is reported only when a real, non-base Linux worker manifest resolved for the revision), and <code>vipcs</code>
+        is the union of the files missing packages on either worker.</div>
 
       <h3>Complete runner inventory</h3>
       <p>Every workflow in the repository, the runner(s) it uses, what triggers it, and the conditions under which it

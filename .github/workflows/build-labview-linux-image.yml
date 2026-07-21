@@ -27,6 +27,11 @@ on:
         description: 'Deprecated -- :linux-latest is always published now (kept for compatibility)'
         type: boolean
         default: true
+      update_mode:
+        description: 'Dependency update: replace = rebuild the current Linux worker tags in place (actions keep using them automatically); new = publish a new dated tag ALONGSIDE the current one, to select per-action in Configure Workers'
+        type: choice
+        options: [replace, new]
+        default: replace
 
 env:
   # IMAGE_NAME is populated at runtime by the resolve step below (-> $GITHUB_ENV);
@@ -304,6 +309,7 @@ jobs:
           VIPM_EMAIL: ${{ secrets.VIPM_EMAIL }}
           IS_SOURCE: ${{ steps.date.outputs.is_source }}
           VIPC_COUNT: ${{ steps.vipc.outputs.count }}
+          UPDATE_MODE: ${{ github.event.inputs.update_mode || 'replace' }}
         run: |
           set -euo pipefail
           base="${{ env.IMAGE_NAME }}"
@@ -337,22 +343,37 @@ jobs:
           if [ -n "${VIPM_FULL_NAME:-}" ]; then secret_flags+=(--secret id=vipm_full_name,env=VIPM_FULL_NAME); fi
           if [ -n "${VIPM_EMAIL:-}" ]; then secret_flags+=(--secret id=vipm_email,env=VIPM_EMAIL); fi
 
+          # update_mode mirrors the Windows worker: replace (default) rebuilds the
+          # moving tags in place so actions pick up the update automatically; new
+          # publishes a fresh dated tag alongside the current worker WITHOUT moving
+          # :linux-latest / :<tag>, so users opt in per action in Configure Workers.
+          update_mode="${UPDATE_MODE:-replace}"
+          if [ "$update_mode" = "new" ]; then
+            new_tag="${tag}-deps-${date_tag}"
+            image_tags=("${base}:${worker_version}" "${base}:${new_tag}")
+          else
+            image_tags=("${base}:${tag}" "${base}:${tag}-${date_tag}" "${base}:${worker_version}" "${base}:linux-latest")
+          fi
+          tag_flags=()
+          for t in "${image_tags[@]}"; do tag_flags+=(-t "$t"); done
+
           docker buildx build \
             --platform linux/amd64 \
             --file .github/docker/labview-ci-linux.Dockerfile \
             --build-arg CI_WORKER_VERSION="${worker_version}" \
             --build-arg LABVIEW_VERSION="${{ vars.LABVIEW_VERSION || '2026' }}" \
-            -t "${base}:${tag}" \
-            -t "${base}:${tag}-${date_tag}" \
-            -t "${base}:${worker_version}" \
-            -t "${base}:linux-latest" \
+            "${tag_flags[@]}" \
             "${secret_flags[@]}" \
             --load \
             .
 
-          for image_tag in "${base}:${tag}" "${base}:${tag}-${date_tag}" "${base}:${worker_version}" "${base}:linux-latest"; do
+          for image_tag in "${image_tags[@]}"; do
             docker push "$image_tag"
           done
+
+          if [ "$update_mode" = "new" ]; then
+            echo "::notice::Published a NEW Linux worker tag '${base}:${new_tag}' alongside the current container. Select it per action in Configure Workers; existing actions keep using the current :linux-latest / :${tag} worker until you switch them."
+          fi
 
       - name: Generate worker manifest
         env:

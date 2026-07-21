@@ -4100,22 +4100,33 @@ def _compute_deps_pending(data):
     return {str(p).lower() for p in (c.get('packages') or [])}
 
   win_baked = baked('windows')
-  lin_baked = baked('linux')
+  # The Linux worker now installs VIPM natively and bakes repository VIPC (same as
+  # Windows), so a Linux dependency gap is flagged independently -- but only when a
+  # real Linux worker manifest resolved for this revision (a non-base, ready tag).
+  # Otherwise (Linux unused / base image) there is no worker to bake into and we do
+  # not surface a spurious Linux update prompt.
+  lin_col = cols.get('linux') or {}
+  lin_active = bool(lin_col.get('ready')) and str(lin_col.get('tag') or 'base') not in ('base', 'none')
+  lin_baked = baked('linux') if lin_active else set()
   pending_pkgs = set()
   pending_files = []
-  lin_missing = False
+  lin_pending_files = []
   for v in data.get('vipc', []):
     if v.get('role') != 'project' or not v.get('configured') or v.get('error'):
       continue
     pkgs = v.get('packages') or []
     if not pkgs:
       continue
-    missing = [p for p in pkgs if str(p).lower() not in win_baked]
-    if missing:
+    win_missing = [p for p in pkgs if str(p).lower() not in win_baked]
+    if win_missing:
       pending_files.append(v.get('path'))
-      pending_pkgs.update(missing)
-    if any(str(p).lower() not in lin_baked for p in pkgs):
-      lin_missing = True
+      pending_pkgs.update(win_missing)
+    if lin_active:
+      lin_missing_pkgs = [p for p in pkgs if str(p).lower() not in lin_baked]
+      if lin_missing_pkgs:
+        lin_pending_files.append(v.get('path'))
+        pending_pkgs.update(lin_missing_pkgs)
+  lin_missing = bool(lin_pending_files)
 
   dragon = data.get('dragon') or {}
   monitored_dragon_keys = set()
@@ -4137,18 +4148,19 @@ def _compute_deps_pending(data):
   containers = []
   if pending_files:
     containers.append('windows')
-    if lin_missing:
-      containers.append('linux')
+  if lin_missing:
+    containers.append('linux')
   if dragon_pending:
-    containers.append('windows')
+    containers.append('windows-beta')
 
+  all_files = sorted(set(pending_files) | set(lin_pending_files), key=str.lower)
   return {
     'schema': 1,
-    'pending': bool(pending_files or dragon_pending),
+    'pending': bool(pending_files or lin_missing or dragon_pending),
     'repo': data.get('repo', ''),
     'sha': data.get('sha', ''),
     'packages': sorted(pending_pkgs, key=str.lower),
-    'vipcs': pending_files,
+    'vipcs': all_files,
     'dragon': dragon_pending,
     'containers': sorted(set(containers)),
     'generated': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
