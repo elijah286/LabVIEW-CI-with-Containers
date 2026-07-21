@@ -61,7 +61,7 @@
     .upd-cmp-list{display:flex;flex-wrap:wrap;gap:5px;margin:5px 0 0}
     .upd-cmp-list .pill{font-size:.78em}
     .upd-modal-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:12px}
-    .dep-missing{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(210,153,34,.65);border-radius:50%;background:rgba(210,153,34,.16);color:var(--warn);font-weight:800;font-size:12px;line-height:1}.dep-na{color:var(--fg-muted);font-size:.72em;font-weight:700;letter-spacing:.04em}.monitorbar{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:12px 13px;margin-bottom:16px}.monitorbar strong{display:block;font-size:.9em}.monitor-help{color:var(--fg-muted);font-size:.84em}.monitor-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.primary{border-color:transparent;background:var(--accent);color:var(--accent-fg);font-weight:700}.primary:hover{border-color:transparent;filter:brightness(1.05)}button:disabled{opacity:.55;cursor:not-allowed}.status{font-size:.84em;color:var(--fg-muted)}.status.ok{color:var(--ok)}.status.err{color:var(--bad)}.tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px 13px;background:var(--surface);margin:-6px 0 16px;font-size:.84em}.tokpanel[hidden]{display:none}.tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--surface2);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.monitor-label{display:inline-flex;align-items:center;gap:7px;font-size:.82em;font-weight:700;color:var(--fg);margin-left:10px;vertical-align:middle}.monitor-label input{width:16px;height:16px;accent-color:var(--ok);margin:0}.monitor-label input:disabled{opacity:.5}.monitor-col{width:150px;min-width:150px;max-width:150px;text-align:center}.file-table{min-width:640px}.file-table .pkg{white-space:normal}.dep-subtitle{font-size:.92em;margin:14px 0 6px}.locked{opacity:.75}
+    .dep-missing{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(210,153,34,.65);border-radius:50%;background:rgba(210,153,34,.16);color:var(--warn);font-weight:800;font-size:12px;line-height:1}.dep-na{color:var(--fg-muted);font-size:.72em;font-weight:700;letter-spacing:.04em}.monitorbar{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:12px 13px;margin-bottom:16px}.monitorbar strong{display:block;font-size:.9em}.monitor-help{color:var(--fg-muted);font-size:.84em}.monitor-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.primary{border-color:transparent;background:var(--accent);color:var(--accent-fg);font-weight:700}.primary:hover{border-color:transparent;filter:brightness(1.05)}button:disabled{opacity:.55;cursor:not-allowed}.status{font-size:.84em;color:var(--fg-muted)}.status.ok{color:var(--ok)}.status.err{color:var(--bad)}.tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px 13px;background:var(--surface);margin:-6px 0 16px;font-size:.84em}.tokpanel[hidden]{display:none}.tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--surface2);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.monitor-label{display:inline-flex;align-items:center;gap:7px;font-size:.82em;font-weight:700;color:var(--fg);margin-left:10px;vertical-align:middle}.monitor-label input{width:16px;height:16px;accent-color:var(--ok);margin:0}.monitor-label input:disabled{opacity:.5}.monitor-col{width:150px;min-width:150px;max-width:150px;text-align:center}.file-table{min-width:640px}.file-table .pkg{white-space:normal}.dep-subtitle{font-size:.92em;margin:14px 0 6px}.locked{opacity:.75}.vipc-child-row td{background:linear-gradient(to right, rgba(88,166,255,.09), rgba(88,166,255,.02) 240px, rgba(88,166,255,0) 360px)}.vipc-child-row .pkg-child{position:relative;padding:0 9px 0 42px}.vipc-child-row .pkg-child::before{content:"";position:absolute;left:16px;top:-1px;bottom:-1px;border-left:1px solid var(--border);opacity:.78}.vipc-child-row .pkg-indent{position:absolute;left:16px;top:50%;width:14px;border-top:1px solid var(--border);transform:translateY(-50%);opacity:.9}.vipc-child-row .pkg-label{position:relative;z-index:1;display:inline-block;padding:4px 10px;border:1px solid rgba(88,166,255,.28);background:rgba(88,166,255,.08);border-radius:8px}.vipc-child-row .pkg-error .pkg-label{font-style:italic;color:var(--fg-muted);border-color:rgba(139,148,158,.35);background:rgba(139,148,158,.07)}.vipc-child-row .pkg-child::after{content:"";position:absolute;left:24px;right:8px;top:4px;bottom:4px;border:1px solid var(--border);border-left:0;border-radius:0 8px 8px 0;opacity:.55;pointer-events:none}.vipc-child-row:not(.vipc-child-first) .pkg-child::after{border-top-color:transparent;border-top-right-radius:0}.vipc-child-row:not(.vipc-child-last) .pkg-child::after{border-bottom-color:transparent;border-bottom-right-radius:0}
   </style>
 </head>
 <body>
@@ -152,6 +152,7 @@
     let pendingTokenAction = null;
     let updTracker = null;
     let updModal = null;
+    let updPending = null;
 
     function repoFromUrl(){
       if (cfg.repo) return cfg.repo;
@@ -209,21 +210,17 @@
     }
 
     async function listCommits(){
-      // Prefer the dashboard's classified inventory (each revision tagged project /
-      // dependency-only) so the picker shows LabVIEW-code changes only, like the
-      // dashboard. Fall back to the VI Browser project-revision index, then to the
-      // raw (unclassified) commit list.
+      try {
+        const runs = await fetchJson(api("/commits?per_page=100"));
+        if (runs.length) return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
+      } catch (_) {}
       if (generatedInventory && Array.isArray(generatedInventory.revisions) && generatedInventory.revisions.length) {
-        return generatedInventory.revisions.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha, project:c.project !== false, depOnly:!!c.dep_only }));
+        return generatedInventory.revisions.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha }));
       }
       try {
         const d = await fetchJson(base + "vi-snapshots/files.json");
         const commits = (d.commits || []).filter(c => c.sha);
-        if (commits.length) return commits.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha, project:true, depOnly:!!c.dep_only }));
-      } catch (_) {}
-      try {
-        const runs = await fetchJson(api("/commits?per_page=100"));
-        if (runs.length) return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
+        if (commits.length) return commits.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha }));
       } catch (_) {}
       const runs = await fetchJson(api("/commits?per_page=30"));
       return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
@@ -345,6 +342,10 @@
       return st;
     }
     function markLinuxVipcPending(col, st){
+      // Linux now installs VIPM natively and bakes repository VIPC into its worker
+      // (same as Windows), so its column reflects the real worker manifest -- no
+      // forced "pending" state. Kept as a pass-through so existing call sites and a
+      // future genuinely-unsupported platform can still route through one place.
       return st;
     }
     function renderConfigSummary(manifest){
@@ -353,7 +354,7 @@
       const actions = manifest && manifest.actions ? Object.entries(manifest.actions) : [];
       const use = manifest && manifest.use ? manifest.use : "";
       if (!use && !vipc.length && !dragon.length && !actions.length) {
-        $("configCard").innerHTML = 'This revision has no <code>config.container</code> block. Windows runners default to the shared repo worker <span class="pill">latest</span>; Linux VIPC application is pending.';
+        $("configCard").innerHTML = 'This revision has no <code>config.container</code> block. Windows and Linux runners default to the shared repo worker <span class="pill">latest</span>.';
         return;
       }
       const bits = [];
@@ -474,6 +475,24 @@
       return (checked && checked.value) || "replace";
     }
     function imageWorkflowUrl(){ return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/build-labview-image.yml" : "https://github.com/actions/workflows/build-labview-image.yml"; }
+    function updWorkflowUrl(file){ return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/" + file : "https://github.com/actions/workflows/" + file; }
+    // Each dependency worker has its own on-demand build workflow. The Dependencies
+    // update flow dispatches the ones whose container is flagged pending, so Linux
+    // gets the same one-click bake as Windows.
+    const UPDATE_WORKFLOWS = {
+      windows: { key:"windows", file:"build-labview-image.yml", label:"Windows" },
+      linux:   { key:"linux",   file:"build-labview-linux-image.yml", label:"Linux" }
+    };
+    function updTargets(){
+      const containers = (updPending && Array.isArray(updPending.containers)) ? updPending.containers : [];
+      const keys = [];
+      // The standard Windows worker build covers both the 'windows' VIPC bake and the
+      // 'windows-beta' Dragon/NIPM lane; fall back to Windows when nothing is flagged.
+      if (containers.includes("windows") || containers.includes("windows-beta") || !containers.length) keys.push("windows");
+      if (containers.includes("linux")) keys.push("linux");
+      const seen = new Set();
+      return keys.filter(k => (seen.has(k) ? false : (seen.add(k), true))).map(k => UPDATE_WORKFLOWS[k]).filter(Boolean);
+    }
     function setUpdateStatus(html, kind){
       const st = $("updStatus"); if (!st) return;
       st.innerHTML = html || "";
@@ -511,95 +530,121 @@
         return { total, done, running };
       } catch (_) { return null; }
     }
-    async function updPoll(){
-      const tr = updTracker; if (!tr) return;
-      let run = null;
+    async function updPollTarget(t, dispatchAt){
       try {
-        if (!tr.runId){
-          const lr = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/build-labview-image.yml/runs?event=workflow_dispatch&per_page=10", { headers:updHeaders(), cache:"no-cache" });
+        if (!t.runId){
+          const lr = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/" + t.file + "/runs?event=workflow_dispatch&per_page=10", { headers:updHeaders(), cache:"no-cache" });
           if (lr.ok){
             const d = await lr.json(); const runs = (d && d.workflow_runs) || [];
-            const m = runs.find(r => new Date(r.created_at).getTime() >= tr.dispatchAt - 90000);
-            if (m){ tr.runId = m.id; run = m; }
+            const m = runs.find(r => new Date(r.created_at).getTime() >= dispatchAt - 90000);
+            if (m){ t.runId = m.id; t.run = m; }
           }
         } else {
-          const rr = await fetch("https://api.github.com/repos/" + repo + "/actions/runs/" + tr.runId, { headers:updHeaders(), cache:"no-cache" });
-          if (rr.ok) run = await rr.json();
+          const rr = await fetch("https://api.github.com/repos/" + repo + "/actions/runs/" + t.runId, { headers:updHeaders(), cache:"no-cache" });
+          if (rr.ok) t.run = await rr.json();
         }
       } catch (_) {}
+    }
+    function updSeg(label, state, url){ return '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(label) + ': ' + esc(state) + ' &#8599;</a>'; }
+    async function updPoll(){
+      const tr = updTracker; if (!tr) return;
+      await Promise.all(tr.targets.map(t => updPollTarget(t, tr.dispatchAt)));
       const elapsed = Date.now() - tr.dispatchAt;
-      const link = ' &middot; <a href="' + esc(run ? run.html_url : imageWorkflowUrl()) + '" target="_blank" rel="noopener">View run &#8599;</a>';
-      if (!run){
-        showUpdProgress("Starting...", "Waiting for the run to register &middot; " + updFmtElapsed(elapsed) + link, 6, "", true);
-        return;
+      const segs = [];
+      let anyRun = false, allDone = true, anyFail = false, pctSum = 0, pctN = 0, anyDeterminate = false;
+      for (const t of tr.targets){
+        const run = t.run;
+        const url = run ? run.html_url : updWorkflowUrl(t.file);
+        if (!run){ segs.push(updSeg(t.label, "starting", url)); allDone = false; continue; }
+        anyRun = true;
+        if (run.status === "completed"){
+          const ok = run.conclusion === "success";
+          if (!ok) anyFail = true;
+          segs.push(updSeg(t.label, ok ? "done" : (run.conclusion || "failed"), url));
+          pctSum += 100; pctN++; anyDeterminate = true;
+          continue;
+        }
+        allDone = false;
+        if (run.status === "in_progress"){
+          const sp = await updStepProgress(run.id);
+          if (sp && sp.total){
+            const pct = Math.max(12, Math.round(sp.done / sp.total * 100));
+            pctSum += pct; pctN++; anyDeterminate = true;
+            segs.push(updSeg(t.label, "step " + sp.done + "/" + sp.total + (sp.running ? " (" + sp.running + ")" : ""), url));
+          } else {
+            segs.push(updSeg(t.label, "building", url));
+          }
+        } else {
+          segs.push(updSeg(t.label, "queued", url));
+        }
       }
-      if (run.status === "completed"){
-        const ok = run.conclusion === "success";
-        const dur = updFmtElapsed(new Date(run.updated_at).getTime() - new Date(run.run_started_at || run.created_at).getTime());
-        showUpdProgress(ok ? "Container update complete" : "Container update " + esc(run.conclusion || "failed"),
-          "Finished in " + dur + link, 100, ok ? "ok" : "err", false);
+      const meta = segs.join(" &middot; ") + " &middot; " + updFmtElapsed(elapsed);
+      if (anyRun && allDone){
+        showUpdProgress(anyFail ? "Container update failed" : "Container update complete", meta, 100, anyFail ? "err" : "ok", false);
         if (tr.timer) clearInterval(tr.timer);
         updTracker = null;
         return;
       }
-      if (run.status === "in_progress"){
-        const sp = await updStepProgress(tr.runId);
-        if (sp && sp.total){
-          const pct = Math.max(12, Math.round(sp.done / sp.total * 100));
-          showUpdProgress("Building the worker container...",
-            "Step " + sp.done + " of " + sp.total + (sp.running ? " &middot; " + esc(sp.running) : "") + " &middot; " + updFmtElapsed(elapsed) + link, pct, "", false);
-        } else {
-          showUpdProgress("Building the worker container...", "In progress &middot; " + updFmtElapsed(elapsed) + link, 50, "", true);
-        }
-        return;
-      }
-      showUpdProgress("Queued...", "Waiting for a runner &middot; " + updFmtElapsed(elapsed) + link, 10, "", true);
+      const pct = pctN ? Math.round(pctSum / pctN) : 6;
+      showUpdProgress(anyRun ? "Building the worker container(s)..." : "Starting...", meta, pct, "", !anyDeterminate);
     }
-    function startContainerTracking(){
+    function startContainerTracking(targets){
       if (updTracker && updTracker.timer) clearInterval(updTracker.timer);
-      updTracker = { runId:null, dispatchAt:Date.now(), timer:null };
-      showUpdProgress("Starting...", "Dispatching the workflow...", 4, "", true);
+      updTracker = { dispatchAt:Date.now(), targets:targets.map(t => ({ file:t.file, label:t.label, runId:null, run:null })), timer:null };
+      showUpdProgress("Starting...", "Dispatching the workflow" + (targets.length > 1 ? "s" : "") + "...", 4, "", true);
       updPoll();
       updTracker.timer = setInterval(updPoll, 15000);
     }
     async function resumeContainerTracking(){
       if (!repo.includes("/") || updTracker) return;
+      const targets = updTargets();
+      const resume = [];
       try {
-        const lr = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/build-labview-image.yml/runs?per_page=5", { headers:updHeaders(), cache:"no-cache" });
-        if (!lr.ok) return;
-        const d = await lr.json(); const runs = (d && d.workflow_runs) || [];
-        const active = runs.find(r => r.status !== "completed");
-        if (!active || updTracker) return;
-        updTracker = { runId:active.id, dispatchAt:new Date(active.created_at).getTime(), timer:null };
-        updPoll();
-        updTracker.timer = setInterval(updPoll, 15000);
+        for (const t of targets){
+          const lr = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/" + t.file + "/runs?per_page=5", { headers:updHeaders(), cache:"no-cache" });
+          if (!lr.ok) continue;
+          const d = await lr.json(); const runs = (d && d.workflow_runs) || [];
+          const active = runs.find(r => r.status !== "completed");
+          if (active) resume.push({ file:t.file, label:t.label, runId:active.id, run:active, startedAt:new Date(active.created_at).getTime() });
+        }
       } catch (_) {}
+      if (!resume.length || updTracker) return;
+      const dispatchAt = Math.min.apply(null, resume.map(r => r.startedAt));
+      updTracker = { dispatchAt, targets:resume.map(r => ({ file:r.file, label:r.label, runId:r.runId, run:r.run })), timer:null };
+      updPoll();
+      updTracker.timer = setInterval(updPoll, 15000);
     }
     async function dispatchContainerUpdate(){
       if (!repo.includes("/")) { setUpdateStatus("Could not determine repository.", "err"); return; }
       const mode = selectedUpdateMode();
       if (!token()) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("Running the container update needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setUpdateStatus("Paste a token to run the container update."); return; }
+      const targets = updTargets();
       const btn = $("updRun");
       if (btn) { btn.disabled = true; btn.textContent = "Starting..."; }
-      setUpdateStatus("Starting the container update (update_mode = " + esc(mode) + ")...");
+      setUpdateStatus("Starting the container update for " + esc(targets.map(t => t.label).join(" + ")) + " (update_mode = " + esc(mode) + ")...");
+      const dispatched = [];
       try {
-        const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/build-labview-image.yml/dispatches", {
-          method:"POST",
-          headers:{ "Authorization":"Bearer " + token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json" },
-          body:JSON.stringify({ ref:workflowRef(), inputs:{ update_mode:mode } })
-        });
-        if (btn) { btn.disabled = false; btn.textContent = "Run the container update"; }
-        if (r.status === 204) {
-          hideTokenPanel();
-          pendingTokenAction = null;
-          setUpdateStatus("Container update started (update_mode = <code>" + esc(mode) + "</code>).", "ok");
-          startContainerTracking();
+        for (const t of targets){
+          const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/" + t.file + "/dispatches", {
+            method:"POST",
+            headers:{ "Authorization":"Bearer " + token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json" },
+            body:JSON.stringify({ ref:workflowRef(), inputs:{ update_mode:mode } })
+          });
+          if (r.status === 204) { dispatched.push(t); continue; }
+          if (btn) { btn.disabled = false; btn.textContent = "Run the container update"; }
+          if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} pendingTokenAction = dispatchContainerUpdate; showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setUpdateStatus("Token rejected (401).", "err"); return; }
+          if (r.status === 403) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code>" + esc(repo) + "</code>."); setUpdateStatus("Dispatch forbidden (403).", "err"); return; }
+          if (r.status === 404) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("The saved token cannot see <code>" + esc(repo) + "</code>, or this repo does not have <code>" + esc(t.file) + "</code> installed."); setUpdateStatus("Workflow <code>" + esc(t.file) + "</code> not found or repo not accessible (404).", "err"); return; }
+          setUpdateStatus("Dispatch of <code>" + esc(t.file) + "</code> failed (HTTP " + r.status + ").", "err");
           return;
         }
-        if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} pendingTokenAction = dispatchContainerUpdate; showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setUpdateStatus("Token rejected (401).", "err"); return; }
-        if (r.status === 403) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code>" + esc(repo) + "</code>."); setUpdateStatus("Dispatch forbidden (403).", "err"); return; }
-        if (r.status === 404) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("The saved token cannot see <code>" + esc(repo) + "</code>, or this repo does not have <code>build-labview-image.yml</code> installed."); setUpdateStatus("Workflow not found or repo not accessible (404).", "err"); return; }
-        setUpdateStatus("Dispatch failed (HTTP " + r.status + ").", "err");
+        if (btn) { btn.disabled = false; btn.textContent = "Run the container update"; }
+        if (dispatched.length){
+          hideTokenPanel();
+          pendingTokenAction = null;
+          setUpdateStatus("Container update started for " + esc(dispatched.map(t => t.label).join(" + ")) + " (update_mode = <code>" + esc(mode) + "</code>).", "ok");
+          startContainerTracking(dispatched);
+        }
       } catch (e) {
         if (btn) { btn.disabled = false; btn.textContent = "Run the container update"; }
         setUpdateStatus("Network error: " + esc(String(e && e.message || e)), "err");
@@ -700,16 +745,17 @@
       const modal = ensureUpdateModal();
       const sub = modal.querySelector('#updConfirmSub');
       const body = modal.querySelector('#updConfirmBody');
+      const dispatchKeys = new Set(updTargets().map(t => t.key));
       const targets = [
-        { key:'windows', label:'Windows', dispatch:true },
-        { key:'linux', label:'Linux', dispatch:false },
+        { key:'windows', label:'Windows', dispatch:dispatchKeys.has('windows') },
+        { key:'linux', label:'Linux', dispatch:dispatchKeys.has('linux') },
       ];
       const rows = [];
       const details = [];
       targets.forEach(t => {
         const d = containerDiff(t.key);
         const note = [];
-        if (!t.dispatch) note.push('this action dispatches Windows rebuild only');
+        if (!t.dispatch) note.push('already up to date; not part of this update');
         if (d.notes) note.push(d.notes);
         rows.push('<tr>' +
           '<td><strong>' + esc(t.label) + '</strong></td>' +
@@ -763,6 +809,7 @@
       if (!el) return;
       let d = null;
       try { d = await fetchJson(base + "deps-pending.json"); } catch(_) {}
+      updPending = d;
       if (!d || !d.pending) { el.classList.add("hidden"); el.innerHTML = ""; return; }
       el.classList.remove("hidden");
       el.innerHTML =
@@ -775,14 +822,14 @@
         '<label class="upd-radio"><input type="radio" name="updMode" value="new"> <span><strong>Create new containers</strong> &mdash; publish a new tagged container alongside the current one; select it per action in Configure Pipeline.</span></label>' +
         '</div>' +
         '<div class="upd-actions"><button type="button" class="upd-btn" id="updRun">Run the container update</button>' +
-        '<span class="upd-hint">Starts the <strong>Build LabVIEW CI Image</strong> workflow with <code>update_mode</code> = <code>replace</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.</span></div>' +
+        '<span class="upd-hint">Rebuilds the affected worker container(s) with <code>update_mode</code> = <code>replace</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.</span></div>' +
         '<div class="status upd-run-status" id="updStatus"></div>' +
         '<div class="upd-progress" id="updProgress"><div class="upd-prog-head"><span class="upd-prog-phase" id="updProgPhase"></span><span class="upd-prog-meta" id="updProgMeta"></span></div><div class="upd-prog-track"><div class="upd-prog-bar" id="updProgBar"></div></div></div>' +
         '<p class="upd-auto">Prefer file changes to rebuild containers automatically? Keep <strong>Monitored</strong> checked for that dependency file here, click <strong>Save monitored files</strong>, and files saved with <code>monitor: true</code> will trigger a rebuild when they change on a submission.</p>';
       el.querySelectorAll('input[name=updMode]').forEach(r => r.addEventListener("change", () => {
         const mode = (el.querySelector('input[name=updMode]:checked') || {}).value || "replace";
         const hint = el.querySelector(".upd-hint");
-        if (hint) hint.innerHTML = 'Starts the <strong>Build LabVIEW CI Image</strong> workflow with <code>update_mode</code> = <code>' + esc(mode) + '</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.';
+        if (hint) hint.innerHTML = 'Rebuilds the affected worker container(s) with <code>update_mode</code> = <code>' + esc(mode) + '</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.';
       }));
       const runBtn = $("updRun");
       if (runBtn) runBtn.addEventListener("click", openUpdateApprovalDialog);
@@ -824,8 +871,8 @@
     }
     var __expPop = null;
     var COL_INFO = {
-      linux: '<span class="exp-pop-h"><strong>Linux &mdash; VIPC support is coming</strong></span>' +
-        'The stable Linux container does not currently apply repository VIPC configurations automatically, so Linux package coverage is shown as missing here until the beta lane graduates.',
+      linux: '<span class="exp-pop-h"><strong>Linux &mdash; dependency worker</strong></span>' +
+        'The Linux worker installs VIPM natively and applies your repository VIPC files when it is built, so this column reflects the packages baked into the current Linux worker manifest &mdash; the same as Windows. Run the dependency update to (re)bake any missing packages.',
       linuxBeta: '<span class="exp-pop-h"><strong>Linux Beta &mdash; VIPM/VIPC validation lane</strong></span>' +
         'A separate Linux worker image that installs VIPM and applies the configured repository VIPC files. It publishes its own workers/linux-beta manifest, so dependency coverage can be proven without changing the stable Linux container.',
       winExp: '<span class="exp-pop-h"><strong>Win Beta &mdash; in-development Windows container</strong></span>' +
@@ -881,8 +928,17 @@
         const monitor = '<label class="monitor-label' + (locked ? ' locked' : '') + '" title="' + (locked ? 'CI tooling dependency is always monitored' : 'Monitor this dependency file') + '"><input type="checkbox" data-monitor-kind="vipc" data-monitor-path="' + esc(v.path) + '" ' + (checked ? 'checked ' : '') + (locked ? 'disabled ' : '') + '><span>Monitored</span></label>';
         rows.push('<tr class="vipc-row"><td colspan="' + (COLS.length + 1) + '"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span> ' + monitor + ' <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + (checked ? '' : ' <span class="pill">unmonitored</span>') + (locked ? ' <span class="pill">locked</span>' : '') + '</td></tr>');
         if (v.open) {
-          if (v.error) rows.push('<tr><td class="pkg">' + esc(v.error) + '</td>' + COLS.map(() => '<td></td>').join('') + '</tr>');
-          (v.packages || []).forEach(pkg => rows.push('<tr><td class="pkg">' + esc(pkg) + '</td>' + COLS.map(c => statusCell(pkg, colStates[c.key], v)).join('') + '</tr>'));
+          const children = [];
+          if (v.error) children.push({ error:true, text:v.error });
+          (v.packages || []).forEach(pkg => children.push({ error:false, text:pkg }));
+          children.forEach((child, childIdx) => {
+            const cls = ['vipc-child-row'];
+            if (childIdx === 0) cls.push('vipc-child-first');
+            if (childIdx === children.length - 1) cls.push('vipc-child-last');
+            const tdCls = 'pkg pkg-child' + (child.error ? ' pkg-error' : '');
+            const cells = child.error ? COLS.map(() => '<td class="cell"></td>').join('') : COLS.map(c => statusCell(child.text, colStates[c.key], v)).join('');
+            rows.push('<tr class="' + cls.join(' ') + '"><td class="' + tdCls + '"><span class="pkg-indent" aria-hidden="true"></span><span class="pkg-label">' + esc(child.text) + '</span></td>' + cells + '</tr>');
+          });
         }
       });
       $("vipcWrap").innerHTML = '<table><thead><tr><th>VIPC / Package</th>' + heads + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
@@ -975,7 +1031,7 @@
       $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not monitored, so its packages do not create dependency warnings. ") : "") + (baseCols.length
         ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
         : "The Windows column resolves to a worker manifest for this revision/configuration.");
-      if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as N/A: " + unsupportedCols.join(", ") + ".";
+      if (unsupportedCols.length) $("status").textContent += " These columns are intentionally shown as N/A: " + unsupportedCols.join(", ") + ".";
       renderVipc(vipcs, colStates);
       renderDragonFiles(dragons);
       renderNipm(platformStates);
@@ -1036,7 +1092,7 @@
       $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not monitored, so its packages do not create dependency warnings. ") : "") + (baseCols.length
         ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
         : "The Windows column resolves to a worker manifest for this dashboard build.");
-      if (unsupportedCols.length) $("status").textContent += " Linux VIPC application is not implemented yet, so these columns are intentionally shown as N/A: " + unsupportedCols.join(", ") + ".";
+      if (unsupportedCols.length) $("status").textContent += " These columns are intentionally shown as N/A: " + unsupportedCols.join(", ") + ".";
       renderVipc(generatedVipcs, colStates);
       renderDragonFiles(generatedDragons);
       renderNipm(platformStates);
@@ -1061,16 +1117,9 @@
       const generatedSha = generatedInventory && generatedInventory.sha;
       if (requestedSha && !commits.some(c => c.sha === requestedSha)) commits.unshift({ sha:requestedSha, short:short(requestedSha), message:"requested revision" });
       if (generatedSha && !commits.some(c => c.sha === generatedSha)) commits.unshift({ sha:generatedSha, short:short(generatedSha), message:"generated dashboard inventory" });
-      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '"'
-        + (c.project === false ? ' data-project="0"' : '')
-        + (c.depOnly ? ' data-deponly="1"' : '')
-        + '>' + esc((c.short || short(c.sha)) + ' \u2014 ' + (c.message || '')) + '</option>').join('');
+      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '">' + esc((c.short || short(c.sha)) + ' - ' + (c.message || '')) + '</option>').join('');
       if (requestedSha && commits.some(c => c.sha === requestedSha)) sel.value = requestedSha;
       else if (generatedSha && commits.some(c => c.sha === generatedSha)) sel.value = generatedSha;
-      // Enhance the native <select> into the shared searchable revision picker
-      // (hides CI-only / dependency-only revisions by default; searchable).
-      const attachRevPicker = () => { if (window.lvciRevPicker) { window.lvciRevPicker(sel).refresh(); return true; } return false; };
-      if (!attachRevPicker()) document.addEventListener('lvci:ready', attachRevPicker, { once:true });
       async function showSelected(){
         const u = new URL(location.href);
         if (sel.value) u.searchParams.set("sha", sel.value);

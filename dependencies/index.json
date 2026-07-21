@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "7722b5fe2c9372f1337c09c84388ab177cfe0538",
+  "sha": "1a15012f944547f2477a9584841d65db7aac74db",
   "revisions": [
+    {
+      "sha": "1a15012f944547f2477a9584841d65db7aac74db",
+      "short": "1a15012",
+      "message": "dependencies: visually nest package rows under VIPC files (#33)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T19:41:27Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "40bbce9d088884bc216323827fffd81fe4b16d2e",
+      "short": "40bbce9",
+      "message": "ci: reconfigure LabVIEW CI settings (#31)",
+      "author": "github-actions[bot]",
+      "date": "2026-07-21T19:41:19Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "7722b5fe2c9372f1337c09c84388ab177cfe0538",
       "short": "7722b5f",
@@ -886,24 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "01f4fb179002f96b63052653bc44e51315b22a9c",
-      "short": "01f4fb1",
-      "message": "installer: track in-flight installs you can leave and return to (3.48.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T03:58:13Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "29cf6897f88beb4c3645725690051cf76c7e1894",
-      "short": "29cf689",
-      "message": "deps table: link VIPC/.dragon file names to GitHub (latest) (3.47.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T03:46:13Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1085,7 +1085,7 @@
     }
   ],
   "config": {
-    "use": "",
+    "use": "latest",
     "actions": {},
     "vipc": [],
     "dragon": [],
