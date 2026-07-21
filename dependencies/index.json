@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "cc6e26867c4721f37a2354e97971932fd4cd01d0",
+  "sha": "fd8c52b5ad66808531691988a1b45c17f0bdaae3",
   "revisions": [
+    {
+      "sha": "fd8c52b5ad66808531691988a1b45c17f0bdaae3",
+      "short": "fd8c52b",
+      "message": "builds: open the Builds report framed in the dashboard (revision picker + Rebuild)",
+      "author": "LabVIEW CI",
+      "date": "2026-07-21T22:53:40Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "cc6e26867c4721f37a2354e97971932fd4cd01d0",
       "short": "cc6e268",
@@ -895,15 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "700439845692d64504ef8e6778020babaa73c3e3",
-      "short": "7004398",
-      "message": "dashboard: keep a running activity visible until all platforms finish (4.1.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T11:41:29Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -990,15 +990,6 @@
       "message": "moved a constant",
       "author": "Elijah Kerry",
       "date": "2026-05-29T12:38:27Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1",
-      "short": "d1705cb",
-      "message": "moved the send command button",
-      "author": "Elijah Kerry",
-      "date": "2026-05-29T12:27:27Z",
       "project": true,
       "dep_only": false
     }
