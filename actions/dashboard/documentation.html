@@ -678,6 +678,25 @@ flowchart TD
         replaces the in-flight run via concurrency instead of greying out as &ldquo;none in scope.&rdquo; The optimistic
         &ldquo;Queued&rdquo; badge overlays that in-flight cell too, so re-running the latest revision's still-running
         activity shows its Queued spinner immediately rather than silently doing nothing.</p>
+      <p>The chooser's <strong>revision picker</strong> (the All / range / specific selectors) mirrors the
+        dashboard table: <strong>dependency-only</strong> revisions &mdash; those whose only change is an external
+        dependency (<code>.vipc</code>/<code>.vip</code>) &mdash; are hidden by default and revealed with a
+        <em>&ldquo;Show dependency-only revisions&rdquo;</em> toggle (shown only when such a revision exists),
+        defaulting to whatever the dashboard's own dependency-only filter is currently set to. A <strong>search
+        box</strong> narrows the picker by commit title or short SHA across all three scopes, so you can queue the
+        latest change to LabVIEW code without scrolling past dependency-only commits. CI-only revisions never appear,
+        because the history feeding the chooser already contains project revisions only.</p>
+      <p>The same <strong>searchable revision picker</strong> backs every other &ldquo;select a revision&rdquo;
+        control (the Dependencies page, the Unit&nbsp;Testing project picker and the per-revision report viewer&rsquo;s
+        Revision selector). It is a shared widget in <code>lvci-header.js</code> (<code>window.lvciRevPicker</code>)
+        that enhances a native <code>&lt;select&gt;</code> in place &mdash; the select stays the source of truth, so
+        existing behaviour (deep links, steppers, change handlers) is unchanged &mdash; and adds a filter box that
+        searches by commit title, build number or short SHA. By default it shows only revisions that change LabVIEW
+        source, hiding CI/tooling and <strong>dependency-only</strong> (<code>.vipc</code>/<code>.vip</code>) revisions
+        behind a &ldquo;Show CI &amp; dependency-only revisions&rdquo; toggle, so picking &ldquo;the latest
+        revision&rdquo; anywhere lands on the latest LabVIEW-code change. The classification is published per revision in
+        <code>dependencies/index.json</code> and <code>vi-snapshots/files.json</code>, so every picker filters
+        identically to the dashboard.</p>
       <p>The Populate-history chooser offers an opt-in <strong>"keep one container warm across revisions"</strong>
         checkbox, shown only when at least one selected activity has a warm-container backfill workflow installed
         (Windows Mass Compile, VI Analyzer, Unit Tests, Antidoc). It is always <strong>off by default</strong> and
@@ -963,6 +982,11 @@ ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, o
         declare the bare form (<code>0.5.0.1</code>), the comparison normalizes that <code>v</code> prefix &mdash; without
         it, correctly-baked packages would be reported as missing and the &ldquo;dependencies need to be installed&rdquo;
         banner would never clear.</p>
+      <p>Dragon dependencies are reconciled against the current <strong>Windows worker</strong> manifest (the worker
+        rebuilt by <code>build-labview-image.yml</code>). If a manifest has not yet published a dedicated
+        <code>dragon.items</code> status block, the dashboard falls back to the installed-package inventories
+        (<code>vipm_packages</code> / <code>nipkg_packages</code>) so already-baked dependencies are marked installed
+        instead of staying stuck at <code>not_attempted</code>.</p>
 
       <h3>When images rebuild</h3>
       <p>A worker rebuild is a heavy, opt-in operation. It runs when you apply a dependency update from the dashboard's
@@ -1084,6 +1108,12 @@ docker run --rm `
         non-interactively inside a <code>docker build</code> required solving several non-obvious problems,
         documented in <code>.github/labview/vipm/README.md</code> and implemented by
         <code>install-vipc.ps1</code>:</p>
+      <div class="note"><span class="lbl">Linux bakes the same dependencies</span>
+        The Linux worker (<code>labview-ci-linux.Dockerfile</code>) installs VIPM from the native Debian package and
+        applies the same staged repository <code>.vipc</code> files during its build via
+        <code>install-vipc-linux.sh</code> (VIPM CLI under <code>Xvfb</code> + headless LabVIEW), publishing a
+        <code>workers/linux</code> manifest just like Windows. So the Dependencies page shows real per-package Linux
+        coverage and its columns are first-class, not &ldquo;pending&rdquo;.</div>
       <ol>
         <li><strong>Use VIPM 2026 Q3</strong> from the JKI CDN — the older NI-feed CLI times out on
           <code>library_list</code> with no diagnostic.</li>
@@ -1160,20 +1190,13 @@ docker run --rm `
         <code>ni_lib_utf_junit_report</code>. Without it baked in, headless UTF runs fail with error
         <code>-350053</code> ("missing or bad files in the operation folder").</div>
 
-      <h3>The tooling VIPC is a real, VIPM-openable file generated without VIPM</h3>
-      <p><code>build-tooling-vipc.py</code> merges <code>ci-tooling.defaults.json</code> (tooling-supplied base
-        packages) with <code>ci-tooling.packages.json</code> (user overrides — user wins on name collision,
-        defaults are additive), resolves each package and its dependency closure against the same public VIPM
-        indexes <code>install-vipc.ps1</code> uses, and downloads each package's <strong>real spec + icon</strong>
-        (every index entry exposes a <code>Spec.URL</code> / <code>Icon.URL</code>) to assemble a genuine
-        <code>ci-tooling.vipc</code> — one a developer can open and edit in VIPM, with no VIPM or Windows
-        required to build it. <code>Included=false</code> keeps the package binaries out, so the file stays small
-        (tens of KB) while remaining a valid VIPC. The harvested spec/icon bytes are byte-identical to what VIPM
-        itself stores, and the archive is written deterministically (sorted entries, fixed timestamps,
-        content-derived ID); determinism matters because the VIPC feeds the worker-version hash, so a stable
-        resolved set yields a stable image tag. Generation needs network access to the public indexes
-        (<code>download.ni.com</code>, <code>www.jkisoft.com</code>); pin versions in the manifest for fully
-        reproducible images (null = latest at generation time).</p>
+      <h3>The committed tooling VIPC is the source of truth</h3>
+      <p>The worker dependency intent is the committed <code>ci-tooling.vipc</code> itself. It must remain a real,
+        VIPM-openable file and is the file applied during image builds. The Reconfigure workflow validates the
+        committed VIPC but does not regenerate it, so a UI-authored VIPC is not overwritten by automation.</p>
+      <p><code>build-tooling-vipc.py</code> remains available as an optional helper: it can assemble a genuine
+        VIPM-openable VIPC from JSON/package-index inputs (real spec + icon assets from public indexes), but that
+        generated output is only authoritative once committed as <code>ci-tooling.vipc</code>.</p>
 
       <!-- 16 ──────────────────────────────────────────────────────────────── -->
       <h2 id="capabilities">16. Capabilities in depth <a class="anchor" href="#capabilities">#</a></h2>
@@ -1282,6 +1305,10 @@ docker run --rm `
         package installed after the Dockerfile's <code>ENV</code> layer (e.g. <code>g-cli</code>) is visible without
         an image rebuild; and it <strong>always emits a safety-net report</strong> even on failure, so the dashboard
         never links to a 404.</p>
+      <p>Dependency intent for this capability is the committed
+        <code>.github/labview/antidoc/antidoc.vipc</code>. As with <code>ci-tooling.vipc</code>, this file is
+        authoritative and must remain VIPM-openable; optional JSON metadata may assist tooling but does not override
+        the committed VIPC.</p>
 
       <h3 id="cap-snapshots">16.6 VI Snapshots &amp; VI Browser <a class="anchor" href="#cap-snapshots">#</a></h3>
       <p>This is the one place that deliberately reuses a warm container. Snapshots are <strong>content-addressed by
@@ -1329,11 +1356,19 @@ docker run --rm `
         </tbody>
       </table>
       <p>A per-revision report is considered "available" when its <code>summary.json</code> exists at
-        <code>&lt;prefix&gt;/&lt;sha&gt;/</code>. The header's "Regenerate for this revision" action dispatches the
-        capability's workflow with <code>inputs.commit_sha</code>; the dashboard's optimistic queued bridge keys on
-        <code>&lt;cap&gt;|&lt;sha&gt;</code>. These conventions are codified in the <code>DOCTYPES</code> table in
-        <code>lvci-header.js</code> — adding a new report type is a single entry there plus emitting the matching
-        <code>window.LVCI</code> config from its generator.</p>
+        <code>&lt;prefix&gt;/&lt;sha&gt;/</code>. The header's re-run action ("Re-run analysis", "Regenerate report",
+        etc.) opens the dashboard's <strong>Populate history</strong> chooser <em>pre-scoped to exactly the report on
+        screen</em> — that activity set to <strong>Re-run</strong>, every other activity to Skip, and the revision
+        scope narrowed to the viewed commit (resolved via <code>currentRevisionSha()</code>, with the platform when the
+        activity is platform-split). On the dashboard the chooser opens inline; on a report page it opens in a floating
+        overlay iframe that loads the dashboard with <code>?lvci-populate=1&amp;lvci-embed=1&amp;cap&amp;sha&amp;platform</code>
+        — embed mode hides the dashboard chrome so only the dialog shows, and the user stays on the report page
+        (the framed dashboard posts <code>lvci:hist-close</code> when the dialog closes, dismissing the overlay).
+        Queuing dispatches the capability's workflow with <code>inputs.commit_sha</code>; the dashboard's optimistic
+        queued bridge keys on <code>&lt;cap&gt;|&lt;sha&gt;</code>. The pre-select matches the viewed revision against
+        the dialog's history via <code>histIdxIn(HIST, sha)</code>. These conventions are codified in the
+        <code>DOCTYPES</code> table in <code>lvci-header.js</code> — adding a new report type is a single entry
+        there plus emitting the matching <code>window.LVCI</code> config from its generator.</p>
 
       <!-- 18 ──────────────────────────────────────────────────────────────── -->
       <h2 id="versioning">18. Versioning &amp; updates <a class="anchor" href="#versioning">#</a></h2>
@@ -1515,7 +1550,19 @@ flowchart TD
         <strong>bake-only</strong>: a project dependency change does <strong>not</strong> rebuild the worker by default
         (the &ldquo;dependencies need to be installed&rdquo; banner prompts an on-demand update), and a push rebuilds
         automatically only when it changes a <strong>monitored</strong> <code>.vipc</code> &mdash; exactly the opt-in
-        behavior of the Windows worker. (The Linux&nbsp;Beta builds directly on <code>ubuntu-latest</code> with no separate gate; the VI&nbsp;Browser 2.0 render engine is now baked into the Linux worker, so there is no separate render image.)</div>
+        behavior of the Windows worker. It also accepts the same <code>update_mode</code> dispatch input
+        (<code>replace</code> rebuilds the moving <code>linux-latest</code>/<code>linux-&lt;year&gt;</code> tags in place;
+        <code>new</code> publishes a fresh <code>&lt;tag&gt;-deps-&lt;date&gt;</code> tag alongside without moving them).
+        (The Linux&nbsp;Beta builds directly on <code>ubuntu-latest</code> with no separate gate; the VI&nbsp;Browser 2.0 render engine is now baked into the Linux worker, so there is no separate render image.)</div>
+      <div class="note"><span class="lbl">On-demand updates cover both workers</span>
+        The Dependencies page&rsquo;s &ldquo;Run the container update&rdquo; flow dispatches the worker build for every
+        container it flags as behind: <code>build-labview-image.yml</code> for Windows and
+        <code>build-labview-linux-image.yml</code> for Linux, each with the selected <code>update_mode</code>, and its
+        live progress bar tracks both runs at once. The <code>deps-pending.json</code> contract drives this: the
+        dashboard compares each project VIPC&rsquo;s packages against the <em>per-platform</em> baked worker manifest, so
+        its <code>containers</code> array lists <code>windows</code> and/or <code>linux</code> independently (a Linux gap
+        is reported only when a real, non-base Linux worker manifest resolved for the revision), and <code>vipcs</code>
+        is the union of the files missing packages on either worker.</div>
 
       <h3>Complete runner inventory</h3>
       <p>Every workflow in the repository, the runner(s) it uses, what triggers it, and the conditions under which it

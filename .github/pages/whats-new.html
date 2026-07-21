@@ -457,6 +457,7 @@
 
     // ---- rendering -------------------------------------------------------
     function releaseCard(rel) {
+      const text = rel.summary || rel.notes || rel.description || "";
       const hi = (rel.highlights || []).map(h => `<li>${esc(h)}</li>`).join("");
       return `<div class="rel">
         <div class="rel-head">
@@ -464,7 +465,7 @@
           ${rel.title ? `<span class="rel-title">${esc(rel.title)}</span>` : ""}
           ${rel.date ? `<span class="rel-date">${esc(rel.date)}</span>` : ""}
         </div>
-        ${rel.summary ? `<p class="rel-sum">${esc(rel.summary)}</p>` : ""}
+        ${text ? `<p class="rel-sum">${esc(text)}</p>` : `<p class="rel-sum">This update was published without detailed release notes. Open the source release to review the exact changes.</p>`}
         ${hi ? `<ul class="rel-hi">${hi}</ul>` : ""}
       </div>`;
     }

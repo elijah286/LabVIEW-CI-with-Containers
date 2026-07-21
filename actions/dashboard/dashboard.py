@@ -780,6 +780,7 @@ for c in commits_data:
             'message': msg,
             'author': author,
             'date': date,
+            'dep_only': bool(_info.get('is_dep_only')),
             'vis': vi_tree(sha),
         })
         # Newest-first list of revisions the history dialog can populate.
@@ -791,6 +792,7 @@ for c in commits_data:
             'sha': sha,
             'short': short,
             'msg': msg,
+            'dep_only': bool(_info.get('is_dep_only')),
             'snapshots2': {
                 'windows': {'have': _s2w_have, 'total': _s2w_total},
                 'linux': {'have': _s2l_have, 'total': _s2l_total},
@@ -1479,6 +1481,12 @@ run_dialog_css = (
     '.cidash-hist-specitem input{accent-color:var(--link);width:14px;height:14px;margin:0;flex:0 0 auto}'
     '.cidash-hist-specitem .sh{font-family:ui-monospace,Menlo,monospace;color:var(--fg-muted);flex:0 0 auto}'
     '.cidash-hist-specitem .ms{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}'
+    '.cidash-hist-revfilter{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px}'
+    '.cidash-hist-search{flex:1 1 220px;min-width:150px;padding:7px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.85em;font-family:inherit}'
+    '.cidash-hist-inclchk{display:inline-flex;align-items:center;gap:6px;font-size:.82em;color:var(--fg-muted);cursor:pointer;white-space:nowrap}'
+    '.cidash-hist-inclchk input{accent-color:var(--link);width:14px;height:14px;margin:0}'
+    '.cidash-hist-specitem .cidash-hist-deptag{margin-left:auto;font-size:.7em;color:var(--fg-muted);border:1px solid var(--border);border-radius:4px;padding:0 5px;flex:0 0 auto}'
+    '.cidash-hist-specempty{color:var(--fg-muted);font-size:.84em;padding:8px}'
     # Intro line + the Activities header row (label on the left, quick-preset chips
     # on the right).
     '.cidash-hist-intro{margin:0 0 16px;color:var(--fg-muted);font-size:.86em;line-height:1.55}'
@@ -2502,7 +2510,7 @@ run_dialog = (r"""
       return CAP_ORDER.filter(function(c){ return (seen[c] || RAN[c]) && RT[c]; });
     }
     function histModal(){ return document.getElementById('cidash-hist-modal'); }
-    function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
+    function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; try{ if(window.parent!==window) window.parent.postMessage('lvci:hist-close',location.origin); }catch(e){} }
     function histStatus(html, kind){
       var s=document.getElementById('cidash-hist-status'); if(!s) return;
       var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
@@ -2605,10 +2613,24 @@ run_dialog = (r"""
       return out;
     }
     function histScopeMode(){ var r=document.querySelector('input[name="cidash-hist-scope"]:checked'); return r ? r.value : 'all'; }
-    function histIdx(sha){ for(var i=0;i<HIST.length;i++){ if(HIST[i].sha===sha) return i; } return -1; }
+    // The revision pickers mirror the dashboard table: dependency-only revisions
+    // (only a .vipc/.vip changed) are hidden unless "Show dependency-only" is on,
+    // and a free-text search narrows by short SHA or commit title. histVisible() is
+    // the newest-first set every scope (all / range / specific) actually operates on.
+    var histSearch = '';
+    var histInclDep = false;
+    function histMatchSearch(r){
+      if(!histSearch) return true;
+      var q=histSearch.toLowerCase();
+      return (String(r.short||'').toLowerCase().indexOf(q)>=0)
+          || (String(r.sha||'').toLowerCase().indexOf(q)>=0)
+          || (String(r.msg||'').toLowerCase().indexOf(q)>=0);
+    }
+    function histVisible(){ return HIST.filter(function(r){ return (histInclDep || !r.dep_only) && histMatchSearch(r); }); }
+    function histIdxIn(list, sha){ for(var i=0;i<list.length;i++){ if(list[i].sha===sha) return i; } return -1; }
     function histIncludedShas(){
-      // Three scopes drive which revisions are queued (HIST is newest-first):
-      //   all      -> every revision
+      // Three scopes drive which revisions are queued (visible set is newest-first):
+      //   all      -> every visible revision
       //   range    -> Start (older bound) .. Stop (newer bound), inclusive; a blank
       //               Start = oldest and a blank Stop = newest, and a reversed pair
       //               is swapped so the range is always valid
@@ -2618,17 +2640,45 @@ run_dialog = (r"""
         Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec:checked'), function(b){ inc[b.value]=1; });
         return inc;
       }
+      var vis=histVisible();
       if(mode==='range'){
         var f=document.getElementById('cidash-hist-from'); var t=document.getElementById('cidash-hist-to');
-        var iFrom = (f && f.value) ? histIdx(f.value) : HIST.length-1;   // '' = oldest
-        var iTo   = (t && t.value) ? histIdx(t.value) : 0;               // '' = newest
-        if(iFrom<0) iFrom=HIST.length-1; if(iTo<0) iTo=0;
+        var iFrom = (f && f.value) ? histIdxIn(vis, f.value) : vis.length-1;   // '' = oldest
+        var iTo   = (t && t.value) ? histIdxIn(vis, t.value) : 0;              // '' = newest
+        if(iFrom<0) iFrom=vis.length-1; if(iTo<0) iTo=0;
         var lo=Math.min(iFrom,iTo), hi=Math.max(iFrom,iTo);
-        for(var j=lo;j<=hi;j++){ if(HIST[j]) inc[HIST[j].sha]=1; }
+        for(var j=lo;j<=hi;j++){ if(vis[j]) inc[vis[j].sha]=1; }
         return inc;
       }
-      HIST.forEach(function(r){ inc[r.sha]=1; });
+      vis.forEach(function(r){ inc[r.sha]=1; });
       return inc;
+    }
+    function histRenderRevList(){
+      // (Re)build the "All" count, the range dropdowns and the specific checklist
+      // from histVisible(), preserving current selections where the revision is
+      // still visible. Called on open and whenever the search / dep toggle changes.
+      var vis=histVisible();
+      var ac=document.getElementById('cidash-hist-allcount');
+      if(ac) ac.textContent='All '+vis.length+' revision'+(vis.length===1?'':'s');
+      var optsHtml=vis.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
+      ['cidash-hist-from','cidash-hist-to'].forEach(function(id){
+        var sel=document.getElementById(id); if(!sel) return;
+        var prev=sel.value;
+        var head=(id==='cidash-hist-from')?'<option value="">Oldest (beginning)</option>':'<option value="">Newest (latest)</option>';
+        sel.innerHTML=head+optsHtml;
+        sel.value=(prev && vis.some(function(r){return r.sha===prev;}))?prev:'';
+      });
+      var checked={};
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec:checked'), function(b){ checked[b.value]=1; });
+      var host=document.getElementById('cidash-hist-speclist'); if(!host) return;
+      if(!vis.length){ host.innerHTML='<div class="cidash-hist-specempty">No revisions match.</div>'; return; }
+      host.innerHTML=vis.map(function(r){
+        return '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"'+(checked[r.sha]?' checked':'')+'>'
+          + '<span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span>'
+          + (r.dep_only?'<span class="cidash-hist-deptag" title="Only an external dependency (.vipc/.vip) changed in this revision">dep</span>':'')
+          + '</label>';
+      }).join('');
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
     }
     function histScopeApply(){
       // Reveal only the sub-control for the chosen scope.
@@ -2776,20 +2826,23 @@ run_dialog = (r"""
       var body=document.getElementById('cidash-hist-body'); if(!body) return;
       var h='';
       h += '<p class="cidash-hist-intro">Queue CI for revisions that already exist so the dashboard fills in. Runs <strong>oldest \u2192 newest</strong>. For each activity, choose to <b>Fill</b> only the missing results or <b>Re-run</b> every selected revision.</p>';
-      var optsHtml = HIST.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
-      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label><div class="cidash-hist-scope">';
-      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> All '+HIST.length+' revision'+(HIST.length===1?'':'s')+' <span class="sub">\u2014 the full history</span></label>';
+      var anyDep = HIST.some(function(r){ return r.dep_only; });
+      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label>';
+      h += '<div class="cidash-hist-revfilter"><input type="text" id="cidash-hist-revsearch" class="cidash-hist-search" placeholder="Search by title or SHA\u2026" autocomplete="off" spellcheck="false" value="'+esc(histSearch)+'">';
+      if(anyDep) h += '<label class="cidash-hist-inclchk" title="Revisions whose only change is an external dependency (.vipc/.vip). Hidden by default, matching the dashboard."><input type="checkbox" id="cidash-hist-incldep"'+(histInclDep?' checked':'')+'> Show dependency-only revisions</label>';
+      h += '</div>';
+      h += '<div class="cidash-hist-scope">';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> <span id="cidash-hist-allcount">All revisions</span> <span class="sub">\u2014 the full history</span></label>';
       h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="range"> A range of history</label>';
       h += '<div class="cidash-hist-rangerow" id="cidash-hist-rangerow" style="display:none">';
-      h += '<label>Start at <select id="cidash-hist-from"><option value="">Oldest (beginning)</option>'+optsHtml+'</select></label>';
-      h += '<label>stop at <select id="cidash-hist-to"><option value="">Newest (latest)</option>'+optsHtml+'</select></label>';
+      h += '<label>Start at <select id="cidash-hist-from"></select></label>';
+      h += '<label>stop at <select id="cidash-hist-to"></select></label>';
       h += '</div>';
       h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="specific"> Specific revision(s)</label>';
       h += '<div id="cidash-hist-specwrap" style="display:none">';
       h += '<div class="cidash-hist-spectools"><a href="#" id="cidash-hist-spec-all">Select all</a><a href="#" id="cidash-hist-spec-none">Clear</a></div>';
-      h += '<div class="cidash-hist-speclist" id="cidash-hist-speclist">';
-      HIST.forEach(function(r){ h += '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"><span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span></label>'; });
-      h += '</div></div>';
+      h += '<div class="cidash-hist-speclist" id="cidash-hist-speclist"></div>';
+      h += '</div>';
       h += '</div></div>';
       var instCaps=histInstalledCaps();
       h += '<div class="cidash-hist-sec"><div class="cidash-hist-actshead"><label class="cidash-hist-lbl" style="margin:0">Activities</label>';
@@ -2845,6 +2898,13 @@ run_dialog = (r"""
       h += '<button class="cidash-btn cidash-go" id="cidash-hist-go">\u25B6 Queue runs</button>';
       h += '<button class="cidash-btn cidash-ghost" id="cidash-hist-cancel">Cancel</button></div>';
       body.innerHTML=h;
+      // Mirror the dashboard's current dependency-only filter so the dialog shows
+      // the same revisions the table does; populate the pickers from the visible set.
+      var _dd=document.getElementById('show-deponly'); histInclDep=!!(_dd && _dd.checked);
+      var _idp=document.getElementById('cidash-hist-incldep'); if(_idp) _idp.checked=histInclDep;
+      histRenderRevList();
+      var _rs=document.getElementById('cidash-hist-revsearch'); if(_rs) _rs.addEventListener('input', function(){ histSearch=_rs.value.trim(); histRenderRevList(); histRefresh(); });
+      if(_idp) _idp.addEventListener('change', function(){ histInclDep=!!_idp.checked; histRenderRevList(); histRefresh(); });
       instCaps.forEach(function(cap){ actMode[cap]='fill'; });   // open with every activity on Fill (gaps only)
       reuseWarm=false;   // warm-container reuse always starts OFF
       var rchk=document.getElementById('cidash-hist-reuse'); if(rchk) rchk.addEventListener('change', function(){ reuseWarm=!!rchk.checked; histRefresh(); });
@@ -2860,7 +2920,6 @@ run_dialog = (r"""
       Array.prototype.forEach.call(document.querySelectorAll('input[name="cidash-hist-scope"]'), function(r){ r.addEventListener('change', function(){ histScopeApply(); histRefresh(); }); });
       var hf=document.getElementById('cidash-hist-from'); if(hf) hf.addEventListener('change', histRefresh);
       var ht=document.getElementById('cidash-hist-to'); if(ht) ht.addEventListener('change', histRefresh);
-      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
       var spa=document.getElementById('cidash-hist-spec-all'); if(spa) spa.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=true; }); histRefresh(); });
       var spn=document.getElementById('cidash-hist-spec-none'); if(spn) spn.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=false; }); histRefresh(); });
       var go=document.getElementById('cidash-hist-go'); if(go) go.addEventListener('click', histRun);
@@ -2882,7 +2941,7 @@ run_dialog = (r"""
       // platform-split - limit to the document's platform. Falls back silently to
       // the normal full dialog when the revision/activity isn't on this dashboard.
       try{
-        if(opts.sha && histIdx(opts.sha)>=0){
+        if(opts.sha && histIdxIn(HIST, opts.sha)>=0){
           var sp=document.querySelector('input[name="cidash-hist-scope"][value="specific"]'); if(sp){ sp.checked=true; histScopeApply(); }
           Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=(b.value===opts.sha); });
         }
@@ -2927,6 +2986,23 @@ run_dialog = (r"""
     }
     // Exposed for the shared header's "Populate history" menu item.
     window.lvciRunHistory = histOpen;
+    // When the dialog is opened inside an overlay iframe from a report page's
+    // "Re-run" (host requests ?lvci-embed=1), show ONLY the dialog: hide the
+    // dashboard header/table and make the page transparent, so the iframe reads
+    // as a plain modal over the dimmed host page, not the whole dashboard behind it.
+    function lvciEmbedMode(){
+      try{
+        var d=document.documentElement; if(d.classList.contains('lvci-embed')) return; d.classList.add('lvci-embed');
+        var st=document.createElement('style');
+        st.textContent='html.lvci-embed,html.lvci-embed body{background:transparent!important}'
+          +'html.lvci-embed body>*:not(#cidash-hist-modal){display:none!important}'
+          +'html.lvci-embed #cidash-hist-modal{background:rgba(0,0,0,.55)!important}';
+        (document.head||document.documentElement).appendChild(st);
+      }catch(e){}
+    }
+    // Apply embed hiding synchronously - this script runs while the page is still
+    // parsing (before <main>/the table below), so the chrome is never painted.
+    try{ if(new URLSearchParams(location.search||'').get('lvci-embed')==='1') lvciEmbedMode(); }catch(e){}
     // Exposed because the modal's "× Close" button and backdrop use inline onclick
     // handlers, which resolve against window — not this IIFE's scope. Without this
     // the close button silently did nothing (the Cancel button and Esc, which call
@@ -2945,9 +3021,11 @@ run_dialog = (r"""
       try{
         var p=new URLSearchParams(location.search||'');
         if(p.get('lvci-populate')!=='1') return;
+        var embed=(p.get('lvci-embed')==='1');
         var opts={ cap:(p.get('cap')||''), sha:(p.get('sha')||''), platform:(p.get('platform')||'') };
-        try{ ['lvci-populate','cap','sha','platform'].forEach(function(k){ p.delete(k); });
+        try{ ['lvci-populate','lvci-embed','cap','sha','platform'].forEach(function(k){ p.delete(k); });
              var qs=p.toString(); history.replaceState(null,'',location.pathname+(qs?('?'+qs):'')+location.hash); }catch(e){}
+        if(embed) lvciEmbedMode();
         histOpen((opts.cap||opts.sha)?opts:undefined);
       }catch(e){}
     }
@@ -3751,8 +3829,7 @@ def _load_dragon_module():
   """Import the shared .dragon TOML parser (.github/labview/dragon_deps.py).
 
   Returns the module, or False when it (or a TOML backend) is unavailable so the
-  dashboard still builds. Dragon dependency management is an experimental,
-  Win-Beta-only capability; a repo without the parser simply shows no Dragon
+  dashboard still builds. A repo without the parser simply shows no Dragon
   items."""
   global _DRAGON_MOD
   if _DRAGON_MOD is not None:
@@ -3800,12 +3877,108 @@ def _dragon_status_index(man):
           out[key] = item
   return out
 
-def _annotate_dragon_status(dep, status_index, have_manifest):
+def _vipm_version_index(man):
+  """Map vipm package name -> installed version set from a worker manifest."""
+  out = {}
+  if isinstance(man, dict):
+    for pkg in man.get('vipm_packages') or []:
+      if isinstance(pkg, dict):
+        name = str(pkg.get('name') or '').strip().lower()
+        version = str(pkg.get('version') or '').strip()
+        if name:
+          out.setdefault(name, set()).add(version)
+  return out
+
+def _nipkg_version_index(man):
+  """Map nipkg package name -> installed version set from a worker manifest."""
+  out = {}
+  if isinstance(man, dict):
+    for pkg in man.get('nipkg_packages') or []:
+      if isinstance(pkg, dict):
+        name = str(pkg.get('name') or '').strip().lower()
+        version = str(pkg.get('version') or '').strip()
+        if name:
+          out.setdefault(name, set()).add(version)
+  return out
+
+def _infer_dragon_status(dep, have_manifest, baked_packages, vipm_index, nipkg_index):
+  """Best-effort Dragon status from worker inventories when no dragon block exists.
+
+  Some worker manifests do not publish a dedicated `dragon.items` section yet.
+  In that case, infer status from installed VIPM/NIPM package inventories so an
+  already-baked dependency is not stuck at `not_attempted` forever."""
+  if not have_manifest:
+    return None
+  manager = str(dep.get('manager') or 'vipm').strip().lower()
+  pkg = str(dep.get('package_id') or '').strip()
+  declared = str(dep.get('declared_version') or '').strip()
+  if not pkg:
+    return None
+
+  if manager == 'vipm':
+    low = pkg.lower()
+    versions = sorted(v for v in (vipm_index.get(low) or set()) if v)
+    # Match by explicit package/version id first (pkg-1.2.3 or pkg-v1.2.3), then
+    # by package name/version from `vipm list --installed` parsing.
+    ids = set()
+    if declared:
+      ids.add(f'{pkg}-{declared}'.lower())
+      if not declared.lower().startswith('v'):
+        ids.add(f'{pkg}-v{declared}'.lower())
+    if ids and any(i in baked_packages for i in ids):
+      return {
+        'status': 'installed',
+        'installed_version': declared,
+        'message': 'inferred from Windows worker VIPM package inventory',
+      }
+    if declared and versions and declared in versions:
+      return {
+        'status': 'installed',
+        'installed_version': declared,
+        'message': 'inferred from Windows worker VIPM package inventory',
+      }
+    if versions:
+      return {
+        'status': 'wrong_version',
+        'installed_version': versions[0],
+        'message': 'package is installed, but at a different version',
+      }
+    return {
+      'status': 'missing',
+      'installed_version': '',
+      'message': 'package not found in Windows worker VIPM package inventory',
+    }
+
+  if manager == 'nipm':
+    low = pkg.lower()
+    versions = sorted(v for v in (nipkg_index.get(low) or set()) if v)
+    if not versions:
+      return {
+        'status': 'missing',
+        'installed_version': '',
+        'message': 'package not found in Windows worker NIPM package inventory',
+      }
+    if not declared or declared in versions:
+      return {
+        'status': 'installed',
+        'installed_version': declared or versions[0],
+        'message': 'inferred from Windows worker NIPM package inventory',
+      }
+    return {
+      'status': 'wrong_version',
+      'installed_version': versions[0],
+      'message': 'package is installed, but at a different version',
+    }
+
+  return None
+
+def _annotate_dragon_status(dep, status_index, have_manifest, baked_packages, vipm_index, nipkg_index):
   """Overlay an install status onto a declared Dragon dependency in place.
 
   A cross-file conflict always wins; otherwise the reconciled worker-manifest
-  status is used; a missing manifest means the Win Beta image has not been built
-  yet (pending), and an item absent from a present manifest is not_attempted."""
+  status is used; a missing manifest means the Windows worker has not been built
+  yet (pending), and an item absent from a present manifest falls back to
+  best-effort inference from installed-package inventories."""
   if dep.get('conflict'):
     dep['status'] = 'conflict'
     dep.setdefault('installed_version', '')
@@ -3817,12 +3990,18 @@ def _annotate_dragon_status(dep, status_index, have_manifest):
     dep['installed_version'] = str(st.get('installed_version') or '')
     dep['message'] = str(st.get('message') or '')
   else:
-    dep['status'] = 'not_attempted' if have_manifest else 'pending'
-    dep.setdefault('installed_version', '')
-    dep.setdefault('message', '')
+    inferred = _infer_dragon_status(dep, have_manifest, baked_packages, vipm_index, nipkg_index)
+    if inferred:
+      dep['status'] = inferred['status']
+      dep['installed_version'] = inferred.get('installed_version', '')
+      dep['message'] = inferred.get('message', '')
+    else:
+      dep['status'] = 'not_attempted' if have_manifest else 'pending'
+      dep.setdefault('installed_version', '')
+      dep.setdefault('message', '')
 
 def _build_dragon_section(config=None):
-  """Build the Dragon dependency block for the Dependencies index (Win Beta only).
+  """Build the Dragon dependency block for the Dependencies index (Windows).
 
   Declared dependencies come from repository .dragon files. Each file carries its
   monitor flag so the Dependencies page can suppress warnings and auto-update
@@ -3845,10 +4024,10 @@ def _build_dragon_section(config=None):
     entry = configured.get(f.get('source_file') or '')
     f['monitored'] = bool(entry and entry.get('monitor') is True) if has_config_list else True
   if not files:
-    # No .dragon files in this revision: skip the experimental manifest fetch.
+    # No .dragon files in this revision: skip the worker-manifest fetch.
     return {
       'available': inv.get('available', False),
-      'column': 'winExp',
+      'column': 'windows',
       'ready': False,
       'health': '',
       'manifest_version': '',
@@ -3856,21 +4035,24 @@ def _build_dragon_section(config=None):
       'install_set': [],
       'conflicts': inv.get('conflicts') or [],
     }
-  exp_man = _worker_manifest('windows-beta', 'latest')
-  have_manifest = isinstance(exp_man, dict)
-  status_index = _dragon_status_index(exp_man)
-  exp_dragon = exp_man.get('dragon') if have_manifest else None
+  win_man = _worker_manifest('windows', 'latest')
+  have_manifest = isinstance(win_man, dict)
+  status_index = _dragon_status_index(win_man)
+  win_dragon = win_man.get('dragon') if have_manifest else None
+  baked_packages = {str(p).lower() for p in _manifest_packages(win_man)} if have_manifest else set()
+  vipm_index = _vipm_version_index(win_man) if have_manifest else {}
+  nipkg_index = _nipkg_version_index(win_man) if have_manifest else {}
   for item in inv.get('install_set') or []:
-    _annotate_dragon_status(item, status_index, have_manifest)
+    _annotate_dragon_status(item, status_index, have_manifest, baked_packages, vipm_index, nipkg_index)
   for f in files:
     for dep in f.get('dependencies') or []:
-      _annotate_dragon_status(dep, status_index, have_manifest)
+      _annotate_dragon_status(dep, status_index, have_manifest, baked_packages, vipm_index, nipkg_index)
   return {
     'available': inv.get('available', False) or bool(files),
-    'column': 'winExp',
+    'column': 'windows',
     'ready': have_manifest,
-    'health': (exp_dragon or {}).get('health', '') if isinstance(exp_dragon, dict) else '',
-    'manifest_version': exp_man.get('version', '') if have_manifest else '',
+    'health': (win_dragon or {}).get('health', '') if isinstance(win_dragon, dict) else '',
+    'manifest_version': win_man.get('version', '') if have_manifest else '',
     'files': files,
     'install_set': inv.get('install_set') or [],
     'conflicts': inv.get('conflicts') or [],
@@ -3918,22 +4100,33 @@ def _compute_deps_pending(data):
     return {str(p).lower() for p in (c.get('packages') or [])}
 
   win_baked = baked('windows')
-  lin_baked = baked('linux')
+  # The Linux worker now installs VIPM natively and bakes repository VIPC (same as
+  # Windows), so a Linux dependency gap is flagged independently -- but only when a
+  # real Linux worker manifest resolved for this revision (a non-base, ready tag).
+  # Otherwise (Linux unused / base image) there is no worker to bake into and we do
+  # not surface a spurious Linux update prompt.
+  lin_col = cols.get('linux') or {}
+  lin_active = bool(lin_col.get('ready')) and str(lin_col.get('tag') or 'base') not in ('base', 'none')
+  lin_baked = baked('linux') if lin_active else set()
   pending_pkgs = set()
   pending_files = []
-  lin_missing = False
+  lin_pending_files = []
   for v in data.get('vipc', []):
     if v.get('role') != 'project' or not v.get('configured') or v.get('error'):
       continue
     pkgs = v.get('packages') or []
     if not pkgs:
       continue
-    missing = [p for p in pkgs if str(p).lower() not in win_baked]
-    if missing:
+    win_missing = [p for p in pkgs if str(p).lower() not in win_baked]
+    if win_missing:
       pending_files.append(v.get('path'))
-      pending_pkgs.update(missing)
-    if any(str(p).lower() not in lin_baked for p in pkgs):
-      lin_missing = True
+      pending_pkgs.update(win_missing)
+    if lin_active:
+      lin_missing_pkgs = [p for p in pkgs if str(p).lower() not in lin_baked]
+      if lin_missing_pkgs:
+        lin_pending_files.append(v.get('path'))
+        pending_pkgs.update(lin_missing_pkgs)
+  lin_missing = bool(lin_pending_files)
 
   dragon = data.get('dragon') or {}
   monitored_dragon_keys = set()
@@ -3955,18 +4148,19 @@ def _compute_deps_pending(data):
   containers = []
   if pending_files:
     containers.append('windows')
-    if lin_missing:
-      containers.append('linux')
+  if lin_missing:
+    containers.append('linux')
   if dragon_pending:
     containers.append('windows-beta')
 
+  all_files = sorted(set(pending_files) | set(lin_pending_files), key=str.lower)
   return {
     'schema': 1,
-    'pending': bool(pending_files or dragon_pending),
+    'pending': bool(pending_files or lin_missing or dragon_pending),
     'repo': data.get('repo', ''),
     'sha': data.get('sha', ''),
     'packages': sorted(pending_pkgs, key=str.lower),
-    'vipcs': pending_files,
+    'vipcs': all_files,
     'dragon': dragon_pending,
     'containers': sorted(set(containers)),
     'generated': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -4023,6 +4217,8 @@ def _build_dependencies_index():
       'message': ((c.get('commit') or {}).get('message') or c.get('sha', '')).split('\n')[0],
       'author': ((c.get('commit') or {}).get('author') or {}).get('name', ''),
       'date': ((c.get('commit') or {}).get('author') or {}).get('date', ''),
+      'project': classify_commit(c['sha'])['is_project'],
+      'dep_only': classify_commit(c['sha'])['is_dep_only'],
     } for c in commits_data if c.get('sha')],
     'config': config,
     'vipc': vipcs,
