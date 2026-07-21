@@ -70,6 +70,22 @@
     .dep-file-state.installed{background:rgba(46,160,67,.14);border-color:rgba(46,160,67,.45);color:var(--ok)}
     .dep-file-state.missing{background:rgba(210,153,34,.14);border-color:rgba(210,153,34,.55);color:var(--warn)}
   </style>
+  <style>
+    /* Default-containers table — the worker images this repo runs CI in, laid out
+       with Windows / Linux column headers to match the dependency tables below. */
+    .ct-wrap{margin:0 0 16px}
+    .ct-head{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;margin:0 0 8px}
+    .ct-title{font-size:.95em;font-weight:700}
+    .ct-sub{color:var(--fg-muted);font-size:.84em}
+    .ct-table{width:100%;border-collapse:collapse;min-width:520px}
+    .ct-table th,.ct-table td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:middle}
+    .ct-table tbody tr:last-child td{border-bottom:0}
+    .ct-table thead th{background:var(--surface2);font-size:.74em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--fg-muted)}
+    .ct-table th.ct-col,.ct-table td.ct-cell{width:150px;min-width:150px;max-width:150px;text-align:center}
+    .ct-ref{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;color:var(--fg);word-break:break-all}
+    .ct-link{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em;white-space:nowrap}
+    .ct-empty{color:var(--fg-muted);font-size:.86em;padding:4px 0}
+  </style>
 </head>
 <body>
   <main class="wrap">
@@ -86,13 +102,8 @@
       </div>
       <button id="reload" type="button">Reload</button>
     </div>
-    <div class="cards">
-      <div class="card"><div class="k">Repository</div><div class="v" id="repoCard">-</div></div>
-      <div class="card"><div class="k">Worker</div><div class="v" id="workerCard">-</div></div>
-      <div class="card"><div class="k">VIPC Files</div><div class="v" id="vipcCard">-</div></div>
-    </div>
-    <div class="note" id="configCard">Loading container configuration...</div>
-    <div class="note" id="status">Loading dependency inventory...</div>
+    <div class="ct-wrap" id="containers"><div class="ct-empty">Loading container info&hellip;</div></div>
+    <div class="note" id="status">Loading dependency inventory&hellip;</div>
     <div id="updatePanel" class="upd hidden" role="region" aria-label="Dependency update needed"></div>
     <div class="dep-global-tabs" aria-label="Dependency sections">
       <div class="dep-tablist" role="tablist" aria-label="Dependency sections">
@@ -403,22 +414,57 @@
       // future genuinely-unsupported platform can still route through one place.
       return st;
     }
-    function renderConfigSummary(manifest){
-      const vipc = manifest && Array.isArray(manifest.vipc) ? manifest.vipc : [];
-      const dragon = manifest && Array.isArray(manifest.dragon) ? manifest.dragon : [];
-      const actions = manifest && manifest.actions ? Object.entries(manifest.actions) : [];
-      const use = manifest && manifest.use ? manifest.use : "";
-      if (!use && !vipc.length && !dragon.length && !actions.length) {
-        $("configCard").innerHTML = 'This revision has no <code>config.container</code> block. Windows and Linux runners default to the shared repo worker <span class="pill">latest</span>.';
-        return;
-      }
-      const bits = [];
-      bits.push('<strong>Container config for this revision:</strong>');
-      bits.push('use ' + (use ? '<span class="pill">' + esc(use) + '</span>' : '<span class="pill">default</span>'));
-      bits.push('VIPC ' + (vipc.length ? vipc.map(v => '<span class="pill">' + esc(v.path || v) + '</span>').join(' ') : '<span class="pill">none</span>'));
-      if (dragon.length) bits.push('Dragon ' + dragon.map(v => '<span class="pill">' + esc(v.path || v) + '</span>').join(' '));
-      if (actions.length) bits.push('actions ' + actions.map(([k,v]) => '<span class="pill">' + esc(k) + ': ' + esc(v) + '</span>').join(' '));
-      $("configCard").innerHTML = bits.join(' &nbsp; ');
+    // The worker image this repo runs CI in lives in the repo's own GHCR namespace
+    // as ghcr.io/<owner>/<repo>-labview (Windows + Linux share the package, one tag
+    // per platform/worker version). Build the package page link from the repo slug.
+    function ghcrPackage(){
+      const parts = (repo || "").split("/");
+      const owner = parts[0] || "", name = parts[1] || "";
+      if (!owner || !name) return null;
+      const pkg = name.toLowerCase() + "-labview";
+      return { owner, name, pkg, image:"ghcr.io/" + owner.toLowerCase() + "/" + pkg,
+               url:"https://github.com/" + owner + "/" + name + "/pkgs/container/" + pkg };
+    }
+    // Concise "default containers" view rendered as a table with Windows / Linux
+    // column headers (matching the dependency tables below): the left column names
+    // the worker image, and each platform cell shows its resolved tag linking to the
+    // package in the repo's own GHCR. Per-file / per-package coverage stays in the
+    // tables lower on the page.
+    function renderContainers(states){
+      const host = $("containers"); if (!host) return;
+      const pkg = ghcrPackage();
+      const cell = key => {
+        const st = states[key] || {};
+        const tag = st.label || st.tag || "latest";
+        return pkg
+          ? '<a class="ct-link" href="' + esc(pkg.url) + '" target="_blank" rel="noopener">' + esc(tag) + ' &#8599;</a>'
+          : '<span class="ct-link">' + esc(tag) + '</span>';
+      };
+      const image = pkg ? esc(pkg.image) : "worker image";
+      host.innerHTML =
+        '<div class="ct-head"><span class="ct-title">Default containers</span>'
+        + '<span class="ct-sub">The worker images this repo runs CI in &mdash; stored in your GHCR.</span></div>'
+        + '<div class="table-wrap"><table class="ct-table">'
+        + '<thead><tr><th>Worker image</th><th class="ct-col">Windows</th><th class="ct-col">Linux</th></tr></thead>'
+        + '<tbody><tr><td><span class="ct-ref">' + image + '</span></td>'
+        + '<td class="ct-cell">' + cell("windows") + '</td>'
+        + '<td class="ct-cell">' + cell("linux") + '</td></tr></tbody>'
+        + '</table></div>';
+    }
+    // Compose the dependency-warning note. Returns "" when there is nothing worth
+    // warning about, so the note stays hidden instead of restating the obvious.
+    function warningNote(unconfigured, baseCols, unsupportedCols){
+      const parts = [];
+      if (unconfigured) parts.push(unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not monitored, so its packages do not create dependency warnings.");
+      if (baseCols.length) parts.push("Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ".");
+      if (unsupportedCols.length) parts.push("These columns are intentionally shown as N/A: " + unsupportedCols.join(", ") + ".");
+      return parts.join(" ");
+    }
+    function applyWarningNote(unconfigured, baseCols, unsupportedCols){
+      const st = $("status"); if (!st) return;
+      const msg = warningNote(unconfigured, baseCols, unsupportedCols);
+      if (msg) { st.hidden = false; st.className = "note warn"; st.textContent = msg; }
+      else { st.hidden = true; st.className = "note"; st.textContent = ""; }
     }
     function monitorMap(list){
       const out = new Map();
@@ -1056,11 +1102,11 @@
     }
 
     async function loadRevision(sha){
-      $("status").textContent = "Loading dependency inventory...";
-      $("repoCard").textContent = repo || "unknown";
+      $("status").hidden = false;
+      $("status").className = "note";
+      $("status").textContent = "Loading dependency inventory\u2026";
       const yaml = await fetchText(raw(".github/labview-ci.yml", sha)).catch(() => "");
       const manifest = parseManifestYaml(yaml);
-      renderConfigSummary(manifest);
       const discovered = await listDependencyFiles(sha).catch(() => ({ vipc:manifest.vipc.map(v => v.path), dragon:manifest.dragon.map(v => v.path) }));
       const vipcConfig = monitorMap(manifest.vipc);
       const dragonConfig = monitorMap(manifest.dragon);
@@ -1084,17 +1130,11 @@
       currentColStates = colStates;
       monitorDirty = (!vipcHasConfig && vipcs.length > 0) || (!dragonHasConfig && dragons.length > 0);
       const system = await systemForRevision(sha);
-      const workerTags = Array.from(new Set(Object.values(platformStates).filter(s => s.tag && s.tag !== "base").map(s => s.label || s.tag))).join(", ") || "base images only";
-      $("workerCard").textContent = workerTags;
-      $("vipcCard").textContent = vipcs.length + " VIPC / " + dragons.length + " Dragon";
+      renderContainers(platformStates);
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
       const unsupportedCols = COLS.filter(c => colStates[c.key].unsupported).map(c => c.label);
       const unconfigured = vipcs.filter(v => v.monitored === false && v.role !== 'core').length;
-      $("status").className = (baseCols.length || unsupportedCols.length) ? "note warn" : "note";
-      $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not monitored, so its packages do not create dependency warnings. ") : "") + (baseCols.length
-        ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
-        : "The Windows column resolves to a worker manifest for this revision/configuration.");
-      if (unsupportedCols.length) $("status").textContent += " These columns are intentionally shown as N/A: " + unsupportedCols.join(", ") + ".";
+      applyWarningNote(unconfigured, baseCols, unsupportedCols);
       renderVipc(vipcs, colStates);
       renderDragonFiles(dragons);
       renderNipm(platformStates);
@@ -1104,8 +1144,6 @@
 
     function renderGenerated(data){
       const config = data.config || {};
-      renderConfigSummary(config);
-      $("repoCard").textContent = data.repo || repo || "unknown";
       const vipcConfig = monitorMap(config.vipc || []);
       const dragonConfig = monitorMap(config.dragon || []);
       const vipcHasConfig = hasConfigList(config, "vipc");
@@ -1126,7 +1164,6 @@
       currentVipcs = generatedVipcs;
       currentDragons = generatedDragons;
       monitorDirty = (!vipcHasConfig && generatedVipcs.length > 0) || (!dragonHasConfig && generatedDragons.length > 0);
-      $("vipcCard").textContent = generatedVipcs.length + " VIPC / " + generatedDragons.length + " Dragon";
       const platformStates = {};
       (data.platforms || []).forEach(p => { platformStates[p.key] = { tag:p.tag || 'base', label:p.version || p.tag || 'base', ready:p.ready !== false, packages:new Set(p.packages || []), nipkg:p.nipkg_packages || [], nipkgNames:new Set((p.nipkg_packages || []).map(x => String(x.name || '').toLowerCase())), labview:p.labview_version || '' }; });
       platformStates.nipmDeps = data.nipm || [];
@@ -1146,16 +1183,11 @@
       COLS.forEach(c => { if (!platformStates[c.key]) platformStates[c.key] = colStates[c.key] || (c.image === "experimental" ? markExperimentalPending({}) : { tag:'base', label:'base', ready:true, packages:new Set(), nipkg:[], nipkgNames:new Set(), labview:'' }); });
       COLS.forEach(c => { if (!colStates[c.key]) colStates[c.key] = (c.image === "experimental") ? markExperimentalPending({}) : markLinuxVipcPending(c, { tag:"base", label:"base", ready:true, packages:new Set() }); });
       currentColStates = colStates;
-      const workerTags = Array.from(new Set(Object.values(platformStates).filter(s => s.tag && s.tag !== "base").map(s => s.label))).join(", ") || "base images only";
-      $("workerCard").textContent = workerTags;
+      renderContainers(platformStates);
       const baseCols = COLS.filter(c => colStates[c.key].tag === "base").map(c => c.label);
       const unsupportedCols = COLS.filter(c => colStates[c.key].unsupported).map(c => c.label);
       const unconfigured = generatedVipcs.filter(v => v.monitored === false && v.role !== 'core').length;
-      $("status").className = (baseCols.length || unsupportedCols.length) ? "note warn" : "note";
-      $("status").textContent = (unconfigured ? (unconfigured + " discovered VIPC file" + (unconfigured === 1 ? " is" : "s are") + " not monitored, so its packages do not create dependency warnings. ") : "") + (baseCols.length
-        ? "Some columns currently resolve to the NI base image, so baked VIPC packages are not present there: " + baseCols.join(", ") + ". "
-        : "The Windows column resolves to a worker manifest for this dashboard build.");
-      if (unsupportedCols.length) $("status").textContent += " These columns are intentionally shown as N/A: " + unsupportedCols.join(", ") + ".";
+      applyWarningNote(unconfigured, baseCols, unsupportedCols);
       renderVipc(generatedVipcs, colStates);
       renderDragonFiles(generatedDragons);
       renderNipm(platformStates);

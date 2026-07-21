@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "621cc24fdb63d8b65a5a66c7d964bda117e4aa07",
+  "sha": "cc6e26867c4721f37a2354e97971932fd4cd01d0",
   "revisions": [
+    {
+      "sha": "cc6e26867c4721f37a2354e97971932fd4cd01d0",
+      "short": "cc6e268",
+      "message": "dependencies: Default containers as a Windows/Linux table; drop revision cards + config note (4.6.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T22:43:22Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "cf198cd70ee51610e83b0d34ddb8e44ec35e5268",
+      "short": "cf198cd",
+      "message": "Antidoc: call the g-cli 'antidoc' tool with -addon lvproj (fix antidoccli.vi not found) (4.6.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T22:37:57Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "621cc24fdb63d8b65a5a66c7d964bda117e4aa07",
       "short": "621cc24",
@@ -886,24 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "5eefd59a44dfeb0b9e9a7b71cf9f75242c9f50e9",
-      "short": "5eefd59",
-      "message": "VIDiff column: show different / new / deleted VI counts per revision (4.1.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T11:38:46Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "71bcde99d751433095535fdbeaa4a84b45a3c789",
-      "short": "71bcde9",
-      "message": "dashboard-pages: rebuild when catalog.json changes",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T11:07:05Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -999,24 +999,6 @@
       "message": "moved the send command button",
       "author": "Elijah Kerry",
       "date": "2026-05-29T12:27:27Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "d1a86a8741bec13cfa11446d0e72d12479a209ae",
-      "short": "d1a86a8",
-      "message": "fixed errors in motor VIs",
-      "author": "Elijah Kerry",
-      "date": "2024-11-21T22:32:29Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6",
-      "short": "2b5f1aa",
-      "message": "Minor refinements",
-      "author": "Elijah Kerry",
-      "date": "2024-11-21T17:52:34Z",
       "project": true,
       "dep_only": false
     }
