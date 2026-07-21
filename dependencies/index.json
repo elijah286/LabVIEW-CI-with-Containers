@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2e6c84f26ce5d2344b07412d73913a627ef53e30",
+  "sha": "323dfe85aec291ca9e895220bdf02854cc693eff",
   "revisions": [
+    {
+      "sha": "323dfe85aec291ca9e895220bdf02854cc693eff",
+      "short": "323dfe8",
+      "message": "reconfigure.yml: fix invalid-workflow-file error (col-0 heredoc) (4.4.15)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T16:46:32Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "2e6c84f26ce5d2344b07412d73913a627ef53e30",
       "short": "2e6c84f",
@@ -891,15 +900,6 @@
       "message": "feat(deps): explicit opt-in dependency container updates (3.46.20)",
       "author": "Elijah Kerry",
       "date": "2026-06-23T23:45:40Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "9bf61998cf8511ddcddb050804dfd6ee196c4950",
-      "short": "9bf6199",
-      "message": "apply page: remove install-time container-build estimates (v3.46.19)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T23:19:58Z",
       "project": false,
       "dep_only": false
     },
