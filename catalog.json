@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.5.0",
+  "version": "4.6.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.6.0",
+        "date": "2026-07-21",
+        "title": "Build binaries from LabVIEW build specifications",
+        "summary": "New Builds capability: runs the project's LabVIEW build specifications (EXE, PPL, shared library, source distribution, zip, installer) headlessly via 'LabVIEWCLI -OperationName ExecuteBuildSpec' on Windows and Linux, stages the built artifacts with checksums, publishes a Builds report with downloadable artifacts, and promotes them to the GitHub Release on a version tag.",
+        "highlights": [
+          "New Builds dashboard column shows a split pill of build specifications that succeeded vs failed per revision",
+          "Builds configuration page (builds.html) discovers each project's build specifications and picks which run on which OS; stored in config.builds and round-tripped by Reconfigure",
+          "Every build uploads its artifacts (Tier A); a full semantic-version tag promotes them to the GitHub Release as name-version-os-arch.zip with SHA-256 sidecars (Tier B)",
+          "Installer and .NET Interop specifications are Windows-only and skipped on Linux"
+        ]
+      },
       {
         "version": "4.5.0",
         "date": "2026-07-21",
@@ -4139,6 +4151,37 @@
         "linux": []
       },
       "notes": "Antidoc's VIPM dependencies (wovalab_lib_antidoc_cli + its chain) live in their own opt-in VIPC, .github/labview/antidoc/antidoc.vipc, NOT in the core ci-tooling.vipc. The image build bakes that VIPC into the worker only when the Antidoc capability is installed (its run-antidoc workflow is present), so repos that do not generate docs never carry the dependency. Enable the Shared LabVIEW image so the worker is rebuilt with Antidoc. Documentation generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default), so the doc-gen step needs network access."
+    },
+    {
+      "id": "builds",
+      "name": "Builds",
+      "summary": "Runs the project's LabVIEW build specifications (application EXE, packed project library, shared library, source distribution, zip, installer, ...) headlessly via 'LabVIEWCLI -OperationName ExecuteBuildSpec', publishes a Builds report with per-artifact downloads and checksums, uploads the built artifacts, and promotes them to the GitHub Release on a version tag.",
+      "status": "stable",
+      "recommended": true,
+      "supportsOs": [
+        "windows",
+        "linux"
+      ],
+      "requires": [],
+      "recommends": [
+        "dashboard"
+      ],
+      "statusContext": "CI / Builds",
+      "files": {
+        "any": [
+          ".github/labview/build-binaries-report.py",
+          ".github/labview/promote-build-artifacts.py"
+        ],
+        "windows": [
+          ".github/workflows/build-binaries-windows-container.yml",
+          ".github/labview/build-binaries.ps1"
+        ],
+        "linux": [
+          ".github/workflows/build-binaries-linux-container.yml",
+          ".github/labview/build-binaries.sh"
+        ]
+      },
+      "notes": "Build specifications are authored in LabVIEW (Project Explorer > Build Specifications); this capability runs them. Installer and .NET Interop specifications are Windows-only and are skipped on Linux. Runs on the NI base image - no custom image required. Configure which specifications run on the Builds page (config.builds)."
     }
   ]
 }
