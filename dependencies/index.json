@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "c5fbce24c754b7229f1dfcbd53c62540a0a1c4ad",
+  "sha": "9a0e1c6251e0c7d5f9f35ec1387fcdae3803602a",
   "revisions": [
+    {
+      "sha": "9a0e1c6251e0c7d5f9f35ec1387fcdae3803602a",
+      "short": "9a0e1c6",
+      "message": "Merge pull request #29 from elijah286/fix/deps-pending-version-mismatch",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T17:33:02Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "8e0a5c34c6ec3e6e3a3d776c913200f719d17ec6",
+      "short": "8e0a5c3",
+      "message": "dependencies: add final approval dialog with per-container diff",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T17:32:48Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "c5fbce24c754b7229f1dfcbd53c62540a0a1c4ad",
       "short": "c5fbce2",
@@ -882,24 +900,6 @@
       "message": "docs: clarify install-vs-upgrade container management + add Mermaid diagram (3.47.1)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T01:57:03Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "0c62d04394d8a6c1eb3af891bbb8f601820afb2d",
-      "short": "0c62d04",
-      "message": "configure: Actions table with per-action Linux/Windows platforms + dependency-policy options (3.47.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T01:21:44Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "62ff9987faa4a028b0a9ddbaf09fed8e953b9d3a",
-      "short": "62ff998",
-      "message": "feat(deps): adding a VIPC never auto-rebuilds the worker (3.46.22)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T01:05:01Z",
       "project": false,
       "dep_only": false
     },
