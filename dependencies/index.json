@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "3922f5704c17f82c88bfdf3408c7e575f96a4712",
+  "sha": "90e22a710235970dd9cc29db9bd25585a970f559",
   "revisions": [
+    {
+      "sha": "90e22a710235970dd9cc29db9bd25585a970f559",
+      "short": "90e22a7",
+      "message": "Linux worker dependency updates reach parity with Windows (4.4.17)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T20:49:41Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "3922f5704c17f82c88bfdf3408c7e575f96a4712",
       "short": "3922f57",
@@ -895,15 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "ced05c23599837fe9f3406a066086a60a5a54bbf",
-      "short": "ced05c2",
-      "message": "configure: Container & Dependencies tab; auto-rebuild Monitor opt-in, OFF by default (3.50.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T04:31:59Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1071,15 +1071,6 @@
       "message": "Windows bug",
       "author": "Elijah Kerry",
       "date": "2024-11-04T11:57:48Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "7599b047409f6801f226b06159da3036986c5bb8",
-      "short": "7599b04",
-      "message": "debugging the assignment of visa resources to curriculum code",
-      "author": "Elijah Kerry",
-      "date": "2024-11-04T10:44:47Z",
       "project": true,
       "dep_only": false
     }
