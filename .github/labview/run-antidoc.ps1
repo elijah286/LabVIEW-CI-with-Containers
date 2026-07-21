@@ -226,11 +226,15 @@ else {
   $prevEAP = $ErrorActionPreference
   $ErrorActionPreference = 'Continue'
 
-  # Antidoc CLI (antidoccli) is a g-cli tool. Everything after '--' is passed to
-  # Antidoc:  -pp <project>  -t <title>  -o <output directory>. If a future Antidoc
-  # CLI renames these flags, adjust them here -- the rest of the pipeline keys off
-  # whatever files land in $DocDir, not the exact command line.
-  & $GCli --lv-ver $LvYear antidoccli -- -pp $Project -t $Title -o $DocDir 2>&1 |
+  # The Antidoc CLI registers a g-cli tool named 'antidoc' (renamed from the v1
+  # 'antidoccli'; the modern package installs antidoc.vi, so calling 'antidoccli'
+  # fails with "VI to launch does not exist: antidoccli.vi"). Everything after '--'
+  # is passed to Antidoc:  -addon lvproj (document a LabVIEW project -- the add-on
+  # is mandatory and is baked into the worker image alongside the CLI)  -pp <project>
+  # -t <title>  -out <output directory>. If a future Antidoc CLI renames these
+  # flags, adjust them here -- the rest of the pipeline keys off whatever files land
+  # in $DocDir, not the exact command line.
+  & $GCli --lv-ver $LvYear antidoc -- -addon lvproj -pp $Project -t $Title -out $DocDir 2>&1 |
     Tee-Object -FilePath $LogFile -Append
 
   $ExitCode = $LASTEXITCODE

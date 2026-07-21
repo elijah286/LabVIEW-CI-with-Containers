@@ -1305,7 +1305,11 @@ docker run --rm `
       <h3 id="cap-antidoc">16.5 Antidoc <a class="anchor" href="#cap-antidoc">#</a></h3>
       <p>Driver: <code>run-antidoc.ps1</code>; report: <code>build-antidoc-report.py</code>. It drives Wovalab's
         Antidoc CLI through <code>g-cli</code> against the project's <code>.lvproj</code> (auto-detected if not
-        specified), producing AsciiDoc with embedded diagram images. Two implementation details are worth knowing:
+        specified), producing AsciiDoc with embedded diagram images. The CLI is invoked as the g-cli tool
+        <code>antidoc</code> (renamed from the older <code>antidoccli</code>) with <code>-addon lvproj</code>, so the
+        LabVIEW-project documentation add-on (<code>wovalab_lib_antidoc_add_on_labview_project_documentation</code>)
+        must be &mdash; and is &mdash; baked into the worker image alongside the CLI in
+        <code>antidoc.vipc</code>. Two implementation details are worth knowing:
         it <strong>re-reads the Windows registry PATH</strong> and merges it into the process environment so a VIPM
         package installed after the Dockerfile's <code>ENV</code> layer (e.g. <code>g-cli</code>) is visible without
         an image rebuild; and it <strong>always emits a safety-net report</strong> even on failure, so the dashboard
