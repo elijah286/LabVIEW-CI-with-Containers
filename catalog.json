@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.6.2",
+  "version": "4.6.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.6.3",
+        "date": "2026-07-21",
+        "type": "patch",
+        "summary": "Dependencies page header cleanup: the Repository / Worker / VIPC Files cards and the verbose per-revision container-config note are replaced by a concise Default containers table with Windows and Linux column headers -- aligned to the dependency tables below -- naming the worker image (ghcr.io/<owner>/<repo>-labview) and linking each platform's resolved tag to that package in the repo's own GHCR. Per-file / per-package coverage detail stays in the tables lower on the page, and the dependency-warning note now only shows when there is something actionable (unmonitored VIPCs or base-image columns).",
+        "highlights": [
+          "Default containers shown as a Windows/Linux table aligned to the dependency columns, each linking to GHCR.",
+          "Removed the three summary cards and the container-config note; the warning note is hidden unless actionable."
+        ]
+      },
       {
         "version": "4.6.2",
         "date": "2026-07-21",
