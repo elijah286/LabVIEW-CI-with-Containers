@@ -780,6 +780,7 @@ for c in commits_data:
             'message': msg,
             'author': author,
             'date': date,
+            'dep_only': bool(_info.get('is_dep_only')),
             'vis': vi_tree(sha),
         })
         # Newest-first list of revisions the history dialog can populate.
@@ -4185,6 +4186,8 @@ def _build_dependencies_index():
       'message': ((c.get('commit') or {}).get('message') or c.get('sha', '')).split('\n')[0],
       'author': ((c.get('commit') or {}).get('author') or {}).get('name', ''),
       'date': ((c.get('commit') or {}).get('author') or {}).get('date', ''),
+      'project': classify_commit(c['sha'])['is_project'],
+      'dep_only': classify_commit(c['sha'])['is_dep_only'],
     } for c in commits_data if c.get('sha')],
     'config': config,
     'vipc': vipcs,

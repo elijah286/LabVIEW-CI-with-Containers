@@ -162,17 +162,21 @@
     }
 
     async function listCommits(){
-      try {
-        const runs = await fetchJson(api("/commits?per_page=100"));
-        if (runs.length) return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
-      } catch (_) {}
+      // Prefer the dashboard's classified inventory (each revision tagged project /
+      // dependency-only) so the picker shows LabVIEW-code changes only, like the
+      // dashboard. Fall back to the VI Browser project-revision index, then to the
+      // raw (unclassified) commit list.
       if (generatedInventory && Array.isArray(generatedInventory.revisions) && generatedInventory.revisions.length) {
-        return generatedInventory.revisions.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha }));
+        return generatedInventory.revisions.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha, project:c.project !== false, depOnly:!!c.dep_only }));
       }
       try {
         const d = await fetchJson(base + "vi-snapshots/files.json");
         const commits = (d.commits || []).filter(c => c.sha);
-        if (commits.length) return commits.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha }));
+        if (commits.length) return commits.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha, project:true, depOnly:!!c.dep_only }));
+      } catch (_) {}
+      try {
+        const runs = await fetchJson(api("/commits?per_page=100"));
+        if (runs.length) return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
       } catch (_) {}
       const runs = await fetchJson(api("/commits?per_page=30"));
       return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
@@ -687,9 +691,16 @@
       const generatedSha = generatedInventory && generatedInventory.sha;
       if (requestedSha && !commits.some(c => c.sha === requestedSha)) commits.unshift({ sha:requestedSha, short:short(requestedSha), message:"requested revision" });
       if (generatedSha && !commits.some(c => c.sha === generatedSha)) commits.unshift({ sha:generatedSha, short:short(generatedSha), message:"generated dashboard inventory" });
-      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '">' + esc((c.short || short(c.sha)) + ' - ' + (c.message || '')) + '</option>').join('');
+      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '"'
+        + (c.project === false ? ' data-project="0"' : '')
+        + (c.depOnly ? ' data-deponly="1"' : '')
+        + '>' + esc((c.short || short(c.sha)) + ' \u2014 ' + (c.message || '')) + '</option>').join('');
       if (requestedSha && commits.some(c => c.sha === requestedSha)) sel.value = requestedSha;
       else if (generatedSha && commits.some(c => c.sha === generatedSha)) sel.value = generatedSha;
+      // Enhance the native <select> into the shared searchable revision picker
+      // (hides CI-only / dependency-only revisions by default; searchable).
+      const attachRevPicker = () => { if (window.lvciRevPicker) { window.lvciRevPicker(sel).refresh(); return true; } return false; };
+      if (!attachRevPicker()) document.addEventListener('lvci:ready', attachRevPicker, { once:true });
       async function showSelected(){
         const u = new URL(location.href);
         if (sel.value) u.searchParams.set("sha", sel.value);

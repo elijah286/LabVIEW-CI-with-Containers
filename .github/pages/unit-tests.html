@@ -205,11 +205,30 @@
       }catch(_){ utfProjLoaded = false; }
     }
 
+    // Classify recent revisions (project vs CI-only vs dependency-only) from the
+    // dashboard's published files.json so the revision picker can hide CI-only and
+    // dependency-only revisions by default, matching the dashboard. Best-effort.
+    let utfProjSet = null, utfDepSet = null;
+    async function ensureUtfClassification(){
+      if (utfProjSet) return;
+      try{
+        const b = location.pathname.replace(/[^/]*$/, "");
+        const r = await fetch(b + "vi-snapshots/files.json", { cache:"no-cache" });
+        if (!r.ok) return;
+        const d = await r.json();
+        const proj = new Set(), dep = new Set();
+        (d.commits || []).forEach(c => { if (c && c.sha){ proj.add(c.sha); if (c.dep_only) dep.add(c.sha); } });
+        utfProjSet = proj; utfDepSet = dep;
+        renderPanels();
+      }catch(_){}
+    }
+
     // Explicit mode: load recent revisions so the user can reach a project that
     // only exists in an older revision (one tree fetch per chosen revision).
     async function ensureUtfRevisions(){
       if (utfRevsLoaded) return;
       utfRevsLoaded = true;
+      ensureUtfClassification();
       const repo = $("repo").value, ref = $("branch").value || "main";
       try{
         if (!repo.includes("/")) return;
@@ -383,7 +402,7 @@
           const checked = (p)=>selectedProjs.indexOf(p)>=0;
           const inRev = (p)=>revProjects.indexOf(p)>=0;
           const revOpts = '<option value=""' + (utfRevSha==="" ? " selected" : "") + '>Latest revision</option>'
-            + utfRevisions.map(r=>`<option value="${esc(r.sha)}" ${r.sha===utfRevSha?"selected":""}>${esc(r.short)} - ${esc(r.msg)}</option>`).join("");
+            + utfRevisions.map(r=>`<option value="${esc(r.sha)}"${(utfProjSet && !utfProjSet.has(r.sha)) ? ' data-project="0"' : ''}${(utfDepSet && utfDepSet.has(r.sha)) ? ' data-deponly="1"' : ''} ${r.sha===utfRevSha?"selected":""}>${esc(r.short)} \u2014 ${esc(r.msg)}</option>`).join("");
           const rows = universe.length
             ? universe.map(p=>`<label class="proj">
                 <input type="checkbox" data-proj="${esc(p)}" ${checked(p)?"checked":""}>
@@ -445,6 +464,9 @@
         utfRevSha = utfRev.value;
         loadUtfRevProjects($("repo").value, utfRevSha);
       });
+      // Enhance the native revision <select> into the shared searchable picker
+      // (hides CI-only / dependency-only revisions by default; re-render safe).
+      if (utfRev && window.lvciRevPicker) window.lvciRevPicker(utfRev).refresh();
     }
     function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
