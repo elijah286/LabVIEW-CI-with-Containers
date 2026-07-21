@@ -662,7 +662,11 @@ flowchart TD
       <p><code>dashboard.py</code> reads each commit's statuses (keyed by the catalog's
         <code>statusContext</code>), classifies whether a commit touched real LabVIEW source vs. CI tooling,
         aggregates per-activity data from the deployed JSON (e.g. <code>masscompile/&lt;sha&gt;/summary.json</code>,
-        the snapshot <code>by-blob</code> index), and renders one dashboard row per recent commit. It also stages the
+        the snapshot <code>by-blob</code> index), and renders one dashboard row per recent commit. To keep the
+        project's own revisions visible even after many CI/tooling commits have piled up on <code>main</code>, it
+        keeps paging back through history — past the recent window it retains <em>only</em> project revisions —
+        until it has collected the project's revisions or reaches a large safety cap on how many commits it will
+        classify. It also stages the
         bundled tooling pages and writes the VI Browser's <code>files.json</code> index.</p>
       <p>On a fresh install with project revisions but no CI results yet, <code>dashboard.py</code> emits a
         <strong>Populate the dashboard with your history</strong> card above the table. The card opens the Populate

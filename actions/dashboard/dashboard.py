@@ -330,9 +330,17 @@ def classify_commit(sha):
 # until enough project revisions are collected (or a hard scan cap is hit). Beyond
 # the recent window only PROJECT revisions are kept, so the deeper scan surfaces
 # project history without flooding the table with old CI commits.
+#
+# The cap must stay well ahead of the tooling-to-project commit ratio: EVERY CI
+# run (dashboard rebuilds, catalog bumps, snapshot backfills, …) adds tooling
+# commits to main, so the project's earliest revisions sink deeper over time. If
+# the cap is too tight it silently truncates the OLDEST project revisions off the
+# bottom of the table (the table appears to "get shorter" as CI activity grows).
+# The paging still stops early once _PROJECT_TARGET project revisions are found or
+# history is exhausted, so the cap only ever engages on a genuinely huge history.
 _RECENT_WINDOW  = 100   # always keep at least this many most-recent commits
 _PROJECT_TARGET = 30    # keep paging until this many project revisions are found
-_SCAN_CAP       = 500   # never classify more than this many commits (cost guard)
+_SCAN_CAP       = 3000  # never classify more than this many commits (cost guard)
 def fetch_commits():
     out, n_proj, n_scanned, page = [], 0, 0, 1
     branch = get_default_branch()
