@@ -678,6 +678,14 @@ flowchart TD
         replaces the in-flight run via concurrency instead of greying out as &ldquo;none in scope.&rdquo; The optimistic
         &ldquo;Queued&rdquo; badge overlays that in-flight cell too, so re-running the latest revision's still-running
         activity shows its Queued spinner immediately rather than silently doing nothing.</p>
+      <p>The chooser's <strong>revision picker</strong> (the All / range / specific selectors) mirrors the
+        dashboard table: <strong>dependency-only</strong> revisions &mdash; those whose only change is an external
+        dependency (<code>.vipc</code>/<code>.vip</code>) &mdash; are hidden by default and revealed with a
+        <em>&ldquo;Show dependency-only revisions&rdquo;</em> toggle (shown only when such a revision exists),
+        defaulting to whatever the dashboard's own dependency-only filter is currently set to. A <strong>search
+        box</strong> narrows the picker by commit title or short SHA across all three scopes, so you can queue the
+        latest change to LabVIEW code without scrolling past dependency-only commits. CI-only revisions never appear,
+        because the history feeding the chooser already contains project revisions only.</p>
       <p>The Populate-history chooser offers an opt-in <strong>"keep one container warm across revisions"</strong>
         checkbox, shown only when at least one selected activity has a warm-container backfill workflow installed
         (Windows Mass Compile, VI Analyzer, Unit Tests, Antidoc). It is always <strong>off by default</strong> and
