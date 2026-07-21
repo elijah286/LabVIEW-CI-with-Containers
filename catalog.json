@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.6.1",
+  "version": "4.6.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.6.2",
+        "date": "2026-07-21",
+        "type": "patch",
+        "summary": "Antidoc now generates documentation again: the runner called the Antidoc CLI as the g-cli tool 'antidoccli', but the modern Wovalab CLI registers the tool as 'antidoc' (renamed in the v1 -> v2 CLI), so every run failed instantly with \"VI to launch does not exist: antidoccli.vi\" and produced no docs. The g-cli invocation is corrected to the 'antidoc' tool, adds the mandatory '-addon lvproj' document-type selector, and uses the current '-out' output flag (was '-o'). The LabVIEW-project documentation add-on it requires is already baked into antidoc.vipc.",
+        "changes": [
+          "run-antidoc.ps1: g-cli tool name 'antidoccli' -> 'antidoc'; add '-addon lvproj'; output flag '-o' -> '-out' to match the official Antidoc CLI command line.",
+          "documentation.html: note the exact Antidoc CLI invocation (g-cli 'antidoc' tool + mandatory lvproj add-on baked in antidoc.vipc)."
+        ]
+      },
       {"version": "4.6.1", "date": "2026-07-21", "notes": "VI Analyzer: a committed project .viancfg used as the default pass now analyzes the WHOLE project again, not just one VI. Once a repo committed a .viancfg, the pipeline applied it by rewriting its <ItemsToAnalyze> to a single folder item pointing at the workspace root; the VI Analyzer does not recurse a folder listed as a .viancfg item (only built-in directory mode recurses), so it analyzed a single VI and produced blank reports (0 tests) even though the container and dependencies were fine. The runner now enumerates the project VIs (recursively, excluding CI tooling under .git/.github/actions/ci-out/build/_lvci) and lists each as an explicit item - the same mechanism the single-VI Re-run uses - so the custom tests run across the full stack and any un-loadable VI is flagged and skipped rather than blanking the report"},
       {
         "version": "4.6.0",
