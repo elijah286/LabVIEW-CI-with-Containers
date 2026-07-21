@@ -1,8 +1,22 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "565141022e094c39ff77a7914df2c6b36a5548b7",
+  "sha": "333db43002ac632f7fe172d3ecb6cfe7a00bee5c",
   "revisions": [
+    {
+      "sha": "333db43002ac632f7fe172d3ecb6cfe7a00bee5c",
+      "short": "333db43",
+      "message": "Merge pull request #27 from elijah286/fix/deps-pending-version-mismatch",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T16:13:58Z"
+    },
+    {
+      "sha": "c187e7c49057b7780c0c068bcee90c8f7fd7b95b",
+      "short": "c187e7c",
+      "message": "dependencies: handle object-shaped dragon payload in generated index",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T16:13:43Z"
+    },
     {
       "sha": "565141022e094c39ff77a7914df2c6b36a5548b7",
       "short": "5651410",
@@ -688,20 +702,6 @@
       "message": "worker build: use crane for registry-native base copy (v3.46.18)",
       "author": "Elijah Kerry",
       "date": "2026-06-23T23:13:52Z"
-    },
-    {
-      "sha": "55ff116408194fbf6040161ad132d9417865f774",
-      "short": "55ff116",
-      "message": "worker build: parse base digest from imagetools inspect output (v3.46.17)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T23:10:11Z"
-    },
-    {
-      "sha": "5ec0836b44ea85c9353e606eb7cf37e6c77020cc",
-      "short": "5ec0836",
-      "message": "worker build: registry-native base copy for no-dependency repos (v3.46.16)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T23:05:40Z"
     },
     {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
