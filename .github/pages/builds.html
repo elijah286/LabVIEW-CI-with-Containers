@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<!--
+  .github/pages/builds.html
+  Dedicated Builds pipeline-configuration page for an ALREADY-INSTALLED repo.
+  It does NOT edit any build settings - build specifications (EXE, PPL, shared
+  library, installer, ...) are authored in LabVIEW's Project Explorer (right-click
+  Build Specifications > New) and committed inside the .lvproj. This page only
+  tells the automated pipeline WHICH build specifications to run, and on which
+  operating system.
+  Saved to config.builds in .github/labview-ci.yml via the Reconfigure workflow
+  (only the Builds settings change; every other setting is preserved). Pure static
+  page, no backend.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Builds - LabVIEW CI</title>
+  <script>window.LVCI={context:'builds'};</script>
+  <script src="lvci-header.js" defer></script>
+  <style>
+    :root{
+      --bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;
+      --fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;
+      --chip:#21262d;--code:#010409;--warn:#9a6700;
+    }
+    @media(prefers-color-scheme:light){
+      :root{
+        --bg:#ffffff;--surface:#f6f8fa;--surface2:#fff;--border:#d0d7de;
+        --fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--accent:#1f883d;--accent-fg:#fff;
+        --chip:#eaeef2;--code:#f6f8fa;--warn:#9a6700;
+      }
+    }
+    :root[data-lvci-theme=dark]{--surface2:#0d1117}
+    :root[data-lvci-theme=light]{--surface2:#fff}
+    *{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:var(--bg);color:var(--fg);line-height:1.5}
+    a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+    .wrap{max-width:980px;margin:0 auto;padding:24px 20px 64px}
+    header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+    h1{font-size:1.5em;margin:0}
+    .sub{color:var(--fg-muted);font-size:.9em;margin:4px 0 20px}
+    section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:18px}
+    section h2{font-size:1.02em;margin:0 0 4px}
+    .hint{color:var(--fg-muted);font-size:.82em;margin:0 0 14px}
+    code.inl{background:var(--chip);padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+    .codebox{position:relative;background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px}
+    pre{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre-wrap;word-break:break-word;color:var(--fg);max-height:280px;overflow:auto}
+    .copy{position:absolute;top:8px;right:8px;padding:4px 10px;font-size:.72em;border:1px solid var(--border);
+         border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
+    .copy:hover{border-color:var(--link)}
+    button.ghost,button.primary{padding:9px 16px;font-size:.9em;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);cursor:pointer}
+    button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .applyrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0 10px}
+    .status{font-size:.82em;color:var(--fg-muted);margin-top:8px;min-height:1.2em}
+    .status.err{color:#cf222e}.status.ok{color:var(--accent)}
+    .tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface2);margin:10px 0 12px;font-size:.84em}
+    .tokpanel[hidden]{display:none}
+    .tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .subhead{font-weight:600;font-size:.9em;margin:14px 0 6px}
+    .callout{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;
+         padding:13px 16px;margin:0 0 16px;background:var(--surface2);font-size:.86em;line-height:1.6}
+    .callout strong{color:var(--fg)}
+    .callout ul{margin:8px 0 0;padding-left:20px}.callout li{margin:3px 0}
+    .warnnote{border:1px solid var(--warn);background:rgba(154,103,0,.10);color:var(--fg);
+         border-radius:8px;padding:10px 13px;font-size:.82em;margin:0 0 14px}
+    .note{font-size:.82em;color:var(--fg-muted);margin:0 0 12px}
+    table.builds{width:100%;border-collapse:collapse;font-size:.88em}
+    table.builds th,table.builds td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border)}
+    table.builds th{font-size:.78em;color:var(--fg-muted);font-weight:600}
+    table.builds th.os,table.builds td.os{text-align:center;width:88px}
+    table.builds .specname{font-weight:600}
+    table.builds .proj{display:block;color:var(--fg-muted);font-size:.82em;font-weight:400}
+    .type-badge{font-size:.72em;padding:2px 8px;border-radius:12px;background:var(--chip);border:1px solid var(--border);color:var(--fg-muted)}
+    .osna{color:var(--fg-muted);font-size:.8em}
+    .buildsempty{color:var(--fg-muted);font-style:italic;padding:6px 0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>Builds</h1>
+        <div class="sub">Configuring <code class="inl" id="targetRepo">this repository</code></div>
+      </div>
+    </header>
+
+    <div class="callout">
+      <strong>Build specifications are authored in LabVIEW - this page does not change them.</strong>
+      You create an executable, packed library, installer or other build in LabVIEW's Project Explorer
+      (right-click <em>Build Specifications &rsaquo; New</em>, configure it, and <strong>Save</strong>) and commit
+      the <code class="inl">.lvproj</code>. This page only tells the <strong>automated pipeline</strong> which of
+      those build specifications to run headlessly, and on which operating system:
+      <ul>
+        <li>each build specification runs via <code class="inl">LabVIEWCLI -OperationName ExecuteBuildSpec</code>;</li>
+        <li>the built artifacts are attached to each run (and to the GitHub Release on a version tag);</li>
+        <li><strong>Installer</strong> and <strong>.NET Interop</strong> builds are Windows-only.</li>
+      </ul>
+    </div>
+
+    <div class="warnnote" id="buildsOffNote" hidden>Builds is not currently an enabled activity for this repository.
+      These selections are saved, but nothing runs until Builds is turned on in
+      <strong>Configure Pipeline &rsaquo; Pipeline</strong>.</div>
+
+    <section>
+      <h2>Build specifications to run</h2>
+      <p class="hint">Every build specification found in your projects is built by default. Untick a box to skip a
+        specification on that operating system. A specification builds where its type is supported (Installer and
+        .NET Interop are Windows-only).</p>
+      <div class="note" id="buildsNote"></div>
+      <table class="builds" id="buildsTable">
+        <thead>
+          <tr><th>Build specification</th><th>Type</th><th class="os">Windows</th><th class="os">Linux</th></tr>
+        </thead>
+        <tbody id="buildsBody"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Save and apply</h2>
+      <p class="hint">With a valid dashboard token, save these settings by queuing the <code class="inl">Reconfigure</code>
+        workflow. It updates <strong>only</strong> the Builds settings in
+        <code class="inl">.github/labview-ci.yml</code> (every other setting is preserved) and opens a pull request to
+        review. The command below is a backup if the browser token is missing or rejected.</p>
+      <div class="applyrow">
+        <button class="primary" id="applyBuilds" type="button">Save and apply</button>
+        <a id="wfLink" href="https://github.com/actions/workflows/reconfigure.yml" target="_blank" rel="noopener">View workflow</a>
+      </div>
+      <div class="status" id="applyStatus"></div>
+      <div class="tokpanel" id="tokPanel" hidden>
+        <div id="tokMsg">Saving needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.</div>
+        <a id="tokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a token</a>
+        <input id="tokInput" type="password" placeholder="github_pat_..." autocomplete="off" spellcheck="false">
+        <button class="primary" id="tokSave" type="button">Save and apply</button>
+      </div>
+      <div class="subhead">Command fallback</div>
+      <p class="hint">Use this backup path if the browser has no valid token, or if you prefer to dispatch the workflow from GitHub's CLI.</p>
+      <div class="codebox">
+        <button class="copy" id="copyGh">Copy</button>
+        <pre id="ghCmd"></pre>
+      </div>
+      <div class="status" id="loadStatus"></div>
+    </section>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+    const SOURCE_FALLBACK = { repo: "elijah286/LabVIEW-CI-with-Containers", ref: "main" };
+    const TOK_KEY = "lvci_dispatch_token";
+    const WINDOWS_ONLY = /installer|\.net|interop/i;
+
+    let catalog = null;
+    let repo = "";
+    let ref = "main";
+    let activities = null;      // null until manifest read
+    // specs = [{ project, name, type, os:{windows:bool, linux:bool} }]. os holds
+    // the user's current selection; a spec builds on an OS when its box is ticked
+    // AND its type is supported there.
+    let specs = [];
+    let savedSel = {};          // "<project>::<name>" -> {windows,linux} from config
+
+    const $ = (id) => document.getElementById(id);
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function source() { return (catalog && catalog.source) || SOURCE_FALLBACK; }
+    function rawUrl(r, rf, path) { return `https://raw.githubusercontent.com/${r}/${rf}/${path}`; }
+    async function fetchJson(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }
+    async function fetchText(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); }
+
+    async function loadCatalog() {
+      const cands = ["./catalog.json", "./labview-ci/catalog.json",
+        rawUrl(SOURCE_FALLBACK.repo, SOURCE_FALLBACK.ref, ".github/labview-ci/catalog.json")];
+      for (const u of cands) { try { return await fetchJson(u); } catch (_) {} }
+      return { source: SOURCE_FALLBACK };
+    }
+    function detectTarget() {
+      const params = new URLSearchParams(location.search);
+      const qRepo = (params.get("repo") || "").trim();
+      let r = (params.get("ref") || "").trim();
+      let rp = qRepo.includes("/") ? qRepo : "";
+      if (!rp) {
+        const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+        if (m) {
+          const owner = m[1];
+          const dir = location.pathname.split("/").filter(s => s && !s.includes("."));
+          rp = dir.length ? owner + "/" + dir[0] : owner + "/" + owner + ".github.io";
+        }
+      }
+      if (!rp.includes("/")) { const s = source(); rp = s.repo; if (!r) r = s.ref; }
+      return { repo: rp, ref: r || "main" };
+    }
+
+    function isWindowsOnly(type) { return WINDOWS_ONLY.test(type || ""); }
+    function key(s) { return s.project + "::" + s.name; }
+
+    // ---- parse config.builds from labview-ci.yml ---------------------------
+    // Shape written by reconfigure:
+    //   builds:
+    //     runAll: true|false
+    //     specs:
+    //       - "<project>::<name>::<os1+os2|none>"
+    function parseBuildsBlock(text) {
+      const out = { runAll: true, specs: {} };
+      const lines = text.split(/\r?\n/);
+      let i = 0;
+      for (; i < lines.length; i++) { if (/^\s{2}builds:\s*$/.test(lines[i])) { i++; break; } }
+      if (i >= lines.length) return null;
+      let inSpecs = false, sawBlock = false;
+      for (; i < lines.length; i++) {
+        const line = lines[i];
+        if (/^\s{0,1}\S/.test(line)) break;         // dedented past the block
+        let m;
+        if ((m = line.match(/^\s{4}runAll:\s*(true|false)/))) { out.runAll = (m[1] === "true"); inSpecs = false; sawBlock = true; continue; }
+        if (/^\s{4}specs:\s*$/.test(line)) { inSpecs = true; sawBlock = true; continue; }
+        if (inSpecs && (m = line.match(/^\s{6}-\s*"?([^"]+?)"?\s*$/))) {
+          const parts = m[1].split("::");
+          if (parts.length >= 3) {
+            const os = parts[2] === "none" ? [] : parts[2].split("+");
+            out.specs[parts[0] + "::" + parts[1]] = { windows: os.includes("windows"), linux: os.includes("linux") };
+          }
+          sawBlock = true;
+        }
+      }
+      return sawBlock ? out : null;
+    }
+    function parseActivities(text) {
+      const acts = []; let inActs = false;
+      for (const line of text.split(/\r?\n/)) {
+        if (/^\s*activities:\s*$/.test(line)) { inActs = true; continue; }
+        if (inActs) {
+          const m = line.match(/^\s*-\s*(\S+)/);
+          if (m) { acts.push(m[1]); continue; }
+          if (/^\S/.test(line)) inActs = false;
+        }
+      }
+      return acts;
+    }
+
+    // ---- discover build specs from every .lvproj ---------------------------
+    async function discover() {
+      try {
+        const url = "https://api.github.com/repos/" + repo + "/git/trees/" + encodeURIComponent(ref || "main") + "?recursive=1";
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) return;
+        const data = await r.json();
+        const isTooling = (p) => /^(\.github|actions|ci-out|build)\//i.test(p);
+        const projects = (data.tree || []).filter(t => t.type === "blob" && /\.lvproj$/i.test(t.path) && !isTooling(t.path)).map(t => t.path).sort();
+        const found = [];
+        for (const proj of projects) {
+          let xml;
+          try { xml = await fetchText(rawUrl(repo, ref, proj)); } catch (_) { continue; }
+          parseProjectSpecs(xml, proj).forEach(s => found.push(s));
+        }
+        // Merge with any saved selection; new specs default to on where supported.
+        specs = found.map(s => {
+          const sv = savedSel[key(s)];
+          const winSupported = true, linSupported = !isWindowsOnly(s.type);
+          return {
+            project: s.project, name: s.name, type: s.type,
+            os: {
+              windows: sv ? !!sv.windows : winSupported,
+              linux: (sv ? !!sv.linux : true) && linSupported
+            }
+          };
+        });
+        renderAll(); update();
+      } catch (_) {}
+    }
+    function parseProjectSpecs(xml, projPath) {
+      const out = [];
+      let doc;
+      try { doc = new DOMParser().parseFromString(xml, "application/xml"); } catch (_) { return out; }
+      if (!doc || doc.getElementsByTagName("parsererror").length) return out;
+      const builds = doc.querySelectorAll('Item[Type="Build"]');
+      builds.forEach(b => {
+        let target = "My Computer";
+        const parent = b.parentElement;
+        if (parent && parent.getAttribute && parent.getAttribute("Name")) target = parent.getAttribute("Name");
+        Array.from(b.children).forEach(item => {
+          if (item.tagName !== "Item") return;
+          const name = item.getAttribute("Name") || "";
+          const type = item.getAttribute("Type") || "";
+          if (!name) return;
+          out.push({ project: projPath, name, type, target });
+        });
+      });
+      return out;
+    }
+
+    // ---- rendering ---------------------------------------------------------
+    function renderAll() {
+      const off = $("buildsOffNote");
+      if (off) off.hidden = !(activities && activities.length && !activities.includes("builds"));
+      const note = $("buildsNote");
+      if (note) {
+        if (specs.length) {
+          note.className = "note";
+          note.innerHTML = "Found " + specs.length + " build specification" + (specs.length === 1 ? "" : "s") + " across your projects.";
+        } else {
+          note.className = "note";
+          note.innerHTML = "No build specifications found yet. Add one in LabVIEW (right-click <code class=\"inl\">Build Specifications &rsaquo; New</code>) and commit the <code class=\"inl\">.lvproj</code>; it will appear here.";
+        }
+      }
+      const body = $("buildsBody"); if (!body) return;
+      body.innerHTML = "";
+      if (!specs.length) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = '<td colspan="4" class="buildsempty">Nothing to build yet.</td>';
+        body.appendChild(tr);
+        return;
+      }
+      specs.forEach((s, i) => {
+        const tr = document.createElement("tr");
+        const nameTd = document.createElement("td");
+        nameTd.innerHTML = '<span class="specname">' + escapeHtml(s.name) + '</span><span class="proj">' + escapeHtml(s.project) + '</span>';
+        tr.appendChild(nameTd);
+        const typeTd = document.createElement("td");
+        typeTd.innerHTML = '<span class="type-badge">' + escapeHtml(s.type || "Build") + '</span>';
+        tr.appendChild(typeTd);
+        tr.appendChild(osCell(s, i, "windows", true));
+        tr.appendChild(osCell(s, i, "linux", !isWindowsOnly(s.type)));
+        body.appendChild(tr);
+      });
+    }
+    function osCell(s, i, os, supported) {
+      const td = document.createElement("td");
+      td.className = "os";
+      if (!supported) { td.innerHTML = '<span class="osna" title="This build type is Windows-only">n/a</span>'; s.os[os] = false; return td; }
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = !!s.os[os];
+      cb.setAttribute("aria-label", s.name + " on " + os);
+      cb.addEventListener("change", () => { s.os[os] = cb.checked; update(); });
+      td.appendChild(cb);
+      return td;
+    }
+
+    // ---- output ------------------------------------------------------------
+    // runAll when EVERY spec builds on every OS its type supports; otherwise emit
+    // the explicit per-spec list ("<project>::<name>::<os+os|none>").
+    function computeSelection() {
+      let runAll = true;
+      const list = [];
+      specs.forEach(s => {
+        const os = [];
+        if (s.os.windows) os.push("windows");
+        if (s.os.linux) os.push("linux");
+        const linSupported = !isWindowsOnly(s.type);
+        const fullDefault = s.os.windows && (s.os.linux || !linSupported);
+        if (!fullDefault) runAll = false;
+        list.push(s.project + "::" + s.name + "::" + (os.length ? os.join("+") : "none"));
+      });
+      return { runAll, list };
+    }
+    function buildsInput() {
+      if (!specs.length) return "all";
+      const sel = computeSelection();
+      return sel.runAll ? "all" : sel.list.join(";");
+    }
+    function genGhCmd() {
+      const r = repo.includes("/") ? ` -R ${repo}` : "";
+      return `gh workflow run reconfigure.yml${r} \\\n  -f builds="${buildsInput()}"`;
+    }
+    function workflowUrl() { return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/reconfigure.yml" : "https://github.com/actions/workflows/reconfigure.yml"; }
+    function update() {
+      $("ghCmd").textContent = genGhCmd();
+      const wf = $("wfLink"); if (wf) wf.href = workflowUrl();
+    }
+    function token() { try { return localStorage.getItem(TOK_KEY) || ""; } catch (_) { return ""; } }
+    function tokenUrl() {
+      const owner = (repo.split("/")[0]) || "";
+      const qp = new URLSearchParams();
+      qp.set("name", "LabVIEW CI dispatch");
+      qp.set("description", "Dispatch LabVIEW CI configuration changes for " + repo);
+      if (owner) qp.set("target_name", owner);
+      qp.set("actions", "write");
+      return "https://github.com/settings/personal-access-tokens/new?" + qp.toString();
+    }
+    function setApplyStatus(html, kind) {
+      const st = $("applyStatus"); if (!st) return;
+      st.innerHTML = html || ""; st.className = "status" + (kind ? " " + kind : "");
+    }
+    function showTokenPanel(msg) {
+      const p = $("tokPanel"); if (!p) return;
+      const m = $("tokMsg"); if (m) m.innerHTML = msg || "Saving needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.";
+      const a = $("tokCreate"); if (a) a.href = tokenUrl();
+      p.hidden = false;
+      const inp = $("tokInput"); if (inp) inp.focus();
+    }
+    function hideTokenPanel() { const p = $("tokPanel"); if (p) p.hidden = true; }
+    async function dispatchReconfigure() {
+      if (!repo.includes("/")) { setApplyStatus("Choose a repository before applying.", "err"); return; }
+      if (!token()) { showTokenPanel(); setApplyStatus("Paste a token to queue the Reconfigure workflow."); return; }
+      const btn = $("applyBuilds");
+      if (btn) { btn.disabled = true; btn.textContent = "Queuing..."; }
+      setApplyStatus("Queuing the Reconfigure workflow...");
+      const inputs = { builds: buildsInput() };
+      try {
+        const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/reconfigure.yml/dispatches", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token(), "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+          body: JSON.stringify({ ref: ref || "main", inputs })
+        });
+        if (btn) { btn.disabled = false; btn.textContent = "Save and apply"; }
+        if (r.status === 204) {
+          hideTokenPanel();
+          setApplyStatus("Queued Reconfigure. It will open a pull request when the settings file is updated. <a href=\"" + workflowUrl() + "\" target=\"_blank\" rel=\"noopener\">View runs</a>.", "ok");
+          return;
+        }
+        if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setApplyStatus("Token rejected (401).", "err"); return; }
+        if (r.status === 403) { showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code class=\"inl\">" + escapeHtml(repo) + "</code>."); setApplyStatus("Dispatch forbidden (403).", "err"); return; }
+        if (r.status === 404) { showTokenPanel("The saved token cannot see <code class=\"inl\">" + escapeHtml(repo) + "</code>, or this repo does not have <code class=\"inl\">reconfigure.yml</code> installed."); setApplyStatus("Workflow not found or repo not accessible (404).", "err"); return; }
+        setApplyStatus("Dispatch failed (HTTP " + r.status + ").", "err");
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = "Save and apply"; }
+        setApplyStatus("Network error: " + escapeHtml(String(e && e.message || e)), "err");
+      }
+    }
+
+    async function loadCurrent() {
+      const st = $("loadStatus");
+      try {
+        const yaml = await fetchText(rawUrl(repo, ref, ".github/labview-ci.yml"));
+        const cfg = parseBuildsBlock(yaml);
+        activities = parseActivities(yaml);
+        savedSel = (cfg && !cfg.runAll) ? cfg.specs : {};
+        st.className = "status ok";
+        st.textContent = "Loaded current Builds settings from " + repo + "@" + ref + ".";
+      } catch (_) {
+        activities = null; savedSel = {};
+        st.className = "status";
+        st.textContent = "No existing config found for " + repo + " (the pipeline may not be installed yet) - showing defaults.";
+      }
+      renderAll(); update();
+      discover();
+    }
+
+    function wire() {
+      const cp = $("copyGh");
+      cp.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText($("ghCmd").textContent); cp.textContent = "Copied!"; setTimeout(() => cp.textContent = "Copy", 1400); } catch (_) {}
+      });
+      $("applyBuilds").addEventListener("click", dispatchReconfigure);
+      $("tokSave").addEventListener("click", () => {
+        const inp = $("tokInput"); const v = (inp && inp.value || "").trim();
+        if (!v) { if (inp) inp.focus(); return; }
+        try { localStorage.setItem(TOK_KEY, v); } catch (_) {}
+        dispatchReconfigure();
+      });
+      $("tokInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("tokSave").click(); } });
+    }
+
+    (async function init() {
+      catalog = await loadCatalog();
+      const tgt = detectTarget();
+      repo = tgt.repo; ref = tgt.ref;
+      const tr = $("targetRepo"); if (tr && repo) tr.textContent = repo;
+      wire(); renderAll(); update();
+      if (repo.includes("/")) loadCurrent().catch(() => {});
+    })();
+  })();
+  </script>
+</body>
+</html>

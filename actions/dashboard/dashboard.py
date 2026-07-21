@@ -151,6 +151,21 @@ def masscompile_summary(sha, platform='windows'):
     _mc_cache[key] = data if isinstance(data, dict) else None
     return _mc_cache[key]
 
+_builds_cache = {}
+def builds_summary(sha, platform='windows'):
+    # {platform, status, total, built, skipped, failed, duration, labview_version,
+    # specs[...]} written by build-binaries.ps1 / build-binaries.sh and deployed
+    # alongside the Builds report at builds/<sha>/summary.json (Windows) and
+    # builds/<sha>/linux/summary.json (Linux). Lets the Builds column show a split
+    # pill of succeeded vs failed build specifications, per platform.
+    key = (sha, platform)
+    if key in _builds_cache:
+        return _builds_cache[key]
+    sub = 'linux/' if platform == 'linux' else ''
+    data = http_json(f"{pages_url}/builds/{sha}/{sub}summary.json")
+    _builds_cache[key] = data if isinstance(data, dict) else None
+    return _builds_cache[key]
+
 _ut_cache = {}
 def unit_tests_summary(sha, platform='windows'):
     # build-unittest-report.py deploys the same model that renders the friendly
@@ -450,6 +465,13 @@ RUN_TARGETS = {
     'antidoc': {'label': 'Antidoc', 'platforms': {
         'windows': {'wf': 'run-antidoc-windows-container.yml', 'inputs': {'commit_sha': '{sha}'},
                     'batch': {'wf': 'antidoc-backfill-windows.yml', 'shas_input': 'shas'}}}},
+    # Builds: run the project's LabVIEW build specifications (EXE, PPL, shared
+    # library, source distribution, ...) headlessly. Cross-platform where the
+    # spec type allows; Installer / .NET Interop are Windows-only (skipped on
+    # Linux, never failed).
+    'builds': {'label': 'Builds', 'platforms': {
+        'windows': {'wf': 'build-binaries-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}},
+        'linux':   {'wf': 'build-binaries-linux-container.yml',   'inputs': {'commit_sha': '{sha}'}}}},
 }
 
 # Gate run targets to the workflows ACTUALLY installed in this repo, so the
@@ -1158,6 +1180,48 @@ for c in commits_data:
     antidoc_badge = badge('docs', 'CI / Antidoc', cap='antidoc',
                           doc=('antidoc-report', 'antidoc'))
 
+    # Builds column: a split pill of build specifications that SUCCEEDED vs FAILED
+    # for this revision (e.g. "2 / 1"), aggregated across the Windows and Linux
+    # build runs and sourced from each run's summary.json. An empty project cell
+    # offers a one-click run; a project with no build specifications renders a
+    # plain dash.
+    def builds_cell():
+        if not is_project:
+            return EMPTY_CELL
+        _bw = builds_summary(sha, 'windows')
+        _bl = builds_summary(sha, 'linux')
+        _live = active_run_cell('builds', 'build')
+        if _live is not None:
+            caps_ran.add('builds')
+            return _live
+        _present = [(plat, s) for plat, s in (('windows', _bw), ('linux', _bl))
+                    if s and isinstance(s.get('total'), int)]
+        if not _present:
+            return run_cell('builds')
+        _built = sum(int(s.get('built') or 0) for _, s in _present)
+        _failed = sum(int(s.get('failed') or 0) for _, s in _present)
+        _skipped = sum(int(s.get('skipped') or 0) for _, s in _present)
+        _total = sum(int(s.get('total') or 0) for _, s in _present)
+        if _total <= 0:
+            # A project with no build specifications: nothing to show.
+            return EMPTY_CELL
+        any_output['on'] = True
+        caps_ran.add('builds')
+        _ts = (pick_status('CI / Builds') or pick_status('CI / Builds (Linux)') or {}).get('created_at', '')
+        _url = f'{pages_url}/builds/{sha}/index.html'
+        _tip = (f'{_built} built, {_failed} failed'
+                + (f', {_skipped} skipped' if _skipped else '')
+                + f' of {_total} build specification(s)')
+        # Split pill: succeeded (green) / failed (red when > 0, muted grey at 0 so
+        # a clean run does not roll the row up to "failed").
+        _fail_kind = 'fail' if _failed > 0 else 'muted'
+        _chip_html = _chip_split([('pass', str(_built), 'Succeeded'),
+                                  (_fail_kind, str(_failed), 'Failed')], _url, _tip)
+        return (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="builds" '
+                f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_ts}">'
+                f'{_chip_html}</td>')
+    builds_badge = builds_cell()
+
     # Small camera/image glyph beside the commit message whenever this revision
     # has any rendered VI snapshots, so snapshot coverage is discoverable straight
     # from the main table (tooltip per request). Coverage is cached, so reusing it
@@ -1199,6 +1263,7 @@ for c in commits_data:
       {snap_badge}
       {unit_badge}
       {antidoc_badge}
+      {builds_badge}
     </tr>""")
 
 rows = '\n'.join(rows_html)
@@ -2473,11 +2538,12 @@ run_dialog = (r"""
       'masscompile': ['Mass Compile', 'Compiles the whole project, each revision'],
       'vi-analyzer': ['VI Analyzer',  'Runs the VI Analyzer suite, each revision'],
       'unit-tests':  ['Unit Tests',   'Runs the unit-test suite, each revision'],
-      'antidoc':     ['Antidoc',      'Generates project documentation, each revision']
+      'antidoc':     ['Antidoc',      'Generates project documentation, each revision'],
+      'builds':      ['Builds',       'Runs the project build specifications (EXE, PPL, ...), each revision']
     };
-    var CAP_ORDER = ['snapshots','snapshots2','vidiff','masscompile','vi-analyzer','unit-tests','antidoc'];
+    var CAP_ORDER = ['snapshots','snapshots2','vidiff','masscompile','vi-analyzer','unit-tests','antidoc','builds'];
     var DIFF_CAPS = { snapshots:1, snapshots2:1, vidiff:1 };  // the lean "diff-based" subset
-    var PLATFORM_CAPS = { snapshots2:1, vidiff:1, masscompile:1, 'vi-analyzer':1 };
+    var PLATFORM_CAPS = { snapshots2:1, vidiff:1, masscompile:1, 'vi-analyzer':1, builds:1 };
     var platState = {};                         // cap id -> selected platform keys for history rows
     function capPlatforms(capId){ return (RT[capId] && RT[capId].platforms) ? Object.keys(RT[capId].platforms) : []; }
     function histHasPlatformPicker(capId){ return !!PLATFORM_CAPS[capId] && capPlatforms(capId).length > 1; }
@@ -3216,6 +3282,7 @@ html = f"""<!DOCTYPE html>
     .cidash-chip .cidash-vseg.cc-pass{{color:#3fb950}}
     .cidash-chip .cidash-vseg.cc-fail{{color:#f85149}}
     .cidash-chip .cidash-vseg.cc-warn{{color:#d29922}}
+    .cidash-chip .cidash-vseg.cc-muted{{color:#8b949e}}
     /* A hard-failed segment in a split pill is filled bright red (a small solid
        badge) so it reads as a failure, not just a low number. */
     .cidash-chip .cidash-vseg.cc-fail.cc-solid{{background:#da3633;color:#fff;padding:1px 7px;border-radius:6px}}
@@ -3232,6 +3299,7 @@ html = f"""<!DOCTYPE html>
       .cidash-chip .cidash-vseg.cc-pass{{color:#1a7f37}}
       .cidash-chip .cidash-vseg.cc-fail{{color:#cf222e}}
       .cidash-chip .cidash-vseg.cc-warn{{color:#9a6700}}
+      .cidash-chip .cidash-vseg.cc-muted{{color:#57606a}}
       .cidash-chip .cidash-vseg.cc-fail.cc-solid{{background:#cf222e;color:#fff}}
       .cidash-chip .cidash-vseg[data-tip]:hover::after{{background:#fff;color:#1f2328;border-color:#d0d7de;box-shadow:0 2px 8px rgba(140,149,159,.35)}}
       .cidash-chip .cidash-vseg[data-tip]:hover::before{{border-top-color:#d0d7de}}
@@ -3384,6 +3452,7 @@ html = f"""<!DOCTYPE html>
         <th style="text-align:center">Snapshots</th>
         <th style="text-align:center">Unit Tests</th>
         <th style="text-align:center">Antidoc</th>
+        <th style="text-align:center">Builds</th>
       </tr>
     </thead>
     <tbody>{rows}</tbody>
@@ -3574,6 +3643,7 @@ for _name, _dst in [
     ('vi-analyzer.html', 'ci-out/dashboard/vi-analyzer.html'),
     ('integrate.html', 'ci-out/dashboard/integrate.html'),
     ('unit-tests.html', 'ci-out/dashboard/unit-tests.html'),
+    ('builds.html', 'ci-out/dashboard/builds.html'),
     # Implementation-level "How LabVIEW CI works" reference (linked from the FAQ
     # and the site header); staged so documentation edits actually deploy.
     ('documentation.html', 'ci-out/dashboard/documentation.html'),

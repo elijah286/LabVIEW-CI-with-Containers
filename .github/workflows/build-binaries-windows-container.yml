@@ -1,0 +1,288 @@
+name: Build Binaries — Windows Container
+run-name: Build Binaries Windows container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+# Executes the project's LabVIEW build specifications (EXE, PPL, shared library,
+# source distribution, zip, installer, ...) headlessly in the Windows worker,
+# stages the built artifacts with checksums, publishes a Builds report, uploads
+# them as a workflow artifact (Tier A), and - on a version tag - promotes them to
+# the GitHub Release (Tier B).
+
+on:
+  pull_request:
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+      - '!.github/**'
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+      - '!.github/**'
+    # A full semver tag (v1.2.0) triggers a release build + asset promotion. The
+    # rolling major / major.minor aliases (v1, v1.2) do NOT match this 3-part
+    # glob, so re-pointing them never re-triggers a build.
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to build (leave blank for current HEAD)'
+        required: false
+        default: ''
+
+env:
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-windows
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  statuses: write
+  packages: read
+  actions: read
+
+concurrency:
+  group: report-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-binaries:
+    runs-on: windows-2022
+
+    steps:
+      - name: Determine target SHA
+        id: sha
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INPUT="${{ github.event.inputs.commit_sha }}"
+          if [ -n "$INPUT" ]; then
+            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha')
+            echo "sha=$FULL" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"Build in progress\",\"context\":\"CI / Builds\"}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Restore CI scripts from main
+        if: github.event.inputs.commit_sha != ''
+        shell: bash
+        run: |
+          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
+          git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
+
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          ACTION_ID="builds"
+          CFG=.github/labview-ci.yml
+          sel=""
+          if [ -f "$CFG" ]; then
+            sel=$(awk -v act="$ACTION_ID" '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; ina=0; next}
+              inc && /^    actions:[[:space:]]*$/ {ina=1; next}
+              ina && /^      [A-Za-z0-9_.-]+:/ {
+                k=$1; sub(/:.*/,"",k);
+                v=$0; sub(/^[[:space:]]*[A-Za-z0-9_.-]+:[[:space:]]*/,"",v); gsub(/"/,"",v); gsub(/[[:space:]]/,"",v);
+                if (k==act) {print v; exit}
+                next
+              }
+              ina && /^    [A-Za-z]/ {ina=0}
+              inc && /^[^[:space:]]/ {inc=0; ina=0}
+            ' "$CFG" | tr -d '[:space:]')
+            if [ -z "$sel" ]; then
+              sel=$(awk '
+                /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+                inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+                inc && /^[^[:space:]]/ {inc=0}
+              ' "$CFG" | tr -d '[:space:]')
+            fi
+          fi
+          if [ -z "$sel" ]; then
+            img="${custom}:latest"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+            img="${BASE_IMAGE}"
+          elif [ "$sel" = "latest" ]; then
+            img="${custom}:latest"
+          else
+            img="${custom}:${sel}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: ./.github/labview/ensure-docker.ps1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for worker image build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}"
+
+      - name: Pull LabVIEW container image
+        id: pull
+        shell: powershell
+        run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
+        continue-on-error: true
+
+      - name: Run build specifications inside container
+        if: steps.pull.outcome == 'success'
+        id: build
+        shell: powershell
+        run: |
+          docker run --rm `
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+            -e "GITHUB_SHA=${{ steps.sha.outputs.sha }}" `
+            -e "GITHUB_REF=${{ github.ref }}" `
+            -v "${{ github.workspace }}:C:\workspace" `
+            $Env:LABVIEW_CONTAINER_IMAGE `
+            powershell -NonInteractive -ExecutionPolicy Bypass `
+              -File "C:\workspace\.github\labview\build-binaries.ps1" `
+              -WorkspaceRoot "C:\workspace" `
+              -ReportDir     "C:\workspace\ci-out\builds" `
+              -LabVIEWPath   "C:\Program Files\National Instruments\LabVIEW ${{ vars.LABVIEW_VERSION || '2026' }}\LabVIEW.exe"
+        continue-on-error: true
+
+      - name: Check report directory
+        id: report
+        shell: bash
+        run: |
+          if [ -f "${{ github.workspace }}/ci-out/builds/index.html" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build friendly Builds report
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        continue-on-error: true
+        run: |
+          REPORT_DIR="${{ github.workspace }}/ci-out/builds"
+          python .github/labview/build-binaries-report.py \
+            --summary   "$REPORT_DIR/summary.json" \
+            --out       "$REPORT_DIR" \
+            --platform  windows \
+            --sha       "${{ steps.sha.outputs.sha }}" \
+            --repo      "${{ github.repository }}" \
+            --pages-url "${{ env.PAGES_URL }}" \
+            --labview-version "${{ vars.LABVIEW_VERSION || '2026' }}" \
+            --run-url   "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
+            --author     "$(git log -1 --pretty=%an  ${{ steps.sha.outputs.sha }})" \
+            --date       "$(git log -1 --pretty=%cI  ${{ steps.sha.outputs.sha }})"
+
+      - name: Upload build artifacts
+        if: steps.report.outputs.exists == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: builds-windows-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/builds/
+          if-no-files-found: warn
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        run: |
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy Builds report to GitHub Pages
+        if: steps.report.outputs.exists == 'true'
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: ${{ github.workspace }}/ci-out/builds
+          destination_dir: builds/${{ steps.sha.outputs.sha }}
+
+      - name: Promote build artifacts to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') && steps.report.outputs.exists == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          python .github/labview/promote-build-artifacts.py \
+            --dist "${{ github.workspace }}/ci-out/builds/dist" \
+            --out  "${{ github.workspace }}/ci-out/builds/release" \
+            --os   windows --tag "$TAG"
+          shopt -s nullglob
+          ASSETS=(${{ github.workspace }}/ci-out/builds/release/*)
+          if [ ${#ASSETS[@]} -gt 0 ]; then
+            gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --generate-notes
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+          else
+            echo "No build artifacts to promote for $TAG."
+          fi
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.report.outputs.exists }}" = "true" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/builds/${{ steps.sha.outputs.sha }}/index.html"
+          else
+            REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
+          DESC="Build $STATE"
+          SUMMARY="${{ github.workspace }}/ci-out/builds/summary.json"
+          if [ -f "$SUMMARY" ]; then
+            BUILT=$(grep -o '"built":[0-9]*' "$SUMMARY" | grep -o '[0-9]*$' || true)
+            FAILED=$(grep -o '"failed":[0-9]*' "$SUMMARY" | grep -o '[0-9]*$' || true)
+            if [ -n "$BUILT" ]; then DESC="${BUILT} built, ${FAILED:-0} failed"; fi
+          fi
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"$DESC\",\"context\":\"CI / Builds\"}"
+
+      - name: Fail the job if the build failed
+        if: always() && (steps.pull.outcome != 'success' || steps.build.outcome != 'success')
+        run: exit 1

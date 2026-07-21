@@ -77,6 +77,10 @@ on:
         description: 'VI Analyzer per-path configs as <config>::<paths> pairs separated by ; (paths joined by |; config "none" excludes; blank = keep current)'
         required: false
         default: ''
+      builds:
+        description: 'Build specifications to run: "all" (build every spec, the default) or <project>::<name>::<oses> pairs separated by ; (oses joined by +, e.g. example/App.lvproj::My App::windows+linux; "none" to skip; blank = keep current)'
+        required: false
+        default: ''
       unit_tests:
         description: 'Unit-test tool config as JSON; blank = keep current'
         required: false
@@ -120,6 +124,7 @@ jobs:
           IN_AUTO_INSTALL_DEPS: ${{ inputs.auto_install_dependencies }}
           IN_VIA_DEFAULT: ${{ inputs.via_default }}
           IN_VIA_RULES: ${{ inputs.via_rules }}
+          IN_BUILDS: ${{ inputs.builds }}
           IN_UNIT_TESTS: ${{ inputs.unit_tests }}
         run: |
           python3 - <<'PY'
@@ -141,6 +146,7 @@ jobs:
           auto_install_in = os.environ.get('IN_AUTO_INSTALL_DEPS', '').strip().lower()
           via_default_in = os.environ.get('IN_VIA_DEFAULT', '').strip()
           via_rules_in = os.environ.get('IN_VIA_RULES', '').strip()
+          builds_in = os.environ.get('IN_BUILDS', '').strip()
           unit_tests_in = os.environ.get('IN_UNIT_TESTS', '').strip()
 
           # Preserve provenance fields from any existing manifest.
@@ -399,6 +405,47 @@ jobs:
               via_default = prev_via.get('default', '')
               via_rules = prev_via.get('rules', [])
 
+          # Builds: which build specifications run, and on which OS. Input "all"
+          # (or an all-selected list) = build everything (the default, no block
+          # written); an explicit list restricts specs/OS; blank keeps the
+          # manifest's block. Shape: <project>::<name>::<os+os|none>.
+          def _parse_builds_block(text):
+              lines = text.splitlines(); i = 0
+              while i < len(lines) and not re.match(r'^\s{2}builds:\s*$', lines[i]):
+                  i += 1
+              if i >= len(lines):
+                  return None
+              i += 1; run_all = True; specs = []; in_specs = False; saw = False
+              while i < len(lines):
+                  line = lines[i]; i += 1
+                  if re.match(r'^\s{0,1}\S', line):
+                      break
+                  m = re.match(r'^\s{4}runAll:\s*(true|false)', line)
+                  if m:
+                      run_all = (m.group(1) == 'true'); in_specs = False; saw = True; continue
+                  if re.match(r'^\s{4}specs:\s*$', line):
+                      in_specs = True; saw = True; continue
+                  if in_specs:
+                      m = re.match(r'^\s{6}-\s*"?([^"]+?)"?\s*$', line)
+                      if m:
+                          specs.append(m.group(1)); saw = True
+              return {'runAll': run_all, 'specs': specs} if saw else None
+          def _parse_builds_input(s):
+              s = s.strip()
+              if s == '':
+                  return None
+              if s.lower() == 'all':
+                  return {'runAll': True, 'specs': []}
+              specs = []
+              for e in s.split(';'):
+                  e = e.strip().replace('"', '')
+                  if e and e.count('::') >= 2:
+                      specs.append(e)
+              return {'runAll': False, 'specs': specs}
+          prev_builds = _parse_builds_block(mpath.read_text(encoding='utf-8')) if mpath.exists() else None
+          _parsed_builds = _parse_builds_input(builds_in)
+          builds_cfg = _parsed_builds if _parsed_builds is not None else prev_builds
+
           lines = [
               '# .github/labview-ci.yml - LabVIEW CI configuration',
               '# Updated by the Reconfigure workflow.',
@@ -457,6 +504,15 @@ jobs:
                           lines.append('      - config: "' + str(_cfg).replace('"', '') + '"')
                       _paths = '|'.join(str(p).replace('|', '').replace('"', '') for p in _r['paths'])
                       lines.append(f'        paths: "{_paths}"')
+          # Builds: only written when specs are restricted (runAll is the default;
+          # no block means the runners build every spec on every supported OS).
+          if builds_cfg and not builds_cfg.get('runAll', True):
+              lines.append('  builds:')
+              lines.append('    runAll: false')
+              if builds_cfg.get('specs'):
+                  lines.append('    specs:')
+                  for _e in builds_cfg['specs']:
+                      lines.append('      - "' + str(_e).replace('"', '') + '"')
           if triggers:
               lines.append('  triggers:')
               for _id in sorted(triggers):
@@ -593,6 +649,7 @@ jobs:
           | VI Browser renders | ${{ inputs.vi_browser }} |
           | VI Analyzer default | ${{ inputs.via_default }} |
           | VI Analyzer rules | ${{ inputs.via_rules }} |
+          | Builds | ${{ inputs.builds }} |
           | Unit tests | ${{ inputs.unit_tests }} |
 
           Review and merge to apply. Container-dependency and LabVIEW-version changes
