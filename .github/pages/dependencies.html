@@ -592,14 +592,31 @@
       linux:   { key:"linux",   file:"build-labview-linux-image.yml", label:"Linux" }
     };
     function updTargets(){
+      const seen = new Set();
+      return updSelectedKeys().filter(k => (seen.has(k) ? false : (seen.add(k), true))).map(k => UPDATE_WORKFLOWS[k]).filter(Boolean);
+    }
+    // Which worker containers the pending signal says are behind -- used to
+    // pre-check the "Containers to rebuild" boxes. The Windows worker build covers
+    // both the 'windows' VIPC bake and the 'windows-beta' Dragon/NIPM lane.
+    function updDefaultKeys(){
       const containers = (updPending && Array.isArray(updPending.containers)) ? updPending.containers : [];
       const keys = [];
-      // The standard Windows worker build covers both the 'windows' VIPC bake and the
-      // 'windows-beta' Dragon/NIPM lane; fall back to Windows when nothing is flagged.
       if (containers.includes("windows") || containers.includes("windows-beta") || !containers.length) keys.push("windows");
       if (containers.includes("linux")) keys.push("linux");
-      const seen = new Set();
-      return keys.filter(k => (seen.has(k) ? false : (seen.add(k), true))).map(k => UPDATE_WORKFLOWS[k]).filter(Boolean);
+      return keys;
+    }
+    // The user can rebuild Windows, Linux, or both regardless of what is flagged
+    // pending. Read the checkboxes when the panel is rendered; fall back to the
+    // pending-derived defaults otherwise.
+    function updSelectedKeys(){
+      const el = $("updatePanel");
+      const boxes = el ? el.querySelectorAll('input[name=updPlat]') : null;
+      if (boxes && boxes.length){
+        const on = [];
+        boxes.forEach(b => { if (b.checked) on.push(b.value); });
+        return on;
+      }
+      return updDefaultKeys();
     }
     function setUpdateStatus(html, kind){
       const st = $("updStatus"); if (!st) return;
@@ -921,11 +938,18 @@
       updPending = d;
       if (!d || !d.pending) { el.classList.add("hidden"); el.innerHTML = ""; return; }
       el.classList.remove("hidden");
+      const defKeys = updDefaultKeys();
+      const defWin = defKeys.includes("windows");
+      const defLin = defKeys.includes("linux");
       el.innerHTML =
         '<h2 class="upd-h">&#9888;&#65039; Dependency update needed</h2>' +
         '<p class="upd-sub">Your project declares dependencies &mdash; in <strong>VIPC files</strong> (VIPM packages) or <strong>.dragon files</strong> (NIPM packages) &mdash; that are <strong>not yet baked</strong> into the worker container(s). Each missing item is marked with a <span class="upd-warn-glyph">&#9888;</span> in the table below; until you run this update, container CI may fail or show broken code.</p>' +
         updMissingList(d) +
         '<div class="note warn upd-exp"><strong>This is a long operation.</strong> It rebuilds the worker container(s) by installing your dependencies with VIPM, which can take a while depending on the dependencies. <strong>Do not run other CI actions until it completes</strong> &mdash; they would run against the old container and may error.</div>' +
+        '<div class="upd-block"><div class="upd-k">Containers to rebuild</div>' +
+        '<label class="upd-radio"><input type="checkbox" name="updPlat" value="windows"' + (defWin ? ' checked' : '') + '> <span><strong>Windows</strong> worker' + (defWin ? '' : ' <span class="upd-cmp-note">(already up to date)</span>') + '</span></label>' +
+        '<label class="upd-radio"><input type="checkbox" name="updPlat" value="linux"' + (defLin ? ' checked' : '') + '> <span><strong>Linux</strong> worker' + (defLin ? '' : ' <span class="upd-cmp-note">(already up to date)</span>') + '</span></label>' +
+        '</div>' +
         '<div class="upd-block"><div class="upd-k">How to apply</div>' +
         '<label class="upd-radio"><input type="radio" name="updMode" value="replace" checked> <span><strong>Replace existing containers</strong> (default) &mdash; rebuild in place; your pipeline actions keep using them automatically.</span></label>' +
         '<label class="upd-radio"><input type="radio" name="updMode" value="new"> <span><strong>Create new containers</strong> &mdash; publish a new tagged container alongside the current one; select it per action in Configure Pipeline.</span></label>' +
@@ -935,13 +959,22 @@
         '<div class="status upd-run-status" id="updStatus"></div>' +
         '<div class="upd-progress" id="updProgress"><div class="upd-prog-head"><span class="upd-prog-phase" id="updProgPhase"></span><span class="upd-prog-meta" id="updProgMeta"></span></div><div class="upd-prog-track"><div class="upd-prog-bar" id="updProgBar"></div></div></div>' +
         '<p class="upd-auto">Prefer file changes to rebuild containers automatically? Keep <strong>Monitored</strong> checked for that dependency file here, click <strong>Save monitored files</strong>, and files saved with <code>monitor: true</code> will trigger a rebuild when they change on a submission.</p>';
-      el.querySelectorAll('input[name=updMode]').forEach(r => r.addEventListener("change", () => {
+      el.querySelectorAll('input[name=updMode]').forEach(r => r.addEventListener("change", () => syncUpd()));
+      el.querySelectorAll('input[name=updPlat]').forEach(r => r.addEventListener("change", () => syncUpd()));
+      function syncUpd(){
         const mode = (el.querySelector('input[name=updMode]:checked') || {}).value || "replace";
+        const keys = updSelectedKeys();
+        const labels = keys.map(k => (UPDATE_WORKFLOWS[k] || {}).label).filter(Boolean);
+        const rb = $("updRun");
+        if (rb) rb.disabled = keys.length === 0;
         const hint = el.querySelector(".upd-hint");
-        if (hint) hint.innerHTML = 'Rebuilds the affected worker container(s) with <code>update_mode</code> = <code>' + esc(mode) + '</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.';
-      }));
+        if (hint) hint.innerHTML = keys.length
+          ? 'Rebuilds the <strong>' + esc(labels.join(" + ")) + '</strong> worker container' + (labels.length > 1 ? 's' : '') + ' with <code>update_mode</code> = <code>' + esc(mode) + '</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.'
+          : 'Select at least one container (Windows or Linux) to rebuild.';
+      }
       const runBtn = $("updRun");
       if (runBtn) runBtn.addEventListener("click", openUpdateApprovalDialog);
+      syncUpd();
       if (currentVipcs.length) renderVipc(currentVipcs, currentColStates);
       if (currentDragons.length) renderDragonFiles(currentDragons);
       resumeContainerTracking();
@@ -955,13 +988,18 @@
       if (!pkg) return "";
       if (vipc && col && Array.isArray(vipc.monitorOn) && vipc.monitorOn.indexOf(col.key) === -1) return notApplicableCell('Not monitored for ' + (MONITOR_LABELS[col.key] || col.key));
       if (vipc && vipc.monitored === false) return notApplicableCell('Dependency file is not monitored');
-      if (colState.experimentalPending) return isProjectVipc(vipc) ? experimentalCell() : notApplicableCell('Not applied to this worker');
+      // Past the two guards above, the dependency IS monitored for this column, so
+      // evaluate it as present/missing on this platform exactly like every other --
+      // a monitored package that is not baked into this worker is MISSING (which
+      // drives the container update), NOT "not applicable". This keeps Linux
+      // evaluated the same way as Windows instead of a blanket N/A column.
+      if (colState.experimentalPending) return experimentalCell();
       if (colState.unsupported) return notApplicableCell(colState.unsupportedReason || 'not supported on this platform');
-      if (colState.label === "base" || colState.label === "none") return isProjectVipc(vipc) ? missingCell('No dependency worker is selected for this platform') : notApplicableCell('Not applied to this worker');
-      if (!colState.ready) return isProjectVipc(vipc) ? missingCell('Worker dependency manifest has not been published yet') : notApplicableCell('Worker manifest not available');
+      if (colState.label === "base" || colState.label === "none") return missingCell('No dependency worker is baked for this platform yet -- run the container update');
+      if (!colState.ready) return missingCell('Worker dependency manifest has not been published yet -- run the container update');
       const ok = colState.packages.has(pkg);
       if (ok) return presentCell(colState.label);
-      return isProjectVipc(vipc) ? missingCell('missing') : notApplicableCell('Not applied to this worker');
+      return missingCell('Not baked into this worker yet -- run the container update');
     }
     function simpleCell(ok, label, emptyLabel){
       if (ok === null) return missingCell('Worker dependency manifest has not been published yet');

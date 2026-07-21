@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.6.4",
+  "version": "4.6.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.6.5",
+        "date": "2026-07-21",
+        "type": "patch",
+        "summary": "Dependencies page: you can now choose which worker containers to rebuild (Windows, Linux, or both) in the container-update flow, and the Linux column is evaluated the same way as Windows. A 'Containers to rebuild' pair of checkboxes -- pre-checked from the pending signal -- lets you target either worker explicitly, and the dependency table now shows a package that is monitored for a platform but not yet baked into that worker as MISSING in that column (previously the whole Linux column read N/A when its worker was still a bare base seed) so it is clear the Linux worker needs the update.",
+        "highlights": [
+          "Container update flow adds Windows/Linux 'Containers to rebuild' checkboxes -- rebuild either worker or both.",
+          "Linux dependency column evaluates monitored packages as present/missing like Windows instead of a blanket N/A."
+        ]
+      },
       {
         "version": "4.6.4",
         "date": "2026-07-21",
