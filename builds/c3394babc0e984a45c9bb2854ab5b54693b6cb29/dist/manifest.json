@@ -1,0 +1,37 @@
+{
+    "repo":  "elijah286/LabVIEW-CI-with-Containers",
+    "sha":  "c3394babc0e984a45c9bb2854ab5b54693b6cb29",
+    "ref":  "refs/heads/main",
+    "platform":  "windows",
+    "arch":  "AMD64",
+    "labview_version":  "LabVIEW 2026",
+    "built_at":  "2026-07-21T22:22:48Z",
+    "specs":  [
+                  {
+                      "project":  "example\\Example.lvproj",
+                      "name":  "Curriculum Launcher",
+                      "type":  "EXE",
+                      "target":  "My Computer",
+                      "status":  "built",
+                      "outputs":  [
+                                      {
+                                          "file":  "Application.aliases",
+                                          "size":  38,
+                                          "sha256":  "3277c56b265a62fd2112dcccc5cf0d6065eb44ca7d050ffa950b49963bee9227"
+                                      },
+                                      {
+                                          "file":  "Application.exe",
+                                          "size":  598528,
+                                          "sha256":  "4b1fd3ebc05c0209abdb183748a423f94020d3eca081bcb7651e1d415c744efd"
+                                      },
+                                      {
+                                          "file":  "Application.ini",
+                                          "size":  296,
+                                          "sha256":  "859eb014a6a935514c10b75403f16e89c58b9b8c4855faf22e1a0f5f09ec3b96"
+                                      }
+                                  ],
+                      "message":  "",
+                      "duration":  40.3
+                  }
+              ]
+}

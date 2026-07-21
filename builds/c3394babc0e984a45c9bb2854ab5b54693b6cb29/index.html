@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Builds - LabVIEW-CI-with-Containers</title>
+  <script>window.LVCI={context:'builds-report',repo:"elijah286/LabVIEW-CI-with-Containers",pagesUrl:"../..",sha:"c3394babc0e984a45c9bb2854ab5b54693b6cb29",short:"c3394ba",platform:"windows",rawUrl:'builds.log'};</script>
+  <script src="../../lvci-header.js" defer></script>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3}
+    .wrap{max-width:1100px;margin:0 auto;padding:20px}
+    .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 18px;margin-bottom:14px}
+    .summary-card{display:flex;align-items:center;flex-wrap:wrap;gap:14px}
+    h1{margin:0;font-size:1.3em}
+    .run-pill{display:inline-block;padding:3px 12px;border-radius:20px;font-weight:700;font-size:.8em;color:#fff;background:#2ea043;text-transform:capitalize}
+    .counts{font-size:.85em;color:#8b949e;display:flex;gap:14px;flex-wrap:wrap}
+    .toggle{margin-left:auto;display:flex;gap:6px}
+    .toggle a{font-size:.8em;padding:4px 12px;border:1px solid #30363d;border-radius:6px;color:#8b949e;text-decoration:none}
+    .toggle a.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+    .commit{font-size:.8em;color:#8b949e;margin-top:8px}
+    .commit code{background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:1px 6px}
+    .spec-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+    .spec-name{font-weight:700;font-size:1.05em}
+    .type-badge{font-size:.72em;padding:2px 8px;border-radius:12px;background:#21262d;border:1px solid #30363d;color:#adbac7}
+    .target{font-size:.78em;color:#8b949e}
+    .status-pill{margin-left:auto;font-size:.72em;font-weight:700;color:#fff;padding:2px 10px;border-radius:12px}
+    .spec-sub{font-size:.76em;color:#8b949e;margin:6px 0 10px}
+    .artifacts{display:flex;flex-direction:column;gap:6px}
+    .artifact{display:flex;align-items:center;gap:12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:8px 12px;font-size:.85em}
+    .artifact .dl{color:#58a6ff;text-decoration:none;font-weight:600;display:flex;align-items:center;gap:6px}
+    .artifact .dl:hover{text-decoration:underline}
+    .artifact .dlico{font-weight:700}
+    .artifact .sz{color:#8b949e;font-size:.9em}
+    .artifact .hash{margin-left:auto;color:#6e7681;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;cursor:help}
+    .artifact.none{color:#8b949e}
+    .artifact.err{color:#ff7b72}
+    .empty{color:#8b949e}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card summary-card">
+      <h1>Builds</h1>
+      <span class="run-pill">passed</span>
+      <div class="counts">
+        <span>1 built</span>
+        <span>0 skipped</span>
+        <span>0 failed</span>
+        <span>1 total</span>
+        <span>40.6s</span>
+      </div>
+      <div class="toggle">
+        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/builds/c3394babc0e984a45c9bb2854ab5b54693b6cb29/index.html" class="active">Windows</a>
+        <a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/builds/c3394babc0e984a45c9bb2854ab5b54693b6cb29/linux/index.html" class="">Linux</a>
+      </div>
+    </div>
+    <div class="commit"><code>c3394ba</code> Added a Build Spec &middot; Elijah Kerry</div>
+    <div class="card spec"><div class="spec-head"><span class="spec-name">Curriculum Launcher</span><span class="type-badge">EXE</span><span class="target">target: My Computer</span><span class="status-pill" style="background:#2ea043">Built</span></div><div class="spec-sub">example\Example.lvproj &middot; 40.3s</div><div class="artifacts"><div class="artifact"><a class="dl" href="dist/example-Example.lvproj/Curriculum-Launcher/Application.aliases" download><span class="dlico">&#8595;</span>Application.aliases</a><span class="sz">38 B</span><span class="hash" title="SHA-256: 3277c56b265a62fd2112dcccc5cf0d6065eb44ca7d050ffa950b49963bee9227">3277c56b265a…</span></div><div class="artifact"><a class="dl" href="dist/example-Example.lvproj/Curriculum-Launcher/Application.exe" download><span class="dlico">&#8595;</span>Application.exe</a><span class="sz">584.5 KB</span><span class="hash" title="SHA-256: 4b1fd3ebc05c0209abdb183748a423f94020d3eca081bcb7651e1d415c744efd">4b1fd3ebc05c…</span></div><div class="artifact"><a class="dl" href="dist/example-Example.lvproj/Curriculum-Launcher/Application.ini" download><span class="dlico">&#8595;</span>Application.ini</a><span class="sz">296 B</span><span class="hash" title="SHA-256: 859eb014a6a935514c10b75403f16e89c58b9b8c4855faf22e1a0f5f09ec3b96">859eb014a6a9…</span></div></div></div>
+    <div class="commit">Generated 2026-07-21 22:22:58 UTC &middot; <a style="color:#58a6ff" href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/29872436903">workflow run</a></div>
+  </div>
+</body>
+</html>

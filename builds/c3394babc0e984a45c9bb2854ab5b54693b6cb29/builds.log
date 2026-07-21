@@ -1,0 +1,19 @@
+=== ExecuteBuildSpec 'Curriculum Launcher' [EXE] target 'My Computer' in example\Example.lvproj ===
+LabVIEWCLI started logging in file:  C:\Users\ContainerAdministrator\AppData\Local\Temp\lvtemporary_411888.log
+Using LabVIEW: "C:\Program Files\National Instruments\LabVIEW 2026\LabVIEW.exe"
+LabVIEW launched successfully.
+Connection established with LabVIEW at port number 3363.
+
+Operation output: 
+Generated files are:
+C:\workspace\builds\Example\Curriculum Launcher\Application.exe
+
+C:\workspace\builds\Example\Curriculum Launcher\Application.aliases
+
+C:\workspace\builds\Example\Curriculum Launcher\Application.ini
+
+
+ExecuteBuildSpec operation succeeded.
+
+
+Project has no build specifications: example\Curriculum\Generator API\subVIs\Revidyne Generator.lvproj
