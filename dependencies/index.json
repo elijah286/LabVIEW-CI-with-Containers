@@ -1,8 +1,43 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "75407454bf88c53975afff48833b72bbf14c6858",
+  "sha": "023c7e6ebb50bcb4cdfef117173e850628329ee9",
   "revisions": [
+    {
+      "sha": "023c7e6ebb50bcb4cdfef117173e850628329ee9",
+      "short": "023c7e6",
+      "message": "Merge pull request #26 from elijah286/fix/deps-pending-version-mismatch",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T15:52:45Z"
+    },
+    {
+      "sha": "9f5bdf304f95ec413b5ba7a8be7e2e53b9e7986e",
+      "short": "9f5bdf3",
+      "message": "Merge origin/main into fix/deps-pending-version-mismatch",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T15:52:33Z"
+    },
+    {
+      "sha": "23c2efaa2af60a56cf9bc258d802040f7eabdec9",
+      "short": "23c2efa",
+      "message": "vipc: make committed VIPCs authoritative and sync dependency surfaces",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T15:46:11Z"
+    },
+    {
+      "sha": "381d6f37833788e7a99a0ceb1264b881e8da6a57",
+      "short": "381d6f3",
+      "message": "Add repaired Antidoc VIPC file",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T15:34:29Z"
+    },
+    {
+      "sha": "dec7497cde71bdd9b320f1bcea5667fb611447aa",
+      "short": "dec7497",
+      "message": "Create ci-tooling_repaired.vipc",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T15:27:29Z"
+    },
     {
       "sha": "75407454bf88c53975afff48833b72bbf14c6858",
       "short": "7540745",
@@ -669,41 +704,6 @@
       "date": "2026-06-23T22:26:58Z"
     },
     {
-      "sha": "2d14ca994b75ebc2d33729d73b49fd0a25714a48",
-      "short": "2d14ca9",
-      "message": "docs: render the architecture diagram (section 2) with Mermaid",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T22:10:00Z"
-    },
-    {
-      "sha": "0344cda25a672743ce55724a220b3605abaa6d06",
-      "short": "0344cda",
-      "message": "docs: render section 17 runner diagrams with Mermaid",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T21:59:27Z"
-    },
-    {
-      "sha": "a2cf0b77978d5c2cd685ff42f216cd031365a8d8",
-      "short": "a2cf0b7",
-      "message": "dashboard: stage documentation.html so doc edits deploy",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T21:47:11Z"
-    },
-    {
-      "sha": "c93c7cd433f4af31920d2b4c89fcd1dc18ba515e",
-      "short": "c93c7cd",
-      "message": "Re-enable installs: turn off Apply-page install pause (v3.46.14)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T21:39:39Z"
-    },
-    {
-      "sha": "ab754baf84f423355496b9b2b2ed237d7f2e9fec",
-      "short": "ab754ba",
-      "message": "docs: add Workflow & runner reference (section 17) with diagrams",
-      "author": "Elijah Kerry",
-      "date": "2026-06-23T20:55:44Z"
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -862,7 +862,34 @@
       "monitored": true,
       "locked": false,
       "packages": [
-        "wovalab_lib_antidoc_cli-3.3.0.117"
+        "graphbuilder-2.3.0.7",
+        "wiresmith_technology_lib_g_cli-3.0.1.98",
+        "wovalab_lib_antidoc-3.3.1.879",
+        "wovalab_lib_antidoc_add_on_labview_project_documentation-3.2.0.358",
+        "wovalab_lib_antidoc_add_on_labview_toolkit_documentation-3.0.0.77",
+        "wovalab_lib_antidoc_add_on_teststand-3.1.0.202",
+        "wovalab_lib_antidoc_cli-3.4.0.126",
+        "wovalab_lib_asciidoc_for_labview-1.12.1.492"
+      ],
+      "error": ""
+    },
+    {
+      "path": ".github/labview/antidoc/antidoc_repaired.vipc",
+      "role": "capability",
+      "capability": "antidoc",
+      "tooling": false,
+      "configured": true,
+      "monitored": true,
+      "locked": false,
+      "packages": [
+        "graphbuilder-2.3.0.7",
+        "wiresmith_technology_lib_g_cli-3.0.1.98",
+        "wovalab_lib_antidoc-3.3.1.879",
+        "wovalab_lib_antidoc_add_on_labview_project_documentation-3.2.0.358",
+        "wovalab_lib_antidoc_add_on_labview_toolkit_documentation-3.0.0.77",
+        "wovalab_lib_antidoc_add_on_teststand-3.1.0.202",
+        "wovalab_lib_antidoc_cli-3.4.0.126",
+        "wovalab_lib_asciidoc_for_labview-1.12.1.492"
       ],
       "error": ""
     },
@@ -890,13 +917,19 @@
       "packages": [
         "astemes_lib_lunit-2.0.13.6",
         "astemes_lib_lunit_cli-1.6.1.23",
+        "astemes_lib_lunit_coverage_analysis_add_on-1.0.0.2",
+        "astemes_lib_lunit_global_fixture_add_on-1.0.5.4",
+        "astemes_lib_lunit_parameterized_add_on-1.1.10.8",
+        "astemes_lib_lunit_test_inheritance_add_on-1.0.5.4",
         "dataflow_g_lib_g_image-0.5.0.1",
-        "jki_labs_tool_vi_tester-3.0.2.294-1",
+        "felipefoz_lib_lv_rainbow_terminal-1.1.1.5",
         "jki_lib_caraya-1.4.4.148",
         "jki_lib_state_machine-2024.0.3.23",
         "jki_rsc_toolkits_palette-1.1-1",
         "labview_open_source_lib_epoch_datetime-1.3.0.8",
         "labview_open_source_project_lib_labview_open_source_palette-1.0.2.7",
+        "labview_open_source_project_lib_openuri-1.4.0.13",
+        "lvos_lib_caraya_cli_extension-2.0.0.7",
         "ni_lib_junit_results_api-1.0.1.6",
         "ni_lib_simple_xml-1.0.0.4",
         "ni_lib_utf_junit_report-1.0.1.43",
@@ -904,7 +937,50 @@
         "oglib_error-6.0.0.26",
         "oglib_file-6.0.2.28",
         "oglib_lvdata-6.0.0.45",
-        "oglib_string-6.0.2.35"
+        "oglib_string-6.0.2.35",
+        "pnr_lib_caraya_junit_for_azure_pipelines-1.2.0.11",
+        "pnr_lib_junit_xml-1.0.0.4",
+        "sas_workshops_lib_lunit_for_g_cli-1.2.1.85",
+        "wiresmith_technology_lib_g_cli-3.0.1.98"
+      ],
+      "error": ""
+    },
+    {
+      "path": ".github/labview/vipm/ci-tooling_repaired.vipc",
+      "role": "project",
+      "capability": "",
+      "tooling": false,
+      "configured": true,
+      "monitored": true,
+      "locked": false,
+      "packages": [
+        "astemes_lib_lunit-2.0.13.6",
+        "astemes_lib_lunit_cli-1.6.1.23",
+        "astemes_lib_lunit_coverage_analysis_add_on-1.0.0.2",
+        "astemes_lib_lunit_global_fixture_add_on-1.0.5.4",
+        "astemes_lib_lunit_parameterized_add_on-1.1.10.8",
+        "astemes_lib_lunit_test_inheritance_add_on-1.0.5.4",
+        "dataflow_g_lib_g_image-0.5.0.1",
+        "felipefoz_lib_lv_rainbow_terminal-1.1.1.5",
+        "jki_lib_caraya-1.4.4.148",
+        "jki_lib_state_machine-2024.0.3.23",
+        "jki_rsc_toolkits_palette-1.1-1",
+        "labview_open_source_lib_epoch_datetime-1.3.0.8",
+        "labview_open_source_project_lib_labview_open_source_palette-1.0.2.7",
+        "labview_open_source_project_lib_openuri-1.4.0.13",
+        "lvos_lib_caraya_cli_extension-2.0.0.7",
+        "ni_lib_junit_results_api-1.0.1.6",
+        "ni_lib_simple_xml-1.0.0.4",
+        "ni_lib_utf_junit_report-1.0.1.43",
+        "oglib_array-6.0.1.20",
+        "oglib_error-6.0.0.26",
+        "oglib_file-6.0.2.28",
+        "oglib_lvdata-6.0.0.45",
+        "oglib_string-6.0.2.35",
+        "pnr_lib_caraya_junit_for_azure_pipelines-1.2.0.11",
+        "pnr_lib_junit_xml-1.0.0.4",
+        "sas_workshops_lib_lunit_for_g_cli-1.2.1.85",
+        "wiresmith_technology_lib_g_cli-3.0.1.98"
       ],
       "error": ""
     },
@@ -1001,10 +1077,10 @@
   ],
   "dragon": {
     "available": true,
-    "column": "winExp",
+    "column": "windows",
     "ready": true,
     "health": "",
-    "manifest_version": "win-beta-2e755247d7ba",
+    "manifest_version": "win-f4057a2b1922",
     "files": [
       {
         "source_file": "example/Example.dragon",
@@ -1017,9 +1093,9 @@
             "declared_version": "6.0.1.20",
             "feed_name": null,
             "source_file": "example/Example.dragon",
-            "status": "not_attempted",
-            "installed_version": "",
-            "message": ""
+            "status": "installed",
+            "installed_version": "6.0.1.20",
+            "message": "inferred from Windows worker VIPM package inventory"
           },
           {
             "manager": "vipm",
@@ -1027,9 +1103,9 @@
             "declared_version": "6.0.0.9",
             "feed_name": null,
             "source_file": "example/Example.dragon",
-            "status": "not_attempted",
+            "status": "missing",
             "installed_version": "",
-            "message": ""
+            "message": "package not found in Windows worker VIPM package inventory"
           }
         ],
         "monitored": true
@@ -1048,9 +1124,9 @@
           "example/Example.dragon"
         ],
         "conflict": false,
-        "status": "not_attempted",
-        "installed_version": "",
-        "message": ""
+        "status": "installed",
+        "installed_version": "6.0.1.20",
+        "message": "inferred from Windows worker VIPM package inventory"
       },
       {
         "manager": "vipm",
@@ -1064,9 +1140,9 @@
           "example/Example.dragon"
         ],
         "conflict": false,
-        "status": "not_attempted",
+        "status": "missing",
         "installed_version": "",
-        "message": ""
+        "message": "package not found in Windows worker VIPM package inventory"
       }
     ],
     "conflicts": []
