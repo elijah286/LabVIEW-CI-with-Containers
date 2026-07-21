@@ -3751,8 +3751,7 @@ def _load_dragon_module():
   """Import the shared .dragon TOML parser (.github/labview/dragon_deps.py).
 
   Returns the module, or False when it (or a TOML backend) is unavailable so the
-  dashboard still builds. Dragon dependency management is an experimental,
-  Win-Beta-only capability; a repo without the parser simply shows no Dragon
+  dashboard still builds. A repo without the parser simply shows no Dragon
   items."""
   global _DRAGON_MOD
   if _DRAGON_MOD is not None:
@@ -3800,12 +3799,108 @@ def _dragon_status_index(man):
           out[key] = item
   return out
 
-def _annotate_dragon_status(dep, status_index, have_manifest):
+def _vipm_version_index(man):
+  """Map vipm package name -> installed version set from a worker manifest."""
+  out = {}
+  if isinstance(man, dict):
+    for pkg in man.get('vipm_packages') or []:
+      if isinstance(pkg, dict):
+        name = str(pkg.get('name') or '').strip().lower()
+        version = str(pkg.get('version') or '').strip()
+        if name:
+          out.setdefault(name, set()).add(version)
+  return out
+
+def _nipkg_version_index(man):
+  """Map nipkg package name -> installed version set from a worker manifest."""
+  out = {}
+  if isinstance(man, dict):
+    for pkg in man.get('nipkg_packages') or []:
+      if isinstance(pkg, dict):
+        name = str(pkg.get('name') or '').strip().lower()
+        version = str(pkg.get('version') or '').strip()
+        if name:
+          out.setdefault(name, set()).add(version)
+  return out
+
+def _infer_dragon_status(dep, have_manifest, baked_packages, vipm_index, nipkg_index):
+  """Best-effort Dragon status from worker inventories when no dragon block exists.
+
+  Some worker manifests do not publish a dedicated `dragon.items` section yet.
+  In that case, infer status from installed VIPM/NIPM package inventories so an
+  already-baked dependency is not stuck at `not_attempted` forever."""
+  if not have_manifest:
+    return None
+  manager = str(dep.get('manager') or 'vipm').strip().lower()
+  pkg = str(dep.get('package_id') or '').strip()
+  declared = str(dep.get('declared_version') or '').strip()
+  if not pkg:
+    return None
+
+  if manager == 'vipm':
+    low = pkg.lower()
+    versions = sorted(v for v in (vipm_index.get(low) or set()) if v)
+    # Match by explicit package/version id first (pkg-1.2.3 or pkg-v1.2.3), then
+    # by package name/version from `vipm list --installed` parsing.
+    ids = set()
+    if declared:
+      ids.add(f'{pkg}-{declared}'.lower())
+      if not declared.lower().startswith('v'):
+        ids.add(f'{pkg}-v{declared}'.lower())
+    if ids and any(i in baked_packages for i in ids):
+      return {
+        'status': 'installed',
+        'installed_version': declared,
+        'message': 'inferred from Windows worker VIPM package inventory',
+      }
+    if declared and versions and declared in versions:
+      return {
+        'status': 'installed',
+        'installed_version': declared,
+        'message': 'inferred from Windows worker VIPM package inventory',
+      }
+    if versions:
+      return {
+        'status': 'wrong_version',
+        'installed_version': versions[0],
+        'message': 'package is installed, but at a different version',
+      }
+    return {
+      'status': 'missing',
+      'installed_version': '',
+      'message': 'package not found in Windows worker VIPM package inventory',
+    }
+
+  if manager == 'nipm':
+    low = pkg.lower()
+    versions = sorted(v for v in (nipkg_index.get(low) or set()) if v)
+    if not versions:
+      return {
+        'status': 'missing',
+        'installed_version': '',
+        'message': 'package not found in Windows worker NIPM package inventory',
+      }
+    if not declared or declared in versions:
+      return {
+        'status': 'installed',
+        'installed_version': declared or versions[0],
+        'message': 'inferred from Windows worker NIPM package inventory',
+      }
+    return {
+      'status': 'wrong_version',
+      'installed_version': versions[0],
+      'message': 'package is installed, but at a different version',
+    }
+
+  return None
+
+def _annotate_dragon_status(dep, status_index, have_manifest, baked_packages, vipm_index, nipkg_index):
   """Overlay an install status onto a declared Dragon dependency in place.
 
   A cross-file conflict always wins; otherwise the reconciled worker-manifest
-  status is used; a missing manifest means the Win Beta image has not been built
-  yet (pending), and an item absent from a present manifest is not_attempted."""
+  status is used; a missing manifest means the Windows worker has not been built
+  yet (pending), and an item absent from a present manifest falls back to
+  best-effort inference from installed-package inventories."""
   if dep.get('conflict'):
     dep['status'] = 'conflict'
     dep.setdefault('installed_version', '')
@@ -3817,12 +3912,18 @@ def _annotate_dragon_status(dep, status_index, have_manifest):
     dep['installed_version'] = str(st.get('installed_version') or '')
     dep['message'] = str(st.get('message') or '')
   else:
-    dep['status'] = 'not_attempted' if have_manifest else 'pending'
-    dep.setdefault('installed_version', '')
-    dep.setdefault('message', '')
+    inferred = _infer_dragon_status(dep, have_manifest, baked_packages, vipm_index, nipkg_index)
+    if inferred:
+      dep['status'] = inferred['status']
+      dep['installed_version'] = inferred.get('installed_version', '')
+      dep['message'] = inferred.get('message', '')
+    else:
+      dep['status'] = 'not_attempted' if have_manifest else 'pending'
+      dep.setdefault('installed_version', '')
+      dep.setdefault('message', '')
 
 def _build_dragon_section(config=None):
-  """Build the Dragon dependency block for the Dependencies index (Win Beta only).
+  """Build the Dragon dependency block for the Dependencies index (Windows).
 
   Declared dependencies come from repository .dragon files. Each file carries its
   monitor flag so the Dependencies page can suppress warnings and auto-update
@@ -3845,10 +3946,10 @@ def _build_dragon_section(config=None):
     entry = configured.get(f.get('source_file') or '')
     f['monitored'] = bool(entry and entry.get('monitor') is True) if has_config_list else True
   if not files:
-    # No .dragon files in this revision: skip the experimental manifest fetch.
+    # No .dragon files in this revision: skip the worker-manifest fetch.
     return {
       'available': inv.get('available', False),
-      'column': 'winExp',
+      'column': 'windows',
       'ready': False,
       'health': '',
       'manifest_version': '',
@@ -3856,21 +3957,24 @@ def _build_dragon_section(config=None):
       'install_set': [],
       'conflicts': inv.get('conflicts') or [],
     }
-  exp_man = _worker_manifest('windows-beta', 'latest')
-  have_manifest = isinstance(exp_man, dict)
-  status_index = _dragon_status_index(exp_man)
-  exp_dragon = exp_man.get('dragon') if have_manifest else None
+  win_man = _worker_manifest('windows', 'latest')
+  have_manifest = isinstance(win_man, dict)
+  status_index = _dragon_status_index(win_man)
+  win_dragon = win_man.get('dragon') if have_manifest else None
+  baked_packages = {str(p).lower() for p in _manifest_packages(win_man)} if have_manifest else set()
+  vipm_index = _vipm_version_index(win_man) if have_manifest else {}
+  nipkg_index = _nipkg_version_index(win_man) if have_manifest else {}
   for item in inv.get('install_set') or []:
-    _annotate_dragon_status(item, status_index, have_manifest)
+    _annotate_dragon_status(item, status_index, have_manifest, baked_packages, vipm_index, nipkg_index)
   for f in files:
     for dep in f.get('dependencies') or []:
-      _annotate_dragon_status(dep, status_index, have_manifest)
+      _annotate_dragon_status(dep, status_index, have_manifest, baked_packages, vipm_index, nipkg_index)
   return {
     'available': inv.get('available', False) or bool(files),
-    'column': 'winExp',
+    'column': 'windows',
     'ready': have_manifest,
-    'health': (exp_dragon or {}).get('health', '') if isinstance(exp_dragon, dict) else '',
-    'manifest_version': exp_man.get('version', '') if have_manifest else '',
+    'health': (win_dragon or {}).get('health', '') if isinstance(win_dragon, dict) else '',
+    'manifest_version': win_man.get('version', '') if have_manifest else '',
     'files': files,
     'install_set': inv.get('install_set') or [],
     'conflicts': inv.get('conflicts') or [],
@@ -3958,7 +4062,7 @@ def _compute_deps_pending(data):
     if lin_missing:
       containers.append('linux')
   if dragon_pending:
-    containers.append('windows-beta')
+    containers.append('windows')
 
   return {
     'schema': 1,

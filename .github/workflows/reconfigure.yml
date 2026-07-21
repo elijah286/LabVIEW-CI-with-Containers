@@ -502,32 +502,37 @@ jobs:
               with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as _f:
                   _f.write(f'RESOLVED_LV={ver}\n')
 
-          # Toggle Antidoc (a VIPM package) in the container dependency manifest.
-          # "keep" (or blank) leaves the current include flag untouched.
-          ppath = pathlib.Path('.github/labview/vipm/ci-tooling.packages.json')
-          if ppath.exists() and antidoc_in not in ('', 'keep'):
-              antidoc = antidoc_in == 'true'
-              obj = json.loads(ppath.read_text(encoding='utf-8'))
-              for p in obj.get('vipmPackages', {}).get('packages', []):
-                  if p.get('name') == 'wovalab_lib_antidoc_cli':
-                      p['include'] = bool(antidoc)
-              ppath.write_text(json.dumps(obj, indent=2) + '\n', encoding='utf-8')
-              print('Antidoc include ->', antidoc)
+          # Antidoc dependencies are now owned by committed
+          # .github/labview/antidoc/antidoc.vipc (VIPC-first). Keep this input
+          # non-destructive here for backward compatibility with Configure UI.
+          if antidoc_in not in ('', 'keep'):
+              print('Antidoc toggle requested:', antidoc_in)
+              print('No manifest regeneration is performed; committed antidoc.vipc remains authoritative.')
           else:
               print('Antidoc: keep current')
           PY
 
-      - name: Regenerate container VIPC (best effort)
+      - name: Validate committed container VIPCs (best effort)
         continue-on-error: true
         run: |
-          GEN=.github/labview/vipm/build-tooling-vipc.py
-          PKG=.github/labview/vipm/ci-tooling.packages.json
-          OUT=.github/labview/vipm/ci-tooling.vipc
-          if [ -f "$GEN" ] && [ -f "$PKG" ]; then
-            python3 "$GEN" --manifest "$PKG" --out "$OUT" --labview-version "${RESOLVED_LV:-2026}"
+          for VIPC in .github/labview/vipm/ci-tooling.vipc .github/labview/antidoc/antidoc.vipc; do
+            if [ -f "$VIPC" ]; then
+              python3 - "$VIPC" <<'PY'
+import sys
+import zipfile
+import xml.etree.ElementTree as ET
+
+path = sys.argv[1]
+with zipfile.ZipFile(path, 'r') as zf:
+    if 'config.xml' not in zf.namelist():
+        raise SystemExit(f'{path} is missing config.xml')
+    ET.fromstring(zf.read('config.xml'))
+print('Validated committed VIPC:', path)
+PY
           else
-            echo "VIPC generator or manifest not present; skipping regeneration."
-          fi
+              echo "No committed VIPC found at $VIPC; skipping validation."
+            fi
+          done
 
       - name: Open pull request
         env:

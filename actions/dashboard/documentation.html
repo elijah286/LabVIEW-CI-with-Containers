@@ -963,6 +963,11 @@ ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, o
         declare the bare form (<code>0.5.0.1</code>), the comparison normalizes that <code>v</code> prefix &mdash; without
         it, correctly-baked packages would be reported as missing and the &ldquo;dependencies need to be installed&rdquo;
         banner would never clear.</p>
+      <p>Dragon dependencies are reconciled against the current <strong>Windows worker</strong> manifest (the worker
+        rebuilt by <code>build-labview-image.yml</code>). If a manifest has not yet published a dedicated
+        <code>dragon.items</code> status block, the dashboard falls back to the installed-package inventories
+        (<code>vipm_packages</code> / <code>nipkg_packages</code>) so already-baked dependencies are marked installed
+        instead of staying stuck at <code>not_attempted</code>.</p>
 
       <h3>When images rebuild</h3>
       <p>A worker rebuild is a heavy, opt-in operation. It runs when you apply a dependency update from the dashboard's
@@ -1160,20 +1165,13 @@ docker run --rm `
         <code>ni_lib_utf_junit_report</code>. Without it baked in, headless UTF runs fail with error
         <code>-350053</code> ("missing or bad files in the operation folder").</div>
 
-      <h3>The tooling VIPC is a real, VIPM-openable file generated without VIPM</h3>
-      <p><code>build-tooling-vipc.py</code> merges <code>ci-tooling.defaults.json</code> (tooling-supplied base
-        packages) with <code>ci-tooling.packages.json</code> (user overrides — user wins on name collision,
-        defaults are additive), resolves each package and its dependency closure against the same public VIPM
-        indexes <code>install-vipc.ps1</code> uses, and downloads each package's <strong>real spec + icon</strong>
-        (every index entry exposes a <code>Spec.URL</code> / <code>Icon.URL</code>) to assemble a genuine
-        <code>ci-tooling.vipc</code> — one a developer can open and edit in VIPM, with no VIPM or Windows
-        required to build it. <code>Included=false</code> keeps the package binaries out, so the file stays small
-        (tens of KB) while remaining a valid VIPC. The harvested spec/icon bytes are byte-identical to what VIPM
-        itself stores, and the archive is written deterministically (sorted entries, fixed timestamps,
-        content-derived ID); determinism matters because the VIPC feeds the worker-version hash, so a stable
-        resolved set yields a stable image tag. Generation needs network access to the public indexes
-        (<code>download.ni.com</code>, <code>www.jkisoft.com</code>); pin versions in the manifest for fully
-        reproducible images (null = latest at generation time).</p>
+      <h3>The committed tooling VIPC is the source of truth</h3>
+      <p>The worker dependency intent is the committed <code>ci-tooling.vipc</code> itself. It must remain a real,
+        VIPM-openable file and is the file applied during image builds. The Reconfigure workflow validates the
+        committed VIPC but does not regenerate it, so a UI-authored VIPC is not overwritten by automation.</p>
+      <p><code>build-tooling-vipc.py</code> remains available as an optional helper: it can assemble a genuine
+        VIPM-openable VIPC from JSON/package-index inputs (real spec + icon assets from public indexes), but that
+        generated output is only authoritative once committed as <code>ci-tooling.vipc</code>.</p>
 
       <!-- 16 ──────────────────────────────────────────────────────────────── -->
       <h2 id="capabilities">16. Capabilities in depth <a class="anchor" href="#capabilities">#</a></h2>
@@ -1270,6 +1268,10 @@ docker run --rm `
         package installed after the Dockerfile's <code>ENV</code> layer (e.g. <code>g-cli</code>) is visible without
         an image rebuild; and it <strong>always emits a safety-net report</strong> even on failure, so the dashboard
         never links to a 404.</p>
+      <p>Dependency intent for this capability is the committed
+        <code>.github/labview/antidoc/antidoc.vipc</code>. As with <code>ci-tooling.vipc</code>, this file is
+        authoritative and must remain VIPM-openable; optional JSON metadata may assist tooling but does not override
+        the committed VIPC.</p>
 
       <h3 id="cap-snapshots">16.6 VI Snapshots &amp; VI Browser <a class="anchor" href="#cap-snapshots">#</a></h3>
       <p>This is the one place that deliberately reuses a warm container. Snapshots are <strong>content-addressed by

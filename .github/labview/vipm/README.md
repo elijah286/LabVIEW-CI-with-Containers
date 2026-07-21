@@ -19,9 +19,9 @@ false "no unit tests found".
 | File | Role |
 | --- | --- |
 | `install-vipc.ps1` | Build-time hook. Uses the VIPM CLI already present in the shared VIPM base image, launches headless LabVIEW, then installs the packages listed in every staged `*.vipc`. A failed bake fails the image build unless `VIPM_ALLOW_MISSING_PACKAGES=1` is explicitly set. |
-| `ci-tooling.vipc` | The default CI-tooling configuration (Caraya, VI Tester, LUnit base + CLI, UTF JUnit Report, G Image). A **real, VIPM-openable** VIPC generated from the two JSON files below — you can open and edit it in VIPM. |
-| `ci-tooling.packages.json` / `ci-tooling.defaults.json` | Inputs used by `build-tooling-vipc.py` to (re)generate `ci-tooling.vipc`. **This JSON pair is the source of truth; the `.vipc` is a generated artifact** (Reconfigure/Update regenerate it). |
-| `build-tooling-vipc.py` | Regenerates `ci-tooling.vipc` from the JSON inputs. It resolves each package (and its dependency closure) against the public VIPM indexes and downloads each one's **real spec + icon**, so the result is a genuine VIPM-openable VIPC without needing VIPM or Windows. Stdlib only, but **requires network** to the public indexes. |
+| `ci-tooling.vipc` | The default CI-tooling configuration (Caraya, VI Tester, LUnit base + CLI, UTF JUnit Report, G Image). This committed file is the **source of truth** and must remain VIPM-openable. Edit it in VIPM when changing dependency intent. |
+| `ci-tooling.packages.json` / `ci-tooling.defaults.json` | Optional metadata and automation inputs used by dashboards/config tools and by ad-hoc regeneration. They are **not authoritative** for what gets installed at build time. |
+| `build-tooling-vipc.py` | Optional helper to build a real VIPM-openable VIPC from JSON inputs. It resolves each package (and its dependency closure) against the public VIPM indexes and downloads each package's real spec + icon. Stdlib only, but **requires network** to the public indexes. |
 
 ---
 
@@ -83,8 +83,8 @@ add-on must never be able to break the whole worker:
 This ordering is why the main `build-labview-image.yml` produces a working,
 UTF-capable image even when Antidoc cannot currently be baked headless.
 
-To add **custom** project dependencies: commit a `.vipc` (made in the VIPM
-editor, or generated like `ci-tooling.vipc`) at the repo root or under
+To add **custom** project dependencies: commit a `.vipc` (typically created in
+the VIPM editor) at the repo root or under
 `.github/labview/vipm/`, then rebuild the image. No script changes are needed.
 
 ### Baking a package that is on no VIPM repository (commit its `.vip`)
