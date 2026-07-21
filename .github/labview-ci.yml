@@ -1,19 +1,27 @@
-# .github/labview-ci.yml for the master repo's example project.
-# Copied to .github/labview-ci.yml at the repo root. Read at runtime by the
-# load-config action so the example exercises the same config path consumers use.
+# .github/labview-ci.yml - LabVIEW CI configuration
+# Updated by the Reconfigure workflow.
 schemaVersion: 1
-# installedVersion is stamped by the installer in real consumers; in the master
-# repo it mirrors the catalog version so the dashboard's "up to date" check is honest.
 installedVersion: 1.0.0
+configuredAt: 2026-07-21T17:38:47Z
 config:
   labviewVersion: "2026"
   os: [windows, linux]
   concurrency:
-    # Per-repo cap on parallel CI jobs. NOTE: GitHub's real concurrency limit is
-    # per ACCOUNT, not per repo (Free 20, Pro 40, Team 60, Enterprise 500 jobs
-    # shared across ALL your repos), and routine submissions/upgrades draw from
-    # that same pool -- so keep this modest. Default 5.
     maxParallel: 5
+  container:
+    use: latest
+    vipc:
+      - path: ".github/labview/antidoc/antidoc.vipc"
+        monitor: false
+      - path: ".github/labview/experimental.vipc"
+        monitor: false
+      - path: ".github/labview/vipm/ci-tooling.vipc"
+        monitor: true
+      - path: "example/Dependencies.vipc"
+        monitor: true
+    dragon:
+      - path: "example/Example.dragon"
+        monitor: true
 activities:
   - dashboard
   - masscompile
@@ -23,25 +31,6 @@ activities:
   - snapshots-2
   - unit-tests
 
-# Mass-compile badge thresholds. The dashboard's Mass Compile column shows the
-# percentage of project VIs that compiled; these thresholds colour it (like the
-# Unit Tests column) instead of a near-flat amber. Defaults: green at >= 95%
-# compiled, yellow at >= 80%, red below 80%. A true compile failure (LabVIEW
-# could not finish the compile) always renders as a solid bright-red pill.
-massCompile:
-  thresholds:
-    compiledPercent:
-      greenAtLeast: 95
-      yellowAtLeast: 80
-      redBelow: 80
-
-# Unit-test frameworks to run in CI, plus the pass-rate thresholds that color the
-# dashboard's failed-test percentage badge. Read by run-unit-tests.ps1 (per-tool
-# enabled + locations) and written by the Unit Testing configurator page. The example
-# project ships NI Unit Test Framework (UTF) .lvtest files under
-# "example/User-Defined Test/", so UTF is enabled and pointed at that folder; the
-# runner finds the .lvproj there and executes its .lvtest cases headlessly,
-# publishing one merged Unit Tests report.
 unitTests:
   thresholds:
     passedPercent:
