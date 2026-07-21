@@ -1313,11 +1313,14 @@ docker run --rm `
         <code>antidoc</code> (renamed from the older <code>antidoccli</code>) with <code>-addon lvproj</code>, so the
         LabVIEW-project documentation add-on (<code>wovalab_lib_antidoc_add_on_labview_project_documentation</code>)
         must be &mdash; and is &mdash; baked into the worker image alongside the CLI in
-        <code>antidoc.vipc</code>. Two implementation details are worth knowing:
+        <code>antidoc.vipc</code>. Three implementation details are worth knowing:
         it <strong>re-reads the Windows registry PATH</strong> and merges it into the process environment so a VIPM
         package installed after the Dockerfile's <code>ENV</code> layer (e.g. <code>g-cli</code>) is visible without
-        an image rebuild; and it <strong>always emits a safety-net report</strong> even on failure, so the dashboard
-        never links to a 404.</p>
+        an image rebuild; it passes a generous <strong>g-cli <code>--timeout</code></strong> (10&nbsp;minutes,
+        overridable via <code>ANTIDOC_CONNECT_TIMEOUT_MS</code>) so a cold container that must launch LabVIEW and
+        load Antidoc's large VI hierarchy before the tool connects back does not trip the launch handshake with
+        &ldquo;No connection established with application&rdquo;; and it <strong>always emits a safety-net
+        report</strong> even on failure, so the dashboard never links to a 404.</p>
       <p>Dependency intent for this capability is the committed
         <code>.github/labview/antidoc/antidoc.vipc</code>. As with <code>ci-tooling.vipc</code>, this file is
         authoritative and must remain VIPM-openable; optional JSON metadata may assist tooling but does not override

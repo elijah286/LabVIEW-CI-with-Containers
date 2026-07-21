@@ -234,7 +234,15 @@ else {
   # -t <title>  -out <output directory>. If a future Antidoc CLI renames these
   # flags, adjust them here -- the rest of the pipeline keys off whatever files land
   # in $DocDir, not the exact command line.
-  & $GCli --lv-ver $LvYear antidoc -- -addon lvproj -pp $Project -t $Title -out $DocDir 2>&1 |
+  #
+  # --timeout bounds ONLY the launch handshake (how long g-cli waits for LabVIEW to
+  # connect back), not the doc-gen itself. g-cli defaults to 60s, but a cold worker
+  # container has to launch LabVIEW AND load Antidoc's large VI hierarchy before the
+  # tool can connect, which routinely exceeds 60s -> "No connection established with
+  # application / Timed out waiting for app to connect to g-cli". Give it 10 minutes
+  # so a cold start never trips the handshake; override with ANTIDOC_CONNECT_TIMEOUT_MS.
+  $ConnectTimeoutMs = if ($env:ANTIDOC_CONNECT_TIMEOUT_MS) { $env:ANTIDOC_CONNECT_TIMEOUT_MS } else { '600000' }
+  & $GCli --lv-ver $LvYear --timeout $ConnectTimeoutMs antidoc -- -addon lvproj -pp $Project -t $Title -out $DocDir 2>&1 |
     Tee-Object -FilePath $LogFile -Append
 
   $ExitCode = $LASTEXITCODE

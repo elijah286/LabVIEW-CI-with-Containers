@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.6.7",
+  "version": "4.6.8",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.6.8",
+        "date": "2026-07-21",
+        "type": "patch",
+        "summary": "Antidoc doc-gen no longer fails with \"No connection established with application / Timed out waiting for app to connect to g-cli\". After the tool-name fix reached LabVIEW, g-cli's default 60s launch-handshake timeout was too short for a cold worker container to boot LabVIEW and load Antidoc's large VI hierarchy before the tool connects back. run-antidoc.ps1 now passes g-cli --timeout 600000 (10 min, overridable via ANTIDOC_CONNECT_TIMEOUT_MS), which bounds only the connect handshake, not doc generation.",
+        "changes": [
+          "run-antidoc.ps1: pass g-cli --timeout (default 600000 ms) so a cold container's LabVIEW + Antidoc load does not trip the launch handshake; overridable via ANTIDOC_CONNECT_TIMEOUT_MS.",
+          "documentation.html: note the g-cli connect timeout as a third Antidoc implementation detail."
+        ]
+      },
       {
         "version": "4.6.7",
         "date": "2026-07-21",
