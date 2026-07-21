@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.4.15",
+  "version": "4.4.16",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,11 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.4.16",
+        "date": "2026-07-21",
+        "notes": "Fix report Re-run preselect (a stale histIdx reference threw and swept the whole selection back to defaults after the revision-picker rewrite; now uses histIdxIn) and open the Populate-history dialog as an in-page overlay so re-running a report stays on the page, pre-scoped to that activity and revision."
+      },
       {"version": "4.4.15", "date": "2026-07-21", "notes": "Fix an invalid-workflow-file error in reconfigure.yml (the Configure \u2192 Apply workflow) that failed on every push and would block Reconfigure on every client. Its \u201cValidate committed container VIPCs\u201d step embedded a Python heredoc whose body sat at column 0; because YAML strips the run-block\u2019s base indent, those lines dedented below the block and terminated the scalar, so GitHub rejected the whole file. Replaced the nested heredoc with a single-line python3 -c invocation that stays within the block indent"},
       {"version": "4.4.14", "date": "2026-07-16", "notes": "Revision pickers across the pages are now a shared searchable widget instead of a raw dropdown of every commit. The Dependencies page, the Unit Testing project picker and the per-revision report viewer\u2019s Revision selector all enhance their native control in place with a filter box (search by commit title, build number or short SHA) and, by default, hide CI/tooling and dependency-only (.vipc/.vip) revisions behind a \u201cShow CI & dependency-only revisions\u201d toggle \u2014 matching the dashboard, so picking \u201cthe latest revision\u201d lands on the latest LabVIEW-code change. Per-revision project/dependency-only classification is now published in dependencies/index.json and vi-snapshots/files.json so every picker filters identically"},
       {"version": "4.4.13", "date": "2026-07-16", "notes": "Populate history revision picker now matches the dashboard filters. Dependency-only revisions (those whose only change is an external dependency \u2014 .vipc/.vip) are hidden by default behind a \u201cShow dependency-only revisions\u201d toggle that defaults to the dashboard\u2019s own dependency-only filter state, and a new search box narrows the All / range / specific selectors by commit title or short SHA. This lets you queue the latest change to LabVIEW code without accidentally selecting a later CI- or dependency-only revision"},
