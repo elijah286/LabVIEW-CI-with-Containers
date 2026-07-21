@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "a782f16015604f2565f95b1bd77aa8b31bf9c328",
+  "sha": "7722b5fe2c9372f1337c09c84388ab177cfe0538",
   "revisions": [
+    {
+      "sha": "7722b5fe2c9372f1337c09c84388ab177cfe0538",
+      "short": "7722b5f",
+      "message": "dashboard: fix report Re-run preselect (histIdx->histIdxIn) + in-page overlay for Populate history",
+      "author": "Elijah Kerry",
+      "date": "2026-07-21T19:33:45Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "a782f16015604f2565f95b1bd77aa8b31bf9c328",
       "short": "a782f16",
@@ -895,15 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "18271f46b5105b5adb297abfc13a1181a6d830a9",
-      "short": "18271f4",
-      "message": "deps: clearer update dialog + flag missing items in the table (3.47.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T02:48:18Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1261,7 +1261,7 @@
     "column": "windows",
     "ready": true,
     "health": "",
-    "manifest_version": "win-a7c58f4f5fb9",
+    "manifest_version": "win-ce6c7f8170f0",
     "files": [
       {
         "source_file": "example/Example.dragon",
@@ -3830,7 +3830,7 @@
         }
       ],
       "labview_version": "2026",
-      "version": "win-a7c58f4f5fb9"
+      "version": "win-ce6c7f8170f0"
     },
     {
       "key": "linux",
