@@ -11,9 +11,9 @@
       "author": "Elijah Kerry",
       "date": "2026-06-21T10:00:06-05:00"
     },
-    "generated_utc": "2026-07-21 22:05 UTC",
-    "analysis_date": "Tuesday, July 21, 2026 10:05:26 PM",
-    "duration": "00:00:35.27",
+    "generated_utc": "2026-07-21 22:56 UTC",
+    "analysis_date": "Tuesday, July 21, 2026 10:56:08 PM",
+    "duration": "00:00:37.04",
     "configs": [
       {
         "label": "example/lower cyclomatic complexity.viancfg",
