@@ -623,7 +623,13 @@
         const tooling = v.tooling === true || cls.role === 'core';
         return { path:v.path, role:v.role || (tooling ? 'core' : 'project'), tooling, configured:tooling || cls.configured, monitored:tooling || cls.monitored, locked:tooling || cls.locked, packages:v.packages || [], error:v.error || "", open:true };
       });
-      const dragonPaths = Array.from(new Set([].concat((data.dragon || []).map(v => v.path || v), (config.dragon || []).map(v => v.path || v)).map(normPath).filter(Boolean))).sort((a,b) => a.localeCompare(b));
+      const dragonFiles = Array.isArray(data.dragon)
+        ? data.dragon
+        : (data.dragon && Array.isArray(data.dragon.files) ? data.dragon.files : []);
+      const dragonPaths = Array.from(new Set([].concat(
+        dragonFiles.map(v => v.path || v.source_file || v),
+        (config.dragon || []).map(v => v.path || v)
+      ).map(normPath).filter(Boolean))).sort((a,b) => a.localeCompare(b));
       const generatedDragons = dragonPaths.map(path => { const entry = dragonConfig.get(normPath(path)); const monitored = dragonHasConfig ? !!(entry && entry.monitor === true) : true; return { path, monitored, configured:monitored }; });
       currentVipcs = generatedVipcs;
       currentDragons = generatedDragons;
