@@ -18,6 +18,36 @@
     .dep-tabs{margin-top:22px}.dep-tablist{display:flex;gap:6px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:10px}.dep-tab{border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;background:transparent;color:var(--fg-muted);font-weight:700;padding:8px 11px;white-space:nowrap}.dep-tab:hover{border-color:var(--border);color:var(--fg)}.dep-tab.active{background:var(--surface);border-color:var(--border);color:var(--fg);position:relative;top:1px}.dep-panel{display:none}.dep-panel.active{display:block}.dep-panel h2{font-size:1.02em;margin:0 0 6px}.dep-caption{margin:0 0 8px;color:var(--fg-muted);font-size:.86em}.table-wrap{margin-bottom:18px}.empty{padding:14px;color:var(--fg-muted)}.dep-panel table{table-layout:fixed}.dep-panel th:first-child{width:auto}.dep-panel th.dep-col,.dep-panel td.cell{width:112px;min-width:112px;max-width:112px;text-align:center;vertical-align:middle}.dep-panel th.dep-col{padding-left:6px;padding-right:6px}.dep-check{width:16px;height:16px;margin:0;accent-color:var(--ok);opacity:1;vertical-align:middle}.dep-check:disabled{opacity:1}.dep-empty{display:inline-block;width:16px;height:16px}.exp-head{background:none;border:0;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}.exp-head .exp-name{border-bottom:1px dotted currentColor}.exp-head .exp-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-style:normal;line-height:1;font-weight:700}.exp-head:hover{color:var(--link)}.exp-pop{position:fixed;width:320px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;box-shadow:0 8px 26px rgba(0,0,0,.32);z-index:60;font-size:.84em;font-weight:400;line-height:1.5;color:var(--fg);text-transform:none;letter-spacing:normal}.exp-pop .exp-pop-h{display:block;margin-bottom:5px;font-size:1.02em}
   </style>
   <style>
+    .upd{border:1px solid rgba(210,153,34,.55);background:rgba(210,153,34,.10);border-radius:10px;padding:16px 18px;margin:6px 0 18px}
+    .upd.hidden{display:none}
+    .upd-h{margin:0 0 4px;font-size:1.12em}
+    .upd-sub{margin:0 0 12px;color:var(--fg-muted);font-size:.9em}
+    .upd-block{margin:10px 0}
+    .upd-k{color:var(--fg-muted);font-size:.74em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+    .upd-pills{display:flex;flex-wrap:wrap;gap:5px}
+    .upd-pill{display:inline-block;font-size:.82em;padding:2px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--fg)}.upd-files{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}.upd-files li{font-size:.86em;display:flex;align-items:center;gap:7px}.upd-files code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;word-break:break-all}
+    .upd-pill.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78em}
+    .upd-exp{margin:12px 0}
+    .upd-radio{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-size:.9em;cursor:pointer}
+    .upd-radio input{margin-top:3px}
+    .upd-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px}
+    .upd-btn{display:inline-block;padding:9px 16px;border:0;border-radius:7px;background:var(--accent);color:var(--accent-fg);font-family:inherit;font-weight:600;font-size:.9em;line-height:1.4;text-decoration:none;cursor:pointer}
+    .upd-btn:hover{filter:brightness(1.06);text-decoration:none}
+    .upd-btn:disabled{opacity:.6;cursor:not-allowed;filter:none}
+    .upd-hint{color:var(--fg-muted);font-size:.82em;max-width:520px}
+    .upd-run-status{margin-top:10px}
+    .upd-progress{margin-top:12px;display:none}
+    .upd-progress.show{display:block}
+    .upd-prog-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.84em;margin-bottom:6px}
+    .upd-prog-phase{font-weight:700}
+    .upd-prog-meta{color:var(--fg-muted)}
+    .upd-prog-track{position:relative;height:8px;border-radius:5px;background:var(--chip);overflow:hidden}
+    .upd-prog-bar{position:absolute;left:0;top:0;height:100%;width:0;border-radius:5px;background:var(--accent);transition:width .5s ease}
+    .upd-prog-bar.ok{background:var(--ok)}
+    .upd-prog-bar.err{background:var(--bad)}
+    .upd-prog-bar.indeterminate{width:35%;animation:upd-slide 1.5s ease-in-out infinite}
+    @keyframes upd-slide{0%{left:-35%}50%{left:50%}100%{left:100%}}
+    .upd-hint code{background:var(--chip);padding:1px 5px;border-radius:4px;font-family:ui-monospace,Menlo,monospace}
     .dep-missing{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(210,153,34,.65);border-radius:50%;background:rgba(210,153,34,.16);color:var(--warn);font-weight:800;font-size:12px;line-height:1}.dep-na{color:var(--fg-muted);font-size:.72em;font-weight:700;letter-spacing:.04em}.monitorbar{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:12px 13px;margin-bottom:16px}.monitorbar strong{display:block;font-size:.9em}.monitor-help{color:var(--fg-muted);font-size:.84em}.monitor-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.primary{border-color:transparent;background:var(--accent);color:var(--accent-fg);font-weight:700}.primary:hover{border-color:transparent;filter:brightness(1.05)}button:disabled{opacity:.55;cursor:not-allowed}.status{font-size:.84em;color:var(--fg-muted)}.status.ok{color:var(--ok)}.status.err{color:var(--bad)}.tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px 13px;background:var(--surface);margin:-6px 0 16px;font-size:.84em}.tokpanel[hidden]{display:none}.tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--surface2);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.monitor-label{display:inline-flex;align-items:center;gap:7px;font-size:.82em;font-weight:700;color:var(--fg);margin-left:10px;vertical-align:middle}.monitor-label input{width:16px;height:16px;accent-color:var(--ok);margin:0}.monitor-label input:disabled{opacity:.5}.monitor-col{width:150px;min-width:150px;max-width:150px;text-align:center}.file-table{min-width:640px}.file-table .pkg{white-space:normal}.dep-subtitle{font-size:.92em;margin:14px 0 6px}.locked{opacity:.75}
   </style>
 </head>
@@ -43,6 +73,7 @@
     </div>
     <div class="note" id="configCard">Loading container configuration...</div>
     <div class="note" id="status">Loading dependency inventory...</div>
+    <div id="updatePanel" class="upd hidden" role="region" aria-label="Dependency update needed"></div>
     <div class="monitorbar">
       <div>
         <strong>Monitored dependency files</strong>
@@ -105,6 +136,8 @@
     let currentDragons = [];
     let currentColStates = {};
     let monitorDirty = false;
+    let pendingTokenAction = null;
+    let updTracker = null;
 
     function repoFromUrl(){
       if (cfg.repo) return cfg.repo;
@@ -415,9 +448,197 @@
         const inp = $("tokInput"); const v = (inp && inp.value || "").trim();
         if (!v) { if (inp) inp.focus(); return; }
         try { localStorage.setItem(TOK_KEY, v); } catch (_) {}
-        dispatchMonitor();
+        const action = pendingTokenAction || dispatchMonitor;
+        pendingTokenAction = null;
+        action();
       });
       const inp = $("tokInput"); if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); const b = $("tokSave"); if (b) b.click(); } });
+    }
+    function selectedUpdateMode(){
+      const el = $("updatePanel");
+      const checked = el && el.querySelector('input[name=updMode]:checked');
+      return (checked && checked.value) || "replace";
+    }
+    function imageWorkflowUrl(){ return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/build-labview-image.yml" : "https://github.com/actions/workflows/build-labview-image.yml"; }
+    function setUpdateStatus(html, kind){
+      const st = $("updStatus"); if (!st) return;
+      st.innerHTML = html || "";
+      st.className = "status upd-run-status" + (kind ? " " + kind : "");
+    }
+    function updHeaders(){
+      const h = { "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28" };
+      const t = token(); if (t) h["Authorization"] = "Bearer " + t;
+      return h;
+    }
+    function updFmtElapsed(ms){
+      let s = Math.max(0, Math.round(ms / 1000));
+      const m = Math.floor(s / 60); s = s % 60;
+      return m + "m " + (s < 10 ? "0" : "") + s + "s";
+    }
+    function showUpdProgress(phase, meta, pct, kind, indeterminate){
+      const wrap = $("updProgress"); if (!wrap) return;
+      wrap.classList.add("show");
+      const ph = $("updProgPhase"); if (ph) ph.textContent = phase || "";
+      const mt = $("updProgMeta"); if (mt) mt.innerHTML = meta || "";
+      const bar = $("updProgBar");
+      if (bar){
+        bar.className = "upd-prog-bar" + (kind ? " " + kind : "") + (indeterminate ? " indeterminate" : "");
+        if (!indeterminate) bar.style.width = Math.max(0, Math.min(100, pct || 0)) + "%";
+        else bar.style.width = "";
+      }
+    }
+    async function updStepProgress(runId){
+      try {
+        const jr = await fetch("https://api.github.com/repos/" + repo + "/actions/runs/" + runId + "/jobs?per_page=50", { headers:updHeaders(), cache:"no-cache" });
+        if (!jr.ok) return null;
+        const jd = await jr.json(); const jobs = (jd && jd.jobs) || [];
+        let total = 0, done = 0, running = "";
+        jobs.forEach(j => (j.steps || []).forEach(s => { total++; if (s.status === "completed") done++; else if (s.status === "in_progress" && !running) running = s.name; }));
+        return { total, done, running };
+      } catch (_) { return null; }
+    }
+    async function updPoll(){
+      const tr = updTracker; if (!tr) return;
+      let run = null;
+      try {
+        if (!tr.runId){
+          const lr = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/build-labview-image.yml/runs?event=workflow_dispatch&per_page=10", { headers:updHeaders(), cache:"no-cache" });
+          if (lr.ok){
+            const d = await lr.json(); const runs = (d && d.workflow_runs) || [];
+            const m = runs.find(r => new Date(r.created_at).getTime() >= tr.dispatchAt - 90000);
+            if (m){ tr.runId = m.id; run = m; }
+          }
+        } else {
+          const rr = await fetch("https://api.github.com/repos/" + repo + "/actions/runs/" + tr.runId, { headers:updHeaders(), cache:"no-cache" });
+          if (rr.ok) run = await rr.json();
+        }
+      } catch (_) {}
+      const elapsed = Date.now() - tr.dispatchAt;
+      const link = ' &middot; <a href="' + esc(run ? run.html_url : imageWorkflowUrl()) + '" target="_blank" rel="noopener">View run &#8599;</a>';
+      if (!run){
+        showUpdProgress("Starting...", "Waiting for the run to register &middot; " + updFmtElapsed(elapsed) + link, 6, "", true);
+        return;
+      }
+      if (run.status === "completed"){
+        const ok = run.conclusion === "success";
+        const dur = updFmtElapsed(new Date(run.updated_at).getTime() - new Date(run.run_started_at || run.created_at).getTime());
+        showUpdProgress(ok ? "Container update complete" : "Container update " + esc(run.conclusion || "failed"),
+          "Finished in " + dur + link, 100, ok ? "ok" : "err", false);
+        if (tr.timer) clearInterval(tr.timer);
+        updTracker = null;
+        return;
+      }
+      if (run.status === "in_progress"){
+        const sp = await updStepProgress(tr.runId);
+        if (sp && sp.total){
+          const pct = Math.max(12, Math.round(sp.done / sp.total * 100));
+          showUpdProgress("Building the worker container...",
+            "Step " + sp.done + " of " + sp.total + (sp.running ? " &middot; " + esc(sp.running) : "") + " &middot; " + updFmtElapsed(elapsed) + link, pct, "", false);
+        } else {
+          showUpdProgress("Building the worker container...", "In progress &middot; " + updFmtElapsed(elapsed) + link, 50, "", true);
+        }
+        return;
+      }
+      showUpdProgress("Queued...", "Waiting for a runner &middot; " + updFmtElapsed(elapsed) + link, 10, "", true);
+    }
+    function startContainerTracking(){
+      if (updTracker && updTracker.timer) clearInterval(updTracker.timer);
+      updTracker = { runId:null, dispatchAt:Date.now(), timer:null };
+      showUpdProgress("Starting...", "Dispatching the workflow...", 4, "", true);
+      updPoll();
+      updTracker.timer = setInterval(updPoll, 15000);
+    }
+    async function resumeContainerTracking(){
+      if (!repo.includes("/") || updTracker) return;
+      try {
+        const lr = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/build-labview-image.yml/runs?per_page=5", { headers:updHeaders(), cache:"no-cache" });
+        if (!lr.ok) return;
+        const d = await lr.json(); const runs = (d && d.workflow_runs) || [];
+        const active = runs.find(r => r.status !== "completed");
+        if (!active || updTracker) return;
+        updTracker = { runId:active.id, dispatchAt:new Date(active.created_at).getTime(), timer:null };
+        updPoll();
+        updTracker.timer = setInterval(updPoll, 15000);
+      } catch (_) {}
+    }
+    async function dispatchContainerUpdate(){
+      if (!repo.includes("/")) { setUpdateStatus("Could not determine repository.", "err"); return; }
+      const mode = selectedUpdateMode();
+      if (!token()) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("Running the container update needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setUpdateStatus("Paste a token to run the container update."); return; }
+      const btn = $("updRun");
+      if (btn) { btn.disabled = true; btn.textContent = "Starting..."; }
+      setUpdateStatus("Starting the container update (update_mode = " + esc(mode) + ")...");
+      try {
+        const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/build-labview-image.yml/dispatches", {
+          method:"POST",
+          headers:{ "Authorization":"Bearer " + token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28", "Content-Type":"application/json" },
+          body:JSON.stringify({ ref:workflowRef(), inputs:{ update_mode:mode } })
+        });
+        if (btn) { btn.disabled = false; btn.textContent = "Run the container update"; }
+        if (r.status === 204) {
+          hideTokenPanel();
+          pendingTokenAction = null;
+          setUpdateStatus("Container update started (update_mode = <code>" + esc(mode) + "</code>).", "ok");
+          startContainerTracking();
+          return;
+        }
+        if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} pendingTokenAction = dispatchContainerUpdate; showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setUpdateStatus("Token rejected (401).", "err"); return; }
+        if (r.status === 403) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code>" + esc(repo) + "</code>."); setUpdateStatus("Dispatch forbidden (403).", "err"); return; }
+        if (r.status === 404) { pendingTokenAction = dispatchContainerUpdate; showTokenPanel("The saved token cannot see <code>" + esc(repo) + "</code>, or this repo does not have <code>build-labview-image.yml</code> installed."); setUpdateStatus("Workflow not found or repo not accessible (404).", "err"); return; }
+        setUpdateStatus("Dispatch failed (HTTP " + r.status + ").", "err");
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = "Run the container update"; }
+        setUpdateStatus("Network error: " + esc(String(e && e.message || e)), "err");
+      }
+    }
+    function updMissingList(d){
+      let out = '';
+      const files = (d && d.vipcs) || [];
+      const pkgs = (d && d.packages) || [];
+      const dragon = (d && d.dragon) || [];
+      if (files.length){
+        out += '<div class="upd-block"><div class="upd-k">Dependency files with missing packages (' + files.length + ')</div><ul class="upd-files">' +
+          files.map(function(f){ return '<li><span class="upd-warn-glyph">&#9888;</span> <code>' + esc(f) + '</code></li>'; }).join('') + '</ul></div>';
+      }
+      if (pkgs.length){
+        out += '<div class="upd-block"><div class="upd-k">Missing VIPM packages (' + pkgs.length + ')</div><div class="upd-pills">' +
+          pkgs.map(function(p){ return '<span class="upd-pill"><span class="upd-warn-glyph">&#9888;</span> ' + esc(p) + '</span>'; }).join('') + '</div></div>';
+      }
+      if (dragon.length){
+        out += '<div class="upd-block"><div class="upd-k">Missing .dragon dependencies (' + dragon.length + ')</div><div class="upd-pills">' +
+          dragon.map(function(x){ const n = (x && (x.name || x.package_id)) || x; const st = x && x.status ? ' &#183; ' + esc(x.status) : ''; return '<span class="upd-pill"><span class="upd-warn-glyph">&#9888;</span> ' + esc(n) + st + '</span>'; }).join('') + '</div></div>';
+      }
+      return out;
+    }
+    async function renderUpdatePanel(){
+      const el = $("updatePanel");
+      if (!el) return;
+      let d = null;
+      try { d = await fetchJson(base + "deps-pending.json"); } catch(_) {}
+      if (!d || !d.pending) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+      el.classList.remove("hidden");
+      el.innerHTML =
+        '<h2 class="upd-h">&#9888;&#65039; Dependency update needed</h2>' +
+        '<p class="upd-sub">Your project declares dependencies &mdash; in <strong>VIPC files</strong> (VIPM packages) or <strong>.dragon files</strong> (NIPM packages) &mdash; that are <strong>not yet baked</strong> into the worker container(s). Each missing item is marked with a <span class="upd-warn-glyph">&#9888;</span> in the table below; until you run this update, container CI may fail or show broken code.</p>' +
+        updMissingList(d) +
+        '<div class="note warn upd-exp"><strong>This is a long operation.</strong> It rebuilds the worker container(s) by installing your dependencies with VIPM, which can take a while depending on the dependencies. <strong>Do not run other CI actions until it completes</strong> &mdash; they would run against the old container and may error.</div>' +
+        '<div class="upd-block"><div class="upd-k">How to apply</div>' +
+        '<label class="upd-radio"><input type="radio" name="updMode" value="replace" checked> <span><strong>Replace existing containers</strong> (default) &mdash; rebuild in place; your pipeline actions keep using them automatically.</span></label>' +
+        '<label class="upd-radio"><input type="radio" name="updMode" value="new"> <span><strong>Create new containers</strong> &mdash; publish a new tagged container alongside the current one; select it per action in Configure Pipeline.</span></label>' +
+        '</div>' +
+        '<div class="upd-actions"><button type="button" class="upd-btn" id="updRun">Run the container update</button>' +
+        '<span class="upd-hint">Starts the <strong>Build LabVIEW CI Image</strong> workflow with <code>update_mode</code> = <code>replace</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.</span></div>' +
+        '<div class="status upd-run-status" id="updStatus"></div>' +
+        '<div class="upd-progress" id="updProgress"><div class="upd-prog-head"><span class="upd-prog-phase" id="updProgPhase"></span><span class="upd-prog-meta" id="updProgMeta"></span></div><div class="upd-prog-track"><div class="upd-prog-bar" id="updProgBar"></div></div></div>' +
+        '<p class="upd-auto">Prefer file changes to rebuild containers automatically? Keep <strong>Monitored</strong> checked for that dependency file here, click <strong>Save monitored files</strong>, and files saved with <code>monitor: true</code> will trigger a rebuild when they change on a submission.</p>';
+      el.querySelectorAll('input[name=updMode]').forEach(r => r.addEventListener("change", () => {
+        const mode = (el.querySelector('input[name=updMode]:checked') || {}).value || "replace";
+        const hint = el.querySelector(".upd-hint");
+        if (hint) hint.innerHTML = 'Starts the <strong>Build LabVIEW CI Image</strong> workflow with <code>update_mode</code> = <code>' + esc(mode) + '</code>. The first run asks for a fine-grained token with <strong>Actions: write</strong>.';
+      }));
+      const runBtn = $("updRun");
+      if (runBtn) runBtn.addEventListener("click", dispatchContainerUpdate);
+      resumeContainerTracking();
     }
     function presentCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><input class="dep-check" type="checkbox" checked disabled aria-label="Present"></td>'; }
     function missingCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><span class="dep-missing" aria-label="Missing dependency">!</span></td>'; }
@@ -680,6 +901,7 @@
       if (!repo) { $("status").textContent = "Could not determine repository from this Pages URL."; return; }
       initMonitorControls();
       initExpInfo();
+      renderUpdatePanel();
       try {
         const generated = await fetchJson(base + "dependencies/index.json");
         if (generated && Array.isArray(generated.vipc)) generatedInventory = generated;
