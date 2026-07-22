@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ada2b9cc39c3c80cd91950c1d8a9ca569ffdec1a",
+  "sha": "a2d6461c65ed2761298e06de477e4cae1b8d4b2e",
   "revisions": [
+    {
+      "sha": "a2d6461c65ed2761298e06de477e4cae1b8d4b2e",
+      "short": "a2d6461",
+      "message": "Debug Run: stop the auto-refresh wiping the dialog + make it resumable (4.9.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T21:17:59Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "ada2b9cc39c3c80cd91950c1d8a9ca569ffdec1a",
       "short": "ada2b9c",
@@ -891,15 +900,6 @@
       "message": "integrate: clear finished installs from the 'Installs in progress' panel (4.1.33)",
       "author": "Elijah Kerry",
       "date": "2026-06-25T17:50:34Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "09fedca5ed7da52f105c8bbd4ac4f3a7564296e2",
-      "short": "09fedca",
-      "message": "docs: rewrite Documentation for LabVIEW users new to CI (4.1.32)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-25T16:25:39Z",
       "project": false,
       "dep_only": false
     },

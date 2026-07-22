@@ -226,7 +226,15 @@
     // "dialog disappeared on its own" bug).
     function lvciModalOpen() {
       var m = document.getElementById('lvci-modal');
-      return !!(m && m.style.display === 'block');
+      if (m && m.style.display === 'block') return true;
+      // The Populate-history and Debug Run dialogs are their own modals; reloading
+      // while either is open destroys its in-flight work too (the Debug Run
+      // "dialog vanished while the container booted" bug).
+      var h = document.getElementById('cidash-hist-modal');
+      if (h && h.style.display === 'block') return true;
+      var d = document.getElementById('cidash-debug-modal');
+      if (d && d.style.display === 'block') return true;
+      return false;
     }
     // Auto-refresh on the cadence the server picked (60 s while CI is live, else
     // 15 min) -- but NEVER while a dialog is open, because reloading the page destroys
@@ -273,7 +281,7 @@
   <script>
   (function(){
     var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "masscompile-backfill-windows.yml", "shas_input": "shas"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "vi-analyzer-backfill-windows.yml", "shas_input": "shas"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "unit-tests-backfill-windows.yml", "shas_input": "shas"}}}}, "antidoc": {"label": "Antidoc", "platforms": {"windows": {"wf": "run-antidoc-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "antidoc-backfill-windows.yml", "shas_input": "shas"}}}}, "builds": {"label": "Builds", "platforms": {"windows": {"wf": "build-binaries-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "build-binaries-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
-    var RT_TIMING = {"masscompile": {"windows": {"total": 1088.0, "work": 21}, "linux": {"total": 85.0, "work": 21}}, "vi-analyzer": {"windows": {"total": 1186.0, "work": null}}, "vidiff": {"windows": {"total": 814.0, "work": null}, "linux": {"total": 65.5, "work": null}}, "snapshots2": {"windows": {"total": 1067.0, "work": null}, "linux": {"total": 17.0, "work": null}}, "unit-tests": {"windows": {"total": 992.0, "work": null}}, "antidoc": {"windows": {"total": 1103.0, "work": null}}, "builds": {"windows": {"total": 1117.0, "work": null}, "linux": {"total": null, "work": null}}};
+    var RT_TIMING = {"masscompile": {"windows": {"total": 1088.0, "work": 21.0}, "linux": {"total": 85.0, "work": 21.0}}, "vi-analyzer": {"windows": {"total": 1186.0, "work": null}}, "vidiff": {"windows": {"total": 814.0, "work": null}, "linux": {"total": 65.5, "work": null}}, "snapshots2": {"windows": {"total": 1067.0, "work": null}, "linux": {"total": 17.0, "work": null}}, "unit-tests": {"windows": {"total": 992.0, "work": null}}, "antidoc": {"windows": {"total": 1103.0, "work": null}}, "builds": {"windows": {"total": 1117.0, "work": null}, "linux": {"total": null, "work": null}}};
     var REPO = "elijah286/LabVIEW-CI-with-Containers";
     var BRANCH = "main";
     var TOK_KEY = "lvci_dispatch_token";
@@ -1845,6 +1853,21 @@
         +'&description='+encodeURIComponent('Queue LabVIEW CI runs for '+REPO)
         +(owner?'&target_name='+encodeURIComponent(owner):'')+'&actions=write';
     }
+    // Persist the active session so a reload or reopening Debug Run returns to the
+    // live desktop instead of losing it (the "dialog vanished" report). Cleared on
+    // End session and on expiry.
+    var DKEY = 'lvci_debug_session';
+    function saveSession(s){ try{ localStorage.setItem(DKEY, JSON.stringify(s)); }catch(e){} }
+    function clearSession(){ try{ localStorage.removeItem(DKEY); }catch(e){} }
+    function loadSession(){ try{ var s=JSON.parse(localStorage.getItem(DKEY)||'null'); if(!s) return null; if(s.expiresAt && Date.now()>s.expiresAt){ clearSession(); return null; } return s; }catch(e){ return null; } }
+    function persist(){ if(tr) saveSession({ runId:tr.runId, dispatchAt:tr.dispatchAt, sha:tr.sha, acts:tr.acts, mins:tr.mins, expiresAt:tr.expiresAt, url:tr.url||'' }); }
+    function sessionEnded(msg){
+      if(tr&&tr.timer){ clearInterval(tr.timer); } tr=null; clearSession();
+      var b=$('cidash-debug-body'); if(!b) return;
+      b.innerHTML='<p style="margin:0 0 12px">'+esc(msg||'The debug session has ended.')+'</p>'
+        +'<button id="dbg-new" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start a new session</button>';
+      var nb=$('dbg-new'); if(nb){ nb.addEventListener('click', renderStep1); }
+    }
     // Activities that can run in a Linux debug container (have a linux run target).
     function linuxCaps(){
       var out=[]; ['masscompile','vidiff','snapshots2','builds'].forEach(function(c){
@@ -1897,7 +1920,7 @@
         body:JSON.stringify({ ref:BRANCH, inputs:{ commit_sha:sha, platform:'linux', actions:acts.join(' '), minutes:String(mins) } })
       }).then(function(r){
         if(btn){ btn.disabled=false; btn.textContent='Start debug session'; }
-        if(r.status===204){ renderStep2(dispatchAt, sha, acts); return; }
+        if(r.status===204){ renderStep2(dispatchAt, sha, acts, mins); return; }
         if(r.status===401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} debugStatus('Token rejected (401). Paste a valid token above.', 'err'); renderStep1(); return; }
         if(r.status===403){ debugStatus('Dispatch forbidden (403). The token needs <strong>Actions: write</strong> for <code>'+esc(REPO)+'</code>.', 'err'); return; }
         if(r.status===404){ debugStatus('Not found (404). <code>'+esc(WF)+'</code> is not installed, or the token cannot see this repo.', 'err'); return; }
@@ -1905,39 +1928,49 @@
       }).catch(function(e){ if(btn){ btn.disabled=false; btn.textContent='Start debug session'; } debugStatus('Network error: '+esc(String(e&&e.message||e)), 'err'); });
     }
     // ── Step 2: connect ────────────────────────────────────────────────────
-    function renderStep2(dispatchAt, sha, acts){
+    function renderStep2(dispatchAt, sha, acts, mins, savedRunId){
       $('cidash-debug-body').innerHTML=''
         + '<p style="margin:0 0 10px"><strong>Bringing up the debug desktop&hellip;</strong></p>'
         + '<ol id="dbg-steps" style="margin:0 0 12px 1.1em;padding:0;color:var(--fg-muted);font-size:.9em;line-height:1.7">'
         +   '<li id="dbg-s-run">Waiting for the runner to pick up the job&hellip;</li>'
-        +   '<li id="dbg-s-tunnel">Booting the container + LabVIEW, opening the tunnel&hellip;</li>'
+        +   '<li id="dbg-s-tunnel">Booting the container + LabVIEW, opening the tunnel (this can take a few minutes)&hellip;</li>'
         + '</ol>'
         + '<div id="dbg-open" style="display:none;margin:10px 0"><a id="dbg-open-link" href="#" target="_blank" rel="noopener" style="display:inline-block;background:#2ea043;border:1px solid #2ea043;color:#fff;padding:8px 18px;border-radius:6px;text-decoration:none;font-size:.92em">Open remote desktop &#8599;</a><div style="font-size:.8em;color:var(--fg-muted);margin-top:5px">If a new tab did not open, click the button (pop-up blockers stop automatic tabs).</div></div>'
+        + '<p style="font-size:.8em;color:var(--fg-muted);margin:8px 0 0">You can close this dialog and reopen Debug Run &mdash; the session keeps booting and you will return here.</p>'
         + '<div id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></div>';
-      tr = { runId:null, dispatchAt:dispatchAt, sha:sha, acts:acts, opened:false, timer:null };
+      var expiresAt = dispatchAt + ((parseInt(mins,10)||45)+3)*60000;
+      tr = { runId:savedRunId||null, dispatchAt:dispatchAt, sha:sha, acts:acts, mins:mins, expiresAt:expiresAt, url:'', opened:false, timer:null };
+      persist();
+      if(savedRunId){ var s0=$('dbg-s-run'); if(s0){ s0.innerHTML='Runner picked up the job (<a href="https://github.com/'+esc(REPO)+'/actions/runs/'+savedRunId+'" target="_blank" rel="noopener">run #'+savedRunId+' &#8599;</a>).'; } }
       pollConnect();
       tr.timer=setInterval(pollConnect, 5000);
     }
     function pollConnect(){
       if(!tr) return;
+      if(tr.expiresAt && Date.now()>tr.expiresAt){ sessionEnded('The session time elapsed.'); return; }
       if(!tr.runId){
         fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/runs?event=workflow_dispatch&per_page=10', { headers:ghHeaders(), cache:'no-cache' })
           .then(function(r){ return r.ok?r.json():null; })
           .then(function(d){
             var runs=(d&&d.workflow_runs)||[];
             var m=runs.find(function(x){ return new Date(x.created_at).getTime() >= tr.dispatchAt-90000; });
-            if(m){ tr.runId=m.id; var s=$('dbg-s-run'); if(s){ s.innerHTML='Runner picked up the job (<a href="'+esc(m.html_url)+'" target="_blank" rel="noopener">run #'+m.id+' &#8599;</a>).'; } }
+            if(m && tr){ tr.runId=m.id; persist(); var s=$('dbg-s-run'); if(s){ s.innerHTML='Runner picked up the job (<a href="'+esc(m.html_url)+'" target="_blank" rel="noopener">run #'+m.id+' &#8599;</a>).'; } }
           }).catch(function(){});
         return;
       }
-      // Connect info is published to gh-pages once the tunnel is live.
+      // Watch for the run ending (cancelled / finished) so a dead session does not
+      // poll forever, and for the connect file the job publishes once the tunnel is live.
+      fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+tr.runId, { headers:ghHeaders(), cache:'no-cache' })
+        .then(function(r){ return r.ok?r.json():null; })
+        .then(function(run){ if(tr && !tr.opened && run && run.status==='completed'){ sessionEnded('The debug session ended (run '+esc(run.conclusion||'completed')+').'); } })
+        .catch(function(){});
       var url=pagesBase()+'debug/'+tr.runId+'.json?_='+Date.now();
       fetch(url, { cache:'no-cache' }).then(function(r){ return r.ok?r.json():null; })
         .then(function(j){ if(j&&j.url) connected(j.url); })
         .catch(function(){});
     }
     function connected(url){
-      if(!tr || tr.opened) return; tr.opened=true;
+      if(!tr || tr.opened) return; tr.opened=true; tr.url=url; persist();
       if(tr.timer){ clearInterval(tr.timer); }
       var s=$('dbg-s-tunnel'); if(s){ s.innerHTML='Desktop is live.'; }
       var open=$('dbg-open'); if(open){ open.style.display='block'; }
@@ -1962,6 +1995,7 @@
       var eb=$('dbg-end'); if(eb){ eb.addEventListener('click', function(){ endSession(runId); }); }
     }
     function endSession(runId){
+      clearSession(); if(tr&&tr.timer){ clearInterval(tr.timer); }
       if(!runId){ cidashDebugClose(); return; }
       var eb=$('dbg-end'); if(eb){ eb.disabled=true; eb.textContent='Ending...'; }
       debugStatus('Ending the session...');
@@ -1973,6 +2007,11 @@
     function debugOpen(){
       var m=modal(); if(!m) return;
       m.style.display='block'; document.body.style.overflow='hidden';
+      // Resume an in-flight session so a reload / reopen returns to the live
+      // desktop (or the still-booting connect view) instead of a blank step 1.
+      var s=loadSession();
+      if(s && s.url){ tr={ runId:s.runId, dispatchAt:s.dispatchAt, sha:s.sha, acts:s.acts, mins:s.mins, expiresAt:s.expiresAt, url:s.url, opened:true, timer:null }; renderStep3(s.url); return; }
+      if(s){ renderStep2(s.dispatchAt, s.sha, s.acts, s.mins, s.runId||null); return; }
       renderStep1();
     }
     window.lvciDebugRun = debugOpen;
@@ -1993,7 +2032,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-07-22 21:15 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-07-22 21:21 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -2038,6 +2077,25 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a2d6461c65ed2761298e06de477e4cae1b8d4b2e" class="cidash-rev-msg" title="Debug Run: stop the auto-refresh wiping the dialog + make it resumable (4.9.5)">Debug Run: stop the auto-refresh wiping the dialog + make it resumable (4.9.5)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a2d6461c65ed2761298e06de477e4cae1b8d4b2e" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">a2d6461</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-22</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -3919,25 +3977,6 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=09fedca5ed7da52f105c8bbd4ac4f3a7564296e2" class="cidash-rev-msg" title="docs: rewrite Documentation for LabVIEW users new to CI (4.1.32)">docs: rewrite Documentation for LabVIEW users new to CI (4.1.32)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=09fedca5ed7da52f105c8bbd4ac4f3a7564296e2" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">09fedca</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-06-25</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
     <tr data-project="true" data-deponly="true">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -3986,7 +4025,7 @@
           </div>
         </div>
       </td>
-      <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5" data-parent="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-short="d56ded4" data-ts="2026-06-24T23:55:43Z"><span class="cidash-chip cc-pass" title="Linux: 56/59 project VIs compiled; green >= 95%, yellow >= 80%, red < 80% (a compile failure is solid red)"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.22 9.28a.75.75 0 1 1 1.06-1.06L6 11.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=masscompile-report&sha=d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5&short=d56ded4&src=..%2Fmasscompile%2Fd56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5%2Findex.html&title=Mass%20Compile%20%C2%B7%20d56ded4" style="color:inherit">95%</a></span></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5" data-parent="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-short="d56ded4" data-ts="2026-06-24T23:55:43Z"><span class="cidash-chip cc-split" title="Windows 95% (56/59) · Linux 95% (56/59) project VIs compiled; green >= 95%, yellow >= 80%, red < 80% (a compile failure is solid red)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=masscompile-report&sha=d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5&short=d56ded4&src=..%2Fmasscompile%2Fd56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5%2Findex.html&title=Mass%20Compile%20%C2%B7%20d56ded4" style="color:inherit"><span class="cidash-vseg cc-pass" data-tip="Windows">95%</span><span class="cidash-vseg-sep">/</span><span class="cidash-vseg cc-pass" data-tip="Linux">95%</span></a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5" data-parent="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-short="d56ded4" title="Run VI Analyzer for commit d56ded4">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5" data-parent="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-short="d56ded4" title="Run VIDiff for commit d56ded4">&#9655;</a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5" data-parent="197c1be98a17e40b88c4473157fe8aa008acbb3a" data-short="d56ded4" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 51 VIs in this revision"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5" style="color:inherit">51</a></span></td>
