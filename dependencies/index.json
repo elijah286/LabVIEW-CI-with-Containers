@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "b04e7de5fac414c0ee49b8a5ceaf444585628ee0",
+  "sha": "34ce72c6157e39da10e594bc9446509a209c03dd",
   "revisions": [
+    {
+      "sha": "34ce72c6157e39da10e594bc9446509a209c03dd",
+      "short": "34ce72c",
+      "message": "Populate history confirms before queuing a large batch (4.8.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T11:10:37Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "b04e7de5fac414c0ee49b8a5ceaf444585628ee0",
       "short": "b04e7de",
@@ -891,15 +900,6 @@
       "message": "Restore opt-in monitored auto-rebuild for the worker (4.1.17)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T17:42:29Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "8f62e6141cc7e019f08dd0ba210c8c1185dc9bb1",
-      "short": "8f62e61",
-      "message": "Split worker image Build and Copy into two distinct workflows (4.1.16)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T17:06:59Z",
       "project": false,
       "dep_only": false
     },
