@@ -886,7 +886,7 @@ function vb2EffPlat(_htmlUrl) { return vb2Plat === 'windows' ? 'windows' : 'linu
 function vb2JsonUrl(htmlUrl) { return htmlUrl.replace(/\.html$/i, vb2EffPlat(htmlUrl) === 'windows' ? '.windows.json' : '.json'); }
 
 function vb2Prefer2Default() {
-  if (VB2_HAS_VIEWER_QUERY || vb2LsGet(VB2_VIEWER_KEY) || VB2_HAS_PLAT2_QUERY) return false;
+  if (VB2_HAS_VIEWER_QUERY || VB2_HAS_PLAT2_QUERY) return false;
   if (!currentSnapshot || currentDiffVi) return false;
   const blob = vb2BlobOf(currentSnapshot.html);
   if (!blob) return false;
