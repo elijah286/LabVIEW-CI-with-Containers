@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "aa15e43b889846660efbef8d8f1de8b031699111",
+  "sha": "761b759fe35636e6fb59f68070ef75901d33e432",
   "revisions": [
+    {
+      "sha": "761b759fe35636e6fb59f68070ef75901d33e432",
+      "short": "761b759",
+      "message": "Debug Run: existing-sessions section below the form with live progress (4.9.12)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T23:47:49Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "aa15e43b889846660efbef8d8f1de8b031699111",
       "short": "aa15e43",
@@ -891,15 +900,6 @@
       "message": "TEMP: warm-batch smoketests for vi-analyzer/unit-tests/antidoc (delete before merge)",
       "author": "Elijah Kerry",
       "date": "2026-06-26T04:41:53Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "d7c00aac873a668c18003003a32613be4a800ae5",
-      "short": "d7c00aa",
-      "message": "dashboard: guard run-timing so an API hiccup can't break the build",
-      "author": "Elijah Kerry",
-      "date": "2026-06-26T04:31:45Z",
       "project": false,
       "dep_only": false
     },
@@ -3948,7 +3948,7 @@
       "nipkg_ready": true,
       "nipkg_packages": [],
       "labview_version": "2026",
-      "version": "linux-ad7422753194"
+      "version": "linux-97111e79b7b3"
     }
   ]
 }
