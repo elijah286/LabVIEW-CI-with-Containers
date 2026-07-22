@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ef5fca624b03eda402f809635be71997ff4e878e",
+  "sha": "61ed2ddd21621f0afbd6e9231d9f5e27c710ce46",
   "revisions": [
+    {
+      "sha": "61ed2ddd21621f0afbd6e9231d9f5e27c710ce46",
+      "short": "61ed2dd",
+      "message": "Bake LV_RTE_HEADLESS=1 into the worker base image so g-cli/Antidoc run headless in NI's container (4.8.6)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T13:25:48Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "ef5fca624b03eda402f809635be71997ff4e878e",
       "short": "ef5fca6",
@@ -891,15 +900,6 @@
       "message": "Fix worker-manifest gh-pages publish race (Copy Linux worker failure) (4.1.20)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T18:40:36Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "63bb4b9da14710d38ff337b59c9facd1c79f9d83",
-      "short": "63bb4b9",
-      "message": "Make the Linux worker symmetric with Windows: opt-in bake, separate install copy (4.1.19)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T18:21:56Z",
       "project": false,
       "dep_only": false
     },
