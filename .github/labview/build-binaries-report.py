@@ -174,35 +174,43 @@ def build_report(summary: dict, args) -> str:
   <script>%(hdr_cfg)s</script>
   <script src="%(pages_up)s/lvci-header.js" defer></script>
   <style>
+    :root{
+      --bg:#0d1117;--surface:#161b22;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;
+      --link:#58a6ff;--chip:#21262d;--code:#010409;--bad:#da3633;
+    }
+    @media(prefers-color-scheme:light){:root{
+      --bg:#fff;--surface:#f6f8fa;--border:#d0d7de;--fg:#1f2328;--fg-muted:#57606a;
+      --link:#0969da;--chip:#eaeef2;--code:#f6f8fa;
+    }}
     *{box-sizing:border-box}
-    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg)}
     .wrap{max-width:1100px;margin:0 auto;padding:20px}
-    .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px 18px;margin-bottom:14px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:14px}
     .summary-card{display:flex;align-items:center;flex-wrap:wrap;gap:14px}
     h1{margin:0;font-size:1.3em}
     .run-pill{display:inline-block;padding:3px 12px;border-radius:20px;font-weight:700;font-size:.8em;color:#fff;background:%(status_color)s;text-transform:capitalize}
-    .counts{font-size:.85em;color:#8b949e;display:flex;gap:14px;flex-wrap:wrap}
+    .counts{font-size:.85em;color:var(--fg-muted);display:flex;gap:14px;flex-wrap:wrap}
     .toggle{margin-left:auto;display:flex;gap:6px}
-    .toggle a{font-size:.8em;padding:4px 12px;border:1px solid #30363d;border-radius:6px;color:#8b949e;text-decoration:none}
-    .toggle a.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
-    .commit{font-size:.8em;color:#8b949e;margin-top:8px}
-    .commit code{background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:1px 6px}
+    .toggle a{font-size:.8em;padding:4px 12px;border:1px solid var(--border);border-radius:6px;color:var(--fg-muted);text-decoration:none}
+    .toggle a.active{background:var(--link);border-color:var(--link);color:#fff}
+    .commit{font-size:.8em;color:var(--fg-muted);margin-top:8px}
+    .commit code{background:var(--code);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
     .spec-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
     .spec-name{font-weight:700;font-size:1.05em}
-    .type-badge{font-size:.72em;padding:2px 8px;border-radius:12px;background:#21262d;border:1px solid #30363d;color:#adbac7}
-    .target{font-size:.78em;color:#8b949e}
+    .type-badge{font-size:.72em;padding:2px 8px;border-radius:12px;background:var(--chip);border:1px solid var(--border);color:var(--fg-muted)}
+    .target{font-size:.78em;color:var(--fg-muted)}
     .status-pill{margin-left:auto;font-size:.72em;font-weight:700;color:#fff;padding:2px 10px;border-radius:12px}
-    .spec-sub{font-size:.76em;color:#8b949e;margin:6px 0 10px}
+    .spec-sub{font-size:.76em;color:var(--fg-muted);margin:6px 0 10px}
     .artifacts{display:flex;flex-direction:column;gap:6px}
-    .artifact{display:flex;align-items:center;gap:12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:8px 12px;font-size:.85em}
-    .artifact .dl{color:#58a6ff;text-decoration:none;font-weight:600;display:flex;align-items:center;gap:6px}
+    .artifact{display:flex;align-items:center;gap:12px;background:var(--code);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:.85em}
+    .artifact .dl{color:var(--link);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:6px}
     .artifact .dl:hover{text-decoration:underline}
     .artifact .dlico{font-weight:700}
-    .artifact .sz{color:#8b949e;font-size:.9em}
-    .artifact .hash{margin-left:auto;color:#6e7681;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;cursor:help}
-    .artifact.none{color:#8b949e}
-    .artifact.err{color:#ff7b72}
-    .empty{color:#8b949e}
+    .artifact .sz{color:var(--fg-muted);font-size:.9em}
+    .artifact .hash{margin-left:auto;color:var(--fg-muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;cursor:help}
+    .artifact.none{color:var(--fg-muted)}
+    .artifact.err{color:var(--bad)}
+    .empty{color:var(--fg-muted)}
   </style>
 </head>
 <body>
@@ -245,7 +253,7 @@ def build_report(summary: dict, args) -> str:
         "commit_line": commit_line,
         "cards": "\n    ".join(cards),
         "ts": esc(ts),
-        "run_link": (' &middot; <a style="color:#58a6ff" href="%s">workflow run</a>' % esc(args.run_url)) if args.run_url else "",
+        "run_link": (' &middot; <a style="color:var(--link)" href="%s">workflow run</a>' % esc(args.run_url)) if args.run_url else "",
     }
 
 

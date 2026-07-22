@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.9.2",
+  "version": "4.9.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.9.3",
+        "date": "2026-07-22",
+        "title": "Builds report follows the light/dark theme like the other reports",
+        "summary": "The per-revision Builds report page was hard-coded to a dark palette, so it ignored the OS light/dark preference and the shared header Light/Dark toggle -- unlike the Mass Compile, VI Analyzer, Unit Tests, and Antidoc reports. It now uses the same CSS-variable theme tokens (following prefers-color-scheme plus the header data-lvci-theme override), unifying its look with the rest of the site. The revision drop-down and Activity switcher in the shared header already covered the Builds report. The two runner fallback pages are themed the same way.",
+        "highlights": [
+          "Builds report themes to light or dark like every other report page",
+          "Follows both the OS preference and the header manual Light/Dark toggle",
+          "Runner fallback builds pages themed to match"
+        ]
+      },
       {"version": "4.9.2", "date": "2026-07-22", "notes": "VI Analyzer: a pass that completed but analyzed a project containing a broken VI no longer fails the whole job. RunVIAnalyzer (LabVIEWCLI) writes bad-VI warnings to STDERR; under the script-wide ErrorActionPreference=Stop that native stderr write was promoted to a terminating NativeCommandError, aborting the whole-directory fallback pass AFTER it had already run and written its report (job exited 1). Invoke-ViaPass now shields the call the same way the pre-analysis MassCompile does (EAP=Continue + 2>&1), judging success by the process exit code. Unrelated to the pre-analysis MassCompile, which is a normal step that upgrades VIs to the image LabVIEW version before analysis"},
       {
         "version": "4.9.1",
