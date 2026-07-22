@@ -35,4 +35,4 @@ unitTests:
     utf:
       enabled: true
       locations:
-        - "example/User-Defined Test/"
+        - "example/Example.lvproj"
