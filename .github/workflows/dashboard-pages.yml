@@ -28,6 +28,11 @@ on:
       # dashboard row right away. The build then surfaces each activity's queued
       # or in-progress run from the Actions API, before any commit status posts.
       - 'example/**'
+      # A dependency-manifest change (VIPC / Dragon) can add packages that are not
+      # yet baked into the worker container(s); rebuild so the Dependencies page and
+      # the "update container" banner reflect the new declaration right away.
+      - '**/*.vipc'
+      - '**/*.dragon'
   # Rebuild whenever ANY CI activity reports a commit status. The dashboard's
   # badges are sourced from each commit's statuses, so reacting to the `status`
   # event keeps it current for every workflow that posts one — present or future —

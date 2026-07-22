@@ -3816,6 +3816,12 @@ TOOLING_CORE_VIPC = '.github/labview/vipm/ci-tooling.vipc'
 _CAPABILITY_WORKFLOW = {
   'antidoc': '.github/workflows/run-antidoc-windows-container.yml',
 }
+# Platforms each capability's worker actually bakes/runs on. A capability VIPC is
+# only compared against (and only nags to rebuild) these platforms, so e.g. the
+# Windows-only Antidoc worker never raises a spurious "Linux is missing" prompt.
+_CAPABILITY_PLATFORMS = {
+  'antidoc': ['windows'],
+}
 
 def _capability_for_vipc(path):
   m = re.match(r'^\.github/labview/([^/]+)/(?:[^/]+)\.vipc$', path or '')
@@ -3827,6 +3833,10 @@ def _capability_for_vipc(path):
 def _capability_enabled(cap):
   wf = _CAPABILITY_WORKFLOW.get(cap)
   return bool(wf and os.path.isfile(wf))
+
+def _capability_platforms(cap):
+  """Worker platforms a capability's VIPC is baked into (defaults to Windows)."""
+  return list(_CAPABILITY_PLATFORMS.get(cap) or ['windows'])
 
 def _vipc_role(path, config_vipc, has_config_list):
   """Classify a discovered VIPC and its monitoring state.
@@ -4204,7 +4214,12 @@ def _compute_deps_pending(data):
   pending_files = []
   lin_pending_files = []
   for v in data.get('vipc', []):
-    if v.get('role') != 'project' or not v.get('configured') or v.get('error'):
+    # Project VIPCs always participate. Capability VIPCs (e.g. Antidoc) participate
+    # only when that capability is installed -- _vipc_role sets `configured` to the
+    # capability-enabled flag, so an uninstalled capability is skipped here. Their
+    # monitorOn is limited to the capability's platform(s) (Antidoc = Windows), so a
+    # Windows-only capability never nags about the Linux worker.
+    if v.get('role') not in ('project', 'capability') or not v.get('configured') or v.get('error'):
       continue
     pkgs = v.get('packages') or []
     if not pkgs:
@@ -4287,7 +4302,12 @@ def _build_dependencies_index():
   for path in vipc_paths:
     packages, error = _parse_vipc_packages(path) if os.path.isfile(path) else ([], '')
     role, capability, configured, monitored, locked = _vipc_role(path, config_vipc, has_config_list)
-    monitor_on = _monitor_on(config_vipc.get(path), has_config_list, role == 'core')
+    if role == 'capability':
+      # A capability VIPC is baked only into its capability's worker platform(s),
+      # so limit its monitored columns accordingly (Antidoc = Windows only).
+      monitor_on = _capability_platforms(capability)
+    else:
+      monitor_on = _monitor_on(config_vipc.get(path), has_config_list, role == 'core')
     vipcs.append({'path': path, 'role': role, 'capability': capability,
                   'tooling': role == 'core', 'configured': configured, 'monitored': monitored,
                   'monitorOn': monitor_on,

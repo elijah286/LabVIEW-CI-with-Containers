@@ -769,6 +769,11 @@ def consumer_dashboard_workflow(catalog: dict, branch: str = "main") -> str:
         "    paths:\n"
         "      - '.github/labview-ci.yml'\n"
         "      - '.github/workflows/dashboard-pages.yml'\n"
+        # A VIPC/Dragon change can add packages not yet baked into the worker
+        # container(s); rebuild so the Dependencies page + update-container banner
+        # reflect the new declaration.
+        "      - '**/*.vipc'\n"
+        "      - '**/*.dragon'\n"
         "  status:\n"
         "  workflow_run:\n"
         "    workflows:\n"

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.8.1",
+  "version": "4.8.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,18 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.8.2",
+        "date": "2026-07-21",
+        "type": "patch",
+        "summary": "The Dependencies page and the 'update the container' banner now review capability VIPCs (e.g. Antidoc), not just project VIPCs, and the dashboard rebuilds whenever any .vipc/.dragon file changes. Previously a capability VIPC's packages showed N/A and never drove the pending banner, and a VIPC-only push did not regenerate the dependency index -- so adding a package (e.g. jki_lib_state_machine to antidoc.vipc) that was not baked into the worker went unflagged. Now an installed capability's VIPC is compared against its worker platform(s) (Antidoc = Windows), missing packages show as 'missing', and the banner prompts a container rebuild.",
+        "changes": [
+          "dashboard.py: _compute_deps_pending includes role=='capability' VIPCs when the capability is installed (configured); _build_dependencies_index limits a capability VIPC's monitorOn to _capability_platforms(cap) (Antidoc = windows) so a Windows-only capability never nags about Linux.",
+          "dependencies.html twins: classifyVipc is capability-aware, isProjectVipc counts installed capability VIPCs, and the generated mapping trusts the server's capability configured/monitored/monitorOn -> missing packages render as 'missing' (not N/A) on the capability's platform.",
+          "dashboard-pages.yml + consumer dashboard workflows (install.py, integrate.html): rebuild on push of any **/*.vipc or **/*.dragon so a dependency-manifest change refreshes the page + banner immediately.",
+          "documentation.html twins: deps-pending contract updated for capability VIPCs + the VIPC/Dragon rebuild trigger."
+        ]
+      },
       {
         "version": "4.8.1",
         "date": "2026-07-21",

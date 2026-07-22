@@ -1585,13 +1585,18 @@ flowchart TD
         dispatches <code>build-labview-image.yml</code> for Windows and/or
         <code>build-labview-linux-image.yml</code> for Linux, each with the selected <code>update_mode</code>, and its
         live progress bar tracks every dispatched run at once. The <code>deps-pending.json</code> contract drives the
-        defaults: the dashboard compares each project VIPC&rsquo;s packages against the <em>per-platform</em> baked
+        defaults: the dashboard compares each project VIPC&rsquo;s packages &mdash; and each <strong>installed
+        capability</strong> VIPC (e.g. Antidoc), limited to the platform(s) that capability&rsquo;s worker runs on
+        (Antidoc = Windows) &mdash; against the <em>per-platform</em> baked
         worker manifest, so its <code>containers</code> array lists <code>windows</code> and/or <code>linux</code>
         independently (a Linux gap is reported only when a real, non-base Linux worker manifest resolved for the
         revision), and <code>vipcs</code> is the union of the files missing packages on either worker. The dependency
         table evaluates each column the same way: a package that is <strong>monitored</strong> for a platform but not
         yet baked into that worker shows as <strong>missing</strong> in that column (Linux is evaluated exactly like
-        Windows), while a package that is simply not monitored for the platform stays N/A.</div>
+        Windows), while a package that is simply not monitored for the platform stays N/A. A push that adds or changes
+        any <code>.vipc</code>/<code>.dragon</code> file now rebuilds the dashboard as well, so a newly declared &mdash;
+        but not-yet-baked &mdash; package surfaces as missing and the &ldquo;dependencies need installing&rdquo; banner
+        appears immediately, without waiting for a worker build or a commit status.</div>
       <div class="note"><span class="lbl">The dashboard refreshes after a build</span>
         A completed worker build (<code>Build LabVIEW CI Image</code> / <code>Build LabVIEW CI Image - Linux</code>) is
         in the dashboard&rsquo;s <code>workflow_run</code> triggers, so finishing a container update rebuilds the
