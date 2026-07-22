@@ -1,0 +1,3 @@
+== Project description
+
+This project is used by developers to edit API and example files for LabVIEW Plug and Play instrument drivers.

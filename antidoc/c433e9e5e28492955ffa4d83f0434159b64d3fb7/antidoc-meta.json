@@ -1,16 +1,46 @@
 {
-    "status":  "failed",
+    "status":  "passed",
     "title":  "LabVIEW-CI-with-Containers",
     "project":  "example/Curriculum/Generator API/subVIs/Revidyne Generator.lvproj",
     "lvVersion":  "2026",
     "primary":  {
-                    "kind":  "none",
-                    "path":  ""
+                    "kind":  "adoc",
+                    "path":  "doc/Includes/001.adoc"
                 },
-    "fileCount":  0,
+    "fileCount":  31,
     "files":  [
-
+                  "doc/Images/broadcast.png",
+                  "doc/Images/empty.png",
+                  "doc/Images/inlined.png",
+                  "doc/Images/reentrancy-preallocated.png",
+                  "doc/Images/reentrancy-shared.png",
+                  "doc/Images/request.png",
+                  "doc/Images/request-and-wait-for-reply.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Close.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Demo_PID_Control.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Error_Query.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Get_KW.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Get_Value.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Init.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Initialize.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Motor_Off.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Motor_On.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Reset.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Revision_Query.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Self_Test.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Set_Load.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_Set_Speed.vi.png",
+                  "doc/Images/Revidyne_Generator.lvlib_VI_Tree.vi.png",
+                  "doc/Images/scope-community.png",
+                  "doc/Images/scope-private.png",
+                  "doc/Images/scope-protected.png",
+                  "doc/Includes/000.adoc",
+                  "doc/Includes/001.adoc",
+                  "doc/Includes/002.adoc",
+                  "doc/Includes/003.adoc",
+                  "doc/Includes/004.adoc",
+                  "doc/Revidyne Generator.adoc"
               ],
-    "exit":  1,
-    "duration":  0.1
+    "exit":  0,
+    "duration":  37.7
 }
