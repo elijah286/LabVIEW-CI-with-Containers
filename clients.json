@@ -1,7 +1,7 @@
 {
   "source": "elijah286/LabVIEW-CI-with-Containers",
-  "generated": "2026-07-22T23:26:43Z",
-  "count": 33,
+  "generated": "2026-07-22T23:35:15Z",
+  "count": 36,
   "clients": [
     {
       "repo": "CRoebuck-TSE/UG_Demo_0",
@@ -50,6 +50,32 @@
       "dashboard": "https://danielcoons.github.io/tsc-pop-up/",
       "version": "4.9.5",
       "updated": "2026-07-22T22:34:15Z",
+      "via": [
+        "topic"
+      ],
+      "confirmed": true
+    },
+    {
+      "repo": "dhooks01/actor-framework-01",
+      "owner": "dhooks01",
+      "name": "actor-framework-01",
+      "url": "https://github.com/dhooks01/actor-framework-01",
+      "dashboard": "https://dhooks01.github.io/actor-framework-01/",
+      "version": "4.1.13",
+      "updated": "2026-07-22T22:52:11Z",
+      "via": [
+        "topic"
+      ],
+      "confirmed": true
+    },
+    {
+      "repo": "elijah286/Acoustic-Source-Localization-System",
+      "owner": "elijah286",
+      "name": "Acoustic-Source-Localization-System",
+      "url": "https://github.com/elijah286/Acoustic-Source-Localization-System",
+      "dashboard": "https://elijah286.github.io/Acoustic-Source-Localization-System/",
+      "version": "4.9.8",
+      "updated": "2026-07-22T23:27:06Z",
       "via": [
         "topic"
       ],
@@ -368,6 +394,19 @@
       "confirmed": true
     },
     {
+      "repo": "elijah286/actor-framework",
+      "owner": "elijah286",
+      "name": "actor-framework",
+      "url": "https://github.com/elijah286/actor-framework",
+      "dashboard": "https://elijah286.github.io/actor-framework/",
+      "version": "4.8.9",
+      "updated": "2026-07-22T23:27:28Z",
+      "via": [
+        "topic"
+      ],
+      "confirmed": true
+    },
+    {
       "repo": "elijah286/actor-framework-overview",
       "owner": "elijah286",
       "name": "actor-framework-overview",
@@ -376,8 +415,7 @@
       "version": "4.1.12",
       "updated": "2026-07-22T23:23:25Z",
       "via": [
-        "topic",
-        "workflow"
+        "topic"
       ],
       "confirmed": true
     },
@@ -390,8 +428,7 @@
       "version": "4.1.32",
       "updated": "2026-07-22T23:23:47Z",
       "via": [
-        "topic",
-        "workflow"
+        "topic"
       ],
       "confirmed": true
     },
@@ -404,9 +441,7 @@
       "version": "3.41.3",
       "updated": "2026-07-22T23:19:21Z",
       "via": [
-        "catalog",
-        "topic",
-        "workflow"
+        "topic"
       ],
       "confirmed": true
     },
@@ -419,8 +454,7 @@
       "version": "4.8.11",
       "updated": "2026-07-22T23:22:21Z",
       "via": [
-        "topic",
-        "workflow"
+        "topic"
       ],
       "confirmed": true
     },
