@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "6313516f68c488d2bc5601aaf778f9303c2c9d53",
+  "sha": "ef5fca624b03eda402f809635be71997ff4e878e",
   "revisions": [
+    {
+      "sha": "ef5fca624b03eda402f809635be71997ff4e878e",
+      "short": "ef5fca6",
+      "message": "Antidoc: set LV_RTE_HEADLESS=1 so g-cli's direct LabVIEW launch runs headless (no activation wizard) in NI's container (4.8.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T11:37:33Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "6313516f68c488d2bc5601aaf778f9303c2c9d53",
       "short": "6313516",
@@ -891,15 +900,6 @@
       "message": "Make the Linux worker symmetric with Windows: opt-in bake, separate install copy (4.1.19)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T18:21:56Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "909dea81a9b89e587ef37e0209f58346d67d3ec3",
-      "short": "909dea8",
-      "message": "Configure auto-dependency-update UI; Dependencies links to it (4.1.18)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T18:02:22Z",
       "project": false,
       "dep_only": false
     },
