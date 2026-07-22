@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.9.4",
+  "version": "4.9.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {"version": "4.9.5", "date": "2026-07-22", "notes": "Debug Run fix: the dashboard's periodic full-page auto-refresh no longer reloads the page out from under an open Debug Run (or Populate history) dialog, which was wiping the connect panel while the container booted (\"the dialog just went away\"). The reload guard now defers while those modals are open. Debug Run is also resumable: the active session is remembered, so reopening Debug Run (or a reload) returns you to the live remote-desktop button or the still-booting connect view instead of a blank form, and a cancelled/finished run is detected and cleared. The manual \"Open remote desktop\" button remains the primary connect action since browsers block auto-opened tabs."},
       {"version": "4.9.4", "date": "2026-07-22", "notes": "VI Analyzer honours a committed .viancfg again (fixes empty reports since a custom .viancfg was added). RunVIAnalyzer runs ZERO tests when a config\u2019s ItemsToAnalyze is a list of explicit VIs; the default pass now analyzes the whole PROJECT instead - it rewrites the generated config to VI Analyzer\u2019s native Analyze Project mode (AnalyzeProject=TRUE pointed at the detected .lvproj) while keeping the config\u2019s selected tests. Safety net: if the project pass still runs 0 tests (or the repo has no .lvproj) it auto re-runs in directory mode (the full built-in suite that worked historically) so the report is never blank"},
       {
         "version": "4.9.3",

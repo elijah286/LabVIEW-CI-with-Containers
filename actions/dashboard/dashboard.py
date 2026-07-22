@@ -3292,6 +3292,21 @@ debug_dialog = (r"""
         +'&description='+encodeURIComponent('Queue LabVIEW CI runs for '+REPO)
         +(owner?'&target_name='+encodeURIComponent(owner):'')+'&actions=write';
     }
+    // Persist the active session so a reload or reopening Debug Run returns to the
+    // live desktop instead of losing it (the "dialog vanished" report). Cleared on
+    // End session and on expiry.
+    var DKEY = 'lvci_debug_session';
+    function saveSession(s){ try{ localStorage.setItem(DKEY, JSON.stringify(s)); }catch(e){} }
+    function clearSession(){ try{ localStorage.removeItem(DKEY); }catch(e){} }
+    function loadSession(){ try{ var s=JSON.parse(localStorage.getItem(DKEY)||'null'); if(!s) return null; if(s.expiresAt && Date.now()>s.expiresAt){ clearSession(); return null; } return s; }catch(e){ return null; } }
+    function persist(){ if(tr) saveSession({ runId:tr.runId, dispatchAt:tr.dispatchAt, sha:tr.sha, acts:tr.acts, mins:tr.mins, expiresAt:tr.expiresAt, url:tr.url||'' }); }
+    function sessionEnded(msg){
+      if(tr&&tr.timer){ clearInterval(tr.timer); } tr=null; clearSession();
+      var b=$('cidash-debug-body'); if(!b) return;
+      b.innerHTML='<p style="margin:0 0 12px">'+esc(msg||'The debug session has ended.')+'</p>'
+        +'<button id="dbg-new" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start a new session</button>';
+      var nb=$('dbg-new'); if(nb){ nb.addEventListener('click', renderStep1); }
+    }
     // Activities that can run in a Linux debug container (have a linux run target).
     function linuxCaps(){
       var out=[]; ['masscompile','vidiff','snapshots2','builds'].forEach(function(c){
@@ -3344,7 +3359,7 @@ debug_dialog = (r"""
         body:JSON.stringify({ ref:BRANCH, inputs:{ commit_sha:sha, platform:'linux', actions:acts.join(' '), minutes:String(mins) } })
       }).then(function(r){
         if(btn){ btn.disabled=false; btn.textContent='Start debug session'; }
-        if(r.status===204){ renderStep2(dispatchAt, sha, acts); return; }
+        if(r.status===204){ renderStep2(dispatchAt, sha, acts, mins); return; }
         if(r.status===401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} debugStatus('Token rejected (401). Paste a valid token above.', 'err'); renderStep1(); return; }
         if(r.status===403){ debugStatus('Dispatch forbidden (403). The token needs <strong>Actions: write</strong> for <code>'+esc(REPO)+'</code>.', 'err'); return; }
         if(r.status===404){ debugStatus('Not found (404). <code>'+esc(WF)+'</code> is not installed, or the token cannot see this repo.', 'err'); return; }
@@ -3352,39 +3367,49 @@ debug_dialog = (r"""
       }).catch(function(e){ if(btn){ btn.disabled=false; btn.textContent='Start debug session'; } debugStatus('Network error: '+esc(String(e&&e.message||e)), 'err'); });
     }
     // ── Step 2: connect ────────────────────────────────────────────────────
-    function renderStep2(dispatchAt, sha, acts){
+    function renderStep2(dispatchAt, sha, acts, mins, savedRunId){
       $('cidash-debug-body').innerHTML=''
         + '<p style="margin:0 0 10px"><strong>Bringing up the debug desktop&hellip;</strong></p>'
         + '<ol id="dbg-steps" style="margin:0 0 12px 1.1em;padding:0;color:var(--fg-muted);font-size:.9em;line-height:1.7">'
         +   '<li id="dbg-s-run">Waiting for the runner to pick up the job&hellip;</li>'
-        +   '<li id="dbg-s-tunnel">Booting the container + LabVIEW, opening the tunnel&hellip;</li>'
+        +   '<li id="dbg-s-tunnel">Booting the container + LabVIEW, opening the tunnel (this can take a few minutes)&hellip;</li>'
         + '</ol>'
         + '<div id="dbg-open" style="display:none;margin:10px 0"><a id="dbg-open-link" href="#" target="_blank" rel="noopener" style="display:inline-block;background:#2ea043;border:1px solid #2ea043;color:#fff;padding:8px 18px;border-radius:6px;text-decoration:none;font-size:.92em">Open remote desktop &#8599;</a><div style="font-size:.8em;color:var(--fg-muted);margin-top:5px">If a new tab did not open, click the button (pop-up blockers stop automatic tabs).</div></div>'
+        + '<p style="font-size:.8em;color:var(--fg-muted);margin:8px 0 0">You can close this dialog and reopen Debug Run &mdash; the session keeps booting and you will return here.</p>'
         + '<div id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></div>';
-      tr = { runId:null, dispatchAt:dispatchAt, sha:sha, acts:acts, opened:false, timer:null };
+      var expiresAt = dispatchAt + ((parseInt(mins,10)||45)+3)*60000;
+      tr = { runId:savedRunId||null, dispatchAt:dispatchAt, sha:sha, acts:acts, mins:mins, expiresAt:expiresAt, url:'', opened:false, timer:null };
+      persist();
+      if(savedRunId){ var s0=$('dbg-s-run'); if(s0){ s0.innerHTML='Runner picked up the job (<a href="https://github.com/'+esc(REPO)+'/actions/runs/'+savedRunId+'" target="_blank" rel="noopener">run #'+savedRunId+' &#8599;</a>).'; } }
       pollConnect();
       tr.timer=setInterval(pollConnect, 5000);
     }
     function pollConnect(){
       if(!tr) return;
+      if(tr.expiresAt && Date.now()>tr.expiresAt){ sessionEnded('The session time elapsed.'); return; }
       if(!tr.runId){
         fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/runs?event=workflow_dispatch&per_page=10', { headers:ghHeaders(), cache:'no-cache' })
           .then(function(r){ return r.ok?r.json():null; })
           .then(function(d){
             var runs=(d&&d.workflow_runs)||[];
             var m=runs.find(function(x){ return new Date(x.created_at).getTime() >= tr.dispatchAt-90000; });
-            if(m){ tr.runId=m.id; var s=$('dbg-s-run'); if(s){ s.innerHTML='Runner picked up the job (<a href="'+esc(m.html_url)+'" target="_blank" rel="noopener">run #'+m.id+' &#8599;</a>).'; } }
+            if(m && tr){ tr.runId=m.id; persist(); var s=$('dbg-s-run'); if(s){ s.innerHTML='Runner picked up the job (<a href="'+esc(m.html_url)+'" target="_blank" rel="noopener">run #'+m.id+' &#8599;</a>).'; } }
           }).catch(function(){});
         return;
       }
-      // Connect info is published to gh-pages once the tunnel is live.
+      // Watch for the run ending (cancelled / finished) so a dead session does not
+      // poll forever, and for the connect file the job publishes once the tunnel is live.
+      fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+tr.runId, { headers:ghHeaders(), cache:'no-cache' })
+        .then(function(r){ return r.ok?r.json():null; })
+        .then(function(run){ if(tr && !tr.opened && run && run.status==='completed'){ sessionEnded('The debug session ended (run '+esc(run.conclusion||'completed')+').'); } })
+        .catch(function(){});
       var url=pagesBase()+'debug/'+tr.runId+'.json?_='+Date.now();
       fetch(url, { cache:'no-cache' }).then(function(r){ return r.ok?r.json():null; })
         .then(function(j){ if(j&&j.url) connected(j.url); })
         .catch(function(){});
     }
     function connected(url){
-      if(!tr || tr.opened) return; tr.opened=true;
+      if(!tr || tr.opened) return; tr.opened=true; tr.url=url; persist();
       if(tr.timer){ clearInterval(tr.timer); }
       var s=$('dbg-s-tunnel'); if(s){ s.innerHTML='Desktop is live.'; }
       var open=$('dbg-open'); if(open){ open.style.display='block'; }
@@ -3409,6 +3434,7 @@ debug_dialog = (r"""
       var eb=$('dbg-end'); if(eb){ eb.addEventListener('click', function(){ endSession(runId); }); }
     }
     function endSession(runId){
+      clearSession(); if(tr&&tr.timer){ clearInterval(tr.timer); }
       if(!runId){ cidashDebugClose(); return; }
       var eb=$('dbg-end'); if(eb){ eb.disabled=true; eb.textContent='Ending...'; }
       debugStatus('Ending the session...');
@@ -3420,6 +3446,11 @@ debug_dialog = (r"""
     function debugOpen(){
       var m=modal(); if(!m) return;
       m.style.display='block'; document.body.style.overflow='hidden';
+      // Resume an in-flight session so a reload / reopen returns to the live
+      // desktop (or the still-booting connect view) instead of a blank step 1.
+      var s=loadSession();
+      if(s && s.url){ tr={ runId:s.runId, dispatchAt:s.dispatchAt, sha:s.sha, acts:s.acts, mins:s.mins, expiresAt:s.expiresAt, url:s.url, opened:true, timer:null }; renderStep3(s.url); return; }
+      if(s){ renderStep2(s.dispatchAt, s.sha, s.acts, s.mins, s.runId||null); return; }
       renderStep1();
     }
     window.lvciDebugRun = debugOpen;
@@ -3722,7 +3753,15 @@ html = f"""<!DOCTYPE html>
     // "dialog disappeared on its own" bug).
     function lvciModalOpen() {{
       var m = document.getElementById('lvci-modal');
-      return !!(m && m.style.display === 'block');
+      if (m && m.style.display === 'block') return true;
+      // The Populate-history and Debug Run dialogs are their own modals; reloading
+      // while either is open destroys its in-flight work too (the Debug Run
+      // "dialog vanished while the container booted" bug).
+      var h = document.getElementById('cidash-hist-modal');
+      if (h && h.style.display === 'block') return true;
+      var d = document.getElementById('cidash-debug-modal');
+      if (d && d.style.display === 'block') return true;
+      return false;
     }}
     // Auto-refresh on the cadence the server picked (60 s while CI is live, else
     // 15 min) -- but NEVER while a dialog is open, because reloading the page destroys
