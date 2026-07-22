@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2b7bdc6b0507fd295fa8a610af0ce86a09be1443",
+  "sha": "ada2b9cc39c3c80cd91950c1d8a9ca569ffdec1a",
   "revisions": [
+    {
+      "sha": "ada2b9cc39c3c80cd91950c1d8a9ca569ffdec1a",
+      "short": "ada2b9c",
+      "message": "VI Analyzer: honour a committed .viancfg by analyzing the PROJECT (4.9.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T20:45:31Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "2b7bdc6b0507fd295fa8a610af0ce86a09be1443",
       "short": "2b7bdc6",
@@ -891,15 +900,6 @@
       "message": "docs: rewrite Documentation for LabVIEW users new to CI (4.1.32)",
       "author": "Elijah Kerry",
       "date": "2026-06-25T16:25:39Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "53cc6c05a3e4b1f7bdf21e958192da23d836cba1",
-      "short": "53cc6c0",
-      "message": "vidiff-deploy: checkout repo before local publish-gh-pages action (4.1.31)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-25T02:54:02Z",
       "project": false,
       "dep_only": false
     },
