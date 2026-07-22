@@ -32,6 +32,20 @@
     details{margin-top:14px}
     summary{cursor:pointer;color:var(--fg-muted);font-size:.85em}
     .hide{display:none}
+    /* Two-pane documentation viewer */
+    .viewer{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:60vh}
+    .vsidebar{flex:0 0 244px;background:var(--bg);border-right:1px solid var(--border);overflow:auto;max-height:80vh;padding:6px 0;font-size:.85em}
+    .vgroup{padding:12px 12px 4px;color:var(--fg-muted);font-size:.72em;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+    .vfile{display:block;width:100%;text-align:left;border:0;border-left:2px solid transparent;background:none;padding:5px 12px 5px 20px;color:var(--fg);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:inherit}
+    .vfile:hover{background:var(--surface);text-decoration:none}
+    .vfile.active{background:var(--surface);border-left-color:var(--link);color:var(--link);font-weight:600}
+    .vmain{flex:1 1 auto;min-width:0;overflow:auto;max-height:80vh}
+    .vmain .doc{border:0;border-radius:0;min-height:100%}
+    .vmain pre{border:0;border-radius:0;max-height:none}
+    .imgview{padding:20px;text-align:center}
+    .imgview img{max-width:100%;height:auto;border:1px solid var(--border);border-radius:6px;background:#fff}
+    .imgview .cap{margin-top:10px;font-size:.82em;color:var(--fg-muted);word-break:break-all}
+    @media(max-width:720px){.viewer{flex-direction:column}.vsidebar{flex:none;max-height:210px;border-right:0;border-bottom:1px solid var(--border)}}
   </style>
 </head>
 <body>
@@ -40,8 +54,8 @@
       <h1>Antidoc - LabVIEW-CI-with-Containers</h1>
       <span class="badge">documentation generated</span>
       <div class="meta">
-        <span>Date: 2026-07-22 11:54:17 UTC</span>
-        <span>Duration: 37.6s</span>
+        <span>Date: 2026-07-22 13:53:25 UTC</span>
+        <span>Duration: 36.5s</span>
         <span>Project: example/Curriculum/Generator API/subVIs/Revidyne Generator.lvproj</span>
         <span>LabVIEW: 2026</span>
         <span>Files: 31</span>
@@ -49,12 +63,18 @@
     </div>
     <div class="card">
       <div class="toolbar">
-        <a class="btn" href="doc/Includes/001.adoc" download>Download AsciiDoc</a>
-        <button class="btn" id="toggleRaw" type="button">View raw source</button>
+        <a class="btn" href="doc/Revidyne Generator.adoc" download>Download AsciiDoc</a>
+        <a class="btn" href="doc/Revidyne Generator.adoc" target="_blank" rel="noopener">Open raw source</a>
         <span id="renderNote" style="font-size:.8em;color:var(--fg-muted)"></span>
       </div>
-      <div class="doc" id="rendered">Rendering documentation...</div>
-      <pre id="rawsrc" class="hide"></pre>
+      <div class="viewer">
+        <nav class="vsidebar" id="vsidebar" aria-label="Generated documentation files"></nav>
+        <div class="vmain">
+          <div class="doc" id="rendered">Rendering documentation&hellip;</div>
+          <pre id="rawsrc" class="hide"></pre>
+          <div class="imgview hide" id="imgview"></div>
+        </div>
+      </div>
     </div>
     <div class="card">
       <details >
@@ -63,79 +83,122 @@
       </details>
       <details>
         <summary>Run log</summary>
-        <pre>Antidoc run started 2026-07-22T11:53:30.1033386+00:00
+        <pre>Antidoc run started 2026-07-22T13:52:37.9934155+00:00
 LV_RTE_HEADLESS=1 (forces LabVIEW to launch headless so a direct g-cli launch does not hit the activation wizard)
 Launching: C:\Program Files\G-CLI\bin\g-cli.exe -v --lv-ver 2026 --timeout 600000 antidoc -- -addon lvproj -pp &quot;C:\workspace\example\Curriculum\Generator API\subVIs\Revidyne Generator.lvproj&quot; -t &quot;LabVIEW-CI-with-Containers&quot; -out &quot;C:\workspace\ci-out\antidoc\doc&quot;
-1 1 : 5 3 : 3 0 . 2 0 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m G   C L I   S t a r t e d   -   V e r b o s e   M o d e  
- 1 1 : 5 3 : 3 0 . 2 0 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m V e r s i o n   3 . 0 . 1  
- 1 1 : 5 3 : 3 0 . 2 0 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m G   C L I   A r g u m e n t s :   &quot; C : \ P r o g r a m   F i l e s \ G - C L I \ b i n \ g - c l i . e x e &quot;   &quot; - v &quot;   &quot; - - l v - v e r &quot;   &quot; 2 0 2 6 &quot;   &quot; - - t i m e o u t &quot;   &quot; 6 0 0 0 0 0 &quot;   &quot; a n t i d o c &quot;   &quot; - - &quot;   &quot; - a d d o n &quot;   &quot; l v p r o j &quot;   &quot; - p p &quot;   &quot; C : \ w o r k s p a c e \ e x a m p l e \ C u r r i c u l u m \ G e n e r a t o r   A P I \ s u b V I s \ R e v i d y n e   G e n e r a t o r . l v p r o j &quot;   &quot; - t &quot;   &quot; L a b V I E W - C I - w i t h - C o n t a i n e r s &quot;   &quot; - o u t &quot;   &quot; C : \ w o r k s p a c e \ c i - o u t \ a n t i d o c \ d o c &quot;  
- 1 1 : 5 3 : 3 0 . 2 0 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m A r g u m e n t s   p a s s e d   t o   L a b V I E W :   &quot; - a d d o n   l v p r o j   - p p   C : \ \ w o r k s p a c e \ \ e x a m p l e \ \ C u r r i c u l u m \ \ G e n e r a t o r   A P I \ \ s u b V I s \ \ R e v i d y n e   G e n e r a t o r . l v p r o j   - t   L a b V I E W - C I - w i t h - C o n t a i n e r s   - o u t   C : \ \ w o r k s p a c e \ \ c i - o u t \ \ a n t i d o c \ \ d o c &quot;  
- 1 1 : 5 3 : 3 0 . 2 0 7    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m N o   e x t e n s i o n   i n   p a t h .   A s s u m e   i t   i s   a   . v i  
- 1 1 : 5 3 : 3 0 . 2 0 7    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m D e t e c t e d   L a b V I E W   v e r s i o n s :  
+1 3 : 5 2 : 3 8 . 0 9 0    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m G   C L I   S t a r t e d   -   V e r b o s e   M o d e  
+ 1 3 : 5 2 : 3 8 . 0 9 0    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m V e r s i o n   3 . 0 . 1  
+ 1 3 : 5 2 : 3 8 . 0 9 0    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m G   C L I   A r g u m e n t s :   &quot; C : \ P r o g r a m   F i l e s \ G - C L I \ b i n \ g - c l i . e x e &quot;   &quot; - v &quot;   &quot; - - l v - v e r &quot;   &quot; 2 0 2 6 &quot;   &quot; - - t i m e o u t &quot;   &quot; 6 0 0 0 0 0 &quot;   &quot; a n t i d o c &quot;   &quot; - - &quot;   &quot; - a d d o n &quot;   &quot; l v p r o j &quot;   &quot; - p p &quot;   &quot; C : \ w o r k s p a c e \ e x a m p l e \ C u r r i c u l u m \ G e n e r a t o r   A P I \ s u b V I s \ R e v i d y n e   G e n e r a t o r . l v p r o j &quot;   &quot; - t &quot;   &quot; L a b V I E W - C I - w i t h - C o n t a i n e r s &quot;   &quot; - o u t &quot;   &quot; C : \ w o r k s p a c e \ c i - o u t \ a n t i d o c \ d o c &quot;  
+ 1 3 : 5 2 : 3 8 . 0 9 0    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m A r g u m e n t s   p a s s e d   t o   L a b V I E W :   &quot; - a d d o n   l v p r o j   - p p   C : \ \ w o r k s p a c e \ \ e x a m p l e \ \ C u r r i c u l u m \ \ G e n e r a t o r   A P I \ \ s u b V I s \ \ R e v i d y n e   G e n e r a t o r . l v p r o j   - t   L a b V I E W - C I - w i t h - C o n t a i n e r s   - o u t   C : \ \ w o r k s p a c e \ \ c i - o u t \ \ a n t i d o c \ \ d o c &quot;  
+ 1 3 : 5 2 : 3 8 . 0 9 5    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m N o   e x t e n s i o n   i n   p a t h .   A s s u m e   i t   i s   a   . v i  
+ 1 3 : 5 2 : 3 8 . 0 9 6    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m D e t e c t e d   L a b V I E W   v e r s i o n s :  
  2 0 2 6   Q 1   P a t c h   2 ,   6 4 b i t   ( C : \ P r o g r a m   F i l e s \ N a t i o n a l   I n s t r u m e n t s \ L a b V I E W   2 0 2 6 \ )  
   
- 1 1 : 5 3 : 3 0 . 2 0 8    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m L o o k s   l i k e   V I   &quot; a n t i d o c . v i &quot;   d o e s n &#x27; t   e x i s t   -   C h e c k i n g   i n   v i . l i b / G   C L I   T o o l s   i n s t e a d .  
- 1 1 : 5 3 : 3 2 . 2 3 5    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m L a u n c h i n g :   C : \ P r o g r a m   F i l e s \ N a t i o n a l   I n s t r u m e n t s \ L a b V I E W   2 0 2 6 \ L a b V I E W . e x e   &quot; C : \ \ P r o g r a m   F i l e s \ \ N a t i o n a l   I n s t r u m e n t s \ \ L a b V I E W   2 0 2 6 \ \ v i . l i b \ \ G   C L I   T o o l s \ \ a n t i d o c . v i   - u n a t t e n d e d   - -   - p : 4 9 2 0 3 &quot;  
- 1 1 : 5 3 : 3 2 . 2 6 1    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m P r o c e s s   l a u n c h e d   w i t h   P I D   6 9 6 4  
+ 1 3 : 5 2 : 3 8 . 0 9 6    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m L o o k s   l i k e   V I   &quot; a n t i d o c . v i &quot;   d o e s n &#x27; t   e x i s t   -   C h e c k i n g   i n   v i . l i b / G   C L I   T o o l s   i n s t e a d .  
+ 1 3 : 5 2 : 4 0 . 1 1 9    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m L a u n c h i n g :   C : \ P r o g r a m   F i l e s \ N a t i o n a l   I n s t r u m e n t s \ L a b V I E W   2 0 2 6 \ L a b V I E W . e x e   &quot; C : \ \ P r o g r a m   F i l e s \ \ N a t i o n a l   I n s t r u m e n t s \ \ L a b V I E W   2 0 2 6 \ \ v i . l i b \ \ G   C L I   T o o l s \ \ a n t i d o c . v i   - u n a t t e n d e d   - -   - p : 4 9 2 0 3 &quot;  
+ 1 3 : 5 2 : 4 0 . 1 4 4    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m P r o c e s s   l a u n c h e d   w i t h   P I D   2 6 5 6  
  O p e n i n g   p r o j e c t   l i b r a r i e s   d e p e n d e n c i e s . . .  
  2 5 . 0 % :   P a r s i n g   R e v i d y n e   G e n e r a t o r . l v l i b  
  5 0 . 0 % :   B u i l d   d o c u m e n t a t i o n  
  7 5 . 0 % :   G e n e r a t i n g   a d o c   f i l e s . . .  
- 1 1 : 5 4 : 0 6 . 9 5 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m C o m m s   r e a d e r   s t o p p e d .  
- 1 1 : 5 4 : 0 7 . 0 1 7    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m S i g n a l   H a n d l e r   S t o p p e d .  
- 1 1 : 5 4 : 0 7 . 0 1 7    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m A c t i o n   l o o p   s t o p p e d .  
- 1 1 : 5 4 : 0 7 . 0 1 7    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m W a i t i n g   o n   m o n i t o r i n g   t h r e a d   t o   c o m p l e t e  
- 1 1 : 5 4 : 0 7 . 7 4 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m M o n i t o r i n g   c o m p l e t e   a n d   k i l l   n o t   r e q u e s t e d .  
- 1 1 : 5 4 : 0 7 . 7 4 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m S t o p p i n g   L a b V I E W   m o n i t o r i n g   d u e   t o   s t o p   c o m m a n d   f r o m   a p p l i c a t i o n  
- 1 1 : 5 4 : 0 7 . 7 4 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m M o n i t o r i n g   t h r e a d   c o m p l e t e d  
- 1 1 : 5 4 : 0 7 . 7 4 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m E x i t i n g   G - C L I   w i t h   e x i t   c o d e   0  
+ 1 3 : 5 3 : 1 4 . 4 1 5    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m C o m m s   r e a d e r   s t o p p e d .  
+ 1 3 : 5 3 : 1 4 . 4 5 4    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m S i g n a l   H a n d l e r   S t o p p e d .  
+ 1 3 : 5 3 : 1 4 . 4 5 4    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m A c t i o n   l o o p   s t o p p e d .  
+ 1 3 : 5 3 : 1 4 . 4 5 4    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m W a i t i n g   o n   m o n i t o r i n g   t h r e a d   t o   c o m p l e t e  
+ 1 3 : 5 3 : 1 4 . 5 1 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m M o n i t o r i n g   c o m p l e t e   a n d   k i l l   n o t   r e q u e s t e d .  
+ 1 3 : 5 3 : 1 4 . 5 1 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m S t o p p i n g   L a b V I E W   m o n i t o r i n g   d u e   t o   s t o p   c o m m a n d   f r o m   a p p l i c a t i o n  
+ 1 3 : 5 3 : 1 4 . 5 1 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m M o n i t o r i n g   t h r e a d   c o m p l e t e d  
+ 1 3 : 5 3 : 1 4 . 5 1 2    [ 0 m  [ 3 6 m [ D E B U G ]    [ 0 m E x i t i n g   G - C L I   w i t h   e x i t   c o d e   0  
  </pre>
       </details>
     </div>
   </div>
   <script>
   (function(){
-    var PRIMARY = "doc/Includes/001.adoc";
-    var IMAGESDIR = "doc/Includes";
+    var MAINKEY   = "Revidyne Generator.adoc";
+    var IMAGESDIR = "doc/Images";
+    var DOCFILES  = [{"path": "doc/Revidyne Generator.adoc", "key": "Revidyne Generator.adoc"}, {"path": "doc/Includes/000.adoc", "key": "Includes/000.adoc"}, {"path": "doc/Includes/001.adoc", "key": "Includes/001.adoc"}, {"path": "doc/Includes/002.adoc", "key": "Includes/002.adoc"}, {"path": "doc/Includes/003.adoc", "key": "Includes/003.adoc"}, {"path": "doc/Includes/004.adoc", "key": "Includes/004.adoc"}];   // [{path:'doc/Includes/000.adoc', key:'Includes/000.adoc'}]
+    var IMGFILES  = ["doc/Images/broadcast.png", "doc/Images/empty.png", "doc/Images/inlined.png", "doc/Images/reentrancy-preallocated.png", "doc/Images/reentrancy-shared.png", "doc/Images/request-and-wait-for-reply.png", "doc/Images/request.png", "doc/Images/Revidyne_Generator.lvlib_Close.vi.png", "doc/Images/Revidyne_Generator.lvlib_Demo_PID_Control.vi.png", "doc/Images/Revidyne_Generator.lvlib_Error_Query.vi.png", "doc/Images/Revidyne_Generator.lvlib_Get_KW.vi.png", "doc/Images/Revidyne_Generator.lvlib_Get_Value.vi.png", "doc/Images/Revidyne_Generator.lvlib_Init.vi.png", "doc/Images/Revidyne_Generator.lvlib_Initialize.vi.png", "doc/Images/Revidyne_Generator.lvlib_Motor_Off.vi.png", "doc/Images/Revidyne_Generator.lvlib_Motor_On.vi.png", "doc/Images/Revidyne_Generator.lvlib_Reset.vi.png", "doc/Images/Revidyne_Generator.lvlib_Revision_Query.vi.png", "doc/Images/Revidyne_Generator.lvlib_Self_Test.vi.png", "doc/Images/Revidyne_Generator.lvlib_Set_Load.vi.png", "doc/Images/Revidyne_Generator.lvlib_Set_Speed.vi.png", "doc/Images/Revidyne_Generator.lvlib_VI_Tree.vi.png", "doc/Images/scope-community.png", "doc/Images/scope-private.png", "doc/Images/scope-protected.png"];   // ['doc/Images/foo.png', ...]
     var rendered = document.getElementById('rendered');
-    var rawsrc = document.getElementById('rawsrc');
-    var note = document.getElementById('renderNote');
-    var toggle = document.getElementById('toggleRaw');
-    var source = '';
-    toggle.addEventListener('click', function(){
-      var showRaw = rawsrc.classList.contains('hide');
-      rawsrc.classList.toggle('hide', !showRaw);
-      rendered.classList.toggle('hide', showRaw);
-      toggle.textContent = showRaw ? 'View rendered' : 'View raw source';
-    });
-    function showRawOnly(msg){
-      rendered.classList.add('hide');
-      rawsrc.classList.remove('hide');
-      toggle.textContent = 'View rendered';
-      if (note) note.textContent = msg || '';
+    var rawsrc   = document.getElementById('rawsrc');
+    var imgview  = document.getElementById('imgview');
+    var sidebar  = document.getElementById('vsidebar');
+    var note     = document.getElementById('renderNote');
+    var DOCMAP = {};          // include key -> source text
+    var activeBtn = null;
+
+    function show(which){
+      rendered.classList.toggle('hide', which !== 'doc');
+      rawsrc.classList.toggle('hide',   which !== 'raw');
+      imgview.classList.toggle('hide',  which !== 'img');
     }
-    fetch(PRIMARY).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-      .then(function(text){
-        source = text;
-        rawsrc.textContent = text;
-        var s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/asciidoctor@2.2.6/dist/browser/asciidoctor.min.js';
-        s.onload = function(){
-          try{
-            var factory = window.Asciidoctor;
-            var ad = (typeof factory === 'function') ? factory() : factory;
-            var htmlOut = ad.convert(source, {standalone:false, safe:'safe',
-              attributes:{showtitle:true, 'imagesdir':IMAGESDIR, icons:'font', sectanchors:true}});
-            rendered.innerHTML = htmlOut;
-            if (note) note.textContent = '';
-          }catch(e){ showRawOnly('Showing raw source (render failed).'); }
-        };
-        s.onerror = function(){ showRawOnly('Showing raw source (renderer offline).'); };
-        document.head.appendChild(s);
-      })
-      .catch(function(e){
-        rendered.textContent = 'Could not load the generated document (' + e.message + ').';
-      });
+    function setActive(btn){ if(activeBtn) activeBtn.classList.remove('active'); activeBtn = btn; if(btn) btn.classList.add('active'); }
+    function basename(p){ return p.split('/').pop(); }
+    function mkFile(label, title, onClick){
+      var b = document.createElement('button');
+      b.className = 'vfile'; b.type = 'button'; b.textContent = label; if(title) b.title = title;
+      b.addEventListener('click', function(){ setActive(b); onClick(); });
+      return b;
+    }
+    function mkGroup(label){ var d = document.createElement('div'); d.className = 'vgroup'; d.textContent = label; sidebar.appendChild(d); }
+
+    function viewDoc(){ show('doc'); }
+    function viewRaw(key){ show('raw'); rawsrc.textContent = (DOCMAP[key] != null ? DOCMAP[key] : '(unavailable)'); rawsrc.scrollTop = 0; }
+    function viewImg(path){
+      show('img'); imgview.innerHTML = '';
+      var i = document.createElement('img'); i.src = encodeURI(path); i.alt = basename(path); i.loading = 'lazy';
+      var c = document.createElement('div'); c.className = 'cap'; c.textContent = basename(path);
+      imgview.appendChild(i); imgview.appendChild(c);
+    }
+
+    // Build the file navigator.
+    var docBtn = mkFile('\uD83D\uDCD6  Rendered document', 'The full generated document', viewDoc);
+    sidebar.appendChild(docBtn); setActive(docBtn);
+    mkGroup('Source files (' + DOCFILES.length + ')');
+    DOCFILES.forEach(function(f){
+      var isMain = (f.key === MAINKEY);
+      sidebar.appendChild(mkFile((isMain ? '\u2605  ' : '') + f.key, f.path, function(){ viewRaw(f.key); }));
+    });
+    if (IMGFILES.length){
+      mkGroup('Images (' + IMGFILES.length + ')');
+      IMGFILES.forEach(function(p){ sidebar.appendChild(mkFile(basename(p), p, function(){ viewImg(p); })); });
+    }
+
+    function fetchText(url){ return fetch(encodeURI(url)).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }); }
+
+    // Fetch every source file, then render the main document with an include-processor.
+    Promise.all(DOCFILES.map(function(f){
+      return fetchText(f.path).then(function(t){ DOCMAP[f.key] = t; }).catch(function(){ DOCMAP[f.key] = ''; });
+    })).then(function(){
+      var main = DOCMAP[MAINKEY] || '';
+      rawsrc.textContent = main;
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/@asciidoctor/core@2.2.6/dist/browser/asciidoctor.js';
+      s.integrity = 'sha384-sfmkIywMu6zzFP/nd8/OECbZxHtZhbc+AihuuveRHvvgXnadNUiWzFXMCD+lBU+6';
+      s.crossOrigin = 'anonymous';
+      s.onload = function(){
+        try{
+          var factory = window.Asciidoctor;
+          var ad = (typeof factory === 'function') ? factory() : factory;
+          var reg = ad.Extensions.create();
+          reg.includeProcessor(function(){
+            this.handles(function(){ return true; });
+            this.process(function(doc, reader, target, attrs){
+              var content = DOCMAP[target];
+              if (content == null) content = 'NOTE: include not found: ' + target;
+              return reader.pushInclude(content, target, target, 1, attrs);
+            });
+          });
+          var htmlOut = ad.convert(main, {standalone:false, safe:'safe', backend:'html5',
+            extension_registry: reg,
+            attributes:{showtitle:true, 'imagesdir':IMAGESDIR, icons:'font', sectanchors:true, 'source-highlighter':null}});
+          rendered.innerHTML = htmlOut;
+          if (note) note.textContent = '';
+        }catch(e){ rendered.classList.add('hide'); show('raw'); if(note) note.textContent = 'Showing raw source (render failed).'; }
+      };
+      s.onerror = function(){ rendered.classList.add('hide'); show('raw'); if(note) note.textContent = 'Showing raw source (renderer offline).'; };
+      document.head.appendChild(s);
+    });
   })();
 </script>
 </body>
