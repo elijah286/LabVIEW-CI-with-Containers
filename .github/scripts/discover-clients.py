@@ -140,7 +140,7 @@ def search_repos_by_topic(topic):
     ran_ok = False
     page = 1
     while page <= MAX_PAGES:
-        qs = urllib.parse.urlencode({"q": "topic:%s" % topic, "per_page": 100, "page": page})
+        qs = urllib.parse.urlencode({"q": "topic:%s fork:true" % topic, "per_page": 100, "page": page})
         data = _get(API + "/search/repositories?" + qs)
         if data is None:
             break
@@ -163,9 +163,14 @@ def main():
         return 2
 
     slug = SOURCE_REPO
+    # `fork:true` makes the search include forks *in addition to* non-forks.
+    # GitHub's search APIs exclude forks by default, so without it a genuine
+    # client install that happens to be a fork of another project would never
+    # surface as a candidate. Forks that are copies of this framework itself are
+    # dropped later during per-candidate verification.
     queries = [
-        ("catalog", '"%s" in:file filename:catalog.json' % slug),
-        ("workflow", '"%s" in:file path:.github/workflows' % slug),
+        ("catalog", '"%s" in:file filename:catalog.json fork:true' % slug),
+        ("workflow", '"%s" in:file path:.github/workflows fork:true' % slug),
     ]
 
     candidates = {}  # repo -> set(via)
