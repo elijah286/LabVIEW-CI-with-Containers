@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Dependencies - LabVIEW CI</title>
-  <script>window.LVCI={context:'dependencies'};</script>
+  <script>window.LVCI={context:'dependencies', revPicker:true};</script>
   <script src="lvci-header.js" defer></script>
   <style>
     :root{--bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;--chip:#21262d;--code:#010409;--warn:#9a6700;--ok:#2ea043;--bad:#f85149}
@@ -94,13 +94,6 @@
         <h1>Dependencies</h1>
         <p class="sub">Dependency coverage by revision, package source, and runner platform.</p>
       </div>
-    </div>
-    <div class="controls">
-      <div class="field">
-        <label for="rev">Revision</label>
-        <select id="rev"></select>
-      </div>
-      <button id="reload" type="button">Reload</button>
     </div>
     <div class="ct-wrap" id="containers"><div class="ct-empty">Loading container info&hellip;</div></div>
     <div class="note" id="status">Loading dependency inventory&hellip;</div>
@@ -289,17 +282,21 @@
     }
 
     async function listCommits(){
-      try {
-        const runs = await fetchJson(api("/commits?per_page=100"));
-        if (runs.length) return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
-      } catch (_) {}
+      // Prefer the dashboard's classified inventory (each revision tagged project /
+      // dependency-only) so the shared revision picker can hide CI/tooling and
+      // dependency-only revisions by default, like the dashboard. Fall back to the
+      // VI Browser project-revision index, then the raw (unclassified) commit list.
       if (generatedInventory && Array.isArray(generatedInventory.revisions) && generatedInventory.revisions.length) {
-        return generatedInventory.revisions.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha }));
+        return generatedInventory.revisions.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha, project:c.project !== false, depOnly:!!c.dep_only }));
       }
       try {
         const d = await fetchJson(base + "vi-snapshots/files.json");
         const commits = (d.commits || []).filter(c => c.sha);
-        if (commits.length) return commits.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha }));
+        if (commits.length) return commits.map(c => ({ sha:c.sha, short:c.short || short(c.sha), message:c.message || c.sha, project:true, depOnly:!!c.dep_only }));
+      } catch (_) {}
+      try {
+        const runs = await fetchJson(api("/commits?per_page=100"));
+        if (runs.length) return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
       } catch (_) {}
       const runs = await fetchJson(api("/commits?per_page=30"));
       return runs.map(c => ({ sha:c.sha, short:short(c.sha), message:(c.commit && c.commit.message || c.sha).split("\n")[0] }));
@@ -1228,6 +1225,19 @@
       updateMonitorUi();
     }
 
+    // The revision selector lives in the shared header context bar (the same
+    // place VI Browser / report pages put theirs). The header builds it from
+    // cfg.revPicker and exposes window.lvciRevBar { sel, refresh }; wait for it.
+    function whenRevBar(){
+      return new Promise(resolve => {
+        const got = () => (window.lvciRevBar && window.lvciRevBar.sel) || null;
+        if (got()) return resolve(got());
+        let done = false;
+        const finish = () => { if (done) return; done = true; resolve(got()); };
+        document.addEventListener('lvci:ready', finish, { once:true });
+        let n = 0; const t = setInterval(() => { if (got() || ++n > 60) { clearInterval(t); finish(); } }, 100);
+      });
+    }
     async function init(){
       initDependencyTabs();   // wire sub-view switching regardless of repo resolution
       if (!repo) { $("status").textContent = "Could not determine repository from this Pages URL."; return; }
@@ -1239,15 +1249,20 @@
         if (generated && Array.isArray(generated.vipc)) generatedInventory = generated;
       } catch (_) {}
       const commits = await listCommits().catch(e => { $("status").textContent = e.message; return []; });
-      const sel = $("rev");
       const params = new URLSearchParams(location.search);
       const requestedSha = params.get("sha") || "";
       const generatedSha = generatedInventory && generatedInventory.sha;
       if (requestedSha && !commits.some(c => c.sha === requestedSha)) commits.unshift({ sha:requestedSha, short:short(requestedSha), message:"requested revision" });
       if (generatedSha && !commits.some(c => c.sha === generatedSha)) commits.unshift({ sha:generatedSha, short:short(generatedSha), message:"generated dashboard inventory" });
-      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '">' + esc((c.short || short(c.sha)) + ' - ' + (c.message || '')) + '</option>').join('');
+      const sel = await whenRevBar();
+      if (!sel) { $("status").textContent = "Revision picker unavailable."; return; }
+      sel.innerHTML = commits.map(c => '<option value="' + esc(c.sha) + '"'
+        + (c.project === false ? ' data-project="0"' : '')
+        + (c.depOnly ? ' data-deponly="1"' : '')
+        + '>' + esc((c.short || short(c.sha)) + ' \u2014 ' + (c.message || '')) + '</option>').join('');
       if (requestedSha && commits.some(c => c.sha === requestedSha)) sel.value = requestedSha;
       else if (generatedSha && commits.some(c => c.sha === generatedSha)) sel.value = generatedSha;
+      if (window.lvciRevBar && window.lvciRevBar.refresh) window.lvciRevBar.refresh();
       async function showSelected(){
         const u = new URL(location.href);
         if (sel.value) u.searchParams.set("sha", sel.value);
@@ -1256,7 +1271,6 @@
         else await loadRevision(sel.value);
       }
       sel.addEventListener("change", showSelected);
-      $("reload").addEventListener("click", showSelected);
       if (sel.value) showSelected();
       else $("status").textContent = "No revisions found.";
     }

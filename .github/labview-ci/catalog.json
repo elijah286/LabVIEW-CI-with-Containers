@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.8.3",
+  "version": "4.8.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.8.4",
+        "date": "2026-07-22",
+        "type": "patch",
+        "summary": "Dependencies page: the revision selector is unified with the rest of the site. The big in-page dropdown is replaced by the shared searchable revision picker in the header context bar -- the same control (and same spot) used on the report viewer and VI Browser. It hides CI-only and dependency-only (.vipc/.vip) revisions by default behind a 'Show CI & dependency-only revisions' toggle, and adds a filter box so you can type a commit title, build number or short SHA to jump straight to the revision you want, plus prev/next steppers that walk the filtered list.",
+        "highlights": [
+          "Dependencies revision selector moved into the shared header context bar (same picker as reports / VI Browser).",
+          "Filter out CI-only and dependency-only revisions by default; type to search by title, build # or SHA."
+        ]
+      },
       {
         "version": "4.8.3",
         "date": "2026-07-21",

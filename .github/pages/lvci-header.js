@@ -1269,6 +1269,28 @@
     return { wrap: wrap, sel: sel };
   }
 
+  // Generic context-bar revision picker for a NON-report page (e.g. the
+  // Dependencies page) that owns its own revision list + in-place reload. Same
+  // chrome as makeRevPicker (label + prev/next steppers + the shared searchable
+  // revPicker) but it does NOT navigate on change -- the page populates the
+  // <select> options and listens to its 'change' to reload in place. Exposed to
+  // the page as window.lvciRevBar { wrap, sel, refresh }.
+  function makeRevBar() {
+    var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-rev-ctx';
+    var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = 'Revision';
+    var prev = document.createElement('button'); prev.type = 'button'; prev.className = 'lvci-rev-step'; prev.title = 'Newer revision'; prev.setAttribute('aria-label', 'Newer revision'); prev.innerHTML = '\u2039';
+    var sel = document.createElement('select'); sel.setAttribute('aria-label', 'Select a revision');
+    var next = document.createElement('button'); next.type = 'button'; next.className = 'lvci-rev-step'; next.title = 'Older revision'; next.setAttribute('aria-label', 'Older revision'); next.innerHTML = '\u203a';
+    var rp = revPicker(sel, {});
+    function syncSteps() { prev.disabled = !rp.canPrev(); next.disabled = !rp.canNext(); }
+    prev.addEventListener('click', function () { rp.stepPrev(); });
+    next.addEventListener('click', function () { rp.stepNext(); });
+    sel.addEventListener('change', syncSteps);
+    wrap.appendChild(lbl); wrap.appendChild(prev); wrap.appendChild(rp.button); wrap.appendChild(next);
+    syncSteps();
+    return { wrap: wrap, sel: sel, refresh: function () { rp.refresh(); syncSteps(); } };
+  }
+
   // ── Reusable searchable revision picker ──────────────────────────────────
   // Enhances a native <select> of revisions in place: the <select> stays the
   // source of truth (its value + 'change' event still drive the page) while this
@@ -1768,6 +1790,7 @@
     // persistent context bar below the header (built + mounted further down).
     var revBar = null;
     if (DOC) { revBar = makeRevPicker(); }
+    else if (cfg.revPicker) { revBar = makeRevBar(); try { window.lvciRevBar = revBar; } catch (e) {} }
 
     // Actions
     var actions = document.createElement('div');
