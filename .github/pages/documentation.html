@@ -788,6 +788,11 @@ flowchart TD
         ref during a checkout of a past commit) that current tooling fixes. If you are on older tooling, the
         workaround is to re-dispatch with the commit box <strong>blank</strong> (which targets the latest commit),
         then update your tooling.</p>
+      <p>Relatedly, the <em>Determine target SHA</em> step no longer calls the GitHub API when the dispatched
+        <code>commit_sha</code> is already a full 40-character SHA (the dashboard always passes one), and it falls
+        back to the raw input instead of aborting if a short-SHA lookup is rate-limited &mdash; so a transient
+        <code>HTTP 403 API rate limit exceeded</code> can no longer make a dispatched report run fail before it
+        starts (which otherwise showed on the dashboard as an empty/failed activity, e.g. &ldquo;no unit tests&rdquo;).</p>
 
       <h3>The first run on a fresh runner is very slow</h3>
       <p><strong>Cause &amp; fix.</strong> The worker image is multi-gigabyte and a GitHub-hosted runner re-pulls

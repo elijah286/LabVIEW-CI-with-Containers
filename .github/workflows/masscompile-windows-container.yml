@@ -61,8 +61,17 @@ jobs:
           INPUT="${{ github.event.inputs.commit_sha }}"
           if [ -n "$INPUT" ]; then
             # Expand abbreviated SHA to full 40-char SHA via API
-            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha')
-            echo "sha=$FULL" >> "$GITHUB_OUTPUT"
+            if printf '%s' "$INPUT" | grep -Eiq '^[0-9a-f]{40}$'; then
+              # Already a full commit SHA - use it directly. Skipping the gh API
+              # round-trip keeps a transient rate-limit (HTTP 403) from hard-failing
+              # the whole run at 'Determine target SHA'.
+              echo "sha=$INPUT" >> "$GITHUB_OUTPUT"
+            else
+              # A short SHA / ref: try to expand it, but fall back to the raw input
+              # (never abort) if the API call fails or is rate-limited.
+              FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha' 2>/dev/null || true)
+              echo "sha=${FULL:-$INPUT}" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
