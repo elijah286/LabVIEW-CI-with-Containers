@@ -138,7 +138,7 @@ function Get-ProjectVIs([string]$Root) {
                 Where-Object { $_.Extension -imatch '^\.vim?$' } |
                 ForEach-Object { $out.Add($_.FullName) }
         }
-    return ,($out.ToArray())
+    return $out.ToArray()
 }
 
 function ConvertTo-ContainerPath([string]$Root, [string]$Rel) {
