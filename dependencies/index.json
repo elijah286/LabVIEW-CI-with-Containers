@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "5985c20b408861808226a1a39d70a195c7ab6848",
+  "sha": "42a158ca099713add297ab9c2a90e19cb4ec1165",
   "revisions": [
+    {
+      "sha": "42a158ca099713add297ab9c2a90e19cb4ec1165",
+      "short": "42a158c",
+      "message": "Enforce VI Browser 2.0 default on open",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T23:28:59Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "98426778b939872a256b4e7e6189b6d320bb4d31",
+      "short": "9842677",
+      "message": "Bake UI fonts into the Linux worker + render image; fix Debug Run desktop (4.9.9)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T23:28:26Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "5985c20b408861808226a1a39d70a195c7ab6848",
       "short": "5985c20",
@@ -882,24 +900,6 @@
       "message": "Fix docker cp out of warm container (Windows trailing-dot rejected)",
       "author": "Elijah Kerry",
       "date": "2026-06-26T00:54:04Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "288d438cf2946f6e4d7897e8fd826f13b8178270",
-      "short": "288d438",
-      "message": "TEMP: warm-batch smoketest workflow (delete before merge)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-25T23:57:18Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "70370a86a327b8033ae046e18d00ac189c3d3ed6",
-      "short": "70370a8",
-      "message": "Warm-container history backfills (opt-in) (4.2.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-25T23:56:00Z",
       "project": false,
       "dep_only": false
     },

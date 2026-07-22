@@ -990,8 +990,12 @@ flowchart TD
   MODE -->|"new"| NEW["Publish dated tag year-deps-date&lt;br/&gt;select per action in Configure"]
 </div>
 
-      <p>Linux builds are handled by <code>build-labview-linux-image.yml</code> on the same model. Images are pushed to
-        <strong>your</strong> GitHub Container Registry (GHCR) as packages attached to your repo:</p>
+      <p>Linux builds are handled by <code>build-labview-linux-image.yml</code> on the same model. The Linux worker and
+        the standalone VI&nbsp;Browser&nbsp;2.0 render image also bake a set of X11 core and TrueType fonts (DejaVu,
+        Liberation, Noto, and the 75/100&nbsp;dpi <code>xfonts-*</code> families) &mdash; NI&rsquo;s minimal Linux base
+        ships almost none, and without them LabVIEW&rsquo;s UI controls and rendered VI text (VI&nbsp;Browser snapshots
+        and the Debug&nbsp;Run desktop) come out blank. Images are pushed to <strong>your</strong> GitHub Container
+        Registry (GHCR) as packages attached to your repo:</p>
       <pre><code>ghcr.io/&lt;owner&gt;/&lt;repo&gt;-labview      # your LabVIEW worker (copied from the base, or base + your deps; the Linux worker also bakes the VI Browser 2.0 render engine)
 ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, owned &amp; published by the source repo</code></pre>
       <p>The image inherits your repository's visibility and is authenticated with the job's built-in
@@ -1431,7 +1435,7 @@ docker run --rm `
         <code>by-blob/&lt;ab&gt;/&lt;blob&gt;.json</code>, deployed alongside the 1.0 HTML so any VI without JSON
         gracefully falls back to the classic view.</p>
       <p>Both 2.0 renderers <strong>auto-run on every new revision</strong> via a <code>workflow_run</code> trigger after the snapshot pipeline finishes, each behind a gate job that reads <code>config.viBrowser.positionAware</code>: the Linux workflow runs when it includes <code>linux</code>, the Windows workflow when it includes <code>windows</code> (the configurator default). Because renders are content-addressed by git blob SHA, the worklist skips every VI whose blob already has a render &mdash; <strong>unchanged VIs reuse their existing frames with no work</strong> &mdash; and queues only the new/changed blobs, so a VI a revision actually changed gets a fresh render automatically.</p>
-      <p>The browser now remembers its viewer mode and 2.0 platform choice in local storage, defaults to 2.0 when a VI has a 2.0 render (preferring the Windows render when both platforms exist), and shows dismissible coaching tip strips for the block-diagram toggle and the case/event selector arrows. Those tips are browser-local too: dismissing one with <strong>Never show this again</strong> hides it only in that browser profile, and the dismissal keys are versioned so a new coaching rollout can deliberately surface the tips once more for everyone.</p>
+      <p>The browser now remembers its viewer mode and 2.0 platform choice in local storage, defaults to 2.0 when a VI has a 2.0 render (preferring the Windows render when both platforms exist), and shows dismissible coaching tip strips for the block-diagram toggle and the case/event selector arrows. The 2.0 auto-default is now enforced on open whenever a 2.0 render exists (unless the URL explicitly pins <code>viewer</code>/<code>plat2</code>). Those tips are browser-local too: dismissing one with <strong>Never show this again</strong> hides it only in that browser profile, and the dismissal keys are versioned so a new coaching rollout can deliberately surface the tips once more for everyone.</p>
 
       <!-- 17 ──────────────────────────────────────────────────────────────── -->
       <h2 id="contracts">17. Report data contracts <a class="anchor" href="#contracts">#</a></h2>
