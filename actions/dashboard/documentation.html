@@ -1353,6 +1353,7 @@ docker run --rm `
         positioned frames, and emits a JSON array. Output is written to
         <code>by-blob/&lt;ab&gt;/&lt;blob&gt;.json</code>, deployed alongside the 1.0 HTML so any VI without JSON
         gracefully falls back to the classic view.</p>
+      <p>The browser now remembers its viewer mode and 2.0 platform choice in local storage, defaults to the Windows 2.0 render when that render is available on a fresh load, and shows dismissible coaching tip strips for the block-diagram toggle and the case/event selector arrows. Those tips are browser-local too: dismissing one with <strong>Never show this again</strong> hides it only in that browser profile, and the dismissal keys are versioned so a new coaching rollout can deliberately surface the tips once more for everyone.</p>
 
       <!-- 17 ──────────────────────────────────────────────────────────────── -->
       <h2 id="contracts">17. Report data contracts <a class="anchor" href="#contracts">#</a></h2>

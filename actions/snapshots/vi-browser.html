@@ -145,6 +145,16 @@
                     border-top-color:var(--link);border-radius:50%;animation:spin .7s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     #nt-state .spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--link);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+    #tip-layer{position:absolute;inset:0;z-index:7;pointer-events:none}
+    .lvci-tip{position:absolute;min-width:240px;max-width:min(360px,calc(100vw - 28px));padding:12px 14px;border:1px solid var(--border);
+          border-radius:12px;background:var(--sidebar);color:var(--fg);box-shadow:0 16px 30px rgba(0,0,0,.22);pointer-events:auto}
+    .lvci-tip__title{font-weight:700;font-size:.92em;color:var(--fg);margin-bottom:4px}
+    .lvci-tip__body{font-size:.82em;line-height:1.45;color:var(--fg-muted)}
+    .lvci-tip__footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;font-size:.78em}
+    .lvci-tip__never{display:flex;align-items:center;gap:6px;user-select:none;color:var(--fg-muted)}
+    .lvci-tip__close{border:none;border-radius:8px;background:var(--link);color:#fff;cursor:pointer;font:inherit;font-weight:700;padding:6px 11px}
+    .lvci-tip__close:hover{filter:brightness(1.05)}
+    .lvci-tip-target{box-shadow:0 0 0 3px var(--link),0 0 0 6px rgba(88,166,255,.15);border-radius:8px}
     /* Run / regenerate a VIDiff report (shown when a changed VI has no side-by-side report yet) */
     #vi-diffrun{position:absolute;inset:0;z-index:3;display:none;overflow:auto;padding:28px;box-sizing:border-box;background:var(--bg)}
     #vi-diffrun button:disabled{opacity:.5;cursor:default}
@@ -343,6 +353,7 @@
     </div>
     <div id="viewer-loading"><span class="spinner"></span><span>Rendering…</span></div>
   </div>
+  <div id="tip-layer" aria-hidden="true"></div>
   <!-- Unified Explorer: a per-revision report (Activity lens) framed in this pane. -->
   <div id="lens-bar">
     <a id="lens-back" href="#" title="Back to the VI tree">&#8249;&nbsp;VIs</a>
@@ -421,6 +432,11 @@ let json2Set = null;             // blobs that have a 2.0 JSON (from json-blobs.
 let vb2Plat = (new URLSearchParams(location.search).get('plat2') === 'windows') ? 'windows' : 'linux';
 let json2WinSet = null;          // blobs that ALSO have a Windows 2.0 render (json-blobs.windows.json); null = none published
 let vb2DidWinRestore = false;    // one-shot: honor a ?plat2=windows deep link once the Windows index loads
+const VB2_VIEWER_KEY = 'lvci_vi_browser_viewer_mode';
+const VB2_PLAT_KEY = 'lvci_vi_browser_vb2_plat';
+const VB2_TIP_KEYS = { bd: 'lvci_vi_browser_tip_block_diagram_v2', selectors: 'lvci_vi_browser_tip_selectors_v2' };
+const VB2_HAS_VIEWER_QUERY = new URLSearchParams(location.search).has('viewer');
+const VB2_HAS_PLAT2_QUERY = new URLSearchParams(location.search).has('plat2');
 
 const ICON = {
   chevron: '<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M6 4l4 4-4 4z"/></svg>',
@@ -430,6 +446,42 @@ const ICON = {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function vb2LsGet(key) { try { return localStorage.getItem(key) || ''; } catch (e) { return ''; } }
+function vb2LsSet(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+function vb2TipHidden(key) { return vb2LsGet(VB2_TIP_KEYS[key]) === '1'; }
+function vb2TipClear(key) {
+  const tip = document.getElementById('tip-' + key);
+  if (tip) tip.remove();
+  const target = document.querySelector('.lvci-tip-target[data-tip-key="' + key + '"]');
+  if (target) { target.classList.remove('lvci-tip-target'); target.removeAttribute('data-tip-key'); }
+}
+function vb2TipClearAll() { vb2TipClear('bd'); vb2TipClear('selectors'); }
+function vb2TipShow(key, target, title, body, left, top) {
+  if (!target || vb2TipHidden(key)) return;
+  const layer = document.getElementById('tip-layer');
+  if (!layer) return;
+  vb2TipClear(key);
+  const tip = document.createElement('div');
+  tip.id = 'tip-' + key;
+  tip.className = 'lvci-tip';
+  tip.innerHTML =
+    '<div class="lvci-tip__title">' + escapeHtml(title) + '</div>' +
+    '<div class="lvci-tip__body">' + body + '</div>' +
+    '<div class="lvci-tip__footer">' +
+      '<label class="lvci-tip__never"><input type="checkbox" data-never="1">Never show this again</label>' +
+      '<button type="button" class="lvci-tip__close">Dismiss</button>' +
+    '</div>';
+  layer.appendChild(tip);
+  tip.style.left = Math.max(12, left) + 'px';
+  tip.style.top = Math.max(12, top) + 'px';
+  target.classList.add('lvci-tip-target');
+  target.dataset.tipKey = key;
+  const close = tip.querySelector('.lvci-tip__close');
+  const never = tip.querySelector('input[data-never="1"]');
+  const dismiss = () => { if (never && never.checked) vb2LsSet(VB2_TIP_KEYS[key], '1'); vb2TipClear(key); };
+  if (close) close.addEventListener('click', dismiss);
 }
 
 // Build a folder tree from the flat manifest using each VI's on-disk relative path.
@@ -795,6 +847,7 @@ async function loadJson2Index() {
   } catch (e) { /* no Windows index published yet — the 2.0 view stays Linux-only */ }
   decorate2();
   syncVb2PlatToggle();
+  if (vb2PreferWindowsDefault() && currentSnapshot && !currentDiffVi) openSnapshot(currentSnapshot.html, currentSnapshot.title);
   // One-shot: if a shared ?plat2=windows link landed before the Windows index was
   // known and the open VI does have a Windows render, upgrade it to the Windows view.
   if (!vb2DidWinRestore && json2WinSet) {
@@ -832,10 +885,22 @@ function vb2WinAvail(blob) { return !!(json2WinSet && blob && json2WinSet.has(bl
 function vb2EffPlat(_htmlUrl) { return vb2Plat === 'windows' ? 'windows' : 'linux'; }
 function vb2JsonUrl(htmlUrl) { return htmlUrl.replace(/\.html$/i, vb2EffPlat(htmlUrl) === 'windows' ? '.windows.json' : '.json'); }
 
+function vb2PreferWindowsDefault() {
+  if (VB2_HAS_VIEWER_QUERY || vb2LsGet(VB2_VIEWER_KEY) || VB2_HAS_PLAT2_QUERY) return false;
+  if (!currentSnapshot || currentDiffVi) return false;
+  const blob = vb2BlobOf(currentSnapshot.html);
+  if (!blob || !vb2WinAvail(blob)) return false;
+  viewerMode = '2';
+  vb2Plat = 'windows';
+  vb2LsSet(VB2_VIEWER_KEY, '2');
+  vb2LsSet(VB2_PLAT_KEY, 'windows');
+  return true;
+}
+
 let lvController = null;
 function openSnapshot(htmlUrl, title) {
   // 1.0 (classic): always the flat-HTML iframe + enhanceSnapshot stepper view.
-  if (viewerMode !== '2') { setViewerModeNote(''); showInFrame(htmlUrl, title); return; }
+  if (viewerMode !== '2') { setViewerModeNote(''); vb2TipClearAll(); showInFrame(htmlUrl, title); return; }
   // 2.0 (in-place): prefer the position-aware frames JSON; gracefully fall back to
   // the classic view when this VI has no frames JSON yet (e.g. before the backend
   // that emits <blob>.json has rendered it).
@@ -888,6 +953,7 @@ function renderActivePane() {
   canvas.style.display = 'block';
   if (lvController) { try { lvController.destroy(); } catch (e) {} }
   lvController = window.LVRender.render(canvas, vb2Frames, { rootIndex: showBD ? 1 : 0 });
+  vb2SyncTips();
 }
 
 function syncPaneToggle() {
@@ -905,6 +971,38 @@ function syncPaneToggle() {
 function hidePaneToggle() {
   const wrap = document.getElementById('pane-toggle');
   if (wrap) wrap.classList.remove('show');
+}
+
+function vb2SyncTips() {
+  vb2TipClearAll();
+  if (viewerMode !== '2' || !currentSnapshot || currentDiffVi) return;
+  const main = document.getElementById('main');
+  if (!main) return;
+  if (vb2Pane !== 'bd') {
+    if (!vb2TipHidden('bd') && vb2HasBD()) {
+      const btn = document.querySelector('#pane-toggle button[data-pane="bd"]');
+      if (btn) {
+        const r = btn.getBoundingClientRect();
+        const host = main.getBoundingClientRect();
+        vb2TipShow('bd', btn,
+          'Open the block diagram',
+          'This button switches the 2.0 viewer from the front panel to the VI\'s block diagram, where the case and event selectors live.',
+          (r.left - host.left) + 8,
+          (r.bottom - host.top) + 12);
+      }
+    }
+    return;
+  }
+  const sel = document.querySelector('#vi-canvas .lvr-sel');
+  if (sel && !vb2TipHidden('selectors')) {
+    const r = sel.getBoundingClientRect();
+    const host = main.getBoundingClientRect();
+    vb2TipShow('selectors', sel,
+      'Page through cases',
+      'Use these arrows to step through each case, event, or sequence frame in place without changing the zoom.',
+      (r.left - host.left) + 8,
+      (r.top - host.top) - 4);
+  }
 }
 
 // Linux / Windows platform sub-switch for the 2.0 view. It stays available even
@@ -959,6 +1057,7 @@ function showNeedsToken(htmlUrl, title) {
 
 function showInFrame(url, title) {
   // Leaving any in-place render: hide the canvas and restore the iframe.
+  vb2TipClearAll();
   const canvas = document.getElementById('vi-canvas');
   if (canvas) canvas.style.display = 'none';
   const ntf = document.getElementById('vi-needtoken'); if (ntf) ntf.style.display = 'none';
@@ -1450,6 +1549,7 @@ function showDiffRun(viRel, type, mode) {
   drVi = viRel;
   drType = type || (changeMap[viRel] || {}).type || 'modified';
   // Tear down the other viewer surfaces.
+  vb2TipClearAll();
   const canvas = document.getElementById('vi-canvas'); if (canvas) canvas.style.display = 'none';
   if (lvController) { try { lvController.destroy(); } catch (e) {} lvController = null; }
   const frameEl = document.getElementById('vi-frame'); if (frameEl) frameEl.style.display = 'none';
@@ -1835,6 +1935,7 @@ document.querySelectorAll('#viewer-toggle button').forEach(btn => {
     // 1.0 / 2.0 — a snapshot sub-mode.
     const leavingDiff = (openView === 'diff');
     if (v === viewerMode && !leavingDiff) return;
+    vb2LsSet(VB2_VIEWER_KEY, v);
     viewerMode = v;
     if (leavingDiff && openViRel) {
       // Leaving the diff view: re-open this VI's snapshot in the chosen mode.
@@ -1868,6 +1969,7 @@ document.querySelectorAll('#pane-toggle button').forEach(btn => {
 document.querySelectorAll('#vb2-plat-toggle button').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.dataset.plat2 === vb2Plat) return;
+    vb2LsSet(VB2_PLAT_KEY, btn.dataset.plat2);
     vb2Plat = btn.dataset.plat2;
     syncUrl();
     if (currentSnapshot && !currentDiffVi) openSnapshot(currentSnapshot.html, currentSnapshot.title);
