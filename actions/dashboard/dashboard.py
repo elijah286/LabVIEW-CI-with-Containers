@@ -3250,6 +3250,195 @@ run_dialog = (r"""
   })();
   </scr""" + """ipt>""").replace('__RUN_TARGETS__', run_targets_json).replace('__RUN_TIMING__', run_timing_json).replace('__HIST__', hist_json).replace('__CAPS_RAN__', caps_ran_json).replace('__REPO__', repo).replace('__BRANCH__', get_default_branch())
 
+# ── Debug Run dialog ─────────────────────────────────────────────────────────
+# Tools > Debug Run. A three-step flow (choose target -> connect -> hand off):
+#   1. Pick the worker (Linux for now), the revision, which activities to run on
+#      the go signal, and a session length; dispatch debug-session.yml.
+#   2. Poll for the published connect info and open the browser noVNC desktop.
+#   3. Tell the user to log into LabVIEW then press ENTER in the on-screen prompt
+#      to run the selected activities; offer "End session" (cancels the run).
+# Self-contained modal + controller, exposed as window.lvciDebugRun. Reuses the
+# same dispatch token (lvci_dispatch_token / lvci_install_token) as every other
+# dispatch on the dashboard.
+debug_dialog = (r"""
+  <div id="cidash-debug-modal" onclick="if(event.target===this)cidashDebugClose()" style="display:none;position:fixed;inset:0;z-index:320;background:rgba(0,0,0,.55)">
+    <div role="dialog" aria-modal="true" aria-labelledby="cidash-debug-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(600px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+        <strong id="cidash-debug-title" style="font-size:.95em">Debug Run</strong>
+        <button onclick="cidashDebugClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">&#10005; Close</button>
+      </div>
+      <div id="cidash-debug-body" style="padding:16px"></div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var RT = __RUN_TARGETS__;
+    var HIST = __HIST__;
+    var REPO = "__REPO__";
+    var BRANCH = "__BRANCH__";
+    var TOK_KEY = "lvci_dispatch_token";
+    var WF = "debug-session.yml";
+    var CAP_LABEL = { masscompile:'Mass Compile', vidiff:'VIDiff', snapshots2:'VI Browser 2.0 Snapshots', builds:'Builds' };
+    var tr = null;   // active tracker { runId, dispatchAt, timer }
+    function $(id){ return document.getElementById(id); }
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    function getTok(){ try{ return localStorage.getItem(TOK_KEY)||localStorage.getItem("lvci_install_token")||''; }catch(e){ return ''; } }
+    function setTok(v){ try{ localStorage.setItem(TOK_KEY, v); }catch(e){} }
+    function ghHeaders(){ return { 'Authorization':'Bearer '+getTok(), 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' }; }
+    function pagesBase(){ var u=(window.LVCI&&window.LVCI.pagesUrl)||''; if(u&&u.charAt(u.length-1)!=='/') u+='/'; return u; }
+    function tokenSetupUrl(){
+      var owner=(REPO.split('/')[0])||'';
+      return 'https://github.com/settings/personal-access-tokens/new?name='+encodeURIComponent('LabVIEW CI dispatch')
+        +'&description='+encodeURIComponent('Queue LabVIEW CI runs for '+REPO)
+        +(owner?'&target_name='+encodeURIComponent(owner):'')+'&actions=write';
+    }
+    // Activities that can run in a Linux debug container (have a linux run target).
+    function linuxCaps(){
+      var out=[]; ['masscompile','vidiff','snapshots2','builds'].forEach(function(c){
+        if(RT[c] && RT[c].platforms && RT[c].platforms.linux) out.push(c);
+      }); return out;
+    }
+    function modal(){ return $('cidash-debug-modal'); }
+    function cidashDebugClose(){ if(tr&&tr.timer){ clearInterval(tr.timer); } var m=modal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
+    window.cidashDebugClose = cidashDebugClose;
+    function debugStatus(html, kind){
+      var s=$('dbg-status'); if(!s) return;
+      var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
+      s.style.color=col; s.innerHTML=html||'';
+    }
+    // ── Step 1: choose target ──────────────────────────────────────────────
+    function renderStep1(){
+      var caps=linuxCaps();
+      var revs=HIST.slice(0,200).map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc(r.short||r.sha.slice(0,7))+' &mdash; '+esc((r.msg||'').slice(0,60))+'</option>'; }).join('');
+      var acts=caps.length ? caps.map(function(c){ return '<label style="display:block;margin:.15em 0"><input type="checkbox" class="dbg-act" value="'+esc(c)+'"> '+esc(CAP_LABEL[c]||c)+'</label>'; }).join('')
+                           : '<div style="color:var(--fg-muted)">No Linux activity runners are installed; you can still open an interactive session.</div>';
+      var body=''
+        + '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.9em">Boot a worker container with a full LabVIEW desktop you can remote into, log in / activate LabVIEW, then run CI activities live. One session at a time.</p>'
+        + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em">Container</label><br>'
+        +   '<label style="margin-right:14px"><input type="radio" name="dbg-plat" value="linux" checked> Linux</label>'
+        +   '<label style="color:var(--fg-muted)"><input type="radio" name="dbg-plat" value="windows" disabled> Windows (coming soon)</label></div>'
+        + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-rev">Revision</label><br>'
+        +   '<select id="dbg-rev" style="width:100%;max-width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'+revs+'</select></div>'
+        + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em">Run these activities on the go signal</label>'+acts+'</div>'
+        + '<div style="margin:0 0 14px"><label style="font-weight:600;font-size:.85em" for="dbg-min">Auto-end after</label><br>'
+        +   '<select id="dbg-min" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'
+        +     '<option value="30">30 minutes</option><option value="45" selected>45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></div>'
+        + (getTok()?'':'<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-tok">Dispatch token</label><br><input id="dbg-tok" type="password" placeholder="fine-grained PAT with Actions: write" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)"><div style="font-size:.8em;color:var(--fg-muted);margin-top:3px"><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener">Create one &#8599;</a></div></div>')
+        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="dbg-start" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>';
+      $('cidash-debug-body').innerHTML=body;
+      try{ if(typeof window.lvciRevPicker==='function') window.lvciRevPicker($('dbg-rev')); }catch(e){}
+      $('dbg-start').addEventListener('click', startSession);
+    }
+    function startSession(){
+      var t=$('dbg-tok'); if(t && t.value.trim()){ setTok(t.value.trim()); }
+      if(!getTok()){ debugStatus('Enter a token with <strong>Actions: write</strong> to start.', 'err'); return; }
+      var sha=$('dbg-rev') ? $('dbg-rev').value : '';
+      if(!sha){ debugStatus('Pick a revision.', 'err'); return; }
+      var acts=[].slice.call(document.querySelectorAll('.dbg-act:checked')).map(function(b){ return b.value; });
+      var mins=$('dbg-min') ? $('dbg-min').value : '45';
+      var btn=$('dbg-start'); if(btn){ btn.disabled=true; btn.textContent='Starting...'; }
+      debugStatus('Dispatching the debug session...');
+      var dispatchAt=Date.now();
+      fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/dispatches', {
+        method:'POST', headers:Object.assign({'Content-Type':'application/json'}, ghHeaders()),
+        body:JSON.stringify({ ref:BRANCH, inputs:{ commit_sha:sha, platform:'linux', actions:acts.join(' '), minutes:String(mins) } })
+      }).then(function(r){
+        if(btn){ btn.disabled=false; btn.textContent='Start debug session'; }
+        if(r.status===204){ renderStep2(dispatchAt, sha, acts); return; }
+        if(r.status===401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} debugStatus('Token rejected (401). Paste a valid token above.', 'err'); renderStep1(); return; }
+        if(r.status===403){ debugStatus('Dispatch forbidden (403). The token needs <strong>Actions: write</strong> for <code>'+esc(REPO)+'</code>.', 'err'); return; }
+        if(r.status===404){ debugStatus('Not found (404). <code>'+esc(WF)+'</code> is not installed, or the token cannot see this repo.', 'err'); return; }
+        debugStatus('Dispatch failed (HTTP '+r.status+').', 'err');
+      }).catch(function(e){ if(btn){ btn.disabled=false; btn.textContent='Start debug session'; } debugStatus('Network error: '+esc(String(e&&e.message||e)), 'err'); });
+    }
+    // ── Step 2: connect ────────────────────────────────────────────────────
+    function renderStep2(dispatchAt, sha, acts){
+      $('cidash-debug-body').innerHTML=''
+        + '<p style="margin:0 0 10px"><strong>Bringing up the debug desktop&hellip;</strong></p>'
+        + '<ol id="dbg-steps" style="margin:0 0 12px 1.1em;padding:0;color:var(--fg-muted);font-size:.9em;line-height:1.7">'
+        +   '<li id="dbg-s-run">Waiting for the runner to pick up the job&hellip;</li>'
+        +   '<li id="dbg-s-tunnel">Booting the container + LabVIEW, opening the tunnel&hellip;</li>'
+        + '</ol>'
+        + '<div id="dbg-open" style="display:none;margin:10px 0"><a id="dbg-open-link" href="#" target="_blank" rel="noopener" style="display:inline-block;background:#2ea043;border:1px solid #2ea043;color:#fff;padding:8px 18px;border-radius:6px;text-decoration:none;font-size:.92em">Open remote desktop &#8599;</a><div style="font-size:.8em;color:var(--fg-muted);margin-top:5px">If a new tab did not open, click the button (pop-up blockers stop automatic tabs).</div></div>'
+        + '<div id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></div>';
+      tr = { runId:null, dispatchAt:dispatchAt, sha:sha, acts:acts, opened:false, timer:null };
+      pollConnect();
+      tr.timer=setInterval(pollConnect, 5000);
+    }
+    function pollConnect(){
+      if(!tr) return;
+      if(!tr.runId){
+        fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/runs?event=workflow_dispatch&per_page=10', { headers:ghHeaders(), cache:'no-cache' })
+          .then(function(r){ return r.ok?r.json():null; })
+          .then(function(d){
+            var runs=(d&&d.workflow_runs)||[];
+            var m=runs.find(function(x){ return new Date(x.created_at).getTime() >= tr.dispatchAt-90000; });
+            if(m){ tr.runId=m.id; var s=$('dbg-s-run'); if(s){ s.innerHTML='Runner picked up the job (<a href="'+esc(m.html_url)+'" target="_blank" rel="noopener">run #'+m.id+' &#8599;</a>).'; } }
+          }).catch(function(){});
+        return;
+      }
+      // Connect info is published to gh-pages once the tunnel is live.
+      var url=pagesBase()+'debug/'+tr.runId+'.json?_='+Date.now();
+      fetch(url, { cache:'no-cache' }).then(function(r){ return r.ok?r.json():null; })
+        .then(function(j){ if(j&&j.url) connected(j.url); })
+        .catch(function(){});
+    }
+    function connected(url){
+      if(!tr || tr.opened) return; tr.opened=true;
+      if(tr.timer){ clearInterval(tr.timer); }
+      var s=$('dbg-s-tunnel'); if(s){ s.innerHTML='Desktop is live.'; }
+      var open=$('dbg-open'); if(open){ open.style.display='block'; }
+      var link=$('dbg-open-link'); if(link){ link.href=url; }
+      try{ window.open(url, '_blank', 'noopener'); }catch(e){}
+      renderStep3(url);
+    }
+    // ── Step 3: hand off ───────────────────────────────────────────────────
+    function renderStep3(url){
+      var acts=(tr&&tr.acts&&tr.acts.length)?tr.acts.map(function(c){ return CAP_LABEL[c]||c; }).join(', '):'(none - interactive session)';
+      var runId=tr?tr.runId:null;
+      var body=''
+        + '<p style="margin:0 0 8px"><strong>Your debug desktop is ready.</strong></p>'
+        + '<div style="margin:0 0 12px"><a href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-block;background:#2ea043;border:1px solid #2ea043;color:#fff;padding:8px 18px;border-radius:6px;text-decoration:none;font-size:.92em">Open remote desktop &#8599;</a></div>'
+        + '<ol style="margin:0 0 12px 1.1em;padding:0;font-size:.9em;line-height:1.7">'
+        +   '<li>In the remote desktop, log into / activate LabVIEW.</li>'
+        +   '<li>When it is ready, click the on-screen terminal and press <strong>ENTER</strong> to run: <strong>'+esc(acts)+'</strong>.</li>'
+        +   '<li>Watch the activities run live, then end the session below.</li>'
+        + '</ol>'
+        + '<div style="display:flex;gap:8px;align-items:center"><button id="dbg-end" style="background:transparent;border:1px solid #f85149;color:#f85149;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">End session</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>';
+      $('cidash-debug-body').innerHTML=body;
+      var eb=$('dbg-end'); if(eb){ eb.addEventListener('click', function(){ endSession(runId); }); }
+    }
+    function endSession(runId){
+      if(!runId){ cidashDebugClose(); return; }
+      var eb=$('dbg-end'); if(eb){ eb.disabled=true; eb.textContent='Ending...'; }
+      debugStatus('Ending the session...');
+      fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+runId+'/cancel', { method:'POST', headers:ghHeaders() })
+        .then(function(r){ debugStatus(r.ok?'Session ending. You can close this dialog.':'Could not cancel (HTTP '+r.status+'); it will still auto-end.', r.ok?'ok':'warn'); })
+        .catch(function(e){ debugStatus('Network error ending session: '+esc(String(e&&e.message||e)), 'warn'); });
+    }
+    // ── Open ───────────────────────────────────────────────────────────────
+    function debugOpen(){
+      var m=modal(); if(!m) return;
+      m.style.display='block'; document.body.style.overflow='hidden';
+      renderStep1();
+    }
+    window.lvciDebugRun = debugOpen;
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var m=modal(); if(m && m.style.display==='block') cidashDebugClose(); } });
+    // Auto-open when another page routed here for Debug Run (?lvci-debug=1); strip
+    // the param so a manual reload doesn't reopen it.
+    function lvciAutoDebug(){
+      try{
+        var p=new URLSearchParams(location.search||'');
+        if(p.get('lvci-debug')!=='1') return;
+        p.delete('lvci-debug');
+        try{ var qs=p.toString(); history.replaceState(null,'',location.pathname+(qs?('?'+qs):'')+location.hash); }catch(e){}
+        debugOpen();
+      }catch(e){}
+    }
+    if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', lvciAutoDebug); } else { lvciAutoDebug(); }
+  })();
+  </scr""" + """ipt>""").replace('__RUN_TARGETS__', run_targets_json).replace('__HIST__', hist_json).replace('__REPO__', repo).replace('__BRANCH__', get_default_branch())
+
 # ── "Run CI for your whole history" card (fresh installs only) ───────────────
 # A brand-new dashboard has no results, so every project cell shows a one-click
 # run glyph. Rather than make the user click each one, this card offers to queue
@@ -3550,6 +3739,7 @@ html = f"""<!DOCTYPE html>
     }})();
   </script>
   {run_dialog}
+  {debug_dialog}
   <main class="lvci-main">
   <h1>CI Dashboard — {repo_name}</h1>
   <div class="sub">Last updated: {now} &nbsp;|&nbsp; {refresh_note}</div>

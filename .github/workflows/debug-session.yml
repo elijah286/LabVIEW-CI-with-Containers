@@ -1,0 +1,189 @@
+# =============================================================================
+# LabVIEW CI - Debug Session (interactive VNC into a worker container)
+# =============================================================================
+# On-demand only (Tools > Debug Run on the dashboard). Boots the Linux worker
+# for a chosen revision with a full graphical desktop (Xvfb + fluxbox), launches
+# the LabVIEW IDE UI, and exposes it as a browser-based noVNC session over an
+# ephemeral Cloudflare quick tunnel. You log into / activate LabVIEW interactively
+# in the session, then press ENTER in the on-screen prompt to run the selected CI
+# activities programmatically while you watch. The session tears itself down after
+# `minutes` (or when the run is cancelled from the dashboard's "End session").
+#
+# Linux only for v1 (the Linux worker already has Xvfb; Windows containers have no
+# interactive desktop). Dispatch-only + off by default -> never runs in normal CI.
+# =============================================================================
+name: LabVIEW CI - Debug Session
+run-name: "Debug session (${{ github.event.inputs.platform || 'linux' }}): rev ${{ github.event.inputs.commit_sha }} by @${{ github.actor }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Revision to debug (full commit SHA).
+        required: true
+      platform:
+        description: Worker platform (linux only for now).
+        required: false
+        default: linux
+      actions:
+        description: Space-separated activity ids to run on the go signal (e.g. "masscompile").
+        required: false
+        default: ''
+      minutes:
+        description: Auto-teardown after this many minutes.
+        required: false
+        default: '45'
+
+permissions:
+  contents: write
+  packages: read
+
+# One debug session at a time. Queue a second dispatch instead of cancelling the
+# live one (the dashboard also disables Start while a session is active).
+concurrency:
+  group: lvci-debug
+  cancel-in-progress: false
+
+jobs:
+  debug:
+    # Guard: v1 supports the Linux worker only. A Windows dispatch exits cleanly.
+    if: ${{ (github.event.inputs.platform || 'linux') == 'linux' }}
+    runs-on: ubuntu-latest
+    # Hard ceiling; the session self-stops after `minutes` well before this.
+    timeout-minutes: 360
+    steps:
+      - name: Checkout the revision
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Restore CI scripts from the default branch
+        run: |
+          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
+          git checkout FETCH_HEAD -- .github/labview .github/actions/publish-gh-pages
+
+      - name: Resolve Linux container image name
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          echo "LABVIEW_CONTAINER_IMAGE=ghcr.io/${owner}/${name}:linux-latest" >> "$GITHUB_ENV"
+          echo "LINUX_WORKER_WORKFLOW=Build LabVIEW CI Image - Linux" >> "$GITHUB_ENV"
+
+      - name: Wait for the Linux worker image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/labview/wait-for-worker-image.sh "${{ github.event.inputs.commit_sha }}" "" "$LINUX_WORKER_WORKFLOW" || true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull the worker image
+        id: pull
+        run: docker pull "$LABVIEW_CONTAINER_IMAGE"
+        continue-on-error: true
+
+      - name: Fall back to the NI base image if the worker is unavailable
+        if: steps.pull.outcome != 'success'
+        run: |
+          echo "::warning::Worker image pull failed; using the NI Linux base image (no baked deps)."
+          echo "LABVIEW_CONTAINER_IMAGE=nationalinstruments/labview:latest-linux" >> "$GITHUB_ENV"
+          docker pull nationalinstruments/labview:latest-linux
+
+      - name: Start the debug container
+        run: |
+          PW=$(openssl rand -hex 16)
+          echo "::add-mask::$PW"
+          echo "VNC_PW=$PW" >> "$GITHUB_ENV"
+          docker rm -f lvci-debug >/dev/null 2>&1 || true
+          docker run -d --name lvci-debug \
+            -p 127.0.0.1:6080:6080 \
+            -e "ACTIONS=${{ github.event.inputs.actions }}" \
+            -e "MINUTES=${{ github.event.inputs.minutes }}" \
+            -e "VNC_PW=$PW" \
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" \
+            -e "GITHUB_SHA=${{ github.event.inputs.commit_sha }}" \
+            -v "${{ github.workspace }}:/workspace" \
+            "$LABVIEW_CONTAINER_IMAGE" \
+            bash /workspace/.github/labview/debug/debug-session.sh
+          sleep 3
+          docker ps --filter name=lvci-debug
+
+      - name: Start the Cloudflare quick tunnel
+        run: |
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          nohup /tmp/cloudflared tunnel --url http://localhost:6080 --no-autoupdate > /tmp/cf.log 2>&1 &
+          echo "Waiting for the tunnel hostname..."
+          url=""
+          for i in $(seq 1 60); do
+            url=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1 || true)
+            [ -n "$url" ] && break
+            sleep 2
+          done
+          if [ -z "$url" ]; then echo "::error::Cloudflare tunnel did not come up."; cat /tmp/cf.log || true; exit 1; fi
+          echo "TUNNEL_URL=$url" >> "$GITHUB_ENV"
+          echo "Tunnel: $url"
+
+      - name: Publish the connection details
+        run: |
+          mkdir -p pages-debug
+          novnc="${TUNNEL_URL}/vnc.html?autoconnect=true&reconnect=true&resize=scale&path=websockify&password=${VNC_PW}"
+          expires=$(python3 -c "import time,sys; print(int(time.time())+int('${{ github.event.inputs.minutes }}' or 45)*60)")
+          python3 - "$novnc" "$expires" > "pages-debug/${{ github.run_id }}.json" <<'PY'
+          import json, sys
+          print(json.dumps({"url": sys.argv[1], "expiresAt": int(sys.argv[2]),
+                            "run": int("${{ github.run_id }}"),
+                            "sha": "${{ github.event.inputs.commit_sha }}",
+                            "platform": "linux"}))
+          PY
+          echo "Published connect info for run ${{ github.run_id }}."
+
+      - name: Stage connection details to gh-pages
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: pages-debug
+          destination_dir: debug
+          commit_message: "Debug session connect info for run ${{ github.run_id }}"
+
+      - name: Session summary
+        run: |
+          echo "### LabVIEW CI debug session is live" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Open the remote desktop: ${TUNNEL_URL}/vnc.html" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "The dashboard's Debug Run dialog opens this automatically. Log into LabVIEW, then press ENTER in the on-screen prompt to run: ${{ github.event.inputs.actions }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Hold the session open until it ends
+        run: |
+          mins="${{ github.event.inputs.minutes }}"
+          cap=$(( ${mins:-45} * 60 + 120 ))
+          echo "Holding for up to ${cap}s (session self-stops after ${mins} min; cancel the run to end early)."
+          timeout "${cap}s" docker wait lvci-debug || true
+
+      - name: Tear down
+        if: always()
+        run: |
+          echo "=== container log tail ==="
+          docker logs --tail 80 lvci-debug 2>&1 || true
+          docker rm -f lvci-debug >/dev/null 2>&1 || true
+          pkill -f 'cloudflared tunnel' >/dev/null 2>&1 || true
+          # Best-effort: remove this run's connect file from gh-pages so no stale
+          # (now-dead) tunnel URL is left published.
+          rm -rf /tmp/ghp && git clone --depth 1 --branch gh-pages \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" /tmp/ghp 2>/dev/null || true
+          if [ -f "/tmp/ghp/debug/${{ github.run_id }}.json" ]; then
+            cd /tmp/ghp
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git rm -q "debug/${{ github.run_id }}.json"
+            git commit -q -m "End debug session ${{ github.run_id }}"
+            for i in 1 2 3 4 5; do git push origin gh-pages && break || { git fetch -q origin gh-pages && git rebase -q origin/gh-pages || true; sleep 3; }; done
+          fi
