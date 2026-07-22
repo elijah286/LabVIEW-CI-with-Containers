@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.8.9",
+  "version": "4.8.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {"version": "4.8.10", "date": "2026-07-22", "notes": "VI Analyzer blank-report fix, take 2: the v4.6.1 change that enumerates a project\u2019s VIs for a custom-.viancfg default pass had a PowerShell array-return bug (return ,($out.ToArray()) wraps the whole list in a one-element array), so the runner saw only 1 VI and still produced a blank report. Return the array without the leading comma so all project VIs (recursively, excluding CI tooling) are analyzed with the committed config\u2019s tests, with un-loadable VIs flagged and skipped"},
       {
         "version": "4.8.9",
         "date": "2026-07-22",
