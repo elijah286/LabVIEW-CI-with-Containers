@@ -236,15 +236,13 @@
       });
     }
 
-    function pendingVipcPathSet(){
-      const list = (updPending && Array.isArray(updPending.vipcs)) ? updPending.vipcs : [];
-      return new Set(list.map(normPath));
-    }
-    function vipcFileState(path){
-      const pending = pendingVipcPathSet().has(normPath(path));
-      return pending
-        ? '<span class="dep-file-state missing" title="This file contributes to the global missing-dependency alert">missing</span>'
-        : '<span class="dep-file-state installed" title="No missing packages currently reported for this file">installed</span>';
+    function vipcFileState(vipc, colStates){
+      const missing = vipcMissingPackages(vipc, colStates || currentColStates);
+      if (missing.length) {
+        const title = missing.length + ' package' + (missing.length === 1 ? '' : 's') + ' not baked into a monitored worker: ' + missing.join(', ');
+        return '<span class="dep-file-state missing" title="' + esc(title) + '">' + missing.length + ' missing</span>';
+      }
+      return '<span class="dep-file-state installed" title="Every requested package is baked into the monitored worker(s)">installed</span>';
     }
     function dragonFileState(){
       const hasMissing = !!(updPending && Array.isArray(updPending.dragon) && updPending.dragon.length);
@@ -368,6 +366,19 @@
       const set = new Set();
       (man && man.vipc || []).forEach(v => (v.packages || []).forEach(p => set.add(p)));
       return set;
+    }
+    // Version-tolerant package matching: a VIPC declares a specific build
+    // (e.g. "wovalab_lib_antidoc_cli-3.3.0.117") but VIPM installs one version
+    // per package, so a baked "...-3.4.0.126" satisfies the request. Match on the
+    // versionless base identifier (strip a trailing "-<dotted digits>") so a
+    // present-but-different build reads as installed, not a false "missing".
+    function pkgBase(pkg){ return String(pkg || "").replace(/-\d[\d.]*$/, "").toLowerCase(); }
+    function pkgInSet(pkg, set){
+      if (!set || !set.size) return false;
+      if (set.has(pkg)) return true;
+      const base = pkgBase(pkg);
+      for (const p of set) if (pkgBase(p) === base) return true;
+      return false;
     }
     function nipkgInManifest(man){ return Array.isArray(man && man.nipkg_packages) ? man.nipkg_packages : []; }
     function enrichPlatformState(st, man){
@@ -977,21 +988,40 @@
     function missingCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><span class="dep-missing" aria-label="Missing dependency">!</span></td>'; }
     function notApplicableCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><span class="dep-na">N/A</span></td>'; }
     function isProjectVipc(vipc){ return !!vipc && vipc.monitored !== false && vipc.configured !== false && vipc.role !== 'core' && vipc.tooling !== true; }
+    // Single source of truth for a package's status in one worker column. Returns
+    // { state:'present'|'missing'|'na'|'', title }. statusCell renders it and the
+    // per-file header pill rolls it up, so the cells and the pill never disagree.
+    function pkgCellState(pkg, colState, vipc, col){
+      if (!pkg) return { state:"" };
+      if (vipc && col && Array.isArray(vipc.monitorOn) && vipc.monitorOn.indexOf(col.key) === -1) return { state:"na", title:'Not monitored for ' + (MONITOR_LABELS[col.key] || col.key) };
+      if (vipc && vipc.monitored === false) return { state:"na", title:'Dependency file is not monitored' };
+      if (colState.unsupported) return { state:"na", title:colState.unsupportedReason || 'not supported on this platform' };
+      if (colState.label === "base" || colState.label === "none") return { state:"missing", title:'No dependency worker is baked for this platform yet -- run the container update' };
+      if (!colState.ready) return { state:"missing", title:'Worker dependency manifest has not been published yet -- run the container update' };
+      // Version-tolerant: a baked build of the same package satisfies a
+      // differently-versioned VIPC request (VIPM installs one version per package).
+      if (pkgInSet(pkg, colState.packages)) return { state:"present", title:colState.label };
+      return { state:"missing", title:'Not baked into this worker yet -- run the container update' };
+    }
     function statusCell(pkg, colState, vipc, col){
-      if (!pkg) return "";
-      if (vipc && col && Array.isArray(vipc.monitorOn) && vipc.monitorOn.indexOf(col.key) === -1) return notApplicableCell('Not monitored for ' + (MONITOR_LABELS[col.key] || col.key));
-      if (vipc && vipc.monitored === false) return notApplicableCell('Dependency file is not monitored');
-      // Past the two guards above, the dependency IS monitored for this column, so
-      // evaluate it as present/missing on this platform exactly like every other --
-      // a monitored package that is not baked into this worker is MISSING (which
-      // drives the container update), NOT "not applicable". This keeps Linux
-      // evaluated the same way as Windows instead of a blanket N/A column.
-      if (colState.unsupported) return notApplicableCell(colState.unsupportedReason || 'not supported on this platform');
-      if (colState.label === "base" || colState.label === "none") return missingCell('No dependency worker is baked for this platform yet -- run the container update');
-      if (!colState.ready) return missingCell('Worker dependency manifest has not been published yet -- run the container update');
-      const ok = colState.packages.has(pkg);
-      if (ok) return presentCell(colState.label);
-      return missingCell('Not baked into this worker yet -- run the container update');
+      const s = pkgCellState(pkg, colState, vipc, col);
+      if (s.state === "present") return presentCell(s.title);
+      if (s.state === "missing") return missingCell(s.title);
+      if (s.state === "na") return notApplicableCell(s.title);
+      return "";
+    }
+    // Distinct packages in this VIPC that are missing on at least one monitored
+    // worker column -- the per-file rollup behind the header pill, computed with
+    // the SAME predicate as the cells so the two can never disagree.
+    function vipcMissingPackages(vipc, colStates){
+      const out = [];
+      if (!vipc || !Array.isArray(vipc.packages)) return out;
+      vipc.packages.forEach(pkg => {
+        if (!pkg) return;
+        const gap = COLS.some(col => { const cs = (colStates || {})[col.key]; return cs && pkgCellState(pkg, cs, vipc, col).state === "missing"; });
+        if (gap) out.push(pkg);
+      });
+      return out;
     }
     function simpleCell(ok, label, emptyLabel){
       if (ok === null) return missingCell('Worker dependency manifest has not been published yet');
@@ -1063,7 +1093,7 @@
         const locked = v.locked === true;
         const on = Array.isArray(v.monitorOn) ? v.monitorOn : (v.monitored !== false ? MONITOR_PLATFORMS.slice() : []);
         const checked = on.length > 0;
-        rows.push('<tr class="vipc-row"><td class="vipc-head"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span>' + vipcFileState(v.path) + ' <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + (checked ? '' : ' <span class="pill">unmonitored</span>') + (locked ? ' <span class="pill">locked</span>' : '') + '</td>' + COLS.map(c => (MONITOR_PLATFORMS.indexOf(c.key) !== -1 ? monitorCell('vipc', v.path, on, locked, c.key) : '<td class="cell"></td>')).join('') + '</tr>');
+        rows.push('<tr class="vipc-row"><td class="vipc-head"><span class="twisty">' + (v.open ? '-' : '+') + '</span><span class="vipc-path">' + esc(v.path) + '</span>' + vipcFileState(v, colStates) + ' <span class="pill">' + (v.packages.length || 0) + ' packages</span>' + (checked ? '' : ' <span class="pill">unmonitored</span>') + (locked ? ' <span class="pill">locked</span>' : '') + '</td>' + COLS.map(c => (MONITOR_PLATFORMS.indexOf(c.key) !== -1 ? monitorCell('vipc', v.path, on, locked, c.key) : '<td class="cell"></td>')).join('') + '</tr>');
         if (v.open) {
           const children = [];
           if (v.error) children.push({ error:true, text:v.error });

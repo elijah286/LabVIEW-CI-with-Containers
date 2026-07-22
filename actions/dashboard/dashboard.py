@@ -4263,9 +4263,22 @@ def _compute_deps_pending(data):
   current Windows worker manifest; plus declared Dragon deps not yet installed."""
   cols = {c.get('key'): c for c in data.get('columns', [])}
 
+  # Version-tolerant matching: a VIPC pins a specific build (e.g.
+  # "wovalab_lib_antidoc_cli-3.3.0.117") but VIPM installs one version per
+  # package, so a baked "...-3.4.0.126" satisfies the request. Compare on the
+  # versionless base identifier so a present-but-different build is not flagged
+  # as a missing dependency.
+  def _pkg_base(pkg):
+    return re.sub(r'-\d[\d.]*$', '', str(pkg or '')).lower()
+
   def baked(key):
     c = cols.get(key) or {}
-    return {str(p).lower() for p in (c.get('packages') or [])}
+    pkgs = c.get('packages') or []
+    return {str(p).lower() for p in pkgs}, {_pkg_base(p) for p in pkgs}
+
+  def _missing(pkgs, baked_pair):
+    exact, bases = baked_pair
+    return [p for p in pkgs if str(p).lower() not in exact and _pkg_base(p) not in bases]
 
   win_baked = baked('windows')
   # The Linux worker now installs VIPM natively and bakes repository VIPC (same as
@@ -4294,12 +4307,12 @@ def _compute_deps_pending(data):
     if mon is None:
       mon = ['windows', 'linux']
     if 'windows' in mon:
-      win_missing = [p for p in pkgs if str(p).lower() not in win_baked]
+      win_missing = _missing(pkgs, win_baked)
       if win_missing:
         pending_files.append(v.get('path'))
         pending_pkgs.update(win_missing)
     if lin_active and 'linux' in mon:
-      lin_missing_pkgs = [p for p in pkgs if str(p).lower() not in lin_baked]
+      lin_missing_pkgs = _missing(pkgs, lin_baked)
       if lin_missing_pkgs:
         lin_pending_files.append(v.get('path'))
         pending_pkgs.update(lin_missing_pkgs)

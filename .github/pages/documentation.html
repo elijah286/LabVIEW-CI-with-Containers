@@ -924,7 +924,11 @@ mass-compile:
           <code>.vipc</code> / <code>.dragon</code> files that declare the add-on packages your action runners need.
           The dashboard compares those declarations against what is baked into the current worker manifest; if any are
           missing it shows a persistent <em>&ldquo;dependencies need to be installed&rdquo;</em> banner, and the
-          Dependencies page&rsquo;s update panel itemizes exactly which files and packages are pending. Applying it is
+          Dependencies page&rsquo;s update panel itemizes exactly which files and packages are pending. The comparison is
+          <strong>version-tolerant</strong>: a VIPC pins a specific build (e.g.
+          <code>wovalab_lib_antidoc_cli-3.3.0.117</code>), but VIPM installs one version per package, so a baked
+          <code>&hellip;-3.4.0.126</code> satisfies the request &mdash; matching is on the versionless base identifier, so a
+          present-but-different build reads as installed instead of a false <em>missing</em>. Applying it is
           <strong>opt-in</strong>: from the Dependencies page you dispatch the dependency build
           (<code>build-labview-image.yml</code>, &ldquo;Build LabVIEW CI Image&rdquo;), which runs on a Windows runner and
           this time starts <code>FROM</code> the base and applies a thin dependency layer
@@ -1617,7 +1621,11 @@ flowchart TD
         revision), and <code>vipcs</code> is the union of the files missing packages on either worker. The dependency
         table evaluates each column the same way: a package that is <strong>monitored</strong> for a platform but not
         yet baked into that worker shows as <strong>missing</strong> in that column (Linux is evaluated exactly like
-        Windows), while a package that is simply not monitored for the platform stays N/A. A push that adds or changes
+        Windows), while a package that is simply not monitored for the platform stays N/A. Package matching is
+        <strong>version-tolerant</strong> &mdash; a baked build satisfies a differently-versioned VIPC request of the same
+        package (VIPM installs one version per package) &mdash; and each VIPC file&rsquo;s header row rolls the same
+        per-package result up into an <em>N&nbsp;missing</em> / <em>installed</em> pill, so you can see which file is
+        short a package without expanding it. A push that adds or changes
         any <code>.vipc</code>/<code>.dragon</code> file now rebuilds the dashboard as well, so a newly declared &mdash;
         but not-yet-baked &mdash; package surfaces as missing and the &ldquo;dependencies need installing&rdquo; banner
         appears immediately, without waiting for a worker build or a commit status.</div>
