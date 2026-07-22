@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "5d174f3f689ee822828a0e9bdb82b8a936b1f56f",
+  "sha": "5985c20b408861808226a1a39d70a195c7ab6848",
   "revisions": [
+    {
+      "sha": "5985c20b408861808226a1a39d70a195c7ab6848",
+      "short": "5985c20",
+      "message": "Client discovery lists genuine fork-based installs (4.9.8)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T23:25:10Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "5d174f3f689ee822828a0e9bdb82b8a936b1f56f",
       "short": "5d174f3",
@@ -891,15 +900,6 @@
       "message": "Warm-container history backfills (opt-in) (4.2.0)",
       "author": "Elijah Kerry",
       "date": "2026-06-25T23:56:00Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "a111d8f6089773367674b564f5cd80e826cd1d1b",
-      "short": "a111d8f",
-      "message": "wait-for-worker-image: wait long enough for a cold first build (4.1.35)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-25T19:50:54Z",
       "project": false,
       "dep_only": false
     },
