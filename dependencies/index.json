@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "34ce72c6157e39da10e594bc9446509a209c03dd",
+  "sha": "6313516f68c488d2bc5601aaf778f9303c2c9d53",
   "revisions": [
+    {
+      "sha": "6313516f68c488d2bc5601aaf778f9303c2c9d53",
+      "short": "6313516",
+      "message": "dependencies: unify revision selector into the shared header context-bar picker (searchable + CI/dep filter) (4.8.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T11:28:00Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "34ce72c6157e39da10e594bc9446509a209c03dd",
       "short": "34ce72c",
@@ -891,15 +900,6 @@
       "message": "Configure auto-dependency-update UI; Dependencies links to it (4.1.18)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T18:02:22Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "526ae3cedaa11537f19f5faca77206c24924a50f",
-      "short": "526ae3c",
-      "message": "Restore opt-in monitored auto-rebuild for the worker (4.1.17)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T17:42:29Z",
       "project": false,
       "dep_only": false
     },
