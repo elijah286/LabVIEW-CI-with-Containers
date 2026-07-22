@@ -1,5 +1,5 @@
 name: VI Browser 2.0 render (Windows container)
-run-name: VI Browser 2.0 Windows ${{ github.event.inputs.target_sha || github.sha }}${{ github.event.inputs.vi && ' single VI' || '' }}${{ github.event.inputs.force == 'true' && ' force' || '' }}
+run-name: VI Browser 2.0 Windows ${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}${{ github.event.inputs.vi && ' single VI' || '' }}${{ github.event.inputs.force == 'true' && ' force' || '' }}
 
 # Generates the position-aware VI Browser 2.0 "frames" JSON on WINDOWS, using the
 # stock NI LabVIEW Windows container and the SAME cross-platform render engine the
@@ -40,6 +40,15 @@ on:
         description: "Per-VI render timeout (Go duration, e.g. 5m)"
         required: false
         default: "5m"
+  # Auto-render on each new revision, mirroring the Linux path
+  # (vi-snapshots-json.yml). When the snapshot pipeline finishes, this renders the
+  # VIs this revision CHANGED - the content-addressed worklist skips every VI whose
+  # blob already has a <blob>.windows.json (unchanged VIs reuse their existing
+  # render) and queues only the new/changed blobs. Gated by the VI Browser config
+  # (see the gate job): position-aware 2.0 defaults to Windows.
+  workflow_run:
+    workflows: ["VI Snapshots and VI Browser"]
+    types: [completed]
 
 permissions:
   contents: write
@@ -49,11 +58,51 @@ env:
   LABVIEW_CONTAINER_IMAGE: ''
 
 concurrency:
-  group: vi-snapshots-json-windows-${{ github.event.inputs.target_sha || github.sha }}-${{ github.event.inputs.vi || 'all' }}
+  group: vi-snapshots-json-windows-${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}-${{ github.event.inputs.vi || 'all' }}
   cancel-in-progress: true
 
 jobs:
+  # Auto-runs (workflow_run) honour the VI Browser config, exactly like the Linux
+  # path: the position-aware 2.0 render defaults to Windows (the configurator's
+  # default), so it runs automatically only when config.viBrowser.positionAware
+  # includes "windows" - or when no config / no viBrowser block is present (the
+  # default = run). A manual dispatch always runs. The VI Browser tab on Configure
+  # writes this setting. An auto-run is skipped when the triggering snapshot run did
+  # not succeed (no point rendering frames for a build that failed).
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - name: Check out the config only
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github/labview-ci.yml
+          sparse-checkout-cone-mode: false
+      - name: Decide whether to run
+        id: decide
+        run: |
+          run=true
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+              run=false
+              echo "Triggering snapshot run concluded '${{ github.event.workflow_run.conclusion }}', not success; skipping the Windows 2.0 render."
+            else
+              cfg=.github/labview-ci.yml
+              if [ -f "$cfg" ]; then
+                pa=$(sed -n 's/^[[:space:]]*positionAware:[[:space:]]*//p' "$cfg" | head -1 | tr -d '[:space:]')
+                if [ -n "$pa" ]; then
+                  if printf '%s' "$pa" | tr '+' '\n' | grep -qx 'windows'; then run=true; else run=false; fi
+                fi
+              fi
+            fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "VI Browser 2.0 on Windows auto-run: $run (event=${{ github.event_name }})"
+
   render:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: windows-2022
     # Long enough for the worker-image wait (up to ~110 min on a cold first build)
     # plus the render itself, so a fresh-install render isn't killed mid-wait.
@@ -127,7 +176,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          bash .github/labview/wait-for-worker-image.sh "${{ github.sha }}" "${{ github.event.before }}"
+          bash .github/labview/wait-for-worker-image.sh "${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}" "${{ github.event.before }}"
 
       - name: Checkout deployed gallery (gh-pages) for incremental seed + live publish
         uses: actions/checkout@v5
@@ -181,7 +230,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _winout/by-blob
-          target_sha="${{ github.event.inputs.target_sha || github.sha }}"
+          target_sha="${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}"
           git cat-file -e "$target_sha^{commit}"
           force_input="${{ github.event.inputs.force || 'false' }}"
           case "$force_input" in
@@ -267,7 +316,7 @@ jobs:
               -OutByBlob 'C:\out\by-blob' `
               -Lvctl     'C:\repo\_winbin\lvctl.exe' `
               -Runner    'C:\repo\_winbin\runner.exe' `
-                -RenderTimeout '${{ github.event.inputs.render_timeout }}' `
+                -RenderTimeout '${{ github.event.inputs.render_timeout || '5m' }}' `
                 -ComReadySeconds 600
               $renderExit = $LASTEXITCODE
               Write-Host "render exit code: $renderExit"
@@ -345,7 +394,7 @@ jobs:
         with:
           publish_dir: _winpublish
           destination_dir: vi-snapshots
-          commit_message: "deploy windows snapshots: ${{ github.sha }}"
+          commit_message: "deploy windows snapshots: ${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}"
 
       - name: Upload rendered frames JSON
         if: always()
