@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "53a0a2a8e2a9571f3452cb80de40e3105250250b",
+  "sha": "89b068029ed6384d04c2ae85a3766cc78b8b9f1a",
   "revisions": [
+    {
+      "sha": "89b068029ed6384d04c2ae85a3766cc78b8b9f1a",
+      "short": "89b0680",
+      "message": "example: repoint UTF at example/Example.lvproj (fix blank Unit Tests report)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T18:26:27Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "53a0a2a8e2a9571f3452cb80de40e3105250250b",
       "short": "53a0a2a",
@@ -892,195 +901,6 @@
       "author": "Elijah Kerry",
       "date": "2026-06-24T21:18:14Z",
       "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "889d3fd3d31673b7bca8cb245019bae13e7d6918",
-      "short": "889d3fd",
-      "message": "dashboard: compact tile grid for mobile revision cards (4.1.24)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T20:58:37Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
-      "short": "00839e4",
-      "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T23:57:47Z",
-      "project": true,
-      "dep_only": true
-    },
-    {
-      "sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e",
-      "short": "87482e2",
-      "message": "G Image moves into the core CI tooling VIPC (v3.39.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T23:49:40Z",
-      "project": true,
-      "dep_only": true
-    },
-    {
-      "sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5",
-      "short": "d56ded4",
-      "message": "Restore Linux-applicable example VIPC artifact (v3.39.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T23:46:25Z",
-      "project": true,
-      "dep_only": true
-    },
-    {
-      "sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a",
-      "short": "197c1be",
-      "message": "Clean up dependency management around VIPC files as the source of truth (v3.39.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-22T23:35:39Z",
-      "project": true,
-      "dep_only": true
-    },
-    {
-      "sha": "590495f94bf466cf7803e75e075177dd95b19f08",
-      "short": "590495f",
-      "message": "example: add UTF JUnit reporter deps to Dependencies.vipc",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T16:35:54Z",
-      "project": true,
-      "dep_only": true
-    },
-    {
-      "sha": "eb2240d106503d2e207374ae8e0c7119af656a45",
-      "short": "eb2240d",
-      "message": "example: run UTF tests from Example project",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T15:00:06Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf",
-      "short": "3d67c5a",
-      "message": "Add VIPC-baked Windows base image workflow",
-      "author": "Elijah Kerry",
-      "date": "2026-06-21T14:19:51Z",
-      "project": true,
-      "dep_only": true
-    },
-    {
-      "sha": "12553d67f22d02885acfd455c1d68381e8702aca",
-      "short": "12553d6",
-      "message": "added utf files",
-      "author": "Elijah Kerry",
-      "date": "2026-06-18T23:03:10Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "df868ea07cef49f7ed721442b627ec78ba306e7f",
-      "short": "df868ea",
-      "message": "resized the graph",
-      "author": "Elijah Kerry",
-      "date": "2026-06-01T08:20:17Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "c433e9e5e28492955ffa4d83f0434159b64d3fb7",
-      "short": "c433e9e",
-      "message": "moved a constant",
-      "author": "Elijah Kerry",
-      "date": "2026-05-29T12:38:27Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1",
-      "short": "d1705cb",
-      "message": "moved the send command button",
-      "author": "Elijah Kerry",
-      "date": "2026-05-29T12:27:27Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "d1a86a8741bec13cfa11446d0e72d12479a209ae",
-      "short": "d1a86a8",
-      "message": "fixed errors in motor VIs",
-      "author": "Elijah Kerry",
-      "date": "2024-11-21T22:32:29Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6",
-      "short": "2b5f1aa",
-      "message": "Minor refinements",
-      "author": "Elijah Kerry",
-      "date": "2024-11-21T17:52:34Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "3d513473c8dce75e22b08294b87de2fb37fd9798",
-      "short": "3d51347",
-      "message": "Excercise manual correction",
-      "author": "Elijah Kerry",
-      "date": "2024-11-21T17:25:43Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "1b00b2d59dd388f8fb93de6661d429025e320a6b",
-      "short": "1b00b2d",
-      "message": "Copy of excercise generated",
-      "author": "Elijah Kerry",
-      "date": "2024-11-21T17:20:04Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5",
-      "short": "f4640da",
-      "message": "Added new excercises",
-      "author": "Elijah Kerry",
-      "date": "2024-11-21T16:58:11Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "f96842dc7fd776c01e186bb089eb7079444390f1",
-      "short": "f96842d",
-      "message": "improved resize appearance",
-      "author": "Elijah Kerry",
-      "date": "2024-11-04T12:09:33Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "e2ee064d41e45456d7d51afd63c3fce28713fc94",
-      "short": "e2ee064",
-      "message": "mass compiled on windows",
-      "author": "Elijah Kerry",
-      "date": "2024-11-04T12:06:41Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "abb3a165d423dff26829fa296e1039bbc3903ece",
-      "short": "abb3a16",
-      "message": "Windows bug",
-      "author": "Elijah Kerry",
-      "date": "2024-11-04T11:57:48Z",
-      "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "7599b047409f6801f226b06159da3036986c5bb8",
-      "short": "7599b04",
-      "message": "debugging the assignment of visa resources to curriculum code",
-      "author": "Elijah Kerry",
-      "date": "2024-11-04T10:44:47Z",
-      "project": true,
       "dep_only": false
     }
   ],
