@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.8.8",
+  "version": "4.8.9",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.8.9",
+        "date": "2026-07-22",
+        "title": "Failed dashboard runs stay re-runnable and link to their report",
+        "summary": "A run that failed and left the dashboard's sticky red \"Failed\" badge is now offered for Re-run in the Populate history chooser instead of showing \"none in scope\", and clicking the badge offers Re-run plus a direct View report link when the failed run still produced a report.",
+        "highlights": [
+          "Populate history now gathers browser-side queued/failed overlay cells (cidash-queued-cell) that replaced an empty run glyph, so a failed dispatch stays re-runnable rather than disappearing as \"none in scope\".",
+          "The failed-run manage dialog adds a Re-run button (dispatch the activity again for that commit) and a View report link when the failed run deployed a report; a hard failure with no report keeps just the View run (Actions) link."
+        ]
+      },
       {
         "version": "4.8.8",
         "date": "2026-07-22",

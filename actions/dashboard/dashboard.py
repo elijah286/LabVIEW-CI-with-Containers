@@ -2236,6 +2236,20 @@ run_dialog = (r"""
       }
       return out.join('');
     }
+    function qReportUrl(entry){
+      // A failed overlay that replaced a deployed RESULT cell stashed that cell's
+      // original chip HTML (entry.orig). If that chip linked to a deployed report
+      // (anything other than a bare GitHub Actions run page), hand it back so the
+      // failed dialog can route to the report - where a unit-test / analyzer failure
+      // is actually explained - instead of only the Actions log. A hard run failure
+      // that produced no report (no orig, or an Actions-only link) yields '' -> the
+      // dialog keeps just the "View run" (Actions) button.
+      var o = entry && entry.orig; if(!o) return '';
+      var m = /href="([^"]+)"/i.exec(o); if(!m) return '';
+      var u = m[1];
+      if(/github\.com\/[^"']*\/actions\//i.test(u)) return '';
+      return u;
+    }
     function renderQ(){
       var c = qState.cap, sha = qState.sha; if(!c) return;
       var o = qLoad(); var entry = o[c+'|'+sha]; var def = RT[c];
@@ -2250,14 +2264,20 @@ run_dialog = (r"""
       if(!failed && live.length>1 && pos){ h += '<p style="margin:0 0 12px;font-size:.85em">Place in queue: <strong>#'+pos+'</strong> <span style="color:var(--fg-muted)">of '+live.length+' queued from this browser (oldest first).</span></p>'; }
       h += '<div id="cidash-q-status" style="font-size:.82em;min-height:1.2em;margin:0 0 12px"></div>';
       h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
+      var repUrl = failed ? qReportUrl(entry) : '';
       h += qViewLinks(c, entry);
-      if(failed){ h += '<button class="cidash-btn cidash-ghost" id="cidash-q-dismiss">Dismiss</button>'; }
+      if(failed){
+        if(repUrl){ h += '<a class="cidash-btn" style="text-decoration:none" href="'+repUrl+'" target="_blank" rel="noopener">View report \u2197</a>'; }
+        h += '<button class="cidash-btn" id="cidash-q-rerun">Re-run</button>';
+        h += '<button class="cidash-btn cidash-ghost" id="cidash-q-dismiss">Dismiss</button>';
+      }
       else { h += '<button class="cidash-btn cidash-danger" id="cidash-q-cancel">\u2715 Cancel run</button>'; }
       h += '</div>';
-      if(failed){ h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0"><strong>View</strong> opens the failed run on GitHub to see what went wrong. <strong>Dismiss</strong> clears this badge so you can run it again from the dashboard.</p>'; }
+      if(failed){ h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0">'+(repUrl?'<strong>View report</strong> opens this activity\u2019s report to see what failed. ':'')+'<strong>View</strong> opens the failed run on GitHub to see what went wrong. <strong>Re-run</strong> starts it again for this commit. <strong>Dismiss</strong> clears this badge.</p>'; }
       else { h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0"><strong>Cancel run</strong> stops it on GitHub Actions (uses the same token you queued it with). <strong>View</strong> opens it on GitHub, where you can watch it or stop it manually.</p>'; }
       $("cidash-q-body").innerHTML = h;
       var cb=$("cidash-q-cancel"); if(cb) cb.addEventListener('click', function(){ cancelQueued(c, sha); });
+      var rb=$("cidash-q-rerun"); if(rb) rb.addEventListener('click', function(){ var rp=(entry.parent||''), rs=(entry.short||sha.slice(0,7)); qForget(c, sha); cidashQClose(); openRun(c, sha, rp, rs); });
       var db=$("cidash-q-dismiss"); if(db) db.addEventListener('click', function(){ qForget(c, sha); cidashQClose(); });
     }
     function openQ(c, sha){
@@ -2707,6 +2727,20 @@ run_dialog = (r"""
         Array.prototype.forEach.call(tr.querySelectorAll('td.cidash-active-cell'), function(td){
           out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
                      parent:td.getAttribute('data-parent')||'', order:idx, done:true });
+        });
+        // A client-side optimistic overlay (Queued / Running / Failed) can REPLACE an
+        // empty run glyph, leaving the cell with ONLY data-qcap/data-qsha (the run's
+        // <a> - and thus the cap/sha this dialog keys off - is gone). Gather those too
+        // so a cell whose only state is an in-browser overlay (e.g. a unit-test run that
+        // FAILED) stays re-runnable here instead of vanishing as "none in scope". A
+        // cap-cell/active-cell that ALSO carries an overlay is already counted above, so
+        // skip it to avoid double-counting; parent is recovered from the stored entry.
+        Array.prototype.forEach.call(tr.querySelectorAll('td.cidash-queued-cell[data-qcap]'), function(td){
+          if(td.classList.contains('cidash-cap-cell') || td.classList.contains('cidash-active-cell')) return;
+          var qc=td.getAttribute('data-qcap'), qs=td.getAttribute('data-qsha');
+          if(!qc || !qs) return;
+          var qe=(qLoad()[qc+'|'+qs])||{};
+          out.push({ cap:qc, sha:qs, parent:qe.parent||'', order:idx, done:true });
         });
       });
       if(RT.snapshots2){
