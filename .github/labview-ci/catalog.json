@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.6.11",
+  "version": "4.6.12",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,15 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.6.12",
+        "date": "2026-07-21",
+        "type": "patch",
+        "summary": "Antidoc doc-gen still times out at the g-cli launch handshake even with the 10-minute connect timeout (LabVIEW launches but the antidoc tool VI never connects back), so this adds diagnostics + hygiene to pinpoint it: run-antidoc.ps1 now runs g-cli with -v (verbose) so the launch and connection attempts are logged, kills any stray LabVIEW/VIPM process before launching (mirrors Wovalab's own Antidoc CI, so g-cli always gets a fresh attachable LabVIEW), and on failure records whether LabVIEW is still running (tool VI launched but hung = broken VI/deps) or gone (LabVIEW did not start).",
+        "changes": [
+          "run-antidoc.ps1: g-cli -v verbose; kill stray LabVIEW/VIPM before launch; post-mortem LabVIEW-process probe on failure."
+        ]
+      },
       {
         "version": "4.6.11",
         "date": "2026-07-21",

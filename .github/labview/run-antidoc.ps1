@@ -242,11 +242,38 @@ else {
   # application / Timed out waiting for app to connect to g-cli". Give it 10 minutes
   # so a cold start never trips the handshake; override with ANTIDOC_CONNECT_TIMEOUT_MS.
   $ConnectTimeoutMs = if ($env:ANTIDOC_CONNECT_TIMEOUT_MS) { $env:ANTIDOC_CONNECT_TIMEOUT_MS } else { '600000' }
-  & $GCli --lv-ver $LvYear --timeout $ConnectTimeoutMs antidoc -- -addon lvproj -pp $Project -t $Title -out $DocDir 2>&1 |
+
+  # A stray LabVIEW / VIPM process left running in the container interferes with
+  # g-cli launching its own fresh, attachable LabVIEW (g-cli may attach to the wrong
+  # instance, or the handshake never completes). Wovalab's own Antidoc CI kills these
+  # before every g-cli step; mirror that. Best-effort: a fresh container usually has
+  # none, so this is a no-op there.
+  foreach ($proc in @('LabVIEW', 'VI Package Manager', 'VIPM File Handler')) {
+    Get-Process -Name $proc -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  }
+
+  # -v (verbose) makes g-cli log exactly how it launches LabVIEW and whether the app
+  # connected / the process exited, so a "no connection" failure is diagnosable from
+  # the report log instead of a silent timeout.
+  Add-Content -Path $LogFile -Value "Launching: $GCli -v --lv-ver $LvYear --timeout $ConnectTimeoutMs antidoc -- -addon lvproj -pp `"$Project`" -t `"$Title`" -out `"$DocDir`""
+  & $GCli -v --lv-ver $LvYear --timeout $ConnectTimeoutMs antidoc -- -addon lvproj -pp $Project -t $Title -out $DocDir 2>&1 |
     Tee-Object -FilePath $LogFile -Append
 
   $ExitCode = $LASTEXITCODE
   $ErrorActionPreference = $prevEAP
+
+  # Post-mortem on failure: a still-running LabVIEW means the tool VI launched but
+  # never connected (broken VI / stuck init) rather than LabVIEW failing to start.
+  if ($ExitCode -ne 0) {
+    $lv = @(Get-Process -Name 'LabVIEW' -ErrorAction SilentlyContinue)
+    if ($lv.Count -gt 0) {
+      Add-Content -Path $LogFile -Value "Post-mortem: LabVIEW.exe is STILL RUNNING after the g-cli timeout ($($lv.Count) process[es]) -- the tool VI launched but never connected (likely a broken/unloadable antidoc.vi or its dependency chain in the worker image)."
+    } else {
+      Add-Content -Path $LogFile -Value 'Post-mortem: no LabVIEW.exe running after failure -- LabVIEW did not launch or exited early (check activation / the g-cli LabVIEW library for this LabVIEW version).'
+    }
+    # Clean up any stuck LabVIEW so it never lingers into a later step.
+    Get-Process -Name 'LabVIEW' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  }
 }
 
 $Duration = [math]::Round(((Get-Date) - $Start).TotalSeconds, 1)
