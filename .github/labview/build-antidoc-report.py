@@ -67,6 +67,58 @@ def scan_doc(report_dir: Path) -> tuple[str, str, list[str]]:
     return "none", "", rel
 
 
+_IMG_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp")
+
+
+def _doc_viewer_data(report_dir: Path, rel_files, primary_path):
+    """Work out what the client viewer needs: the main AsciiDoc (the top-level
+    document that pulls the sections together with include::), the include key
+    for each .adoc, the image list, and the imagesdir the deployed page must use.
+    Returns (main_rel, doc_dir, main_key, doc_manifest, img_manifest, images_dir)."""
+    adoc = [r for r in rel_files if r.lower().endswith(".adoc")]
+    imgs = [r for r in rel_files if r.lower().endswith(_IMG_EXTS)]
+
+    def size(r):
+        try:
+            return (report_dir / r).stat().st_size
+        except OSError:
+            return 0
+
+    # Prefer a top-level document (one segment below the doc root) that actually
+    # has include:: directives; else the largest top-level doc; else the primary.
+    tops = [r for r in adoc if r.count("/") == 1]
+    main_rel = ""
+    for r in sorted(tops or adoc, key=lambda x: -size(x)):
+        try:
+            if "include::" in (report_dir / r).read_text(encoding="utf-8", errors="replace"):
+                main_rel = r
+                break
+        except OSError:
+            pass
+    if not main_rel:
+        main_rel = tops[0] if tops else (adoc[0] if adoc else primary_path)
+
+    doc_dir = os.path.dirname(main_rel)  # e.g. 'doc'
+
+    def rel_to_doc(r):
+        if doc_dir and r.startswith(doc_dir + "/"):
+            return r[len(doc_dir) + 1:]
+        return r
+
+    # Main document first, then its section files sorted by name.
+    others = sorted([r for r in adoc if r != main_rel], key=lambda x: x.lower())
+    ordered = ([main_rel] if main_rel in adoc else []) + others
+    doc_manifest = [{"path": r, "key": rel_to_doc(r)} for r in ordered]
+    main_key = rel_to_doc(main_rel)
+
+    img_manifest = sorted(imgs, key=lambda x: x.lower())
+    # imagesdir the page must reference so `image::X[]` resolves to the deployed
+    # file; Antidoc puts images in <doc>/Images and sets `:imagesdir: Images`.
+    images_dir = os.path.dirname(img_manifest[0]) if img_manifest else doc_dir
+
+    return main_rel, doc_dir, main_key, doc_manifest, img_manifest, images_dir
+
+
 def read_log(report_dir: Path) -> str:
     p = report_dir / "antidoc.log"
     if not p.is_file():
@@ -115,6 +167,20 @@ PAGE = r"""<!DOCTYPE html>
     details{margin-top:14px}
     summary{cursor:pointer;color:var(--fg-muted);font-size:.85em}
     .hide{display:none}
+    /* Two-pane documentation viewer */
+    .viewer{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;min-height:60vh}
+    .vsidebar{flex:0 0 244px;background:var(--bg);border-right:1px solid var(--border);overflow:auto;max-height:80vh;padding:6px 0;font-size:.85em}
+    .vgroup{padding:12px 12px 4px;color:var(--fg-muted);font-size:.72em;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+    .vfile{display:block;width:100%;text-align:left;border:0;border-left:2px solid transparent;background:none;padding:5px 12px 5px 20px;color:var(--fg);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:inherit}
+    .vfile:hover{background:var(--surface);text-decoration:none}
+    .vfile.active{background:var(--surface);border-left-color:var(--link);color:var(--link);font-weight:600}
+    .vmain{flex:1 1 auto;min-width:0;overflow:auto;max-height:80vh}
+    .vmain .doc{border:0;border-radius:0;min-height:100%}
+    .vmain pre{border:0;border-radius:0;max-height:none}
+    .imgview{padding:20px;text-align:center}
+    .imgview img{max-width:100%;height:auto;border:1px solid var(--border);border-radius:6px;background:#fff}
+    .imgview .cap{margin-top:10px;font-size:.82em;color:var(--fg-muted);word-break:break-all}
+    @media(max-width:720px){.viewer{flex-direction:column}.vsidebar{flex:none;max-height:210px;border-right:0;border-bottom:1px solid var(--border)}}
   </style>
 </head>
 <body>
@@ -156,64 +222,117 @@ DOC_HTML = r"""<div class="card">
 
 DOC_ADOC = r"""<div class="card">
       <div class="toolbar">
-        <a class="btn" href="__PRIMARY__" download>Download AsciiDoc</a>
-        <button class="btn" id="toggleRaw" type="button">View raw source</button>
+        <a class="btn" href="__MAINADOC__" download>Download AsciiDoc</a>
+        <a class="btn" href="__MAINADOC__" target="_blank" rel="noopener">Open raw source</a>
         <span id="renderNote" style="font-size:.8em;color:var(--fg-muted)"></span>
       </div>
-      <div class="doc" id="rendered">Rendering documentation...</div>
-      <pre id="rawsrc" class="hide"></pre>
+      <div class="viewer">
+        <nav class="vsidebar" id="vsidebar" aria-label="Generated documentation files"></nav>
+        <div class="vmain">
+          <div class="doc" id="rendered">Rendering documentation&hellip;</div>
+          <pre id="rawsrc" class="hide"></pre>
+          <div class="imgview hide" id="imgview"></div>
+        </div>
+      </div>
     </div>"""
 
 DOC_NONE = r"""<div class="card">
       <p style="margin:0;color:var(--fg-muted)">No documentation was produced. See the run log below for details (the most common causes are Antidoc not being baked into the worker image, or no LabVIEW project being found).</p>
     </div>"""
 
-# Renders the generated AsciiDoc client-side. Progressive: shows the raw source
-# until Asciidoctor.js (CDN) loads and converts it; if the CDN is unreachable or
-# conversion fails, the raw source stays visible and remains downloadable.
+# Client-side documentation viewer. A file navigator on the left lists the main
+# AsciiDoc, its section includes and every rendered image; the pane on the right
+# shows the fully rendered document by default (Asciidoctor.js from a CDN, with a
+# custom include-processor that resolves Antidoc's `include::Includes/NNN.adoc[]`
+# from files fetched up front, and imagesdir pinned at the deployed image folder),
+# or the raw source of any file / a preview of any image on demand. If the CDN is
+# unreachable the raw main source stays visible and every file remains downloadable.
 ADOC_SCRIPT = r"""<script>
   (function(){
-    var PRIMARY = "__PRIMARY__";
+    var MAINKEY   = "__MAINKEY__";
     var IMAGESDIR = "__IMAGESDIR__";
+    var DOCFILES  = __DOCFILES__;   // [{path:'doc/Includes/000.adoc', key:'Includes/000.adoc'}]
+    var IMGFILES  = __IMGFILES__;   // ['doc/Images/foo.png', ...]
     var rendered = document.getElementById('rendered');
-    var rawsrc = document.getElementById('rawsrc');
-    var note = document.getElementById('renderNote');
-    var toggle = document.getElementById('toggleRaw');
-    var source = '';
-    toggle.addEventListener('click', function(){
-      var showRaw = rawsrc.classList.contains('hide');
-      rawsrc.classList.toggle('hide', !showRaw);
-      rendered.classList.toggle('hide', showRaw);
-      toggle.textContent = showRaw ? 'View rendered' : 'View raw source';
-    });
-    function showRawOnly(msg){
-      rendered.classList.add('hide');
-      rawsrc.classList.remove('hide');
-      toggle.textContent = 'View rendered';
-      if (note) note.textContent = msg || '';
+    var rawsrc   = document.getElementById('rawsrc');
+    var imgview  = document.getElementById('imgview');
+    var sidebar  = document.getElementById('vsidebar');
+    var note     = document.getElementById('renderNote');
+    var DOCMAP = {};          // include key -> source text
+    var activeBtn = null;
+
+    function show(which){
+      rendered.classList.toggle('hide', which !== 'doc');
+      rawsrc.classList.toggle('hide',   which !== 'raw');
+      imgview.classList.toggle('hide',  which !== 'img');
     }
-    fetch(PRIMARY).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-      .then(function(text){
-        source = text;
-        rawsrc.textContent = text;
-        var s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/asciidoctor@2.2.6/dist/browser/asciidoctor.min.js';
-        s.onload = function(){
-          try{
-            var factory = window.Asciidoctor;
-            var ad = (typeof factory === 'function') ? factory() : factory;
-            var htmlOut = ad.convert(source, {standalone:false, safe:'safe',
-              attributes:{showtitle:true, 'imagesdir':IMAGESDIR, icons:'font', sectanchors:true}});
-            rendered.innerHTML = htmlOut;
-            if (note) note.textContent = '';
-          }catch(e){ showRawOnly('Showing raw source (render failed).'); }
-        };
-        s.onerror = function(){ showRawOnly('Showing raw source (renderer offline).'); };
-        document.head.appendChild(s);
-      })
-      .catch(function(e){
-        rendered.textContent = 'Could not load the generated document (' + e.message + ').';
-      });
+    function setActive(btn){ if(activeBtn) activeBtn.classList.remove('active'); activeBtn = btn; if(btn) btn.classList.add('active'); }
+    function basename(p){ return p.split('/').pop(); }
+    function mkFile(label, title, onClick){
+      var b = document.createElement('button');
+      b.className = 'vfile'; b.type = 'button'; b.textContent = label; if(title) b.title = title;
+      b.addEventListener('click', function(){ setActive(b); onClick(); });
+      return b;
+    }
+    function mkGroup(label){ var d = document.createElement('div'); d.className = 'vgroup'; d.textContent = label; sidebar.appendChild(d); }
+
+    function viewDoc(){ show('doc'); }
+    function viewRaw(key){ show('raw'); rawsrc.textContent = (DOCMAP[key] != null ? DOCMAP[key] : '(unavailable)'); rawsrc.scrollTop = 0; }
+    function viewImg(path){
+      show('img'); imgview.innerHTML = '';
+      var i = document.createElement('img'); i.src = encodeURI(path); i.alt = basename(path); i.loading = 'lazy';
+      var c = document.createElement('div'); c.className = 'cap'; c.textContent = basename(path);
+      imgview.appendChild(i); imgview.appendChild(c);
+    }
+
+    // Build the file navigator.
+    var docBtn = mkFile('\uD83D\uDCD6  Rendered document', 'The full generated document', viewDoc);
+    sidebar.appendChild(docBtn); setActive(docBtn);
+    mkGroup('Source files (' + DOCFILES.length + ')');
+    DOCFILES.forEach(function(f){
+      var isMain = (f.key === MAINKEY);
+      sidebar.appendChild(mkFile((isMain ? '\u2605  ' : '') + f.key, f.path, function(){ viewRaw(f.key); }));
+    });
+    if (IMGFILES.length){
+      mkGroup('Images (' + IMGFILES.length + ')');
+      IMGFILES.forEach(function(p){ sidebar.appendChild(mkFile(basename(p), p, function(){ viewImg(p); })); });
+    }
+
+    function fetchText(url){ return fetch(encodeURI(url)).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }); }
+
+    // Fetch every source file, then render the main document with an include-processor.
+    Promise.all(DOCFILES.map(function(f){
+      return fetchText(f.path).then(function(t){ DOCMAP[f.key] = t; }).catch(function(){ DOCMAP[f.key] = ''; });
+    })).then(function(){
+      var main = DOCMAP[MAINKEY] || '';
+      rawsrc.textContent = main;
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/@asciidoctor/core@2.2.6/dist/browser/asciidoctor.js';
+      s.integrity = 'sha384-sfmkIywMu6zzFP/nd8/OECbZxHtZhbc+AihuuveRHvvgXnadNUiWzFXMCD+lBU+6';
+      s.crossOrigin = 'anonymous';
+      s.onload = function(){
+        try{
+          var factory = window.Asciidoctor;
+          var ad = (typeof factory === 'function') ? factory() : factory;
+          var reg = ad.Extensions.create();
+          reg.includeProcessor(function(){
+            this.handles(function(){ return true; });
+            this.process(function(doc, reader, target, attrs){
+              var content = DOCMAP[target];
+              if (content == null) content = 'NOTE: include not found: ' + target;
+              return reader.pushInclude(content, target, target, 1, attrs);
+            });
+          });
+          var htmlOut = ad.convert(main, {standalone:false, safe:'safe', backend:'html5',
+            extension_registry: reg,
+            attributes:{showtitle:true, 'imagesdir':IMAGESDIR, icons:'font', sectanchors:true, 'source-highlighter':null}});
+          rendered.innerHTML = htmlOut;
+          if (note) note.textContent = '';
+        }catch(e){ rendered.classList.add('hide'); show('raw'); if(note) note.textContent = 'Showing raw source (render failed).'; }
+      };
+      s.onerror = function(){ rendered.classList.add('hide'); show('raw'); if(note) note.textContent = 'Showing raw source (renderer offline).'; };
+      document.head.appendChild(s);
+    });
   })();
 </script>"""
 
@@ -259,11 +378,14 @@ def build(report_dir: Path, args) -> None:
     if primary_kind == "html":
         doc_section = DOC_HTML.replace("__PRIMARY__", html.escape(primary_path))
     elif primary_kind == "adoc":
-        images_dir = os.path.dirname(primary_path)  # e.g. 'doc' (Kroki images live beside the .adoc)
-        doc_section = DOC_ADOC.replace("__PRIMARY__", html.escape(primary_path))
+        main_rel, doc_dir, main_key, doc_manifest, img_manifest, images_dir = _doc_viewer_data(
+            report_dir, rel_files, primary_path)
+        doc_section = DOC_ADOC.replace("__MAINADOC__", html.escape(main_rel))
         doc_script = (ADOC_SCRIPT
-                      .replace("__PRIMARY__", primary_path.replace('"', '\\"'))
-                      .replace("__IMAGESDIR__", images_dir.replace('"', '\\"')))
+                      .replace("__MAINKEY__", main_key.replace('"', '\\"'))
+                      .replace("__IMAGESDIR__", images_dir.replace('"', '\\"'))
+                      .replace("__DOCFILES__", json.dumps(doc_manifest))
+                      .replace("__IMGFILES__", json.dumps(img_manifest)))
     else:
         doc_section = DOC_NONE
 

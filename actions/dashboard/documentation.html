@@ -1318,7 +1318,7 @@ docker run --rm `
       <h3 id="cap-antidoc">16.5 Antidoc <a class="anchor" href="#cap-antidoc">#</a></h3>
       <p>Driver: <code>run-antidoc.ps1</code>; report: <code>build-antidoc-report.py</code>. It drives Wovalab's
         Antidoc CLI through <code>g-cli</code> against the project's <code>.lvproj</code> (auto-detected if not
-        specified), producing AsciiDoc with embedded diagram images. The CLI is invoked as the g-cli tool
+        specified), producing AsciiDoc with embedded diagram images. The report page (built by <code>build-antidoc-report.py</code>) is a two-pane in-browser viewer: a file navigator lists the main document, its section includes and every rendered image, and the pane beside it shows the fully rendered document by default &mdash; Asciidoctor.js resolves Antidoc's <code>include::</code> sections (fetched up front) and pins <code>imagesdir</code> at the deployed image folder &mdash; or the raw source of any file or a preview of any image on demand; if the renderer CDN is unreachable the raw source stays visible and every file remains downloadable. The CLI is invoked as the g-cli tool
         <code>antidoc</code> (renamed from the older <code>antidoccli</code>) with <code>-addon lvproj</code>, so the
         LabVIEW-project documentation add-on (<code>wovalab_lib_antidoc_add_on_labview_project_documentation</code>)
         must be &mdash; and is &mdash; baked into the worker image alongside the CLI in
