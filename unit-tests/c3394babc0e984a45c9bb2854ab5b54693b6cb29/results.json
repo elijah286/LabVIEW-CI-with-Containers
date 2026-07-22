@@ -8,23 +8,28 @@
   "snap_base": "https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/",
   "dash_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers/",
   "labview_version": "2026",
-  "tools": [],
+  "tools": [
+   {
+    "id": "utf",
+    "label": "Unit Test Framework"
+   }
+  ],
   "commit": {
    "message": "Added a Build Spec",
    "author": "Elijah Kerry",
    "date": "2026-07-21T15:54:23-05:00"
   },
-  "generated_utc": "2026-07-22 18:06 UTC"
+  "generated_utc": "2026-07-22 20:10 UTC"
  },
  "summary": {
-  "tests": 0,
-  "passed": 0,
-  "failed": 0,
+  "tests": 15,
+  "passed": 10,
+  "failed": 3,
   "errored": 0,
-  "skipped": 0,
-  "percent": 0,
-  "status": "empty",
-  "duration": 0.0
+  "skipped": 2,
+  "percent": 67,
+  "status": "failed",
+  "duration": 7.7
  },
  "status_order": [
   "failed",
@@ -64,7 +69,297 @@
    "url": "linux/results.json"
   }
  ],
- "suites": [],
+ "suites": [
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\Basic Functions\\Add.lvtest",
+   "tests": 3,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "time": 0.925,
+   "cases": [
+    {
+     "name": "Test Case 1",
+     "classname": "",
+     "status": "passed",
+     "time": 0.065,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    },
+    {
+     "name": "Test Case 2",
+     "classname": "",
+     "status": "passed",
+     "time": 0.045,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 2",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    },
+    {
+     "name": "Test Case 3",
+     "classname": "",
+     "status": "passed",
+     "time": 0.056,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 3",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\Basic Functions\\Divide by Zero.lvtest",
+   "tests": 1,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "time": 0.59,
+   "cases": [
+    {
+     "name": "Test Case 1",
+     "classname": "",
+     "status": "passed",
+     "time": 0.047,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\Basic Functions\\Divide.lvtest",
+   "tests": 3,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "time": 1.01,
+   "cases": [
+    {
+     "name": "Test Case 1",
+     "classname": "",
+     "status": "passed",
+     "time": 0.07,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    },
+    {
+     "name": "Test Case 2",
+     "classname": "",
+     "status": "passed",
+     "time": 0.03,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 2",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    },
+    {
+     "name": "Test Case 3",
+     "classname": "",
+     "status": "passed",
+     "time": 0.01,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 3",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\Basic Functions\\Subtract.lvtest",
+   "tests": 2,
+   "failures": 1,
+   "errors": 0,
+   "skipped": 0,
+   "time": 0.532,
+   "cases": [
+    {
+     "name": "Test Case 1",
+     "classname": "",
+     "status": "passed",
+     "time": 0.064,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    },
+    {
+     "name": "Test Case 2",
+     "classname": "",
+     "status": "failed",
+     "time": 0.079,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 2",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\Basic Functions\\Waveforms.lvlib\\Waveforms.lvtest",
+   "tests": 1,
+   "failures": 1,
+   "errors": 0,
+   "skipped": 0,
+   "time": 1.857,
+   "cases": [
+    {
+     "name": "Test Case 1",
+     "classname": "",
+     "status": "failed",
+     "time": 0.031,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\Basic Functions\\Waveforms.lvlib\\Array of Waveforms.lvtest",
+   "tests": 1,
+   "failures": 1,
+   "errors": 0,
+   "skipped": 0,
+   "time": 1.362,
+   "cases": [
+    {
+     "name": "Test Case 1",
+     "classname": "",
+     "status": "failed",
+     "time": 0.052,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\User-Defined Test\\Untitled.lvtest",
+   "tests": 0,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "time": 0.0,
+   "cases": []
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\User-Defined Test\\User-Defined Advanced.lvtest",
+   "tests": 1,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "time": 1.232,
+   "cases": [
+    {
+     "name": "Test Case 1",
+     "classname": "",
+     "status": "passed",
+     "time": 1.0,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\User-Defined Test\\User-Defined Basic.lvtest",
+   "tests": 1,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "time": 0.176,
+   "cases": [
+    {
+     "name": "Test Case 1",
+     "classname": "",
+     "status": "passed",
+     "time": 0.0,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "Test Case 1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  },
+  {
+   "tool": "utf",
+   "name": "Example.lvproj\\My Computer\\Basic Functions\\Multiply.lvtest",
+   "tests": 0,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 2,
+   "time": 0.0,
+   "cases": [
+    {
+     "name": "1",
+     "classname": "",
+     "status": "skipped",
+     "time": 0.0,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "1",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    },
+    {
+     "name": "2",
+     "classname": "",
+     "status": "skipped",
+     "time": 0.0,
+     "message": "",
+     "details": "",
+     "test_vi_rel": "",
+     "test_vi_name": "2",
+     "target_vi_rel": "",
+     "target_vi_name": ""
+    }
+   ]
+  }
+ ],
  "tooling": {
   "missing": []
  }
