@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "74ec0ef99cf19ab831ac90d5c729d2107339662a",
+  "sha": "112a37f7384584273bef64368408a8d7ef6dfe5d",
   "revisions": [
+    {
+      "sha": "112a37f7384584273bef64368408a8d7ef6dfe5d",
+      "short": "112a37f",
+      "message": "Refresh the dashboard after a container update + stop false-missing tooling VIPC (4.6.9)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T00:06:11Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "74ec0ef99cf19ab831ac90d5c729d2107339662a",
       "short": "74ec0ef",
@@ -895,15 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "cf88c13aa243e84c0a7b4e518a226038532c7f3e",
-      "short": "cf88c13",
-      "message": "Linux installs copy the shared LCWC base (source/client split) like Windows (4.1.6)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T13:43:41Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1119,10 +1119,10 @@
     },
     {
       "path": ".github/labview/experimental.vipc",
-      "role": "project",
+      "role": "capability",
       "capability": "",
       "tooling": false,
-      "configured": true,
+      "configured": false,
       "monitored": true,
       "monitorOn": [
         "windows",

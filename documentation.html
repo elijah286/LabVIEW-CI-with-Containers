@@ -1586,6 +1586,15 @@ flowchart TD
         table evaluates each column the same way: a package that is <strong>monitored</strong> for a platform but not
         yet baked into that worker shows as <strong>missing</strong> in that column (Linux is evaluated exactly like
         Windows), while a package that is simply not monitored for the platform stays N/A.</div>
+      <div class="note"><span class="lbl">The dashboard refreshes after a build</span>
+        A completed worker build (<code>Build LabVIEW CI Image</code> / <code>Build LabVIEW CI Image - Linux</code>) is
+        in the dashboard&rsquo;s <code>workflow_run</code> triggers, so finishing a container update rebuilds the
+        dashboard and regenerates <code>deps-pending.json</code> against the freshly published worker manifest &mdash;
+        the &ldquo;dependencies need installing&rdquo; banner clears on its own once the update lands, with no manual
+        refresh. (Publishing the worker manifest to <code>gh-pages</code> does not itself trigger a rebuild; the
+        <em>build workflow completing</em> is the signal.) VIPC files under <code>.github/</code> are treated as
+        internal tooling &mdash; the build&rsquo;s &ldquo;Stage repo VIPC files&rdquo; step never bakes them, so they
+        are shown as N/A on the worker columns rather than as a false missing dependency.</div>
 
       <h3>Complete runner inventory</h3>
       <p>Every workflow in the repository, the runner(s) it uses, what triggers it, and the conditions under which it
