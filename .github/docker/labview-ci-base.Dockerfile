@@ -111,3 +111,11 @@ RUN $ErrorActionPreference = 'Continue'; `
 
 LABEL com.cotc.ci-base.kind=labview-ci `
       com.cotc.ci-base.platform=windows
+
+# NI's LabVIEW container only licenses the headless automation path
+# (LabVIEWCLI -Headless). Tools that launch LabVIEW.exe DIRECTLY -- e.g. g-cli
+# (used by Antidoc) -- otherwise come up at the activation wizard and hang. NI's
+# global override makes EVERY LabVIEW launch headless and activation-free, so
+# direct-launch tools work too. See ni/labview-for-containers docs
+# (Headless LabVIEW -> "Setting Headless Mode as default"; FAQ 11).
+ENV LV_RTE_HEADLESS=1

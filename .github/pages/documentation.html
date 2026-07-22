@@ -1323,7 +1323,7 @@ docker run --rm `
         LabVIEW-project documentation add-on (<code>wovalab_lib_antidoc_add_on_labview_project_documentation</code>)
         must be &mdash; and is &mdash; baked into the worker image alongside the CLI in
         <code>antidoc.vipc</code>. Four implementation details are worth knowing:
-        it sets <strong><code>LV_RTE_HEADLESS=1</code></strong> before launching g-cli &mdash; g-cli launches
+        it relies on <strong><code>LV_RTE_HEADLESS=1</code></strong> (set both in the worker base image and, as a belt-and-suspenders fallback, by the runner before launching g-cli) &mdash; g-cli launches
         <code>LabVIEW.exe</code> directly (not through <code>LabVIEWCLI&nbsp;-Headless</code>), and NI's container
         otherwise brings that direct launch up at the <em>activation wizard</em> so the tool VI never runs; NI's
         global headless override (<a href="https://github.com/ni/labview-for-containers/blob/main/docs/headless-labview.md">documented here</a>)
