@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "6c500cde7a55bc67eb4cfac0e83fc24a24adb805",
+  "sha": "b0cc721b63bd09942dc7e5183bef250039965901",
   "revisions": [
+    {
+      "sha": "b0cc721b63bd09942dc7e5183bef250039965901",
+      "short": "b0cc721",
+      "message": "CI: per-activity concurrency groups so dispatching one activity no longer cancels another (4.8.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T01:14:19Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "6c500cde7a55bc67eb4cfac0e83fc24a24adb805",
       "short": "6c500cd",
@@ -891,15 +900,6 @@
       "message": "installer: repoint a stale README dashboard link to the target repo (4.1.13)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T15:56:55Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "cbe9cc942cdb31e0538ddbd63010d61342c869f1",
-      "short": "cbe9cc9",
-      "message": "Wire experimental-gated Windows Beta copy + dashboard lane (4.1.12)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T15:23:21Z",
       "project": false,
       "dep_only": false
     },
