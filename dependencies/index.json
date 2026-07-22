@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "112a37f7384584273bef64368408a8d7ef6dfe5d",
+  "sha": "91a41156eb2b2cff0b15bbc61719b68a369e6c66",
   "revisions": [
+    {
+      "sha": "91a41156eb2b2cff0b15bbc61719b68a369e6c66",
+      "short": "91a4115",
+      "message": "Remove Windows Beta / Linux Beta from the dashboard surface (4.6.10)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T00:19:12Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "112a37f7384584273bef64368408a8d7ef6dfe5d",
       "short": "112a37f",
@@ -891,15 +900,6 @@
       "message": "Name worker-image runs Copy vs Build to reflect what they do (4.1.8)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T14:17:20Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "b1ddf9344568b8406bd6da89cfb2ecfe5fcbb8e6",
-      "short": "b1ddf93",
-      "message": "Install: dispatch the Windows worker build with copy_only=true (4.1.7)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T14:09:55Z",
       "project": false,
       "dep_only": false
     },
