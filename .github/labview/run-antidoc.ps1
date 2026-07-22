@@ -243,6 +243,17 @@ else {
   # so a cold start never trips the handshake; override with ANTIDOC_CONNECT_TIMEOUT_MS.
   $ConnectTimeoutMs = if ($env:ANTIDOC_CONNECT_TIMEOUT_MS) { $env:ANTIDOC_CONNECT_TIMEOUT_MS } else { '600000' }
 
+  # THE fix for "No connection established / Timed out waiting for app to connect":
+  # g-cli launches LabVIEW.exe DIRECTLY (not via `LabVIEWCLI -Headless`). In NI's
+  # official LabVIEW container (2026 Q1+), a direct launch without headless mode
+  # comes up at the ACTIVATION WIZARD and never runs the VI, so g-cli times out --
+  # which is exactly why Mass Compile / VI Analyzer (LabVIEWCLI -Headless) work but
+  # Antidoc (a g-cli tool) does not. NI's global override makes EVERY LabVIEW launch
+  # headless (no activation, dialogs suppressed): set LV_RTE_HEADLESS=1. See NI's
+  # ni/labview-for-containers docs (Headless LabVIEW -> "Setting Headless Mode as
+  # default"; FAQ 9 + 11). g-cli inherits this env var and passes it to LabVIEW.
+  if (-not $env:LV_RTE_HEADLESS) { $env:LV_RTE_HEADLESS = '1' }
+
   # A stray LabVIEW / VIPM process left running in the container interferes with
   # g-cli launching its own fresh, attachable LabVIEW (g-cli may attach to the wrong
   # instance, or the handshake never completes). Wovalab's own Antidoc CI kills these
@@ -255,6 +266,7 @@ else {
   # -v (verbose) makes g-cli log exactly how it launches LabVIEW and whether the app
   # connected / the process exited, so a "no connection" failure is diagnosable from
   # the report log instead of a silent timeout.
+  Add-Content -Path $LogFile -Value "LV_RTE_HEADLESS=$($env:LV_RTE_HEADLESS) (forces LabVIEW to launch headless so a direct g-cli launch does not hit the activation wizard)"
   Add-Content -Path $LogFile -Value "Launching: $GCli -v --lv-ver $LvYear --timeout $ConnectTimeoutMs antidoc -- -addon lvproj -pp `"$Project`" -t `"$Title`" -out `"$DocDir`""
   & $GCli -v --lv-ver $LvYear --timeout $ConnectTimeoutMs antidoc -- -addon lvproj -pp $Project -t $Title -out $DocDir 2>&1 |
     Tee-Object -FilePath $LogFile -Append

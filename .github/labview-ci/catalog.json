@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.8.4",
+  "version": "4.8.5",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.8.5",
+        "date": "2026-07-22",
+        "type": "patch",
+        "summary": "THE fix for Antidoc's \"No connection established / Timed out waiting for app to connect to g-cli\". Root cause (confirmed against NI's ni/labview-for-containers docs): the Antidoc CLI is a g-cli tool, and g-cli launches LabVIEW.exe DIRECTLY rather than through LabVIEWCLI -Headless. In NI's official LabVIEW container (2026 Q1+) a non-headless launch comes up at the activation wizard and never runs the VI, so g-cli times out -- which is exactly why Mass Compile / VI Analyzer (LabVIEWCLI -Headless) work but Antidoc did not. run-antidoc.ps1 now sets NI's global headless override LV_RTE_HEADLESS=1 before launching g-cli, so the direct LabVIEW launch runs headless and activation-free.",
+        "changes": [
+          "run-antidoc.ps1: set LV_RTE_HEADLESS=1 (NI global headless override) before the g-cli launch so a direct LabVIEW.exe launch does not hit the activation wizard in the container.",
+          "documentation.html: document the headless override as the key Antidoc implementation detail."
+        ]
+      },
       {
         "version": "4.8.4",
         "date": "2026-07-22",
