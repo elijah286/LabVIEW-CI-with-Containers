@@ -220,8 +220,13 @@
     const raw = (path, ref) => "https://raw.githubusercontent.com/" + repo + "/" + encodeURIComponent(ref || "HEAD") + "/" + path.split("/").map(encodeURIComponent).join("/");
     const api = path => "https://api.github.com/repos/" + repo + path;
     const CORE_VIPC = ".github/labview/vipm/ci-tooling.vipc";
+    // Capability VIPCs live at .github/labview/<cap>/<cap>.vipc and are baked only
+    // when that capability's worker is installed. Mirror the server: a known
+    // capability participates in missing-detection (not N/A) on its platform(s).
+    const CAP_VIPC_PLATFORMS = { antidoc: ["windows"] };
+    function vipcCapability(path){ const m = /^\.github\/labview\/([^/]+)\/[^/]+\.vipc$/.exec(normPath(path || "")); return (m && CAP_VIPC_PLATFORMS[m[1]]) ? m[1] : ""; }
     function normPath(path){ path = String(path || "").replace(/\\/g, "/"); return path.replace(/^\.\//, ""); }
-    function classifyVipc(path, configured, hasConfigList){ path = normPath(path); const entry = configured.get(path); const core = path === CORE_VIPC; const monitorOn = core ? MONITOR_PLATFORMS.slice() : monitorOnFrom(entry, hasConfigList); const monitored = monitorOn.length > 0; return { role:core ? "core" : "project", configured:monitored, monitored, monitorOn, locked:core }; }
+    function classifyVipc(path, configured, hasConfigList){ path = normPath(path); const entry = configured.get(path); const core = path === CORE_VIPC; const cap = core ? "" : vipcCapability(path); if (core) return { role:"core", capability:"", configured:true, monitored:true, monitorOn:MONITOR_PLATFORMS.slice(), locked:true }; if (cap){ const monitorOn = MONITOR_PLATFORMS.filter(p => (CAP_VIPC_PLATFORMS[cap] || []).indexOf(p) !== -1); return { role:"capability", capability:cap, configured:true, monitored:monitorOn.length > 0, monitorOn, locked:false }; } const monitorOn = monitorOnFrom(entry, hasConfigList); const monitored = monitorOn.length > 0; return { role:"project", capability:"", configured:monitored, monitored, monitorOn, locked:false }; }
     async function fetchJson(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.json(); }
     async function fetchText(url){ const r = await fetch(url, { cache:"no-cache" }); if (!r.ok) throw new Error(url + " -> " + r.status); return r.text(); }
     function selectDependencyTab(key){
@@ -974,7 +979,7 @@
     function presentCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><input class="dep-check" type="checkbox" checked disabled aria-label="Present"></td>'; }
     function missingCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><span class="dep-missing" aria-label="Missing dependency">!</span></td>'; }
     function notApplicableCell(label){ return '<td class="cell"' + (label ? ' title="' + esc(label) + '"' : '') + '><span class="dep-na">N/A</span></td>'; }
-    function isProjectVipc(vipc){ return !!vipc && vipc.monitored !== false && vipc.configured !== false && vipc.role !== 'core' && vipc.role !== 'capability' && vipc.tooling !== true; }
+    function isProjectVipc(vipc){ return !!vipc && vipc.monitored !== false && vipc.configured !== false && vipc.role !== 'core' && vipc.tooling !== true; }
     function statusCell(pkg, colState, vipc, col){
       if (!pkg) return "";
       if (vipc && col && Array.isArray(vipc.monitorOn) && vipc.monitorOn.indexOf(col.key) === -1) return notApplicableCell('Not monitored for ' + (MONITOR_LABELS[col.key] || col.key));
@@ -1178,7 +1183,8 @@
       const generatedVipcs = (data.vipc || []).map(v => {
         const cls = classifyVipc(v.path, vipcConfig, vipcHasConfig);
         const tooling = v.tooling === true || cls.role === 'core';
-        return { path:v.path, role:v.role || (tooling ? 'core' : 'project'), tooling, configured:tooling || cls.configured, monitored:tooling || cls.monitored, monitorOn:tooling ? MONITOR_PLATFORMS.slice() : cls.monitorOn, locked:tooling || cls.locked, packages:v.packages || [], error:v.error || "", open:false };
+        const cap = v.role === 'capability' || cls.role === 'capability';
+        return { path:v.path, role:v.role || cls.role || (tooling ? 'core' : 'project'), tooling, configured:tooling ? true : (cap ? (v.configured !== false) : cls.configured), monitored:tooling ? true : (cap ? (v.monitored !== false) : cls.monitored), monitorOn:tooling ? MONITOR_PLATFORMS.slice() : (cap ? (Array.isArray(v.monitorOn) ? v.monitorOn : cls.monitorOn) : cls.monitorOn), locked:tooling || cls.locked, packages:v.packages || [], error:v.error || "", open:false };
       });
       const dragonFiles = Array.isArray(data.dragon)
         ? data.dragon

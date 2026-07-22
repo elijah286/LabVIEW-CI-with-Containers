@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "10faa6710988c095f78e5cd678aa1810dd1fb6dd",
+  "sha": "b04e7de5fac414c0ee49b8a5ceaf444585628ee0",
   "revisions": [
+    {
+      "sha": "b04e7de5fac414c0ee49b8a5ceaf444585628ee0",
+      "short": "b04e7de",
+      "message": "Dependencies: review capability VIPCs + rebuild on any VIPC/Dragon change (4.8.2)",
+      "author": "lcwc",
+      "date": "2026-07-22T04:02:57Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "10faa6710988c095f78e5cd678aa1810dd1fb6dd",
       "short": "10faa67",
@@ -895,15 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "7a808d7039e5e1c39587eb522c1f974daf079e4a",
-      "short": "7a808d7",
-      "message": "Installer setup times match observed fresh installs (4.1.15)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T16:55:30Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1101,8 +1101,7 @@
       "configured": true,
       "monitored": true,
       "monitorOn": [
-        "windows",
-        "linux"
+        "windows"
       ],
       "locked": false,
       "packages": [
@@ -1126,8 +1125,7 @@
       "configured": false,
       "monitored": true,
       "monitorOn": [
-        "windows",
-        "linux"
+        "windows"
       ],
       "locked": false,
       "packages": [
