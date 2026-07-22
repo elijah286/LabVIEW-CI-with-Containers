@@ -1,7 +1,7 @@
 {
-  "version": "linux-ad7422753194",
+  "version": "linux-97111e79b7b3",
   "platform": "linux",
-  "manifest_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/linux/linux-ad7422753194/manifest.html",
-  "build_date": "2026-07-21T23:51:43Z",
-  "git_sha": "3c72a97b4ed618123a07b6cc834b9060c9c93cd0"
+  "manifest_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers/workers/linux/linux-97111e79b7b3/manifest.html",
+  "build_date": "2026-07-22T23:47:59Z",
+  "git_sha": "42a158ca099713add297ab9c2a90e19cb4ec1165"
 }
