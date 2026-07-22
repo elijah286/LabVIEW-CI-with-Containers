@@ -1,8 +1,35 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2d30ff4f73184119dc9fafdd7685a2dfa065902c",
+  "sha": "08a9cd8273c215c8fd570de77334022dfe78d1b0",
   "revisions": [
+    {
+      "sha": "08a9cd8273c215c8fd570de77334022dfe78d1b0",
+      "short": "08a9cd8",
+      "message": "Dispatched report runs survive a GitHub API rate limit (4.9.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T19:17:26Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "0c16ff2ea08043efe8fff4736e21fe9374f5ca87",
+      "short": "0c16ff2",
+      "message": "Add Tools > Debug Run: remote into a worker over VNC (4.9.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T19:15:02Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "2caee1e108d23069664c1e6baff54df55d1f467f",
+      "short": "2caee1e",
+      "message": "Dashboard: never blank the good dashboard on a GitHub API rate limit (4.8.13)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T19:12:46Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "2d30ff4f73184119dc9fafdd7685a2dfa065902c",
       "short": "2d30ff4",
@@ -873,33 +900,6 @@
       "message": "Make VI Analyzer Windows-only",
       "author": "Elijah Kerry",
       "date": "2026-06-24T22:04:16Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "8b8e98448b14797d575ff8cfd6b3029a79ea1611",
-      "short": "8b8e984",
-      "message": "Handle missing report documents without Pages 404",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T21:56:42Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "b9d5fd561094d030cbb496ba7f72e815d0233690",
-      "short": "b9d5fd5",
-      "message": "Restore Pages publisher for history backfills",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T21:47:43Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "2db555e9609fd41389ad7bf3d61dd489d47582d3",
-      "short": "2db555e",
-      "message": "Use installed VIPM inventory for dependency status",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T21:41:40Z",
       "project": false,
       "dep_only": false
     },

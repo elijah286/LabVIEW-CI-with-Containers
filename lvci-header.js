@@ -532,6 +532,7 @@
     sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 1.8v2.4M12 19.8v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M1.8 12h2.4M19.8 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg>',
     moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
     system: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13" rx="2"/><line x1="8.5" y1="20.5" x2="15.5" y2="20.5"/><line x1="12" y1="16.5" x2="12" y2="20.5"/></svg>',
+    debug: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M10 8.5l4 2.5-4 2.5z" fill="currentColor" stroke="none"/><line x1="8.5" y1="20.5" x2="15.5" y2="20.5"/><line x1="12" y1="16.5" x2="12" y2="20.5"/></svg>',
     share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>',
     external: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>',
@@ -793,6 +794,7 @@
       { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
       { label: 'Builds', svg: ICON.builds, kind: 'builds' },
       { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
+      { label: 'Debug Run', svg: ICON.debug, kind: 'debugrun' },
       { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
       { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
     ].filter(Boolean);
@@ -1116,6 +1118,15 @@
     runHistory();
   }
 
+  // ── Debug Run: open the dashboard's "Debug Run" dialog (boot a worker with a
+  //    remote LabVIEW desktop over VNC). The dialog lives in the dashboard
+  //    generator (window.lvciDebugRun); on every other page, route to the
+  //    dashboard with ?lvci-debug=1 so it opens there. ───────────────────────
+  function debugRun() {
+    if (typeof window.lvciDebugRun === 'function') { window.lvciDebugRun(); return; }
+    window.location.href = base + '/?lvci-debug=1';
+  }
+
   // ── Action button factory ─────────────────────────────────────────────────
   function actionEl(a, mobile) {
     var el;
@@ -1135,6 +1146,7 @@
         if (a.kind === 'configure' || a.kind === 'integrate' || a.kind === 'unittests' || a.kind === 'vibrowser' || a.kind === 'vianalyzer' || a.kind === 'builds') openPage(a.kind);
         else if (a.kind === 'rerun') rerun();
         else if (a.kind === 'runhistory') runHistory();
+        else if (a.kind === 'debugrun') debugRun();
       });
     }
     return el;
@@ -1187,6 +1199,7 @@
         el.addEventListener('click', function () {
           if (a.kind === 'configure' || a.kind === 'vianalyzer' || a.kind === 'unittests' || a.kind === 'integrate' || a.kind === 'vibrowser' || a.kind === 'builds') openPage(a.kind);
           else if (a.kind === 'runhistory') runHistory();
+          else if (a.kind === 'debugrun') debugRun();
           close();
         });
       }
