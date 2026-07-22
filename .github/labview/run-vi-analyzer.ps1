@@ -198,6 +198,49 @@ function ConvertTo-JsonString([string]$s) {
     return '"' + $sb.ToString() + '"'
 }
 
+# Find the project (.lvproj) whose tests should drive the default pass. Prefer the
+# SHALLOWEST project in the tree (the top-level application project) and skip CI
+# tooling folders. Returns $null when the repo has no project.
+function Get-ProjectFile([string]$Root) {
+    $exclRe = '(?i)[\\/](\.git|\.github|actions|ci-out|build|_lvci)[\\/]'
+    $projs = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter '*.lvproj' -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch $exclRe } |
+        Sort-Object @{ Expression = { ($_.FullName -split '[\\/]').Count } }, FullName)
+    if ($projs.Count -gt 0) { return $projs[0].FullName }
+    return $null
+}
+
+# Build the DEFAULT-pass config from a committed .viancfg by pointing it at a whole
+# scope (a project .lvproj) while KEEPING the config's selected tests. RunVIAnalyzer
+# runs a PROJECT scope with the config's tests, whereas a config whose ItemsToAnalyze
+# is a list of explicit VIs runs ZERO tests headlessly - so this restores real
+# results while still honouring the user's custom test selection.
+function Build-ProjectConfig([string]$BaseConfigPath, [string]$ProjectContainerPath, [string]$OutPath, [string]$Workspace) {
+    $xml = Get-Content -LiteralPath $BaseConfigPath -Raw
+    $xml = $xml -replace '__WORKSPACE_PATH__', $Workspace
+    $apBlock = '<AnalyzeProject>TRUE</AnalyzeProject>'
+    $ppBlock = '<ProjectPath>"' + $ProjectContainerPath + '"</ProjectPath>'
+    $rxAP = [regex]'(?s)<AnalyzeProject>.*?</AnalyzeProject>'
+    $rxPP = [regex]'(?s)<ProjectPath>.*?</ProjectPath>'
+    if ($rxAP.IsMatch($xml)) { $xml = $rxAP.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $apBlock }, 1) }
+    else { $xml = $xml -replace '</Config>', ($apBlock + "`r`n</Config>") }
+    if ($rxPP.IsMatch($xml)) { $xml = $rxPP.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $ppBlock }, 1) }
+    else { $xml = $xml -replace '</Config>', ($ppBlock + "`r`n</Config>") }
+    [System.IO.File]::WriteAllText($OutPath, $xml, [System.Text.UTF8Encoding]::new($false))
+}
+
+# Total VI Analyzer tests a pass actually executed, parsed from the CLI output
+# ("N tests passed. N tests failed. N tests skipped."). 0 => the pass produced no
+# results, so the caller can fall back to the full built-in directory suite.
+function Get-PassTestTotal([string]$out) {
+    $total = 0
+    foreach ($kw in @('passed', 'failed', 'skipped')) {
+        $m = [regex]::Match($out, "(\d+)\s+tests?\s+$kw")
+        if ($m.Success) { $total += [int]$m.Groups[1].Value }
+    }
+    return $total
+}
+
 function Invoke-ViaPass([string]$ConfigArg, [string]$ReportPath) {
     Write-Host "  RunVIAnalyzer -ConfigPath '$ConfigArg' -ReportPath '$ReportPath'"
     # LabVIEWCLI writes progress AND warnings (e.g. a broken VI in the analyzed
@@ -208,18 +251,21 @@ function Invoke-ViaPass([string]$ConfigArg, [string]$ReportPath) {
     # when the project contains one bad VI, failing the whole job with exit 1.
     # Shield the call exactly like the pre-analysis MassCompile does: switch to
     # EAP='Continue' and fold stderr into the host stream, then judge success by
-    # the process exit code alone.
+    # the process exit code alone. Capture the output so the caller can tell how
+    # many tests actually ran.
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
+    $Script:LastPassOutput = ''
     try {
-        & $CliExe `
+        $Script:LastPassOutput = (& $CliExe `
             -LogToConsole   TRUE `
             -OperationName  RunVIAnalyzer `
             -ConfigPath     $ConfigArg `
             -ReportPath     $ReportPath `
             -ReportSaveType HTML `
             -LabVIEWPath    $LabVIEWPath `
-            -Headless 2>&1 | Out-Host
+            -Headless 2>&1 | Out-String)
+        Write-Host $Script:LastPassOutput
     } finally {
         $ErrorActionPreference = $prevEAP
     }
@@ -305,15 +351,22 @@ if ($filterList.Count -gt 0) {
         if ($def -eq 'builtin') {
             $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
         } elseif ($def -ne 'none') {
+            # Honour the committed .viancfg's tests but analyze the whole PROJECT
+            # (VI Analyzer's native "Analyze Project" mode). A config whose
+            # ItemsToAnalyze is a list of explicit VIs runs ZERO tests headlessly;
+            # a project scope + the config's tests runs them for real. If the repo
+            # has no .lvproj, or the project pass yields 0 tests, the pass loop
+            # falls back to the full built-in directory suite so it is never blank.
             $scoped = Join-Path $PassesDir 'default.viancfg'
-            $wsVIs = @(Get-ProjectVIs $WorkspaceRoot)
-            if ($wsVIs.Count -gt 0) {
-                Write-Host ("  Default pass: analyzing {0} project VI(s) with {1}" -f $wsVIs.Count, $def)
-                Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $wsVIs $scoped $WorkspaceRoot
+            $proj = Get-ProjectFile $WorkspaceRoot
+            if ($proj) {
+                Write-Host ("  Default pass: analyzing project '{0}' with {1}'s tests" -f $proj, $def)
+                Build-ProjectConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $proj $scoped $WorkspaceRoot
+                $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html'; fallback = $WorkspaceRoot }
             } else {
-                Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) @($WorkspaceRoot) $scoped $WorkspaceRoot
+                Write-Host "  Default pass: no .lvproj found -> full built-in suite over the workspace directory"
+                $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
             }
-            $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html' }
         }
     }
 }
@@ -377,6 +430,13 @@ foreach ($p in $passes) {
     $reportPath = if ($singleMode) { $p.report } else { (Join-Path $PassesDir $p.report) }
     Write-Host "=== VI Analyzer pass: $($p.label) ==="
     $ec = Invoke-ViaPass $p.configArg $reportPath
+    # Safety net: if a default project pass executed ZERO tests (the config/mode
+    # produced nothing in this LabVIEW), re-run it as the full built-in suite over
+    # the workspace directory so the report is never blank (the historical mode).
+    if ($p.fallback -and (Get-PassTestTotal $Script:LastPassOutput) -eq 0) {
+        Write-Host "  Pass ran 0 tests; falling back to the full built-in suite over '$($p.fallback)'."
+        $ec = Invoke-ViaPass $p.fallback $reportPath
+    }
     $ran++
     Write-Host "  pass exit=$ec"
     if ($ec -ne 0 -and $ec -ne 3 -and $overallExit -eq 0) { $overallExit = $ec }
