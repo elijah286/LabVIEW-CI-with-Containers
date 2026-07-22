@@ -1,8 +1,35 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "91a41156eb2b2cff0b15bbc61719b68a369e6c66",
+  "sha": "2a467fa693f27c3d0548035486707c2408ff2854",
   "revisions": [
+    {
+      "sha": "2a467fa693f27c3d0548035486707c2408ff2854",
+      "short": "2a467fa",
+      "message": "Purge Windows Beta / Linux Beta worker containers; Antidoc graduates to opt-in (4.7.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T00:36:45Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "8d01cbbbc8612ac925cb12e112fe8b6708a25f80",
+      "short": "8d01cbb",
+      "message": "Antidoc: g-cli -v verbose + kill stray LabVIEW + post-mortem probe to diagnose the launch-handshake hang (4.6.12)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T00:37:34Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "33498c4763ee90f25a1a5d1c0b714996d9ac97a5",
+      "short": "33498c4",
+      "message": "Add VI Browser coaching tip rollout",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T00:35:02Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "91a41156eb2b2cff0b15bbc61719b68a369e6c66",
       "short": "91a4115",
@@ -873,33 +900,6 @@
       "message": "Add Windows Beta worker image build (fourth LCWC container) (4.1.11)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T15:16:54Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "8aa49525cb2fed574d5777a2034f129a0cb39c9a",
-      "short": "8aa4952",
-      "message": "One-time reset: rebase Beta container recipes onto Core (4.1.10)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T15:00:04Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "4c4046338834c65b7b22679e15b209c69ea2dc4d",
-      "short": "4c40463",
-      "message": "Graduate VI Snapshots 2.0 to a core feature; add experimental.vipc (4.1.9)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T14:49:31Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "9accee13f65d68296e28bbe4269e1e2fd13d758f",
-      "short": "9accee1",
-      "message": "Name worker-image runs Copy vs Build to reflect what they do (4.1.8)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T14:17:20Z",
       "project": false,
       "dep_only": false
     },
