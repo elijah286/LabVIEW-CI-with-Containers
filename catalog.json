@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.8.7",
+  "version": "4.8.8",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.8.8",
+        "date": "2026-07-22",
+        "type": "patch",
+        "summary": "The Antidoc report is now a proper in-browser documentation viewer. A file navigator lists the main AsciiDoc, its section includes and every rendered image; the pane beside it shows the fully rendered document (Asciidoctor.js with a custom include-processor that resolves Antidoc's include:: sections and an imagesdir pinned at the deployed image folder) and lets you open the raw source of any file or preview any image. Also fixes the Asciidoctor.js CDN URL, which was wrong before (asciidoctor@2.2.6/.../asciidoctor.min.js 404s), so the previous report never actually rendered and always fell back to raw text; it now loads @asciidoctor/core@2.2.6 with an SRI integrity hash.",
+        "changes": [
+          "build-antidoc-report.py: two-pane viewer (file navigator + rendered document + raw/image views); resolve include:: via an Asciidoctor.js include-processor; pin imagesdir to the deployed doc/Images.",
+          "build-antidoc-report.py: fix the Asciidoctor.js CDN URL (@asciidoctor/core@2.2.6/dist/browser/asciidoctor.js) + add SRI integrity so rendering actually works.",
+          "documentation.html: describe the Antidoc in-browser viewer."
+        ]
+      },
       {
         "version": "4.8.7",
         "date": "2026-07-22",
