@@ -233,7 +233,7 @@
     // the install/Configure iframe and its in-flight work. When a refresh comes due
     // with a dialog open, keep re-checking and reload only once it is closed.
     (function () {
-      var REFRESH_MS = 900 * 1000;
+      var REFRESH_MS = 60 * 1000;
       if (!(REFRESH_MS > 0)) return;
       function tick() {
         if (lvciModalOpen()) { setTimeout(tick, 5000); return; }
@@ -1749,7 +1749,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-07-22 04:13 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-07-22 11:11 UTC &nbsp;|&nbsp; Live — refreshing every 60 s while CI runs</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -2204,7 +2204,7 @@
         </div>
       </td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="c3394babc0e984a45c9bb2854ab5b54693b6cb29" data-parent="381d6f37833788e7a99a0ceb1264b881e8da6a57" data-short="c3394ba" data-ts="2026-07-22T03:53:41Z"><span class="cidash-chip cc-split" title="Windows 95% (56/59) · Linux 95% (56/59) project VIs compiled; green >= 95%, yellow >= 80%, red < 80% (a compile failure is solid red)"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/report/index.html?type=masscompile-report&sha=c3394babc0e984a45c9bb2854ab5b54693b6cb29&short=c3394ba&src=..%2Fmasscompile%2Fc3394babc0e984a45c9bb2854ab5b54693b6cb29%2Findex.html&title=Mass%20Compile%20%C2%B7%20c3394ba" style="color:inherit"><span class="cidash-vseg cc-pass" data-tip="Windows">95%</span><span class="cidash-vseg-sep">/</span><span class="cidash-vseg cc-pass" data-tip="Linux">95%</span></a></span></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="c3394babc0e984a45c9bb2854ab5b54693b6cb29" data-parent="381d6f37833788e7a99a0ceb1264b881e8da6a57" data-short="c3394ba" title="Run VI Analyzer for commit c3394ba">&#9655;</a></td>
+      <td style="text-align:center" class="cidash-active-cell" data-cap="vi-analyzer" data-sha="c3394babc0e984a45c9bb2854ab5b54693b6cb29" data-parent="381d6f37833788e7a99a0ceb1264b881e8da6a57" data-short="c3394ba" data-active="true"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/29914416720" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="c3394babc0e984a45c9bb2854ab5b54693b6cb29" data-parent="381d6f37833788e7a99a0ceb1264b881e8da6a57" data-short="c3394ba" data-ts="2026-07-22T01:16:10Z"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c3394babc0e984a45c9bb2854ab5b54693b6cb29&changed=1" class="cidash-diffstat" title="VIs changed in this revision: 1 different · 0 new · 0 deleted — click to view the diffs"><span class="ds-mod">1</span><span class="ds-sep">/</span><span class="ds-add ds-zero">0</span><span class="ds-sep">/</span><span class="ds-del ds-zero">0</span></a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="c3394babc0e984a45c9bb2854ab5b54693b6cb29" data-parent="381d6f37833788e7a99a0ceb1264b881e8da6a57" data-short="c3394ba" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 51 VIs in this revision"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c3394babc0e984a45c9bb2854ab5b54693b6cb29" style="color:inherit">51</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="c3394babc0e984a45c9bb2854ab5b54693b6cb29" data-parent="381d6f37833788e7a99a0ceb1264b881e8da6a57" data-short="c3394ba" title="Run Unit Tests for commit c3394ba">&#9655;</a></td>
