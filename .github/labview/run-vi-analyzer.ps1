@@ -200,15 +200,30 @@ function ConvertTo-JsonString([string]$s) {
 
 function Invoke-ViaPass([string]$ConfigArg, [string]$ReportPath) {
     Write-Host "  RunVIAnalyzer -ConfigPath '$ConfigArg' -ReportPath '$ReportPath'"
-    & $CliExe `
+    $out = & $CliExe `
         -LogToConsole   TRUE `
         -OperationName  RunVIAnalyzer `
         -ConfigPath     $ConfigArg `
         -ReportPath     $ReportPath `
         -ReportSaveType HTML `
         -LabVIEWPath    $LabVIEWPath `
-        -Headless
-    return $LASTEXITCODE
+        -Headless 2>&1
+    $ec = $LASTEXITCODE
+    $out | Out-Host
+    # Detect a pass that analyzed NOTHING (0 tests passed + failed + skipped).
+    # RunVIAnalyzer silently skips VIs that are not saved in the running LabVIEW
+    # version (e.g. a project VI stranded when the pre-analysis MassCompile could
+    # not upgrade its folder because one sibling VI is broken), producing an
+    # empty "0 tests" report even though the VIs exist. The caller uses this to
+    # fall back to whole-directory analysis, which re-loads/recompiles on scan.
+    $script:LastPassAnalyzedNothing = $false
+    $joined = ($out | Out-String)
+    $m = [regex]::Match($joined, '(\d+)\s+tests passed\.\s*(\d+)\s+tests failed\.\s*(\d+)\s+tests skipped')
+    if ($m.Success) {
+        $total = [int]$m.Groups[1].Value + [int]$m.Groups[2].Value + [int]$m.Groups[3].Value
+        if ($total -eq 0) { $script:LastPassAnalyzedNothing = $true }
+    }
+    return $ec
 }
 
 function Write-PlaceholderReport([string]$Path, [string]$Message) {
@@ -364,6 +379,17 @@ foreach ($p in $passes) {
     $ec = Invoke-ViaPass $p.configArg $reportPath
     $ran++
     Write-Host "  pass exit=$ec"
+    # If the DEFAULT pass (the whole project) analyzed nothing because its VIs
+    # were stranded at an older LabVIEW version (a broken sibling VI failed their
+    # folder's pre-analysis MassCompile), re-run it in whole-directory mode.
+    # Passing the workspace DIRECTORY as -ConfigPath makes LabVIEWCLI re-load and
+    # recompile every VI under it with the full default test set (the historical
+    # working invocation), so one broken VI no longer blanks the entire report.
+    if ($p.kind -eq 'default' -and $script:LastPassAnalyzedNothing -and $p.configArg -ne $WorkspaceRoot) {
+        Write-Host "  Default pass analyzed 0 tests with '$($p.label)'; falling back to whole-directory analysis (full default suite)."
+        $ec = Invoke-ViaPass $WorkspaceRoot $reportPath
+        Write-Host "  fallback pass exit=$ec"
+    }
     if ($ec -ne 0 -and $ec -ne 3 -and $overallExit -eq 0) { $overallExit = $ec }
 }
 

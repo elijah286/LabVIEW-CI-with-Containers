@@ -112,7 +112,7 @@ jobs:
         if: github.event.inputs.commit_sha != ''
         shell: bash
         run: |
-          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
+          git fetch --no-tags origin "diag/via-dirfallback"   # TEST-ONLY: restore scripts from the diag branch
           git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
 
       # GHCR rejects upper-case repository names. The Configure dialog writes the
