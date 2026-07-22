@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.9.1",
+  "version": "4.9.2",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {"version": "4.9.2", "date": "2026-07-22", "notes": "VI Analyzer: a pass that completed but analyzed a project containing a broken VI no longer fails the whole job. RunVIAnalyzer (LabVIEWCLI) writes bad-VI warnings to STDERR; under the script-wide ErrorActionPreference=Stop that native stderr write was promoted to a terminating NativeCommandError, aborting the whole-directory fallback pass AFTER it had already run and written its report (job exited 1). Invoke-ViaPass now shields the call the same way the pre-analysis MassCompile does (EAP=Continue + 2>&1), judging success by the process exit code. Unrelated to the pre-analysis MassCompile, which is a normal step that upgrades VIs to the image LabVIEW version before analysis"},
       {
         "version": "4.9.1",
         "date": "2026-07-22",
