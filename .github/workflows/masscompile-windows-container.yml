@@ -37,14 +37,14 @@ permissions:
   packages: read
   actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
-# Serialize report deploys to gh-pages. peaceiris/actions-gh-pages clones, commits,
-# and pushes the branch; two report jobs pushing at once make the loser's push bounce
-# with "! [rejected] (fetch first)", so its report never deploys (dashboard 404).
-# A shared group across the report-deploy workflows (mass compile + VI Analyzer)
-# makes them queue instead of racing. cancel-in-progress:false so a queued run still
-# publishes rather than being dropped.
+# Each activity+revision gets its OWN concurrency group so different activities
+# (and different revisions) run in PARALLEL, and re-dispatching the SAME
+# activity+revision queues behind the in-flight one instead of cancelling it.
+# gh-pages push races between parallel report deploys are handled by the
+# retry-safe publish-gh-pages action (it re-fetches gh-pages and retries the push),
+# so serialising the whole job is no longer needed.
 concurrency:
-  group: report-pages-deploy
+  group: ${{ github.workflow }}-${{ github.event.inputs.commit_sha || github.sha }}
   cancel-in-progress: false
 
 jobs:

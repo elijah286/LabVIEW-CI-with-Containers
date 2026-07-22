@@ -48,8 +48,14 @@ permissions:
   packages: read
   actions: read
 
+# Each activity+revision gets its OWN concurrency group so different activities
+# (and different revisions) run in PARALLEL, and re-dispatching the SAME
+# activity+revision queues behind the in-flight one instead of cancelling it.
+# gh-pages push races between parallel report deploys are handled by the
+# retry-safe publish-gh-pages action (it re-fetches gh-pages and retries the push),
+# so serialising the whole job is no longer needed.
 concurrency:
-  group: report-pages-deploy
+  group: ${{ github.workflow }}-${{ github.event.inputs.commit_sha || github.sha }}
   cancel-in-progress: false
 
 jobs:

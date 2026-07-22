@@ -42,13 +42,12 @@ permissions:
   packages: read
   actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
-# No shared concurrency group: this Linux report deploys to gh-pages directly
-# with no group. The Windows report workflows
-# share `report-pages-deploy` (cancel-in-progress:false) to serialize their pushes,
-# but GitHub keeps only one *pending* run per group — so adding a third member
-# would make a normal push cancel one of the three. The Linux job writes to a
-# disjoint path (masscompile/<sha>/linux/) with keep_files:true, so a rare
-# overlapping push is additive rather than destructive.
+# This Linux report deploys to gh-pages directly. Every report workflow now uses
+# its own per-activity+revision concurrency group, so different activities run in
+# parallel and never cancel each other; the retry-safe publish-gh-pages action
+# handles any overlapping pushes. This Linux job also writes to a disjoint path
+# (masscompile/<sha>/linux/) with keep_files:true, so an overlapping push is
+# additive rather than destructive.
 
 jobs:
   mass-compile-linux:
