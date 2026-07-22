@@ -1,0 +1,152 @@
+== Revidyne Generator.lvlib
+
+*Responsibility:*
+LabVIEW Plug and Play instrument driver for
+the Revidyne Generator module.
+
+*Version:* 1.0.0.0
+
+=== Functions
+
+.Functions (non private scope only)
+[cols="<.<4d,<.<8a,<.<12d,<.<1a,<.<1a,<.<1a", %autowidth, frame=all, grid=all, stripes=none]
+|===
+|Name |Connector pane |Description |S. |R. |I.
+
+|Demo PID Control
+|image:Revidyne_Generator.lvlib_Demo_PID_Control.vi.png[Revidyne Generator.lvlib:Demo PID Control.vi]
+|No description found (add content in vi description)
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Init
+|image:Revidyne_Generator.lvlib_Init.vi.png[Revidyne Generator.lvlib:Init.vi]
+|This vi will cause the generator to spin up and then stop.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Motor Off
+|image:Revidyne_Generator.lvlib_Motor_Off.vi.png[Revidyne Generator.lvlib:Motor Off.vi]
+|This VI will cause the generator to start moving.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Motor On
+|image:Revidyne_Generator.lvlib_Motor_On.vi.png[Revidyne Generator.lvlib:Motor On.vi]
+|Stops the generator from running.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Set Speed
+|image:Revidyne_Generator.lvlib_Set_Speed.vi.png[Revidyne Generator.lvlib:Set Speed.vi]
+|Sets the speed of the generator. Accepts values of 0-255.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Set Load
+|image:Revidyne_Generator.lvlib_Set_Load.vi.png[Revidyne Generator.lvlib:Set Load.vi]
+|This VI sets the load for the generator. (Accepts values of 0-1000).
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Get Value
+|image:Revidyne_Generator.lvlib_Get_Value.vi.png[Revidyne Generator.lvlib:Get Value.vi]
+|This VI returns the voltage value from the generator.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Get KW
+|image:Revidyne_Generator.lvlib_Get_KW.vi.png[Revidyne Generator.lvlib:Get KW.vi]
+|This VI returns the KW value from the generator.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Error Query
+|image:Revidyne_Generator.lvlib_Error_Query.vi.png[Revidyne Generator.lvlib:Error Query.vi]
+|Queries the instrument for any errors in the instrument's error queue.  It will continue to read errors until all errors have been read from the instrument.  Any errors will be returned in the **error out** control.
+
+**Note:**
+This VI is called automatically by most driver VIs so it is not usually necessary to call this in an application.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Reset
+|image:Revidyne_Generator.lvlib_Reset.vi.png[Revidyne Generator.lvlib:Reset.vi]
+|Resets the instrument and then sends a set of default setup commands to the instrument.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Revision Query
+|image:Revidyne_Generator.lvlib_Revision_Query.vi.png[Revidyne Generator.lvlib:Revision Query.vi]
+|Queries the current instrument firmware revision and instrument driver revision.
+
+Refer to the Readme file for detailed driver information including modification history.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Self-Test
+|image:Revidyne_Generator.lvlib_Self_Test.vi.png[Revidyne Generator.lvlib:Self-Test.vi]
+|Runs the instrument's self-test routine and returns the test results.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Close
+|image:Revidyne_Generator.lvlib_Close.vi.png[Revidyne Generator.lvlib:Close.vi]
+|Performs an instrument error query before terminating the software connection to the instrument.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|Initialize
+|image:Revidyne_Generator.lvlib_Initialize.vi.png[Revidyne Generator.lvlib:Initialize.vi]
+|Establishes communication with the instrument and optionally performs an instrument identification query and/or an instrument reset.  It also places the instrument in a default state needed for other instrument driver operations.  Therefore, call this VI before calling other instrument driver VIs for this instrument.  Generally, you need to call the **Initialize** VI only once at the beginning of an application.
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+
+|VI Tree
+|image:Revidyne_Generator.lvlib_VI_Tree.vi.png[Revidyne Generator.lvlib:VI Tree.vi]
+|This is the instrument driver for the <INSTRUMENT NAME>. The VI Tree displays all the user-callable VIs of the instrument driver in an organized table.
+
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|image:empty.png[empty.png]
+|===
+
+**S**cope: image:scope-protected.png[] -> Protected | image:scope-community.png[] -> Community
+
+**R**eentrancy: image:reentrancy-preallocated.png[] -> Preallocated reentrancy | image:reentrancy-shared.png[] -> Shared reentrancy
+
+**I**nlining: image:inlined.png[] -> Inlined
+
+=== Library Constant VIs
+
+[NOTE]
+====
+No Constant VIs Found
+====
+
+=== Bookmarks
+
+==== #TODO
+
+.#TODO
+[cols="<.<8d,<.<2d", %autowidth, frame=all, grid=all, stripes=none]
+|===
+|Text |VI
+
+|#TODO check if 3 seconds is required or if it's excessive
+|Init.vi
+|===
