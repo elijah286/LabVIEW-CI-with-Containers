@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.6.10",
+  "version": "4.6.11",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,11 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.6.11",
+        "date": "2026-07-21",
+        "notes": "VI Browser now remembers viewer/platform choices per browser, defaults to Windows 2.0 when that render is available on a fresh load, shows dismissible coaching tip strips for the block-diagram toggle and case/event selector arrows, and versions those dismissal keys so a new rollout deliberately re-surfaces the tips for everyone until they dismiss them again."
+      },
       {
         "version": "4.6.10",
         "date": "2026-07-21",
