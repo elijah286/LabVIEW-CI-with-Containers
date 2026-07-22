@@ -1528,8 +1528,10 @@ docker run --rm `
         <li>this repo's slug as <code>source.repo</code> in a client's <code>catalog.json</code>;</li>
         <li>a <code>uses:</code> reference back to this repo in a client's workflows.</li>
       </ol>
-      <p>Every candidate is verified (public, non-fork, catalog actually points back here) before listing, and only
-        public metadata GitHub already exposes is shown. Private repositories are never indexed or listed. See the
+      <p>Every candidate is verified (public, and catalog actually points back here) before listing, and only
+        public metadata GitHub already exposes is shown. A fork is listed when it is a genuine install (a fork of
+        another project that added this stack); a fork of this framework repo itself is not, since it carries our
+        own catalog verbatim. Private repositories are never indexed or listed. See the
         <a href="faq.html#discovery">FAQ discovery entry</a> for the privacy details.</p>
 
       <!-- 20 ──────────────────────────────────────────────────────────────── -->

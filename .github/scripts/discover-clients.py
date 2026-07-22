@@ -11,10 +11,13 @@ WHAT IT DOES
   install necessarily carries: this repo's slug, appearing in a consumer's
     * .github/labview-ci/catalog.json   (its `source.repo`), and/or
     * .github/workflows/*               (a `uses: <slug>/...` reference).
-  Each candidate is then verified (public, not a fork, and - when a catalog is
-  present - its source.repo actually points back here) and enriched with a
-  little metadata, and the result is written to clients.json for the dashboard's
-  Clients page to render.
+  Each candidate is then verified (public, and - when a catalog is present - its
+  source.repo actually points back here) and enriched with a little metadata,
+  and the result is written to clients.json for the dashboard's Clients page to
+  render. A fork is listed when it is a genuine install (a fork of some OTHER
+  project that added this stack); only a fork of THIS framework repo itself is
+  dropped, since it carries our own catalog/workflows verbatim and is not a
+  distinct client.
 
 PRIVACY
   Code search only indexes PUBLIC repositories, and candidates are additionally
@@ -196,8 +199,17 @@ def main():
     clients = []
     for repo in sorted(candidates):
         meta = _get(API + "/repos/" + repo) or {}
-        if meta.get("private") or meta.get("fork"):
+        if meta.get("private"):
             continue
+        # A fork is allowed only when it is a genuine client install (a fork of
+        # some OTHER project that added this stack). Drop a fork of THIS framework
+        # repo itself: it carries our own catalog/workflows verbatim and would
+        # masquerade as a client. Its per-candidate catalog/workflow check below
+        # still applies, so unrelated forks never leak in.
+        if meta.get("fork"):
+            upstream = ((meta.get("source") or meta.get("parent") or {}).get("full_name") or "")
+            if upstream.lower() == slug.lower():
+                continue
         cat = raw_catalog(repo)
         confirmed = bool(
             cat and ((cat.get("source") or {}).get("repo", "").lower() == slug.lower())
