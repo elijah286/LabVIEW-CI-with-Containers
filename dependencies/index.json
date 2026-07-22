@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "61ed2ddd21621f0afbd6e9231d9f5e27c710ce46",
+  "sha": "3cbe31f5c3aa67036756a7aa717a9fde974be1ff",
   "revisions": [
+    {
+      "sha": "3cbe31f5c3aa67036756a7aa717a9fde974be1ff",
+      "short": "3cbe31f",
+      "message": "Default VI Browser to 2.0 when available",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T13:30:50Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "61ed2ddd21621f0afbd6e9231d9f5e27c710ce46",
       "short": "61ed2dd",
@@ -891,15 +900,6 @@
       "message": "Centralize gh-pages publishing into one retry-safe composite action (4.1.21)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T18:59:44Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "502bdf80c01d2bf68b71dd36671a85348a1a4866",
-      "short": "502bdf8",
-      "message": "Fix worker-manifest gh-pages publish race (Copy Linux worker failure) (4.1.20)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T18:40:36Z",
       "project": false,
       "dep_only": false
     },
