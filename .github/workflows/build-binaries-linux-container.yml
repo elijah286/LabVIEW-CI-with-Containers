@@ -116,7 +116,6 @@ jobs:
           case "$selected" in
             ''|latest) image="ghcr.io/${owner}/${name}:linux-latest"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
             base|none) image="nationalinstruments/labview:latest-linux"; worker_workflow="" ;;
-            linux-beta-*) image="ghcr.io/${owner}/${name}:${selected}"; worker_workflow="Build LabVIEW CI Image - Linux Beta" ;;
             linux-*) image="ghcr.io/${owner}/${name}:${selected}"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
             *) image="ghcr.io/${owner}/${name}:linux-${selected}"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
           esac

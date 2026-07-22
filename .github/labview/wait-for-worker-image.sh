@@ -32,7 +32,6 @@ workflow_path=""
 case "$workflow_name" in
   "Build LabVIEW CI Image") workflow_path=".github/workflows/build-labview-image.yml" ;;
   "Build LabVIEW CI Image - Linux") workflow_path=".github/workflows/build-labview-linux-image.yml" ;;
-  "Build LabVIEW CI Image - Linux Beta") workflow_path=".github/workflows/build-labview-linux-beta-image.yml" ;;
 esac
 
 if [ -z "$repo" ] || [ -z "$sha" ]; then
@@ -72,7 +71,7 @@ fi
 changed=false
 if [ -n "${before:-}" ] && git cat-file -e "${before}^{commit}" 2>/dev/null; then
   if git diff --name-only "$before" "$sha" \
-      | grep -Eq '(\.vipc$|^\.github/docker/labview-ci(-base|-linux-beta)?\.Dockerfile$|^\.github/docker/labview-ci-linux\.Dockerfile$|^\.github/labview/build-worker-manifest\.py$|^\.github/labview/wait-for-worker-image\.sh$|^\.github/labview/vipm/|^\.github/workflows/build-labview-image\.yml$|^\.github/workflows/build-labview-linux-image\.yml$|^\.github/workflows/build-labview-linux-beta-image\.yml$)'; then
+      | grep -Eq '(\.vipc$|^\.github/docker/labview-ci(-base)?\.Dockerfile$|^\.github/docker/labview-ci-linux\.Dockerfile$|^\.github/labview/build-worker-manifest\.py$|^\.github/labview/wait-for-worker-image\.sh$|^\.github/labview/vipm/|^\.github/workflows/build-labview-image\.yml$|^\.github/workflows/build-labview-linux-image\.yml$)'; then
     changed=true
   fi
 fi

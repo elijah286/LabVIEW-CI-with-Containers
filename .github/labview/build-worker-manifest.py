@@ -8,7 +8,7 @@ A "worker version" is a short content hash of the inputs that produced the image
 exactly what that worker contains so a dashboard revision can link straight to
 "what was installed in the worker that ran my CI":
 
-    * platform (windows / linux / linux-beta) and the resolved LabVIEW version
+    * platform (windows / linux) and the resolved LabVIEW version
   * the NI base image reference and its resolved digest
   * the full nipkg package list captured from the built image
     * every applied VIPC and the VI Package names it pins (parsed from the .vipc,
@@ -341,7 +341,7 @@ def render_html(m: dict, pages_url: str) -> str:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Generate CI worker manifest (HTML + JSON).")
-    ap.add_argument("--platform", required=True, choices=["windows", "linux", "linux-beta", "windows-beta"])
+    ap.add_argument("--platform", required=True, choices=["windows", "linux"])
     ap.add_argument("--version", required=True, help="Worker version, e.g. win-abc123def456")
     ap.add_argument("--labview-version", default="")
     ap.add_argument("--base-image", default="")
