@@ -3841,6 +3841,13 @@ def _vipc_role(path, config_vipc, has_config_list):
   cap = _capability_for_vipc(path)
   if cap:
     return 'capability', cap, _capability_enabled(cap), True, False
+  # Any other VIPC under .github/ is internal/experimental tooling, NOT a user
+  # project dependency: the worker "Stage repo VIPC files" step excludes .github/
+  # from baking, so such a file can never be present on the standard workers and
+  # must not be flagged as a missing dependency. Classify it as a tooling file
+  # (capability role, no capability) so it shows N/A rather than a false gap.
+  if (path or '').replace('\\', '/').startswith('.github/'):
+    return 'capability', '', False, True, False
   entry = (config_vipc or {}).get(path)
   monitored = bool(entry and entry.get('monitor') is True) if has_config_list else True
   return 'project', '', monitored, monitored, False

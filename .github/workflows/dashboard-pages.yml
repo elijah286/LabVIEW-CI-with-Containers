@@ -49,6 +49,11 @@ on:
       - "VI Snapshots and VI Browser"
       - "Run Unit Tests — Windows Container"
       - "Run Antidoc — Windows Container"
+      # A worker-image dependency update publishes a new worker manifest; rebuild
+      # so the Dependencies page and the deps-pending banner reflect the freshly
+      # baked packages instead of showing the pre-update "missing" state.
+      - "Build LabVIEW CI Image"
+      - "Build LabVIEW CI Image - Linux"
     # `requested` rebuilds the moment a run is CREATED, so a freshly pushed
     # revision's row shows its activities as queued within seconds; `completed`
     # then keeps the row current as each activity finishes.
