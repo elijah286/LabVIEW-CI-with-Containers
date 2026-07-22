@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "a2d6461c65ed2761298e06de477e4cae1b8d4b2e",
+  "sha": "1323452a691c274581ec9e4846302c386a96d0ef",
   "revisions": [
+    {
+      "sha": "1323452a691c274581ec9e4846302c386a96d0ef",
+      "short": "1323452",
+      "message": "Debug Run: live step output + live-sessions list (4.9.6)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T23:03:06Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "a2d6461c65ed2761298e06de477e4cae1b8d4b2e",
       "short": "a2d6461",
@@ -891,15 +900,6 @@
       "message": "install: prune vendored tooling files removed from source on update (4.1.34)",
       "author": "Elijah Kerry",
       "date": "2026-06-25T18:54:44Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "c9b67767107642488c2f51650c840dd17e527ab5",
-      "short": "c9b6776",
-      "message": "integrate: clear finished installs from the 'Installs in progress' panel (4.1.33)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-25T17:50:34Z",
       "project": false,
       "dep_only": false
     },
