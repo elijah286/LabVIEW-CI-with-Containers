@@ -869,7 +869,7 @@ async function loadJson2Index() {
   } catch (e) { /* no Windows index published yet — the 2.0 view stays Linux-only */ }
   decorate2();
   syncVb2PlatToggle();
-  if (vb2PreferWindowsDefault() && currentSnapshot && !currentDiffVi) openSnapshot(currentSnapshot.html, currentSnapshot.title);
+  if (vb2Prefer2Default() && currentSnapshot && !currentDiffVi) openSnapshot(currentSnapshot.html, currentSnapshot.title);
   // One-shot: if a shared ?plat2=windows link landed before the Windows index was
   // known and the open VI does have a Windows render, upgrade it to the Windows view.
   if (!vb2DidWinRestore && json2WinSet) {
@@ -907,15 +907,18 @@ function vb2WinAvail(blob) { return !!(json2WinSet && blob && json2WinSet.has(bl
 function vb2EffPlat(_htmlUrl) { return vb2Plat === 'windows' ? 'windows' : 'linux'; }
 function vb2JsonUrl(htmlUrl) { return htmlUrl.replace(/\.html$/i, vb2EffPlat(htmlUrl) === 'windows' ? '.windows.json' : '.json'); }
 
-function vb2PreferWindowsDefault() {
+function vb2Prefer2Default() {
   if (VB2_HAS_VIEWER_QUERY || vb2LsGet(VB2_VIEWER_KEY) || VB2_HAS_PLAT2_QUERY) return false;
   if (!currentSnapshot || currentDiffVi) return false;
   const blob = vb2BlobOf(currentSnapshot.html);
-  if (!blob || !vb2WinAvail(blob)) return false;
+  if (!blob) return false;
+  const win = vb2WinAvail(blob);
+  const lin = !!(json2Set && json2Set.has(blob));
+  if (!win && !lin) return false;
   viewerMode = '2';
-  vb2Plat = 'windows';
+  vb2Plat = win ? 'windows' : 'linux';
   vb2LsSet(VB2_VIEWER_KEY, '2');
-  vb2LsSet(VB2_PLAT_KEY, 'windows');
+  vb2LsSet(VB2_PLAT_KEY, vb2Plat);
   return true;
 }
 
