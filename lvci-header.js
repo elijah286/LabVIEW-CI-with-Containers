@@ -2142,7 +2142,15 @@
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (s) {
             if (!s || !s.version) return;
-            if (cmpVer(s.version, v) > 0) { verState.behind = true; verState.to = s.version; renderBadge(); }
+            // Release channel: by default only a newer STABLE release counts as an
+            // update, so a freshly published beta never nags. The owner opts into
+            // pre-release updates per browser (lvci_update_channel='beta'). Graceful
+            // fallback: a source with no stableVersion behaves exactly as before
+            // (the latest published version is the target).
+            var chan = 'stable';
+            try { chan = localStorage.getItem('lvci_update_channel') || 'stable'; } catch (e) {}
+            var target = (chan === 'beta') ? s.version : (s.stableVersion || s.version);
+            if (target && cmpVer(target, v) > 0) { verState.behind = true; verState.to = target; renderBadge(); }
           }).catch(function () {});
       }).catch(function () {});
   }
