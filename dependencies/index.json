@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2a467fa693f27c3d0548035486707c2408ff2854",
+  "sha": "6c500cde7a55bc67eb4cfac0e83fc24a24adb805",
   "revisions": [
+    {
+      "sha": "6c500cde7a55bc67eb4cfac0e83fc24a24adb805",
+      "short": "6c500cd",
+      "message": "VI Browser 2.0 Windows renders auto-generate per revision (4.8.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T00:45:36Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "2a467fa693f27c3d0548035486707c2408ff2854",
       "short": "2a467fa",
@@ -891,15 +900,6 @@
       "message": "Wire experimental-gated Windows Beta copy + dashboard lane (4.1.12)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T15:23:21Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "69b1f7c35371a14f7411bbff49e87286d3998380",
-      "short": "69b1f7c",
-      "message": "Add Windows Beta worker image build (fourth LCWC container) (4.1.11)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T15:16:54Z",
       "project": false,
       "dep_only": false
     },
