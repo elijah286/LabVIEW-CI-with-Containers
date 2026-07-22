@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "f907966a104ef930defdc2c71e2f7547bebba6d8",
+  "sha": "2d30ff4f73184119dc9fafdd7685a2dfa065902c",
   "revisions": [
+    {
+      "sha": "2d30ff4f73184119dc9fafdd7685a2dfa065902c",
+      "short": "2d30ff4",
+      "message": "Dependencies: version-tolerant VIPC matching + per-file missing pill (4.8.12)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T18:46:51Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "f907966a104ef930defdc2c71e2f7547bebba6d8",
       "short": "f907966",
@@ -891,15 +900,6 @@
       "message": "Use installed VIPM inventory for dependency status",
       "author": "Elijah Kerry",
       "date": "2026-06-24T21:41:40Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "cfabf8973b77d98b21a06d6a5f4094b520c9b860",
-      "short": "cfabf89",
-      "message": "Fix Linux Beta VIPC staging directory",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T21:19:39Z",
       "project": false,
       "dep_only": false
     },
