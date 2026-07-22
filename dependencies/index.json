@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "6058776b600c02e9d31e35431c4451f4c9b3f5c4",
+  "sha": "948a581c6d947b4bc715fc9239ff0e1693d04a5a",
   "revisions": [
+    {
+      "sha": "948a581c6d947b4bc715fc9239ff0e1693d04a5a",
+      "short": "948a581",
+      "message": "Failed dashboard runs stay re-runnable and link to their report (4.8.9)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T14:41:52Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "6058776b600c02e9d31e35431c4451f4c9b3f5c4",
       "short": "6058776",
@@ -891,15 +900,6 @@
       "message": "Bake VI Browser 2.0 render engine into the Linux worker (4.1.23)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T19:45:28Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "4eda8af4a0d3a6c16ecc35b0fb727b9d7d02d5fe",
-      "short": "4eda8af",
-      "message": "Don't run VI Snapshots when installing the pipeline (4.1.22)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T19:15:09Z",
       "project": false,
       "dep_only": false
     },
