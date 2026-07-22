@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "42a158ca099713add297ab9c2a90e19cb4ec1165",
+  "sha": "aa15e43b889846660efbef8d8f1de8b031699111",
   "revisions": [
+    {
+      "sha": "aa15e43b889846660efbef8d8f1de8b031699111",
+      "short": "aa15e43",
+      "message": "Client discovery finds fork-based installs (4.9.11)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T23:34:15Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "42a158ca099713add297ab9c2a90e19cb4ec1165",
       "short": "42a158c",
@@ -891,15 +900,6 @@
       "message": "dashboard: guard run-timing so an API hiccup can't break the build",
       "author": "Elijah Kerry",
       "date": "2026-06-26T04:31:45Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "09abdb9b65506f774714804dfccf14bf939253dc",
-      "short": "09abdb9",
-      "message": "Fix docker cp out of warm container (Windows trailing-dot rejected)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-26T00:54:04Z",
       "project": false,
       "dep_only": false
     },
