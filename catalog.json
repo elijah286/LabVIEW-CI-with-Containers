@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.7.0",
+  "version": "4.8.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {"version": "4.8.0", "date": "2026-07-21", "notes": "VI Browser 2.0 Windows renders now auto-generate on every new revision. The Windows render workflow (vi-snapshots-json-windows.yml) previously ran only on manual dispatch, so a VI a revision changed showed 'No Windows 2.0 render' until someone clicked Re-run; it now has the same workflow_run auto-trigger and config gate as the Linux path, auto-running when config.viBrowser.positionAware includes windows (the configurator default) and the triggering snapshot run succeeded. Renders stay content-addressed by git blob SHA, so unchanged VIs reuse their existing frames with no work and only the new/changed blobs a revision actually touched are rendered."},
       {
         "version": "4.7.0",
         "date": "2026-07-21",
