@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.9.0",
+  "version": "4.9.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.9.1",
+        "date": "2026-07-22",
+        "title": "Dispatched report runs survive a GitHub API rate limit",
+        "summary": "The Determine target SHA step in the container report workflows no longer calls the GitHub API when the dispatched commit_sha is already a full 40-character SHA, and it falls back to the raw input instead of aborting when a short-SHA lookup is rate-limited, so a transient HTTP 403 API rate limit exceeded no longer makes a run fail before it starts and show as an empty/failed activity (e.g. no unit tests).",
+        "highlights": [
+          "Determine target SHA skips the gh api commits lookup for a full 40-char SHA (the dashboard always passes one), removing the rate-limit failure point.",
+          "A short-SHA / ref lookup now falls back to the raw input on any API error instead of hard-failing the whole run under set -e -o pipefail.",
+          "Applied to build-binaries, mass compile, VI Analyzer, Antidoc and unit-tests container workflows (Windows + Linux); VIDiff already had the fallback."
+        ]
+      },
       {"version": "4.9.0", "date": "2026-07-22", "notes": "New Tools > Debug Run: boot the Linux worker for a chosen revision with a full graphical desktop you can remote into over a browser noVNC session (Xvfb + x11vnc + websockify), tunnelled out with an ephemeral Cloudflare quick tunnel (no account or secret). A three-step dialog dispatches debug-session.yml, auto-opens the remote desktop, and lets you log into/activate LabVIEW interactively, then press ENTER in the on-screen prompt to run the selected activities live (masscompile.sh, ...). Sessions self-tear-down after a chosen time or on End session. Linux only, off by default, dispatch-only."},
       {"version": "4.8.13", "date": "2026-07-22", "notes": "Dashboard resilience: a rate-limited or unavailable GitHub API no longer blanks the dashboard. dashboard.py now retries transient API failures (HTTP 403/429, 5xx, and dropped connections) with backoff that honors Retry-After / X-RateLimit-Reset, and if the commit history still cannot be read completely it refuses to publish and fails the build instead of overwriting the live dashboard with a blank or truncated table -- so the previous good dashboard stays up and rebuilds automatically once the API recovers. This fixes the blank dashboard that a burst of concurrent CI activity (many workflows dispatched at once) could cause by tripping a secondary rate limit while the build paged commit history."},
       {"version": "4.8.12", "date": "2026-07-22", "notes": "Dependencies: version-tolerant VIPC package matching plus a per-file missing pill. A VIPC that requests one build of a package (e.g. wovalab_lib_antidoc_cli-3.3.0.117) no longer reads as missing when the worker baked a DIFFERENT build of the SAME package (e.g. 3.4.0.126) -- matching now compares the versionless base identifier, because VIPM installs one version per package, so a present-but-different build shows as installed in both the dependency table and the pending-update check. Each VIPC file's header row now also shows an 'N missing' / 'installed' pill rolled up from the same per-package result, so you can see which file is short a package without expanding it"},
