@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import html, json, os, re, sys, urllib.request, urllib.error, zipfile
+import html, json, os, re, sys, time, urllib.request, urllib.error, zipfile
 from urllib.parse import quote
 from xml.etree import ElementTree as ET
 
@@ -7,7 +7,27 @@ token    = os.environ['GH_TOKEN']
 repo     = os.environ['REPO']
 pages_url = os.environ['PAGES_URL']
 
-def gh_get(path):
+# API health: a persistent failure while fetching commit history must NOT
+# blank the good dashboard (see the fetch_commits guard). gh_get sets this
+# when a transient failure (rate limit / 5xx / network) survives its retries.
+_API = {'degraded': False}
+
+def _retry_delay(err, attempt):
+    # Prefer the server's own guidance: Retry-After (seconds), or seconds until
+    # X-RateLimit-Reset for a primary rate limit; else capped exponential
+    # backoff. Bounded so a build never hangs on a long reset window.
+    hdrs = getattr(err, 'headers', None)
+    if hdrs is not None:
+        ra = hdrs.get('Retry-After')
+        if ra and str(ra).strip().isdigit():
+            return min(30, max(1, int(ra)))
+        if str(hdrs.get('X-RateLimit-Remaining', '')).strip() == '0':
+            reset = hdrs.get('X-RateLimit-Reset')
+            if reset and str(reset).strip().isdigit():
+                return min(30, max(1, int(reset) - int(time.time())))
+    return min(30, 2 ** attempt)
+
+def gh_get(path, _tries=4):
     # NOTE: an empty path must hit the bare repo endpoint (…/repos/{repo}); a
     # trailing slash (…/repos/{repo}/) makes GitHub return 404, which silently
     # broke get_default_branch() below. Only join the '/' when there IS a path.
@@ -17,12 +37,38 @@ def gh_get(path):
         'Accept': 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
     })
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        print(f"  HTTP {e.code} for {path}", file=sys.stderr)
-        return None
+    # Rate limits (primary 403 with x-ratelimit-remaining:0, secondary 403/429)
+    # and 5xx are TRANSIENT: a burst of CI activity easily trips a secondary
+    # rate limit, and a single flaky call used to return None and silently
+    # blank the dashboard. Retry those with backoff (honoring Retry-After /
+    # X-RateLimit-Reset); a dropped connection / timeout is retried too. Only a
+    # PERSISTENT failure returns None AND marks the API degraded, which makes
+    # the build refuse to publish a truncated dashboard (see fetch_commits).
+    # Once degraded, further calls try once (the limit will not clear in 30s).
+    n_tries = 1 if _API['degraded'] else _tries
+    for attempt in range(n_tries):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            transient = e.code in (403, 429) or 500 <= e.code < 600
+            if transient and attempt < n_tries - 1:
+                delay = _retry_delay(e, attempt)
+                print(f"  HTTP {e.code} for {path}; retrying in {delay}s "
+                      f"(attempt {attempt + 1}/{n_tries})", file=sys.stderr)
+                time.sleep(delay)
+                continue
+            print(f"  HTTP {e.code} for {path}", file=sys.stderr)
+            if transient:
+                _API['degraded'] = True
+            return None
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt < n_tries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            print(f"  network error for {path}: {e}", file=sys.stderr)
+            _API['degraded'] = True
+            return None
 
 # ── Resolve the repo's default branch (NOT hard-coded 'main') ─────
 # Consumers commonly use 'master' or other default branches. Hard-coding 'main'
@@ -344,13 +390,15 @@ _SCAN_CAP       = 3000  # never classify more than this many commits (cost guard
 def fetch_commits():
     out, n_proj, n_scanned, page = [], 0, 0, 1
     branch = get_default_branch()
-    while n_scanned < _SCAN_CAP:
+    while n_scanned < _SCAN_CAP and not _API['degraded']:
         batch = gh_get(f'commits?sha={branch}&per_page=100&page={page}') or []
         if not batch:
             break
         for c in batch:
             n_scanned += 1
             info = classify_commit(c['sha'])
+            if _API['degraded']:
+                break
             if n_scanned <= _RECENT_WINDOW or info['is_project']:
                 out.append(c)
             if info['is_project']:
@@ -362,6 +410,22 @@ def fetch_commits():
         page += 1
     return out
 commits_data = fetch_commits()
+
+# Refuse to publish a degraded dashboard. If a GitHub API call failed
+# (rate-limit / outage / network) while LISTING or CLASSIFYING commits - even
+# after gh_get's retries - the revision history is incomplete. Publishing now
+# would overwrite the good dashboard with a blank or truncated one (exactly
+# what a burst of concurrent CI activity used to cause, since the project's
+# own revisions can sit hundreds of tooling commits deep and the deep-scan
+# that surfaces them is the first thing a rate limit cuts off). Fail the build
+# instead: the deploy step is skipped, the previous good dashboard stays live,
+# and the next trigger rebuilds once the API recovers.
+if _API['degraded']:
+    sys.exit("::error::GitHub API was rate-limited or unavailable while "
+             "reading commit history, so the revision data is incomplete. "
+             "Refusing to publish a blank or truncated dashboard over the "
+             "good one - the previous dashboard stays live and rebuilds "
+             "automatically once the API recovers.")
 
 # ── List the VI files present at a revision ─────────────────
 # Powers the VI Browser's file tree INDEPENDENTLY of whether snapshots have

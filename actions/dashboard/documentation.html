@@ -666,7 +666,12 @@ flowchart TD
         project's own revisions visible even after many CI/tooling commits have piled up on <code>main</code>, it
         keeps paging back through history — past the recent window it retains <em>only</em> project revisions —
         until it has collected the project's revisions or reaches a large safety cap on how many commits it will
-        classify. It also stages the
+        classify. Reading that history is resilient to a transient GitHub&nbsp;API failure: rate-limited
+        (<code>HTTP&nbsp;403</code>/<code>429</code>), server, and network errors are retried with backoff
+        (honoring <code>Retry-After</code>/<code>X-RateLimit-Reset</code>), and if a call still fails so the
+        revision list would be incomplete, the build <strong>refuses to publish</strong> and exits &mdash; the
+        previous good dashboard stays live and rebuilds automatically once the API recovers, so a burst of
+        concurrent CI activity can never overwrite it with a blank or truncated table. It also stages the
         bundled tooling pages and writes the VI Browser's <code>files.json</code> index.</p>
       <p>On a fresh install with project revisions but no CI results yet, <code>dashboard.py</code> emits a
         <strong>Populate the dashboard with your history</strong> card above the table. The card opens the Populate
