@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.6.12",
+  "version": "4.7.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,11 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.7.0",
+        "date": "2026-07-21",
+        "notes": "Purge the Windows Beta and Linux Beta worker containers -- LCWC now has just two workers, Windows and Linux. Antidoc (which already ran on the standard Windows worker, never the beta image) is now a normal opt-in capability (status stable, off by default via a new defaultOff flag) instead of the sole experimental one, so the installer's Experimental features card is gone. Deleted build-labview-windows-beta-image.yml, build-labview-linux-beta-image.yml and the two beta Dockerfiles, and removed the leftover linux-beta image-selection branches, the build-worker-manifest beta platforms, and the wait-for-worker-image beta workflow mapping."
+      },
       {
         "version": "4.6.12",
         "date": "2026-07-21",
@@ -4218,8 +4223,9 @@
       "id": "antidoc",
       "name": "Antidoc",
       "summary": "Generates browsable project documentation with Antidoc (Wovalab) inside the Windows worker and publishes it to Pages, framed in the dashboard. Antidoc renders the project structure, VI descriptions and block-diagram images headlessly through the Antidoc CLI.",
-      "status": "experimental",
+      "status": "stable",
       "recommended": false,
+      "defaultOff": true,
       "supportsOs": [
         "windows"
       ],
@@ -4239,9 +4245,7 @@
         ],
         "windows": [
           ".github/workflows/run-antidoc-windows-container.yml",
-          ".github/labview/run-antidoc.ps1",
-          ".github/workflows/build-labview-windows-beta-image.yml",
-          ".github/docker/labview-ci-windows-beta.Dockerfile"
+          ".github/labview/run-antidoc.ps1"
         ],
         "linux": []
       },
