@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "761b759fe35636e6fb59f68070ef75901d33e432",
+  "sha": "964dd4e3e0599ca4c8f53afad3d093b58ebfda15",
   "revisions": [
+    {
+      "sha": "964dd4e3e0599ca4c8f53afad3d093b58ebfda15",
+      "short": "964dd4e",
+      "message": "VI Analyzer: add a Linux container runner + dual-platform report/dashboard (4.10.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T23:55:13Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "761b759fe35636e6fb59f68070ef75901d33e432",
       "short": "761b759",
@@ -891,15 +900,6 @@
       "message": "README: clear, compelling project overview + matching Apply to New Repo CTA (4.1.36)",
       "author": "Elijah Kerry",
       "date": "2026-06-27T04:05:24Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "a8547f3ba0b9b52b56eb898a189298959c49dca1",
-      "short": "a8547f3",
-      "message": "TEMP: warm-batch smoketests for vi-analyzer/unit-tests/antidoc (delete before merge)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-26T04:41:53Z",
       "project": false,
       "dep_only": false
     },
