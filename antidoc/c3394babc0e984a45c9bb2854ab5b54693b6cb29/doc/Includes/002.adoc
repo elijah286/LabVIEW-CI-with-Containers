@@ -1,0 +1,11 @@
+=== #TODO
+
+.#TODO
+[cols="<.<8d,<.<2d,<.<2d", %autowidth, frame=all, grid=all, stripes=none]
+|===
+|Text |VI |Owned by
+
+|#TODO check if 3 seconds is required or if it's excessive
+|Init.vi
+|<<Revidyne Generator.lvlib>>
+|===
