@@ -355,30 +355,76 @@ function Invoke-Tool($tool, [int]$index) {
 }
 
 # -- NI Unit Test Framework (UTF) ---------------------------------------------
-# UTF tests live as .lvtest files inside a .lvproj. Resolve the project(s) to run
-# from the tool's locations (a .lvproj path, or a directory/glob to search), keeping
-# only projects that actually reference UTF tests so we never launch LabVIEW for
-# nothing. Empty locations means "search the whole project".
+# UTF tests live as .lvtest files inside a .lvproj, and RunUnitTests runs a whole
+# PROJECT, so we must resolve the tool's locations to the owning .lvproj(s). This
+# is deliberately robust to however a repo is laid out - a location may be:
+#   * a .lvproj path            -> run that project;
+#   * a directory that CONTAINS one or more test-bearing .lvproj -> run each;
+#   * a directory of .lvtest files whose .lvproj lives ABOVE it  -> walk parents
+#     up to the workspace root and run the nearest owning project(s);
+#   * empty                     -> discover EVERY test-bearing .lvproj anywhere in
+#     the repo and run them all.
+# Only projects that actually reference UTF tests are kept, so we never launch
+# LabVIEW for nothing, and CI tooling folders (.github, ci-out, build, .git) are
+# always excluded.
+function Test-ProjHasUtfTests([string]$projPath) {
+    $txt = Get-Content -LiteralPath $projPath -Raw -ErrorAction SilentlyContinue
+    return [bool]($txt -and ($txt -match 'Type="TestItem"' -or $txt -match '\.lvtest'))
+}
+
 function Resolve-UtfProjects([string[]]$locations) {
-    $found = New-Object System.Collections.Generic.List[string]
-    # A location may itself be a .lvproj.
-    foreach ($loc in @($locations)) {
-        if (-not $loc) { continue }
+    $found  = New-Object System.Collections.Generic.List[string]
+    $exclRe = '(?i)[\\/](\.github|ci-out|build|\.git)[\\/]'
+    $wsFull = (Resolve-Path -LiteralPath $WorkspaceRoot).Path
+
+    # No explicit locations => discover every test-bearing project in the repo.
+    $locList = @($locations | Where-Object { $_ -and $_.Trim() })
+    if ($locList.Count -eq 0) {
+        Get-ChildItem -LiteralPath $wsFull -Recurse -File -Filter '*.lvproj' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -notmatch $exclRe -and (Test-ProjHasUtfTests $_.FullName) } |
+            ForEach-Object { $found.Add($_.FullName) }
+        return ($found | Sort-Object -Unique)
+    }
+
+    foreach ($loc in $locList) {
         $full = Join-Path $WorkspaceRoot ($loc -replace '/', '\')
+
+        # (a) the location is itself a .lvproj -> run it directly.
         if ((Test-Path -LiteralPath $full -PathType Leaf) -and ($full -match '\.lvproj$')) {
             $found.Add((Resolve-Path -LiteralPath $full).Path)
+            continue
+        }
+
+        # (b) the location is a directory or glob -> resolve to concrete roots.
+        foreach ($root in @(Resolve-TestRoots @($loc))) {
+            if (-not (Test-Path -LiteralPath $root)) { continue }
+
+            # (b1) downward: test-bearing .lvproj at or under the location.
+            $downward = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.lvproj' -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -notmatch $exclRe -and (Test-ProjHasUtfTests $_.FullName) })
+            if ($downward.Count -gt 0) {
+                $downward | ForEach-Object { $found.Add($_.FullName) }
+                continue
+            }
+
+            # (b2) upward: the location holds .lvtest files but the owning .lvproj
+            # lives above it. Walk parents up to the workspace root and take the
+            # nearest ancestor that has a test-bearing project.
+            $hasTests = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.lvtest' -ErrorAction SilentlyContinue).Count -gt 0
+            if (-not $hasTests) { continue }
+            $dir = (Resolve-Path -LiteralPath $root).Path
+            while ($dir) {
+                $up = @(Get-ChildItem -LiteralPath $dir -File -Filter '*.lvproj' -ErrorAction SilentlyContinue |
+                    Where-Object { $_.FullName -notmatch $exclRe -and (Test-ProjHasUtfTests $_.FullName) })
+                if ($up.Count -gt 0) { $up | ForEach-Object { $found.Add($_.FullName) }; break }
+                if ($dir -eq $wsFull) { break }
+                $parent = Split-Path -Parent $dir
+                if (-not $parent -or $parent -eq $dir -or $parent.Length -lt $wsFull.Length) { break }
+                $dir = $parent
+            }
         }
     }
-    $roots = if (@($locations | Where-Object { $_ -and $_.Trim() }).Count -gt 0) { Resolve-TestRoots $locations } else { @($WorkspaceRoot) }
-    foreach ($root in $roots) {
-        if (-not (Test-Path -LiteralPath $root)) { continue }
-        $projs = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.lvproj' -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -notmatch '(?i)\\\.github\\' -and $_.FullName -notmatch '(?i)\\ci-out\\' })
-        foreach ($p in $projs) {
-            $txt = Get-Content -LiteralPath $p.FullName -Raw -ErrorAction SilentlyContinue
-            if ($txt -and ($txt -match 'Type="TestItem"' -or $txt -match '\.lvtest')) { $found.Add($p.FullName) }
-        }
-    }
+
     return ($found | Sort-Object -Unique)
 }
 
