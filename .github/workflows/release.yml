@@ -83,6 +83,28 @@ jobs:
             done
           fi
 
+          # Release channel: force-move the rolling `stable` tag to the blessed
+          # release. `stableVersion` is set by the promote-release workflow (the
+          # owner's "Mark as stable release" button); it's absent until the first
+          # promotion, in which case this is a no-op. Idempotent: only moves the
+          # tag when it isn't already at v<stableVersion>.
+          STABLE=$(python3 -c "import json;print(json.load(open('$CAT')).get('stableVersion',''))")
+          if [ -n "$STABLE" ]; then
+            if git rev-parse -q --verify "refs/tags/v${STABLE}^{}" >/dev/null; then
+              WANT=$(git rev-parse "v${STABLE}^{}")
+              HAVE=$(git rev-parse -q --verify "refs/tags/stable^{}" 2>/dev/null || echo "")
+              if [ "$WANT" != "$HAVE" ]; then
+                git tag -f stable "v${STABLE}^{}"
+                git push -f origin stable
+                echo "Moved rolling 'stable' tag -> v${STABLE}."
+              else
+                echo "Rolling 'stable' tag already at v${STABLE}."
+              fi
+            else
+              echo "::warning::stableVersion ${STABLE} has no v${STABLE} tag yet; leaving 'stable' unchanged."
+            fi
+          fi
+
           # Build release notes from the catalog's newest history entry.
           python3 - "$CAT" > /tmp/relnotes.md <<'PY'
           import json, sys

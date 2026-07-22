@@ -1,0 +1,112 @@
+# Owner-only: mark a published version as the STABLE release (or roll it back).
+#
+# This is the go-live control behind the "Mark as stable release" button on the
+# What's New page. It never builds anything: it edits the catalog so
+# `stableVersion` points at an already-published, immutable `v<version>` release
+# and flags that release `"stable": true`, then pushes to the default branch.
+# release.yml then force-moves the rolling `stable` tag to the blessed commit.
+#
+# Only someone with `Actions: write` on THIS (source) repo can dispatch it, so
+# the promote button is genuinely owner-only. The catalog edit runs here with the
+# built-in GITHUB_TOKEN (a catalog change, not a workflow-file change), so no PAT
+# is needed for the commit itself.
+name: Promote release
+run-name: >-
+  ${{ github.event.inputs.unpromote == 'true' && 'Un-promote' || 'Promote' }}
+  v${{ github.event.inputs.version }} ${{ github.event.inputs.unpromote == 'true' && 'off stable' || 'to stable' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Published version to promote to stable (e.g. 4.9.7)'
+        type: string
+        required: true
+      unpromote:
+        description: 'Roll the stable channel back OFF this version instead of promoting it'
+        type: boolean
+        default: false
+
+concurrency:
+  group: promote-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # commit the catalog edit to the default branch (built-in token; no PAT)
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history + tags)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify the version is published and tagged
+        env:
+          VER: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          VER="${VER#v}"
+          case "$VER" in
+            [0-9]*.[0-9]*.[0-9]*) : ;;
+            *) echo "::error::'$VER' is not MAJOR.MINOR.PATCH"; exit 1 ;;
+          esac
+          if ! git rev-parse -q --verify "refs/tags/v${VER}^{}" >/dev/null; then
+            echo "::error::v${VER} is not a published release tag; promote only a released version."
+            exit 1
+          fi
+          echo "v${VER} tag verified."
+
+      - name: Gate - catalog/source sync
+        run: python3 .github/labview/validate-catalog-source-sync.py
+
+      - name: Apply the promotion to the catalog
+        env:
+          VER: ${{ github.event.inputs.version }}
+          UNPROMOTE: ${{ github.event.inputs.unpromote }}
+        run: |
+          set -euo pipefail
+          ARGS=(--version "${VER#v}")
+          if [ "${UNPROMOTE}" = "true" ]; then ARGS+=(--unpromote); fi
+          python3 .github/labview/promote-release.py "${ARGS[@]}"
+          python3 -c "import json;json.load(open('.github/labview-ci/catalog.json'))"  # validity re-check
+
+      - name: Commit and push to the default branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          CAT=.github/labview-ci/catalog.json
+          if git diff --quiet -- "$CAT"; then
+            echo "::warning::No catalog change produced; nothing to promote."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          NEWVER=$(python3 -c "import json;print(json.load(open('$CAT'))['version'])")
+          STABLE=$(python3 -c "import json;print(json.load(open('$CAT')).get('stableVersion',''))")
+          git add "$CAT"
+          git commit -m "Release channel: stable=${STABLE:-none} (catalog ${NEWVER})"
+          # The default branch is hot; rebase-and-retry a few times on a non-FF push.
+          for i in 1 2 3 4 5; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then echo "pushed"; exit 0; fi
+            echo "push rejected (attempt $i); rebasing on the latest default branch"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}" || { echo "::error::rebase conflict"; exit 1; }
+            sleep 3
+          done
+          echo "::error::could not push the promotion after retries"; exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          CAT=.github/labview-ci/catalog.json
+          STABLE=$(python3 -c "import json;print(json.load(open('$CAT')).get('stableVersion',''))" 2>/dev/null || echo "")
+          {
+            echo "## Release channel updated"
+            echo ""
+            echo "- Stable version is now: \`${STABLE:-none}\`"
+            echo "- release.yml will move the rolling \`stable\` tag to the blessed commit."
+          } >> "$GITHUB_STEP_SUMMARY"

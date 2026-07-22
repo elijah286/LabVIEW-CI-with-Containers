@@ -1493,6 +1493,24 @@ docker run --rm `
       <p><code>reconfigure.yml</code> backs the <strong>Configure Pipeline</strong> dialog: it rewrites
         <code>.github/labview-ci.yml</code> from a <code>workflow_dispatch</code> form and opens a reviewable pull
         request rather than committing directly.</p>
+      <h3>Release channels (stable vs. beta)</h3>
+      <p>Every catalog change bumps <code>version</code> &mdash; the <strong>beta tip</strong>. A separate optional
+        top-level <code>stableVersion</code> names the newest release the maintainer has <strong>promoted</strong> to
+        the <strong>stable</strong> channel, and each promoted release entry carries <code>"stable": true</code>.
+        Promotion never builds anything: it blesses an already-published, immutable <code>v&lt;version&gt;</code>
+        release. <code>release.yml</code> force-moves a rolling <code>stable</code> git tag to the blessed commit.</p>
+      <p>Installs and upgrades default to the <strong>stable</strong> channel: the What's New page and the header's
+        update indicator only treat a newer <em>stable</em> release as an available update, so a freshly published
+        beta never nags a client onto an unproven build. Users opt into pre-release builds per browser via a
+        &ldquo;Show pre-release updates&rdquo; toggle (<code>localStorage.lvci_update_channel = 'beta'</code>). Until
+        the first promotion, <code>stableVersion</code> is absent and everything falls back to the latest published
+        version &mdash; exactly the pre-channel behaviour.</p>
+      <p>The maintainer promotes from the <strong>Mark as stable release</strong> button on their own source repo's
+        What's New page. It dispatches <code>promote-release.yml</code> (owner-only &mdash; GitHub requires
+        <code>Actions: write</code> on the source repo), which verifies the <code>v&lt;version&gt;</code> tag exists,
+        runs the catalog/source-sync gate, edits the catalog via <code>promote-release.py</code> (set
+        <code>stableVersion</code>, flag the entry, bump the version), and commits to the default branch; the same
+        button un-promotes to roll the channel back to the previous stable.</p>
       <h3>Relocation pointer</h3>
       <p><code>.github/labview-ci/source.json</code> lets the project migrate (for example to an official NI repo)
         without breaking installs: if it names a different repo than the current one, the bootstrappers and the
