@@ -36,6 +36,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends xvfb ca-certificates \
+      fonts-dejavu-core fonts-liberation fonts-noto-core xfonts-base xfonts-75dpi xfonts-100dpi fontconfig \
+ && (fc-cache -f >/dev/null 2>&1 || true) \
  && rm -rf /var/lib/apt/lists/*
 
 # Render engine + batch runner.

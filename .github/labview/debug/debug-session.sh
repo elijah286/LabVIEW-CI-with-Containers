@@ -31,8 +31,10 @@ if ! command -v x11vnc >/dev/null 2>&1 || ! command -v websockify >/dev/null 2>&
   SUDO=""; [ "$(id -u)" != "0" ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
   $SUDO apt-get update -y >/tmp/apt.log 2>&1 || log "apt-get update failed (see /tmp/apt.log)"
   $SUDO apt-get install -y --no-install-recommends \
-    xvfb fluxbox x11vnc novnc websockify xterm openssl xauth x11-utils \
+    xvfb fluxbox x11vnc novnc websockify xterm openssl xauth x11-utils x11-xserver-utils \
+    fonts-dejavu-core fonts-liberation fonts-noto-core xfonts-base xfonts-75dpi xfonts-100dpi fontconfig \
     >>/tmp/apt.log 2>&1 || log "apt-get install had errors (see /tmp/apt.log)"
+  $SUDO fc-cache -f >>/tmp/apt.log 2>&1 || true
 fi
 
 # --- 2. Virtual display + window manager -------------------------------------
@@ -41,6 +43,21 @@ if ! xdpyinfo -display :99 >/dev/null 2>&1; then
   Xvfb :99 -screen 0 1680x1010x24 -nolisten tcp >/tmp/xvfb.log 2>&1 &
   sleep 2
 fi
+# Make the freshly installed X core fonts visible even if Xvfb was already up, so
+# LabVIEW's UI fonts (its Helvetica/Courier/Times aliases) resolve and buttons and
+# text render instead of appearing blank.
+xset +fp /usr/share/fonts/X11/misc,/usr/share/fonts/X11/75dpi,/usr/share/fonts/X11/100dpi 2>/dev/null || true
+xset fp rehash 2>/dev/null || true
+# Focus-follows-mouse + focus new windows so the on-screen terminal actually
+# receives the ENTER keystroke (fluxbox defaults to click-to-focus, which made
+# pressing ENTER over VNC seem to do nothing).
+mkdir -p "$HOME/.fluxbox"
+cat > "$HOME/.fluxbox/init" <<'FBINIT'
+session.screen0.focusModel: MouseFocus
+session.screen0.focusNewWindows: true
+session.screen0.autoRaise: true
+session.screen0.workspaces: 1
+FBINIT
 fluxbox >/tmp/fluxbox.log 2>&1 &
 sleep 1
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.9.8",
+  "version": "4.9.9",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,11 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet.",
     "releases": [
+      {
+        "version": "4.9.9",
+        "date": "2026-07-22",
+        "notes": "Linux worker rendering fix: the Linux worker image and the standalone VI Browser 2.0 render image now bake a set of X11 core and TrueType fonts (DejaVu, Liberation, Noto, and the 75/100 dpi xfonts-* families). NI's minimal Linux base ships almost none, so LabVIEW's UI controls and rendered VI text previously came out blank in VI Browser snapshots and the Debug Run desktop. The Debug Run session also installs those fonts on demand (best-effort), makes them visible to the running Xvfb (xset), and switches fluxbox to focus-follows-mouse so the on-screen terminal reliably receives the ENTER keystroke."
+      },
       {"version": "4.9.8", "date": "2026-07-22", "notes": "Client discovery now lists genuine fork-based installs. The Clients scan no longer drops a repository just because it is a fork: a fork that installed this stack (a fork of some other LabVIEW project) is now discovered and listed, while a fork of this framework repository itself stays excluded. Per-candidate verification (public, and the catalog points back here or a workflow references this stack) is unchanged, so unrelated repositories still never leak in."},
       {"version": "4.9.7", "date": "2026-07-22", "notes": "Release channels: installs and upgrades now default to a stable release channel and only prompt for versions the maintainer has explicitly marked stable, so a freshly published build never nags users onto an unproven revision; pre-release (beta) builds stay available behind an opt-in toggle. Adds the owner-only 'Mark as stable release' button on the What's New page (dispatching a new Promote release workflow), a rolling 'stable' git tag moved by the release workflow, and a stableVersion/stable catalog contract that is inert until the first version is promoted."},
       {"version": "4.9.6", "date": "2026-07-22", "notes": "Debug Run now shows what's happening and lists live sessions. The connect view reports the run's real step (\"Current step: ...\") and a clear \"Queued - waiting for another debug session to finish\" state instead of an opaque \"booting\". The dialog lists all live & queued debug sessions (any in-progress debug-session run) with Open remote desktop and End (confirm) buttons, so you can reconnect from any device - not just the browser that started the session - or end one to free the single-session slot."},

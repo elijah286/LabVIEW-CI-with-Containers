@@ -42,7 +42,9 @@ RUN set -eux; \
       chmod +x /opt/lvci/vipm/install-vipc-linux.sh; \
       export DEBIAN_FRONTEND=noninteractive; \
       apt-get update; \
-      apt-get install -y --no-install-recommends ca-certificates curl xvfb; \
+      apt-get install -y --no-install-recommends ca-certificates curl xvfb \
+        fonts-dejavu-core fonts-liberation fonts-noto-core xfonts-base xfonts-75dpi xfonts-100dpi fontconfig; \
+      fc-cache -f >/dev/null 2>&1 || true; \
       curl -fL --retry 3 --retry-delay 2 -o /tmp/vipm.deb "${VIPM_DEB_URL}"; \
       dpkg -i /tmp/vipm.deb || apt-get install -f -y --no-install-recommends; \
       rm -f /tmp/vipm.deb; \
