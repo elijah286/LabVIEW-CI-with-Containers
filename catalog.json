@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.9.9",
+  "version": "4.9.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet.",
     "releases": [
+      {"version": "4.9.10", "date": "2026-07-22", "notes": "VI Browser now truly defaults opened files to 2.0 whenever a 2.0 render exists (Windows preferred when both platforms exist): the auto-default path no longer bails out just because local storage previously remembered viewer mode 1.0, so older 1.0 preferences no longer suppress the 2.0-first open behavior."},
       {
         "version": "4.9.9",
         "date": "2026-07-22",
