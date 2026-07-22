@@ -200,14 +200,29 @@ function ConvertTo-JsonString([string]$s) {
 
 function Invoke-ViaPass([string]$ConfigArg, [string]$ReportPath) {
     Write-Host "  RunVIAnalyzer -ConfigPath '$ConfigArg' -ReportPath '$ReportPath'"
-    & $CliExe `
-        -LogToConsole   TRUE `
-        -OperationName  RunVIAnalyzer `
-        -ConfigPath     $ConfigArg `
-        -ReportPath     $ReportPath `
-        -ReportSaveType HTML `
-        -LabVIEWPath    $LabVIEWPath `
-        -Headless
+    # LabVIEWCLI writes progress AND warnings (e.g. a broken VI in the analyzed
+    # tree, like a missing-dependency subVI) to STDERR. Under the script's global
+    # ErrorActionPreference='Stop' a native stderr write is promoted to a
+    # TERMINATING NativeCommandError, which aborts a pass that actually ran to
+    # completion and wrote its report - observed on the whole-directory fallback
+    # when the project contains one bad VI, failing the whole job with exit 1.
+    # Shield the call exactly like the pre-analysis MassCompile does: switch to
+    # EAP='Continue' and fold stderr into the host stream, then judge success by
+    # the process exit code alone.
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $CliExe `
+            -LogToConsole   TRUE `
+            -OperationName  RunVIAnalyzer `
+            -ConfigPath     $ConfigArg `
+            -ReportPath     $ReportPath `
+            -ReportSaveType HTML `
+            -LabVIEWPath    $LabVIEWPath `
+            -Headless 2>&1 | Out-Host
+    } finally {
+        $ErrorActionPreference = $prevEAP
+    }
     return $LASTEXITCODE
 }
 
