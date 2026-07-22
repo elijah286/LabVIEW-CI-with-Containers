@@ -2404,6 +2404,36 @@ run_dialog = (r"""
       if(has(422)) return { html:'GitHub rejected the dispatch (HTTP 422) \u2014 usually a bad branch ref (<code>'+esc(BRANCH)+'</code>) or inputs.', tok:false };
       var st=(fails[0]||{}).status; return { html:'Could not queue runs (HTTP '+esc(String(st||'?'))+'). <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View Actions \u2197</a>', tok:false };
     }
+    var QUEUE_CONFIRM_MAX = 10;   // confirm before firing more than this many runs at once
+    // Count how many workflow runs dispatchCells(cells, opts) will queue, WITHOUT
+    // dispatching -- so a large batch can be confirmed first. Mirrors the `total`
+    // computed inside dispatchCells (snapshots -> one backfill; each warm-container
+    // batch (cap,platform) group -> one dispatch; remaining per-revision platforms
+    // counted individually).
+    function dispatchTotal(cells, opts){
+      opts = opts || {}; var reuse = !!opts.reuse;
+      var sawSnap=false; var perRev=[];
+      (cells||[]).forEach(function(x){
+        if(x.cap==='snapshots'){ sawSnap=true; }
+        else if(!(x.cap==='vidiff' && !x.parent)){ perRev.push(x); }
+      });
+      var batchSeen={}; var batchGroups=0; var perRevPlats=0;
+      perRev.forEach(function(x){
+        cellPlatforms(x).forEach(function(plat){
+          var p=(RT[x.cap] && RT[x.cap].platforms) ? RT[x.cap].platforms[plat] : null;
+          if(reuse && p && p.batch){ var key=x.cap+'|'+plat; if(!batchSeen[key]){ batchSeen[key]=1; batchGroups++; } }
+          else { perRevPlats++; }
+        });
+      });
+      return perRevPlats + (sawSnap?1:0) + batchGroups;
+    }
+    // Ask before queuing a large batch (guards against accidentally firing a whole
+    // history from the Populate-history dialog). Returns false only when the user
+    // cancels a >QUEUE_CONFIRM_MAX batch; a native confirm() keeps it robust + modal.
+    function confirmLargeQueue(n){
+      if(n <= QUEUE_CONFIRM_MAX) return true;
+      return window.confirm('This will queue '+n+' workflow runs on '+REPO+'.\n\nThat can use a lot of GitHub Actions minutes. Queue all '+n+' now?');
+    }
     function dispatchCells(cells, statusFn, opts){
       opts = opts || {}; var reuse = !!opts.reuse;
       var perRev=[]; var snapShas=[]; var sawSnap=false; var snapForce=false;
@@ -2504,6 +2534,7 @@ run_dialog = (r"""
       if(!cells.length){ bfStatus('Nothing left to run \u2014 every revision is queued or already has results.', 'ok'); return; }
       if(!getTok()){ bfTokPanel(true); bfStatus('Add a token (Actions: Read and write) to queue runs.', 'warn'); var i=document.getElementById('lvci-bf-tok-input'); if(i) i.focus(); return; }
       bfTokPanel(false);
+      if(!confirmLargeQueue(dispatchTotal(cells))){ bfStatus('Cancelled \u2014 nothing was queued.', 'warn'); return; }
       var runBtn=document.getElementById('lvci-bf-run'); var disBtn=document.getElementById('lvci-bf-dismiss');
       if(runBtn) runBtn.disabled=true; if(disBtn) disBtn.disabled=true;
       dispatchCells(cells, bfStatus).then(function(res){
@@ -3037,6 +3068,7 @@ run_dialog = (r"""
       if(!cells.length){ histStatus('Nothing to queue \u2014 the selected revisions already have results for those activities.', 'warn'); return; }
       if(!getTok()){ histTokPanel(true); histStatus('Add a token (Actions: Read and write) to queue runs.', 'warn'); var i=document.getElementById('cidash-hist-tok-input'); if(i) i.focus(); return; }
       histTokPanel(false);
+      if(!confirmLargeQueue(dispatchTotal(cells, {reuse: reuseWarm}))){ histStatus('Cancelled \u2014 nothing was queued.', 'warn'); return; }
       var go=document.getElementById('cidash-hist-go'); var cancel=document.getElementById('cidash-hist-cancel');
       if(go) go.disabled=true; if(cancel) cancel.disabled=true;
       dispatchCells(cells, histStatus, {reuse: reuseWarm}).then(function(res){

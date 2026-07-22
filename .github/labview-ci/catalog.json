@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.8.2",
+  "version": "4.8.3",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,17 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "4.8.3",
+        "date": "2026-07-21",
+        "type": "patch",
+        "summary": "The Populate history dialog now confirms before queuing a large batch of runs. Choosing a broad scope (for example All revisions across several activities) and clicking Populate history / Queue previously dispatched every run immediately with no prompt, so it was easy to accidentally fire dozens of workflow runs and burn a lot of Actions minutes. Now, whenever a queue would start more than ten workflow runs, a confirmation asks you to approve the exact count first; ten or fewer still queue instantly as before.",
+        "changes": [
+          "dashboard.py: new dispatchTotal(cells, opts) counts the runs a queue will start (snapshots collapse to one backfill, each warm-container batch group to one dispatch, remaining per-revision platforms individually) without dispatching, and confirmLargeQueue(n) gates on QUEUE_CONFIRM_MAX = 10.",
+          "Both the Populate-history dialog (histRun) and the fresh-install Populate history card (bfRunAll) now call confirmLargeQueue before dispatching; cancelling leaves nothing queued.",
+          "documentation.html: the Populate-history section notes the large-batch confirmation."
+        ]
+      },
       {
         "version": "4.8.2",
         "date": "2026-07-21",

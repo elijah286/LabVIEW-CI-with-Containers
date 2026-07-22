@@ -681,7 +681,9 @@ flowchart TD
         an <em>in-flight</em> queued/running cell — the latter are tagged <code>cidash-active-cell</code> so a re-run
         replaces the in-flight run via concurrency instead of greying out as &ldquo;none in scope.&rdquo; The optimistic
         &ldquo;Queued&rdquo; badge overlays that in-flight cell too, so re-running the latest revision's still-running
-        activity shows its Queued spinner immediately rather than silently doing nothing.</p>
+        activity shows its Queued spinner immediately rather than silently doing nothing. Queuing a large batch
+        &mdash; more than ten workflow runs across the selected revisions and activities &mdash; first asks for
+        confirmation, so an accidental &ldquo;all revisions&rdquo; selection can't fire dozens of runs without a prompt.</p>
       <p>The chooser's <strong>revision picker</strong> (the All / range / specific selectors) mirrors the
         dashboard table: <strong>dependency-only</strong> revisions &mdash; those whose only change is an external
         dependency (<code>.vipc</code>/<code>.vip</code>) &mdash; are hidden by default and revealed with a
