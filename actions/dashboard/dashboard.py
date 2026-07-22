@@ -227,6 +227,23 @@ def unit_tests_summary(sha, platform='windows'):
     _ut_cache[key] = summary if isinstance(summary, dict) else None
     return _ut_cache[key]
 
+_via_cache = {}
+def vi_analyzer_summary(sha, platform='windows'):
+    # {meta, summary:{vis_analyzed, tests_run, passed, failed, skipped, findings,
+    # vis_with_findings}, errors:{vi_not_loadable, ...}, rule_counts[...]} written by
+    # build-analyzer-report.py and deployed alongside the report at
+    # vi-analyzer/<sha>/summary.json (Windows) and vi-analyzer/<sha>/linux/summary.json
+    # (Linux). Lets the VI Analyzer column show the finding count per platform (and
+    # flag a degraded analysis) instead of a binary pass/fail, and report Windows and
+    # Linux separately since the two containers can analyze a different set of VIs.
+    key = (sha, platform)
+    if key in _via_cache:
+        return _via_cache[key]
+    sub = 'linux/' if platform == 'linux' else ''
+    data = http_json(f"{pages_url}/vi-analyzer/{sha}/{sub}summary.json")
+    _via_cache[key] = data if isinstance(data, dict) else None
+    return _via_cache[key]
+
 def _pct_threshold(value, default):
     try:
         return max(0, min(100, int(float(str(value).strip()))))
@@ -509,7 +526,8 @@ RUN_TARGETS = {
         'linux':   {'wf': 'masscompile-linux-container.yml',   'inputs': {'commit_sha': '{sha}'}}}},
     'vi-analyzer': {'label': 'VI Analyzer', 'platforms': {
         'windows': {'wf': 'run-vi-analyzer-windows-container.yml', 'inputs': {'commit_sha': '{sha}'},
-                    'batch': {'wf': 'vi-analyzer-backfill-windows.yml', 'shas_input': 'shas'}}}},
+                    'batch': {'wf': 'vi-analyzer-backfill-windows.yml', 'shas_input': 'shas'}},
+        'linux':   {'wf': 'run-vi-analyzer-linux-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
     'vidiff': {'label': 'VIDiff', 'platforms': {
         'windows': {'wf': 'vidiff-windows-container.yml', 'inputs': {'head_sha': '{sha}', 'base_sha': '{parent}'}},
         'linux':   {'wf': 'vidiff-linux-container.yml',   'inputs': {'head_sha': '{sha}', 'base_sha': '{parent}'}}}},
@@ -1110,8 +1128,67 @@ for c in commits_data:
                         f'{_chip_html}</td>')
         else:
             mc_badge = badge('compile', 'CI / Mass Compile', cap='masscompile', doc=('masscompile-report', 'masscompile'))
-    via_badge = badge('analyze',   'CI / VI Analyzer', cap='vi-analyzer',
-                      doc=('vi-analyzer-report', 'vi-analyzer'))
+    # VI Analyzer column: show the number of findings (failed-test instances) per
+    # platform, sourced from the run's summary.json, so the table conveys the
+    # analysis outcome at a glance and reports Windows and Linux separately (the two
+    # containers can analyze a different set of VIs). A degraded analysis (un-loadable
+    # VIs, or zero VIs analyzed) is flagged solid red. Falls back to the plain status
+    # badge for older runs that predate summary.json.
+    if not is_project:
+        via_badge = EMPTY_CELL
+    else:
+        _via_win = vi_analyzer_summary(sha, 'windows')
+        _via_lin = vi_analyzer_summary(sha, 'linux')
+        _via_live = active_run_cell('vi-analyzer', 'analyze')
+        def _via_findings(_d):
+            _s = _d.get('summary') or {}
+            _f = _s.get('findings')
+            return (_s.get('failed') or 0) if _f is None else _f
+        def _via_seg(_d):
+            _s = _d.get('summary') or {}
+            _e = _d.get('errors') or {}
+            _find = _via_findings(_d)
+            _degraded = (_s.get('vis_analyzed') or 0) == 0 or any(
+                (_e.get(k) or 0) > 0 for k in
+                ('vi_not_loadable', 'test_not_loadable', 'test_not_runnable', 'test_error_out'))
+            if _degraded:
+                return ('fail', str(_find), True)
+            if _find > 0:
+                return ('warn', str(_find), False)
+            return ('pass', '0', False)
+        def _via_tip(_plat, _d):
+            _s = _d.get('summary') or {}
+            _f = _via_findings(_d)
+            return (f'{_plat}: {_f} finding{"" if _f == 1 else "s"} across '
+                    f'{_s.get("vis_with_findings", 0)} VI(s), {_s.get("vis_analyzed", 0)} analyzed')
+        _via_present = [(plat, s) for plat, s in (('windows', _via_win), ('linux', _via_lin))
+                        if s and isinstance(s.get('summary'), dict)]
+        if _via_live is not None:
+            via_badge = _via_live
+        elif _via_present:
+            any_output['on'] = True
+            caps_ran.add('vi-analyzer')
+            _via_ts = (pick_status('CI / VI Analyzer') or pick_status('CI / VI Analyzer (Linux)') or {}).get('created_at', '')
+            if len(_via_present) == 2:
+                _via_url = viewer_url(f'{pages_url}/vi-analyzer/{sha}/index.html', 'vi-analyzer-report', sha, short)
+                _wk, _wt, _ws = _via_seg(_via_win)
+                _lk, _lt, _ls = _via_seg(_via_lin)
+                _via_tt = _via_tip('Windows', _via_win) + ' \u00b7 ' + _via_tip('Linux', _via_lin)
+                _via_chip = _chip_split([(_wk, _wt, 'Windows', _ws), (_lk, _lt, 'Linux', _ls)], _via_url, _via_tt)
+            else:
+                _via_plat, _via_d = _via_present[0]
+                _via_sub = 'linux/' if _via_plat == 'linux' else ''
+                _via_url = viewer_url(f'{pages_url}/vi-analyzer/{sha}/{_via_sub}index.html',
+                                      'vi-analyzer-report', sha, short, _via_plat)
+                _vk, _vt, _vsolid = _via_seg(_via_d)
+                _via_tt = _via_tip(_via_plat.capitalize(), _via_d)
+                _via_chip = _chip(_vk, _vt, _via_url, _via_tt, solid=_vsolid)
+            via_badge = (f'<td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" '
+                         f'data-sha="{sha}" data-parent="{parent}" data-short="{short}" data-ts="{_via_ts}">'
+                         f'{_via_chip}</td>')
+        else:
+            via_badge = badge('analyze', 'CI / VI Analyzer', 'CI / VI Analyzer (Linux)', cap='vi-analyzer',
+                              doc=('vi-analyzer-report', 'vi-analyzer'))
     # VIDiff column: rather than a single "diff" badge, show the SHAPE of the
     # revision — how many VIs are different / new / deleted versus its parent —
     # so the table conveys at a glance what each revision did, not just that a

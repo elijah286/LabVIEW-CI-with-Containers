@@ -1,0 +1,284 @@
+name: Run VI Analyzer — Linux Container
+run-name: VI Analyzer Linux container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+# Linux counterpart of the Windows VI Analyzer. Produces the same friendly,
+# navigable report (findings grouped by VI + severity, snapshot drawer, dashboard
+# nav) for the Linux container, deployed under vi-analyzer/<sha>/linux/ so the
+# dashboard's VI Analyzer column has real data on both sides - just like the Mass
+# Compile and VIDiff reports.
+
+on:
+  pull_request:
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+      - '!.github/**'
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+      - '!.github/**'
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to analyze (leave blank for current HEAD)'
+        required: false
+        default: ''
+      files:
+        description: 'Re-run only these VIs (pipe-delimited repo paths). Blank = the whole revision.'
+        required: false
+        default: ''
+      config:
+        description: 'A committed .viancfg to use for a single-VI re-run (requires files).'
+        required: false
+        default: ''
+
+env:
+  LABVIEW_CONTAINER_IMAGE: ''
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  statuses: write
+  packages: read
+  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
+
+# No shared concurrency group: this Linux report deploys to gh-pages under a
+# disjoint path (vi-analyzer/<sha>/linux/) with keep_files:true. The Windows
+# report workflows share `report-pages-deploy` (cancel-in-progress:false) to
+# serialize their pushes, but GitHub keeps only one *pending* run per group - so
+# adding a member would make a normal push cancel one of the others. A rare
+# overlapping Linux push is additive rather than destructive.
+
+jobs:
+  vi-analyzer-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine target SHA
+        id: sha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INPUT="${{ github.event.inputs.commit_sha }}"
+          if printf '%s' "$INPUT" | grep -Eiq '^[0-9a-f]{40}$'; then
+            echo "sha=$INPUT" >> "$GITHUB_OUTPUT"
+          elif [ -n "$INPUT" ]; then
+            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha' 2>/dev/null || true)
+            echo "sha=${FULL:-$INPUT}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        if: github.event.inputs.files == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VI Analyzer (Linux) in progress\",\"context\":\"CI / VI Analyzer (Linux)\"}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Restore CI scripts from main
+        if: github.event.inputs.commit_sha != ''
+        run: |
+          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
+          git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
+
+      - name: Resolve Linux container image name
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          ACTION_ID: vi-analyzer
+        run: |
+          selected=$(python3 - <<'PY'
+          import os, pathlib, re
+          action_id = os.environ.get('ACTION_ID', '')
+          cfg = pathlib.Path('.github/labview-ci.yml')
+          use = ''
+          actions = {}
+          if cfg.exists():
+              section = ''
+              for line in cfg.read_text(encoding='utf-8').splitlines():
+                  if re.match(r'^\s*container:\s*$', line): section = 'container'; continue
+                  if section == 'container':
+                      match = re.match(r'^\s{4}use:\s*"?([^"#]+)"?', line)
+                      if match: use = match.group(1).strip()
+                      if re.match(r'^\s{4}actions:\s*$', line): section = 'actions'; continue
+                  elif section == 'actions':
+                      match = re.match(r'^\s{6}([A-Za-z0-9_.-]+):\s*"?([^"#]+)"?', line)
+                      if match: actions[match.group(1)] = match.group(2).strip()
+                      if re.match(r'^\s{0,4}\S', line): section = 'container'
+          print(actions.get(action_id) or use or '')
+          PY
+          )
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          case "$selected" in
+            ''|latest) image="ghcr.io/${owner}/${name}:linux-latest"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
+            base|none) image="nationalinstruments/labview:latest-linux"; worker_workflow="" ;;
+            linux-beta-*) image="ghcr.io/${owner}/${name}:${selected}"; worker_workflow="Build LabVIEW CI Image - Linux Beta" ;;
+            linux-*) image="ghcr.io/${owner}/${name}:${selected}"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
+            *) image="ghcr.io/${owner}/${name}:linux-${selected}"; worker_workflow="Build LabVIEW CI Image - Linux" ;;
+          esac
+          echo "LABVIEW_CONTAINER_IMAGE=$image" >> "$GITHUB_ENV"
+          echo "LINUX_WORKER_WORKFLOW=$worker_workflow" >> "$GITHUB_ENV"
+          echo "Using Linux container image: $image"
+
+      - name: Wait for Linux worker image build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$LABVIEW_CONTAINER_IMAGE" = "nationalinstruments/labview:latest-linux" ]; then
+            echo "Using the NI Linux base image; no Linux worker build to wait for."
+            exit 0
+          fi
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}" "$LINUX_WORKER_WORKFLOW"
+
+      - name: Log in to GHCR
+        if: env.LABVIEW_CONTAINER_IMAGE != 'nationalinstruments/labview:latest-linux'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull LabVIEW Linux container
+        id: pull
+        run: docker pull ${{ env.LABVIEW_CONTAINER_IMAGE }}
+        continue-on-error: true
+
+      - name: Run VI Analyzer inside Linux container
+        if: steps.pull.outcome == 'success'
+        id: analyze
+        env:
+          VIA_FILES: ${{ github.event.inputs.files }}
+          VIA_CONFIG: ${{ github.event.inputs.config }}
+        run: |
+          # VIA_FILES / VIA_CONFIG are passed through by NAME (docker -e VAR) so a
+          # single-VI re-run's paths/config never get spliced into the command line;
+          # the runner reads them as env fallbacks. Empty -> a whole-revision run.
+          mkdir -p "${{ github.workspace }}/ci-out/vi-analyzer"
+          docker run --rm \
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" \
+            -e "GITHUB_SHA=${{ steps.sha.outputs.sha }}" \
+            -e VIA_FILES \
+            -e VIA_CONFIG \
+            -v "${{ github.workspace }}:/workspace" \
+            ${{ env.LABVIEW_CONTAINER_IMAGE }} \
+            bash /workspace/.github/labview/run-vi-analyzer.sh \
+              /workspace \
+              /workspace/ci-out/vi-analyzer
+        continue-on-error: true
+
+      - name: Check report directory
+        id: report
+        run: |
+          if [ -f "${{ github.workspace }}/ci-out/vi-analyzer/index.html" ] || [ -f "${{ github.workspace }}/ci-out/vi-analyzer/passes/manifest.json" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build friendly report (parse native HTML + join snapshots)
+        if: steps.report.outputs.exists == 'true'
+        continue-on-error: true   # a formatting hiccup must never block deploying the native report
+        env:
+          IN_FILES: ${{ github.event.inputs.files }}
+        run: |
+          # The Linux report deploys at vi-analyzer/<sha>/linux/, so the relative
+          # prefix back to the Pages root is ../../.. (a single-VI re-run sits one
+          # level deeper at .../linux/reruns/<slug>, so ../../../..).
+          REPORT_DIR="${{ github.workspace }}/ci-out/vi-analyzer"
+          if [ -n "$IN_FILES" ]; then
+            SRC=(--in "$REPORT_DIR/index.html"); PAGES_BASE="../../../.."
+          elif [ -f "$REPORT_DIR/passes/manifest.json" ]; then
+            SRC=(--passes-dir "$REPORT_DIR/passes"); PAGES_BASE="../../.."
+          else
+            SRC=(--in "$REPORT_DIR/index.html"); PAGES_BASE="../../.."
+          fi
+          python3 .github/labview/build-analyzer-report.py \
+            "${SRC[@]}" \
+            --out        "$REPORT_DIR" \
+            --pages-base "$PAGES_BASE" \
+            --sha        "${{ steps.sha.outputs.sha }}" \
+            --platform   linux \
+            --repo       "${{ github.repository }}" \
+            --pages-url  "${{ env.PAGES_URL }}" \
+            --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
+            --author     "$(git log -1 --pretty=%an  ${{ steps.sha.outputs.sha }})" \
+            --date       "$(git log -1 --pretty=%cI  ${{ steps.sha.outputs.sha }})"
+
+      - name: Upload report artifact
+        if: steps.report.outputs.exists == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: vi-analyzer-linux-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/vi-analyzer/
+          if-no-files-found: warn
+
+      - name: Resolve report destination
+        id: dest
+        if: steps.report.outputs.exists == 'true'
+        env:
+          IN_FILES: ${{ github.event.inputs.files }}
+          IN_CONFIG: ${{ github.event.inputs.config }}
+        run: |
+          # A single-VI re-run is published under the revision's Linux report at
+          # linux/reruns/<slug> (slug must match the report page's rrSlug), so it
+          # never overwrites the revision's canonical Linux VI Analyzer report.
+          SHA="${{ steps.sha.outputs.sha }}"
+          if [ -n "$IN_FILES" ]; then
+            SLUG=$(printf '%s' "${IN_CONFIG}__${IN_FILES}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-80)
+            echo "dir=vi-analyzer/${SHA}/linux/reruns/${SLUG}" >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=vi-analyzer/${SHA}/linux" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy report to GitHub Pages
+        if: steps.report.outputs.exists == 'true'
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
+          destination_dir: ${{ steps.dest.outputs.dir }}
+
+      - name: Post commit status
+        if: always() && github.event.inputs.files == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.report.outputs.exists }}" = "true" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/vi-analyzer/${{ steps.sha.outputs.sha }}/linux/index.html"
+          else
+            REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.analyze.outcome }}" = "success" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"VI Analyzer (Linux) $STATE\",\"context\":\"CI / VI Analyzer (Linux)\"}"
+
+      - name: Fail the job if analysis failed
+        if: always() && (steps.pull.outcome != 'success' || steps.analyze.outcome != 'success')
+        run: exit 1

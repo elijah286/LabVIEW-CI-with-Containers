@@ -390,7 +390,7 @@ flowchart TD
         <thead><tr><th>Capability</th><th>What it does</th><th>Platforms</th></tr></thead>
         <tbody>
           <tr><td><strong>Mass Compile</strong></td><td>Compiles every VI/CTL and flags broken VIs and missing dependencies.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
-          <tr><td><strong>VI Analyzer</strong></td><td>Runs NI's static-analysis test suite for correctness, performance, style and documentation.</td><td><span class="pill win">Win</span></td></tr>
+          <tr><td><strong>VI Analyzer</strong></td><td>Runs NI's static-analysis test suite for correctness, performance, style and documentation.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>VIDiff</strong></td><td>Generates visual, side-by-side front-panel + block-diagram diffs of changed VIs between commits.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>Unit Tests</strong></td><td>Runs Caraya / LUnit / VI Tester / NI Unit Test Framework headlessly and merges JUnit output into one report.</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>Antidoc</strong></td><td>Generates project documentation from the VI hierarchy using Wovalab's Antidoc CLI.</td><td><span class="pill win">Win</span></td></tr>
@@ -804,9 +804,10 @@ flowchart TD
         <code>windows-latest</code> now resolves to Windows Server 2025, whose Docker daemon is broken for these
         LabVIEW containers. If you changed a runner label, set it back to <code>windows-2022</code>.</p>
 
-      <h3>VI Analyzer / Unit Tests / Antidoc &ldquo;missing&rdquo; on Linux</h3>
-      <p><strong>Not a bug.</strong> VI Analyzer, Unit Tests, and Antidoc are Windows-only today (they depend on
-        baked VIPM tooling). They are not offered for Linux in Configure or Populate history.</p>
+      <h3>Unit Tests / Antidoc &ldquo;missing&rdquo; on Linux</h3>
+      <p><strong>Not a bug.</strong> Unit Tests and Antidoc are Windows-only today (they depend on
+        baked VIPM tooling). They are not offered for Linux in Configure or Populate history. VI Analyzer, by
+        contrast, now runs on Linux too &mdash; enable it per platform on the Configure page.</p>
 
       <h3>A new install does not appear on the Clients page</h3>
       <p><strong>Not a bug.</strong> Discovery is a daily pull-based scan plus GitHub's own search-index lag, so a
@@ -1308,7 +1309,8 @@ docker run --rm `
       redBelow: 80</code></pre>
 
       <h3 id="cap-vianalyzer">16.2 VI Analyzer <a class="anchor" href="#cap-vianalyzer">#</a></h3>
-      <p>Driver: <code>run-vi-analyzer.ps1</code> <span class="pill win">Windows</span>; report:
+      <p>Driver: <code>run-vi-analyzer.ps1</code> <span class="pill win">Windows</span> /
+        <code>run-vi-analyzer.sh</code> <span class="pill lin">Linux</span>; report:
         <code>build-analyzer-report.py</code>. It runs
         <code>LabVIEWCLI -OperationName RunVIAnalyzer</code> against a <code>.viancfg</code> configuration. The
         full built-in suite runs in <em>directory mode</em> — passing the mounted workspace directory itself makes
@@ -1326,8 +1328,12 @@ docker run --rm `
         directory mode (the full built-in suite) so the report is never blank.</p>
       <p>Configuration is layered. The manifest's <code>config.viAnalyzer</code> can name a <code>default</code>
         config and a list of per-path <code>rules</code> (e.g. strict rules for <code>src/critical/**</code>,
-        relaxed for <code>tests/**</code>). VI Analyzer runs on Windows only; Linux is not offered in the
-        configurator or Populate history. The report builder maps each failed test to a category
+        relaxed for <code>tests/**</code>). VI Analyzer runs on <strong>both Windows and Linux</strong>: the Linux
+        runner (<code>run-vi-analyzer.sh</code>) mirrors the Windows one (same pre-analysis Mass Compile, the same
+        <em>directory</em> / <em>Analyze&nbsp;Project</em> config handling with a directory-mode fallback) and
+        deploys its report under <code>vi-analyzer/&lt;sha&gt;/linux/</code> with a <code>CI / VI Analyzer (Linux)</code>
+        status, while Windows stays at <code>vi-analyzer/&lt;sha&gt;/</code>. The dashboard's VI Analyzer column shows
+        both platforms' finding counts side by side. The report builder maps each failed test to a category
         (correctness / performance / style / documentation) for the dashboard's coloured breakdown and preserves the
         LabVIEW-native HTML as <code>raw.html</code>.</p>
       <p>Before analyzing, the driver runs a headless <strong>Mass Compile</strong> to upgrade the project's VIs
@@ -1446,6 +1452,7 @@ docker run --rm `
         <tbody>
           <tr><td><code>masscompile/&lt;sha&gt;/summary.json</code></td><td>Mass Compile report builder</td><td>Dashboard cell (pass %, counts)</td></tr>
           <tr><td><code>vi-analyzer/&lt;sha&gt;/summary.json</code></td><td>VI Analyzer report builder</td><td>Dashboard cell</td></tr>
+          <tr><td><code>vi-analyzer/&lt;sha&gt;/linux/summary.json</code></td><td>VI Analyzer report builder (Linux)</td><td>Dashboard cell (Windows / Linux split)</td></tr>
           <tr><td><code>vidiff/&lt;segment&gt;/&lt;platform&gt;/vidiff/changes.json</code></td><td>VIDiff</td><td>Dashboard + VIDiff report</td></tr>
           <tr><td><code>unit-tests/&lt;sha&gt;/results.json</code></td><td>Unit-test report builder</td><td>Dashboard + report</td></tr>
           <tr><td><code>builds/&lt;sha&gt;/summary.json</code></td><td>Builds report builder</td><td>Dashboard cell (succeeded/failed split) + report</td></tr>
@@ -1586,8 +1593,6 @@ docker run --rm `
       <ul>
         <li><strong>Concurrency is per account, not per repo.</strong> GitHub's job-concurrency limit is shared
           across all your repositories, which is why the per-repo runner cap defaults conservatively.</li>
-        <li><strong>VI Analyzer is Windows-only.</strong> Linux is not offered in the configurator, Populate history,
-          or generated workflows.</li>
         <li><strong>Unit Tests &amp; Antidoc are Windows-only</strong> today (they depend on baked VIPM tooling).</li>
         <li><strong>First container pull is slow.</strong> The worker image is multi-gigabyte; GitHub-hosted runners
           re-pull every job. A self-hosted runner with a warm Docker layer cache is the cure.</li>
@@ -1720,6 +1725,7 @@ flowchart TD
           <tr><td>Mass Compile — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push on VI source (<code>**.vi/.ctl/.lvproj/.lvlib/.lvclass</code>, excl. <code>.github/</code>), dispatch</td><td>Compiles every VI; skipped when only tooling under <code>.github/</code> changed.</td></tr>
           <tr><td>Mass Compile — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>same as above</td><td>Linux counterpart; deploys under <code>masscompile/&lt;sha&gt;/linux/</code>.</td></tr>
           <tr><td>Run VI Analyzer — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push VI source, dispatch</td><td>Full <code>.viancfg</code> suite incl. per-path rule subsets.</td></tr>
+          <tr><td>Run VI Analyzer — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>same as above</td><td>Linux counterpart; deploys under <code>vi-analyzer/&lt;sha&gt;/linux/</code>.</td></tr>
           <tr><td>VIDiff Report — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push <code>**.vi/.ctl</code>, dispatch</td><td>Diffs changed VIs; runs on the bare NI image (no custom worker).</td></tr>
           <tr><td>VIDiff Report — Linux Container</td><td><span class="pill lin">ubuntu-latest</span></td><td>PR / push <code>**.vi/.ctl</code>, dispatch</td><td>Linux counterpart.</td></tr>
           <tr><td>Run Unit Tests — Windows Container</td><td><span class="pill win">windows-2022</span></td><td>PR / push (VIs, <code>**.lvtest</code>), dispatch</td><td>Windows-only (depends on baked VIPM/UTF tooling).</td></tr>
