@@ -4246,8 +4246,6 @@ def _compute_deps_pending(data):
     containers.append('windows')
   if lin_missing:
     containers.append('linux')
-  if dragon_pending:
-    containers.append('windows-beta')
 
   all_files = sorted(set(pending_files) | set(lin_pending_files), key=str.lower)
   return {
