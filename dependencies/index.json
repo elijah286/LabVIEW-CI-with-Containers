@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "948a581c6d947b4bc715fc9239ff0e1693d04a5a",
+  "sha": "53a0a2a8e2a9571f3452cb80de40e3105250250b",
   "revisions": [
+    {
+      "sha": "53a0a2a8e2a9571f3452cb80de40e3105250250b",
+      "short": "53a0a2a",
+      "message": "VI Analyzer: fix PowerShell array-return bug that still blanked the report (4.8.10)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T17:52:20Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "948a581c6d947b4bc715fc9239ff0e1693d04a5a",
       "short": "948a581",
@@ -891,15 +900,6 @@
       "message": "dashboard: compact tile grid for mobile revision cards (4.1.24)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T20:58:37Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "e57206380f2a014c3c700007be6712d76da8e3fb",
-      "short": "e572063",
-      "message": "Bake VI Browser 2.0 render engine into the Linux worker (4.1.23)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T19:45:28Z",
       "project": false,
       "dep_only": false
     },
