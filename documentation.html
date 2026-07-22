@@ -1318,7 +1318,13 @@ docker run --rm `
         <code>config.unitTests.tools[]</code> from the manifest, runs each enabled framework headlessly (Caraya and
         VI Tester via <code>g-cli</code>; NI UTF via <code>LabVIEWCLI -OperationName RunUnitTests</code>; LUnit via the
         same native CLI with <code>LabVIEWCLI -OperationName LUnit</code>), and
-        collects per-tool JUnit XML. The framework is inferred from the XML filename, and the "VI under test" is
+        collects per-tool JUnit XML. Because NI&nbsp;UTF runs a whole <code>.lvproj</code>, the driver resolves each
+        configured location to its owning project and is robust to however a repo is laid out: a location may be a
+        <code>.lvproj</code> path, a folder that contains one or more test-bearing projects, or a folder of
+        <code>.lvtest</code> files whose <code>.lvproj</code> lives in a parent directory (it walks up to find the
+        nearest owning project); an empty location list discovers and runs <em>every</em> test-bearing
+        <code>.lvproj</code> anywhere in the repo, so a fresh install reports results for one or more projects
+        wherever they live. The framework is inferred from the XML filename, and the "VI under test" is
         derived by stripping test affixes (e.g. <code>Foo Tests.vi → Foo.vi</code>) so results link back to source.
         The merged <code>results.json</code> carries per-tool suites, per-case status, and an overall summary.</p>
 
