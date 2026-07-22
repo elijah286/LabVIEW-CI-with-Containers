@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "3cbe31f5c3aa67036756a7aa717a9fde974be1ff",
+  "sha": "6058776b600c02e9d31e35431c4451f4c9b3f5c4",
   "revisions": [
+    {
+      "sha": "6058776b600c02e9d31e35431c4451f4c9b3f5c4",
+      "short": "6058776",
+      "message": "Antidoc report: in-browser doc viewer (file navigator + rendered doc + images) & fix the Asciidoctor.js CDN URL (4.8.8)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-22T13:35:09Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "3cbe31f5c3aa67036756a7aa717a9fde974be1ff",
       "short": "3cbe31f",
@@ -891,15 +900,6 @@
       "message": "Don't run VI Snapshots when installing the pipeline (4.1.22)",
       "author": "Elijah Kerry",
       "date": "2026-06-24T19:15:09Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "f103d9ae882510ae9cc9bf3c30afa72e237eaf8a",
-      "short": "f103d9a",
-      "message": "Centralize gh-pages publishing into one retry-safe composite action (4.1.21)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-24T18:59:44Z",
       "project": false,
       "dep_only": false
     },
