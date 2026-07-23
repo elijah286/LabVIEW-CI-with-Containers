@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "version": "4.11.10",
+  "version": "4.11.12",
   "stableVersion": "4.10.0",
-  "betaVersion": "4.11.8",
+  "betaVersion": "4.11.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -13,17 +13,70 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet. `betaVersion` is the same pointer for the beta (release-candidate) channel, with entries flagged \"beta\": true. The install/upgrade channel picker is cumulative: release only (stable), release+beta (beta), or release+beta+dev (every published build).",
     "releases": [
-      {"version": "4.11.10", "date": "2026-07-23", "notes": "Windows Debug Run: the container started and VNC connected, but the desktop was black - LabVIEW launches in session 0 without its window shown/foregrounded. The container script now actively shows + brings the LabVIEW window to the foreground (maximized) as it loads, and logs which top-level windows exist, to fix and diagnose the black-desktop case."},
-      {"version": "4.11.9", "date": "2026-07-23", "notes": "What's New: the update-channel picker (Release / Release + beta / Release + beta + dev) now only appears on client repositories, not on the source/root repo, which is the source of truth everyone upgrades from and never upgrades itself; the owner's per-release Mark-as-beta/stable buttons are unchanged."},
-      {"version": "4.11.8", "date": "2026-07-23", "beta": true, "notes": "VI Analyzer report gained a Windows/Linux platform toggle. When a commit was analyzed on both platforms, a segmented Windows | Linux control under the report title lets you switch between the two reports (matching the Mass Compile report); the other platform's button is disabled with a note when VI Analyzer has not run there for that commit."},
-      {"version": "4.11.7", "date": "2026-07-23", "beta": true, "notes": "Release channels are now three tiers: Dev (default, every published build), Beta (release candidate) and Stable (release). The install and What's New dialogs gained a cumulative channel picker (Release only / Release + beta / Release + beta + dev); the dashboard update indicator and What's New resolve the chosen tier; release.yml moves a rolling 'beta' git tag beside 'stable'; and the owner's What's New page gained per-release 'Mark as beta' and 'Mark as stable' buttons (promote-release.yml gained a tier input). This build is marked Beta, and the default channel for every client is Release + beta."},
-      {"version": "4.11.6", "date": "2026-07-23", "notes": "Fix: Windows debug desktop showed \"Server is not configured properly\" in noVNC and rejected every connection. TightVNC in app mode reads its config from the registry, not the MSI's service settings, so it started requiring VNC auth with no app-mode password set. Configure the app-mode registry directly with VNC authentication disabled (the one-time tunnel URL, which already carries the password, is the access gate) so the server accepts the noVNC connection."},
-      {"version": "4.11.5", "date": "2026-07-23", "notes": "Fix: Windows debug tunnels went dead (NXDOMAIN) seconds after connecting. The noVNC bridge + Cloudflare tunnel were launched with Start-Process, whose children live in the step's Windows job object and get killed when that step ends - so the tunnel was torn down while the container kept holding. Launch them via WMI (Win32_Process.Create) so they run outside the step's job object and stay up for the whole session."},
-      {"version": "4.11.4", "date": "2026-07-23", "notes": "Fix: Windows debug sessions never actually started. The container was launched with -p 127.0.0.1:5900:5900, but Windows containers cannot bind a host IP in NAT, so docker run errored and no container came up - yet the tunnel still published a URL that pointed at nothing. Publish the port without the 127.0.0.1 prefix, and fail the job loudly if the container does not start."},
-      {"version": "4.11.3", "date": "2026-07-22", "notes": "Debug Run: the \"Open source\" button now boots the same debug container but opens the LabVIEW project (*.lvproj) in the IDE so you can view the source over VNC, instead of just linking to GitHub. It sends a new open_source input; the Linux and Windows container scripts find the project in the checkout and launch LabVIEW with it."},
-      {"version": "4.11.2", "date": "2026-07-22", "notes": "Debug Run: added an \"Open source\" button next to Start debug session. It skips booting a container and just opens the chosen revision's source tree on GitHub in a new tab, for when you only need to read the code rather than run it."},
-      {"version": "4.11.1", "date": "2026-07-22", "notes": "Debug Run no longer replaces the form when you start a session. The configuration form now stays put and each session you start appears in a scrollable \"Existing debug sessions\" list beneath it (with its live progress bar, Open and End), so you can launch several at once - extra ones queue and start as earlier sessions finish - and reconnect to or end any of them from any device."},
-      {"version": "4.11.0", "date": "2026-07-22", "notes": "Debug Run now supports Windows containers, not just Linux. Pick Linux or Windows in the dialog; the activity list adjusts to what each platform can run. A Windows session boots the Windows worker with an interactive desktop (TightVNC captures the LabVIEW IDE) and bridges it out over noVNC + a Cloudflare tunnel, the same one-click remote-desktop experience as Linux."},
+      {"version": "4.11.12", "date": "2026-07-23", "notes": "Windows Debug Run black-screen fix: diagnostics confirmed LabVIEW runs but has no window on the desktop VNC shows - the container entrypoint and its child processes (LabVIEW, the prompt) run on a non-interactive service window station, while TightVNC captures the interactive WinSta0\\Default. The container script now switches to WinSta0\\Default before launching TightVNC and LabVIEW so they share the interactive desktop."},
+      {
+        "version": "4.11.11",
+        "date": "2026-07-23",
+        "notes": "Marked v4.11.10 as a beta (release candidate). Users on the release+beta channel receive it; the default release channel is unaffected."
+      },
+      {
+        "version": "4.11.10",
+        "date": "2026-07-23",
+        "notes": "Windows Debug Run: the container started and VNC connected, but the desktop was black - LabVIEW launches in session 0 without its window shown/foregrounded. The container script now actively shows + brings the LabVIEW window to the foreground (maximized) as it loads, and logs which top-level windows exist, to fix and diagnose the black-desktop case.",
+        "beta": true
+      },
+      {
+        "version": "4.11.9",
+        "date": "2026-07-23",
+        "notes": "What's New: the update-channel picker (Release / Release + beta / Release + beta + dev) now only appears on client repositories, not on the source/root repo, which is the source of truth everyone upgrades from and never upgrades itself; the owner's per-release Mark-as-beta/stable buttons are unchanged."
+      },
+      {
+        "version": "4.11.8",
+        "date": "2026-07-23",
+        "beta": true,
+        "notes": "VI Analyzer report gained a Windows/Linux platform toggle. When a commit was analyzed on both platforms, a segmented Windows | Linux control under the report title lets you switch between the two reports (matching the Mass Compile report); the other platform's button is disabled with a note when VI Analyzer has not run there for that commit."
+      },
+      {
+        "version": "4.11.7",
+        "date": "2026-07-23",
+        "beta": true,
+        "notes": "Release channels are now three tiers: Dev (default, every published build), Beta (release candidate) and Stable (release). The install and What's New dialogs gained a cumulative channel picker (Release only / Release + beta / Release + beta + dev); the dashboard update indicator and What's New resolve the chosen tier; release.yml moves a rolling 'beta' git tag beside 'stable'; and the owner's What's New page gained per-release 'Mark as beta' and 'Mark as stable' buttons (promote-release.yml gained a tier input). This build is marked Beta, and the default channel for every client is Release + beta."
+      },
+      {
+        "version": "4.11.6",
+        "date": "2026-07-23",
+        "notes": "Fix: Windows debug desktop showed \"Server is not configured properly\" in noVNC and rejected every connection. TightVNC in app mode reads its config from the registry, not the MSI's service settings, so it started requiring VNC auth with no app-mode password set. Configure the app-mode registry directly with VNC authentication disabled (the one-time tunnel URL, which already carries the password, is the access gate) so the server accepts the noVNC connection."
+      },
+      {
+        "version": "4.11.5",
+        "date": "2026-07-23",
+        "notes": "Fix: Windows debug tunnels went dead (NXDOMAIN) seconds after connecting. The noVNC bridge + Cloudflare tunnel were launched with Start-Process, whose children live in the step's Windows job object and get killed when that step ends - so the tunnel was torn down while the container kept holding. Launch them via WMI (Win32_Process.Create) so they run outside the step's job object and stay up for the whole session."
+      },
+      {
+        "version": "4.11.4",
+        "date": "2026-07-23",
+        "notes": "Fix: Windows debug sessions never actually started. The container was launched with -p 127.0.0.1:5900:5900, but Windows containers cannot bind a host IP in NAT, so docker run errored and no container came up - yet the tunnel still published a URL that pointed at nothing. Publish the port without the 127.0.0.1 prefix, and fail the job loudly if the container does not start."
+      },
+      {
+        "version": "4.11.3",
+        "date": "2026-07-22",
+        "notes": "Debug Run: the \"Open source\" button now boots the same debug container but opens the LabVIEW project (*.lvproj) in the IDE so you can view the source over VNC, instead of just linking to GitHub. It sends a new open_source input; the Linux and Windows container scripts find the project in the checkout and launch LabVIEW with it."
+      },
+      {
+        "version": "4.11.2",
+        "date": "2026-07-22",
+        "notes": "Debug Run: added an \"Open source\" button next to Start debug session. It skips booting a container and just opens the chosen revision's source tree on GitHub in a new tab, for when you only need to read the code rather than run it."
+      },
+      {
+        "version": "4.11.1",
+        "date": "2026-07-22",
+        "notes": "Debug Run no longer replaces the form when you start a session. The configuration form now stays put and each session you start appears in a scrollable \"Existing debug sessions\" list beneath it (with its live progress bar, Open and End), so you can launch several at once - extra ones queue and start as earlier sessions finish - and reconnect to or end any of them from any device."
+      },
+      {
+        "version": "4.11.0",
+        "date": "2026-07-22",
+        "notes": "Debug Run now supports Windows containers, not just Linux. Pick Linux or Windows in the dialog; the activity list adjusts to what each platform can run. A Windows session boots the Windows worker with an interactive desktop (TightVNC captures the LabVIEW IDE) and bridges it out over noVNC + a Cloudflare tunnel, the same one-click remote-desktop experience as Linux."
+      },
       {
         "version": "4.10.3",
         "date": "2026-07-23",
