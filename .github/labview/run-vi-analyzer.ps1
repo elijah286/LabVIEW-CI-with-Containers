@@ -379,16 +379,14 @@ if ($filterList.Count -gt 0) {
         if ($def -eq 'builtin') {
             $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
         } elseif ($def -ne 'none') {
-            # Run the committed .viancfg IN PLACE (its own ItemsToAnalyze folders +
-            # exclusions + selected tests), only resolving relative item paths to
-            # absolute. This is how NI's own headless container CI runs a curated
-            # config and gets real results; the previous AnalyzeProject rewrite ran
-            # ZERO tests headless. If the config has EMPTY ItemsToAnalyze (analyzes
-            # nothing) the pass loop's 0-tests fallback runs the full built-in suite.
-            $scoped = Join-Path $PassesDir 'default.viancfg'
-            Write-Host ("  Default pass: running committed config '{0}' in place (relative paths resolved absolute)" -f $def)
-            Build-InPlaceConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $scoped $WorkspaceRoot
-            $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html'; fallback = $WorkspaceRoot }
+            # EXPERIMENT B: pass the committed .viancfg path DIRECTLY, completely
+            # unmodified (NI's exact form: RunVIAnalyzer -ConfigPath <the .viancfg>),
+            # leaving its relative item paths intact so VI Analyzer resolves them
+            # itself. If this recurses a relative folder <Item> where the absolute
+            # resolution did not, the fix is "pass the committed path as-is".
+            $cfgPath = ConvertTo-ContainerPath $WorkspaceRoot $def
+            Write-Host ("  Default pass: running committed config '{0}' DIRECTLY (unmodified, relative paths intact)" -f $def)
+            $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $cfgPath; report = 'default.html'; fallback = $WorkspaceRoot }
         }
     }
 }
