@@ -1358,7 +1358,10 @@ docker run --rm `
         also embeds its rendered <strong>front panel &amp; block diagram</strong> snapshot inline &mdash; lazily
         pulled from the VI Browser gallery's <code>vi-snapshots/&lt;sha&gt;/manifest.json</code> when the card is
         expanded &mdash; so the findings sit next to the actual code; an &ldquo;Open full view&rdquo; control opens the
-        larger interactive snapshot drawer.</p>
+        larger interactive snapshot drawer. When VI Analyzer reports <em>testing errors</em> (VIs that could not be
+        loaded/analyzed, e.g. LabVIEW Error&nbsp;14216), the banner names each affected VI, shows its error message, and
+        tags CI-tooling VIs (under <code>.github/</code>) separately so it is clear when the errors are in CI helper VIs
+        rather than your project code.</p>
       <p>Before analyzing, the driver runs a headless <strong>Mass Compile</strong> to upgrade the project's VIs
         to the image's LabVIEW version &mdash; VI Analyzer silently skips VIs saved in an older version, which
         would otherwise report &ldquo;0&nbsp;VIs analyzed.&rdquo; That pre-pass compiles each top-level project

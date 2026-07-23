@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "2b5f4672de2dd55526a3c554e62c1a3f60fc9c1f",
+  "sha": "6b55910acbedf7924c2b190c7853b205bef008f2",
   "revisions": [
+    {
+      "sha": "6b55910acbedf7924c2b190c7853b205bef008f2",
+      "short": "6b55910",
+      "message": "VI Analyzer report: testing-errors banner now names the VIs + errors (4.12.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T22:07:19Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "2b5f4672de2dd55526a3c554e62c1a3f60fc9c1f",
       "short": "2b5f467",
@@ -891,15 +900,6 @@
       "message": "Dependencies: live progress bar tracking the container update run (4.4.3)",
       "author": "Elijah Kerry",
       "date": "2026-07-08T14:47:13Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "f2527d43a1c4f76fff51010a7f7bde6e14705bab",
-      "short": "f2527d4",
-      "message": "dashboard: add update-available banner nudging owners to upgrade (v4.4.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-07T17:07:43Z",
       "project": false,
       "dep_only": false
     },
