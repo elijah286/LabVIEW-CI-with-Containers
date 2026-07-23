@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "3bfb7f949a6c77cd61794ceecc29779eb5ffb804",
+  "sha": "2b5f4672de2dd55526a3c554e62c1a3f60fc9c1f",
   "revisions": [
+    {
+      "sha": "2b5f4672de2dd55526a3c554e62c1a3f60fc9c1f",
+      "short": "2b5f467",
+      "message": "Windows Debug Run: enumerate all desktops+windows to locate LabVIEW's window",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T21:58:23Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "3bfb7f949a6c77cd61794ceecc29779eb5ffb804",
       "short": "3bfb7f9",
@@ -891,15 +900,6 @@
       "message": "dashboard: add update-available banner nudging owners to upgrade (v4.4.2)",
       "author": "Elijah Kerry",
       "date": "2026-07-07T17:07:43Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "3958d87823fd277051069fcdae52b689e3e33ec7",
-      "short": "3958d87",
-      "message": "Dependencies: Run the container update button dispatches the build workflow (4.4.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-07T16:56:13Z",
       "project": false,
       "dep_only": false
     },
