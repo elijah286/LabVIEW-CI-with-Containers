@@ -852,6 +852,11 @@
     }
     // The 3-way update-channel picker (cumulative: release only / +beta / +dev).
     function renderChannelNote() {
+      // The update-channel picker only makes sense on a CLIENT repo (which upgrades
+      // FROM the source). The source/root repo is the source of truth and never
+      // upgrades from anywhere, so hide it there; the owner keeps the per-release
+      // Mark-as-beta / Mark-as-stable buttons instead.
+      if (isOwnerView()) { const ex = $("chanNote"); if (ex && ex.parentNode) ex.parentNode.removeChild(ex); return; }
       let el = $("chanNote");
       if (!el) {
         el = document.createElement("div");
