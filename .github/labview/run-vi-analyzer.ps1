@@ -229,6 +229,34 @@ function Build-ProjectConfig([string]$BaseConfigPath, [string]$ProjectContainerP
     [System.IO.File]::WriteAllText($OutPath, $xml, [System.Text.UTF8Encoding]::new($false))
 }
 
+# Run a committed .viancfg IN PLACE: keep its AnalyzeProject / ItemsToAnalyze /
+# selected tests EXACTLY as the user authored them (that is what makes a curated
+# config actually run headless -- NI's own container CI does exactly this:
+# RunVIAnalyzer -ConfigPath <the committed .viancfg> -Headless, with a folder
+# <Item> in ItemsToAnalyze that recurses and honours <Removed>TRUE</Removed>
+# exclusions). The ONLY transform is resolving each ItemsToAnalyze <Path> that is
+# RELATIVE into an absolute container path, relative to the .viancfg's OWN
+# directory (the base the VI Analyzer editor saves item paths against). That
+# removes any ambiguity about what a relative path resolves to once the config is
+# read from a different working directory, without rewriting the mode, the items,
+# or the tests. __WORKSPACE_PATH__ (our own template placeholder) is still expanded.
+function Build-InPlaceConfig([string]$BaseConfigPath, [string]$OutPath, [string]$Workspace) {
+    $xml = Get-Content -LiteralPath $BaseConfigPath -Raw
+    $xml = $xml -replace '__WORKSPACE_PATH__', $Workspace
+    $cfgDir = Split-Path -Parent $BaseConfigPath
+    $rx = [regex]'(?s)(<Item>\s*<Path>")([^"]*)("</Path>)'
+    $evaluator = [System.Text.RegularExpressions.MatchEvaluator] {
+        param($m)
+        $p = $m.Groups[2].Value
+        if ([string]::IsNullOrWhiteSpace($p)) { return $m.Value }
+        if ([System.IO.Path]::IsPathRooted($p)) { return $m.Value }
+        $abs = [System.IO.Path]::GetFullPath((Join-Path $cfgDir $p))
+        return $m.Groups[1].Value + $abs + $m.Groups[3].Value
+    }
+    $xml = $rx.Replace($xml, $evaluator)
+    [System.IO.File]::WriteAllText($OutPath, $xml, [System.Text.UTF8Encoding]::new($false))
+}
+
 # Total VI Analyzer tests a pass actually executed, parsed from the CLI output
 # ("N tests passed. N tests failed. N tests skipped."). 0 => the pass produced no
 # results, so the caller can fall back to the full built-in directory suite.
@@ -351,22 +379,16 @@ if ($filterList.Count -gt 0) {
         if ($def -eq 'builtin') {
             $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
         } elseif ($def -ne 'none') {
-            # Honour the committed .viancfg's tests but analyze the whole PROJECT
-            # (VI Analyzer's native "Analyze Project" mode). A config whose
-            # ItemsToAnalyze is a list of explicit VIs runs ZERO tests headlessly;
-            # a project scope + the config's tests runs them for real. If the repo
-            # has no .lvproj, or the project pass yields 0 tests, the pass loop
-            # falls back to the full built-in directory suite so it is never blank.
+            # Run the committed .viancfg IN PLACE (its own ItemsToAnalyze folders +
+            # exclusions + selected tests), only resolving relative item paths to
+            # absolute. This is how NI's own headless container CI runs a curated
+            # config and gets real results; the previous AnalyzeProject rewrite ran
+            # ZERO tests headless. If the config has EMPTY ItemsToAnalyze (analyzes
+            # nothing) the pass loop's 0-tests fallback runs the full built-in suite.
             $scoped = Join-Path $PassesDir 'default.viancfg'
-            $proj = Get-ProjectFile $WorkspaceRoot
-            if ($proj) {
-                Write-Host ("  Default pass: analyzing project '{0}' with {1}'s tests" -f $proj, $def)
-                Build-ProjectConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $proj $scoped $WorkspaceRoot
-                $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html'; fallback = $WorkspaceRoot }
-            } else {
-                Write-Host "  Default pass: no .lvproj found -> full built-in suite over the workspace directory"
-                $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
-            }
+            Write-Host ("  Default pass: running committed config '{0}' in place (relative paths resolved absolute)" -f $def)
+            Build-InPlaceConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $scoped $WorkspaceRoot
+            $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html'; fallback = $WorkspaceRoot }
         }
     }
 }

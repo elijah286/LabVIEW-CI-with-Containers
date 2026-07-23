@@ -10,6 +10,8 @@ config:
     maxParallel: 5
   container:
     use: latest
+  viAnalyzer:
+    default: "example/via-inplace-proof.viancfg"
 activities:
   - dashboard
   - masscompile
