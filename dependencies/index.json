@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "4a9e168ada79bd7b1c138579358208af87a20010",
+  "sha": "1b324b7c8e0e052aa91590f796a4e8ef59d3b0c1",
   "revisions": [
+    {
+      "sha": "1b324b7c8e0e052aa91590f796a4e8ef59d3b0c1",
+      "short": "1b324b7",
+      "message": "What's New: hide the update-channel picker on the source repo (4.11.9)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T20:04:45Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "4a9e168ada79bd7b1c138579358208af87a20010",
       "short": "4a9e168",
@@ -891,15 +900,6 @@
       "message": "fix: authenticate to GHCR before pulling Linux worker images (#17)",
       "author": "Anton Sundqvist",
       "date": "2026-06-29T18:07:26Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "d20b765ae055b516de9b7b9c57531b491efc0613",
-      "short": "d20b765",
-      "message": "catalog: list LUnit on the Unit Tests capability card (#16)",
-      "author": "Anton Sundqvist",
-      "date": "2026-06-29T18:06:48Z",
       "project": false,
       "dep_only": false
     },
