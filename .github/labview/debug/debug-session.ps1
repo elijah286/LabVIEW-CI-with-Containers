@@ -22,6 +22,35 @@ $openProj = ($env:OPEN_PROJECT -eq 'true') -or ($env:OPEN_PROJECT -eq '1')
 
 function Log([string]$m) { Write-Host "[lvci-debug] $m" }
 
+# --- 0. Attach to the interactive desktop (WinSta0\Default) ------------------
+# The container entrypoint (and its child processes: LabVIEW + the on-screen
+# prompt) otherwise run on a non-interactive service window station, so their
+# windows never appear on the desktop TightVNC captures -> the VNC view is black
+# even though LabVIEW is running. Switch this process to WinSta0\Default first so
+# TightVNC and every app launched below share the same interactive desktop.
+try {
+  Add-Type -Name Desk -Namespace LvCi -MemberDefinition @'
+[DllImport("user32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
+public static extern IntPtr OpenWindowStation(string name, bool inherit, uint access);
+[DllImport("user32.dll", SetLastError=true)]
+public static extern bool SetProcessWindowStation(IntPtr hWinSta);
+[DllImport("user32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
+public static extern IntPtr OpenDesktop(string name, uint flags, bool inherit, uint access);
+[DllImport("user32.dll", SetLastError=true)]
+public static extern bool SetThreadDesktop(IntPtr hDesktop);
+'@
+  $MAX = [uint32]0x02000000   # MAXIMUM_ALLOWED
+  $hWinSta = [LvCi.Desk]::OpenWindowStation('WinSta0', $true, $MAX)
+  if ($hWinSta -ne [IntPtr]::Zero) {
+    [LvCi.Desk]::SetProcessWindowStation($hWinSta) | Out-Null
+    $hDesk = [LvCi.Desk]::OpenDesktop('Default', 0, $true, $MAX)
+    if ($hDesk -ne [IntPtr]::Zero) { [LvCi.Desk]::SetThreadDesktop($hDesk) | Out-Null }
+    Log ('Attached to WinSta0\Default (winsta=' + $hWinSta + ' desktop=' + $hDesk + ').')
+  } else {
+    Log 'Could not open WinSta0; leaving the default window station.'
+  }
+} catch { Log ('Window-station attach failed: ' + $_) }
+
 # --- 1. Install TightVNC server (silent) -------------------------------------
 Log 'Downloading TightVNC server...'
 $msi = Join-Path $env:TEMP 'tightvnc.msi'
