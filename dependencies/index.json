@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "24bd13f82fb8506f1b2e8833dbb972164a934b40",
+  "sha": "e04699df7aaa465377f6990c774e003cebbf1c97",
   "revisions": [
+    {
+      "sha": "e04699df7aaa465377f6990c774e003cebbf1c97",
+      "short": "e04699d",
+      "message": "Debug Run: single form + scrollable sessions list, no step-by-step takeover (4.11.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T01:26:31Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "24bd13f82fb8506f1b2e8833dbb972164a934b40",
       "short": "24bd13f",
@@ -891,15 +900,6 @@
       "message": "Installer: Apply to New Repo prunes obsolete vendored tooling files (4.2.2)",
       "author": "lvci",
       "date": "2026-06-28T17:09:02Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "a27882a282fac40e7273162e70f929b04f9167c6",
-      "short": "a27882a",
-      "message": "Installer: stop the false 'install already in progress' warning (4.2.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-28T17:07:04Z",
       "project": false,
       "dep_only": false
     },

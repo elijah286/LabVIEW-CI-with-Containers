@@ -1147,12 +1147,16 @@ docker run --rm `
         expected), <strong>Tools &rsaquo; Debug Run</strong> on the dashboard boots the <em>same</em> worker for a
         chosen revision with a full graphical desktop you can remote into, so you can open the project in the LabVIEW
         IDE and watch it happen.</p>
-      <p>The flow is a three-step dialog: <strong>(1) choose the target</strong> — the container (Linux or Windows), the
-        revision, which activities to run, and a session length; <strong>(2) connect</strong> — the dashboard
-        dispatches <code>debug-session.yml</code>, waits for the session to come up, and opens the remote desktop in a
-        new browser tab; <strong>(3) hand off</strong> — you log into / activate LabVIEW interactively, then press
-        <kbd>ENTER</kbd> in the on-screen terminal to run the selected activities live, and end the session (which
-        cancels the run) when done.</p>
+      <p>The dialog is a single form over a live list. In the form you <strong>choose the target</strong> — the
+        container (Linux or Windows), the revision, which activities to run, and a session length — and click
+        <strong>Start debug session</strong>, which dispatches <code>debug-session.yml</code>. The form stays put; each
+        session you start appears in a scrollable <strong>Existing debug sessions</strong> list beneath it, so you can
+        launch several (extra ones queue and start as earlier sessions finish). Every row shows a live progress bar and
+        status — <em>Queued</em>, <em>Booting</em> with the current step, or <em>Live</em> — plus
+        <strong>Open remote desktop</strong> and <strong>End</strong>, and the list is driven by the Actions API so it
+        works from any device (not just the browser that started the session). Once a desktop is live you open it,
+        log into / activate LabVIEW interactively, press <kbd>ENTER</kbd> in the on-screen terminal to run the selected
+        activities live, and <em>End</em> the session (which cancels the run) when done.</p>
       <p>Mechanically, the job runs the Linux worker (<code>.github/labview/debug/debug-session.sh</code>) which starts
         a virtual display (Xvfb) and window manager, launches the LabVIEW UI, and serves it as a browser
         <strong>noVNC</strong> session (<code>x11vnc</code> + <code>websockify</code>) on port 6080. The runner exposes
