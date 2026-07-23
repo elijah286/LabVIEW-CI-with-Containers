@@ -3460,7 +3460,7 @@ debug_dialog = (r"""
         if(RT[c] && RT[c].platforms && RT[c].platforms[plat]) out.push(c);
       }); return out;
     }
-    function selectedPlat(){ var el=document.querySelector('input[name="dbg-plat"]:checked'); return el?el.value:'linux'; }
+    function selectedPlat(){ return 'linux'; }
     function platLabel(plat){ return plat==='windows'?'Windows':'Linux'; }
     function renderActs(plat){
       var host=$('dbg-acts'); if(!host) return;
@@ -3480,10 +3480,7 @@ debug_dialog = (r"""
     function renderStep1(){
       var revs=HIST.slice(0,200).map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc(r.short||r.sha.slice(0,7))+' &mdash; '+esc((r.msg||'').slice(0,60))+'</option>'; }).join('');
       var body=''
-        + '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.9em">Boot a worker container with a full LabVIEW desktop you can remote into, log in / activate LabVIEW, then run CI activities live. Start as many as you need &mdash; each runs on the runner (independent of this browser) and shows up in the list below; extra ones queue and start as earlier sessions finish.</p>'
-        + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em">Container</label><br>'
-        +   '<label style="margin-right:14px"><input type="radio" name="dbg-plat" value="linux" checked> Linux</label>'
-        +   '<label><input type="radio" name="dbg-plat" value="windows"> Windows</label></div>'
+        + '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.9em">Boot a Linux worker container with a full LabVIEW desktop you can remote into &mdash; open the project to browse the source, or run CI activities live. Start as many as you need; each runs on the runner (independent of this browser) and shows up in the list below.</p>'
         + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-rev">Revision</label><br>'
         +   '<select id="dbg-rev" style="width:100%;max-width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'+revs+'</select></div>'
         + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em">Run these activities on the go signal</label><div id="dbg-acts"></div></div>'
@@ -3491,12 +3488,10 @@ debug_dialog = (r"""
         +   '<select id="dbg-min" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'
         +     '<option value="30">30 minutes</option><option value="45" selected>45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></div>'
         + (getTok()?'':'<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-tok">Dispatch token</label><br><input id="dbg-tok" type="password" placeholder="fine-grained PAT with Actions: write" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)"><div style="font-size:.8em;color:var(--fg-muted);margin-top:3px"><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener">Create one &#8599;</a></div></div>')
-        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-start" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><button id="dbg-src" title="Boot a debug desktop with the LabVIEW project open, so you can view the source" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.9em">Open source &#8599;</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
+        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-src" title="Boot a debug desktop with the LabVIEW project open in the IDE" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Open the project</button><button id="dbg-start" title="Boot the desktop and run the checked activities on the go signal" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.9em">Run activities&hellip;</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
         + '<div id="dbg-live" style="margin:16px 0 0;border-top:1px solid var(--border);padding-top:12px;max-height:280px;overflow-y:auto"></div>';
       $('cidash-debug-body').innerHTML=body;
-      renderActs(selectedPlat());
-      var plats=document.querySelectorAll('input[name="dbg-plat"]');
-      for(var i=0;i<plats.length;i++){ plats[i].addEventListener('change', function(){ renderActs(selectedPlat()); }); }
+      renderActs('linux');
       try{ if(typeof window.lvciRevPicker==='function') window.lvciRevPicker($('dbg-rev')); }catch(e){}
       $('dbg-start').addEventListener('click', function(){ startSession(false); });
       var sb=$('dbg-src'); if(sb){ sb.addEventListener('click', function(){ startSession(true); }); }
@@ -3517,7 +3512,7 @@ debug_dialog = (r"""
       if(startBtn) startBtn.disabled=true; if(srcBtn) srcBtn.disabled=true;
       var busy = openSrc ? srcBtn : startBtn; if(busy){ busy.textContent='Starting...'; }
       debugStatus(openSrc ? 'Opening the source in a debug desktop...' : 'Dispatching the debug session...');
-      function reset(){ if(startBtn){ startBtn.disabled=false; startBtn.textContent='Start debug session'; } if(srcBtn){ srcBtn.disabled=false; srcBtn.innerHTML='Open source &#8599;'; } }
+      function reset(){ if(startBtn){ startBtn.disabled=false; startBtn.textContent='Run activities...'; } if(srcBtn){ srcBtn.disabled=false; srcBtn.textContent='Open the project'; } }
       var inputs={ commit_sha:sha, platform:plat, actions:acts.join(' '), minutes:String(mins) };
       if(openSrc){ inputs.open_source='true'; }
       fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/dispatches', {
