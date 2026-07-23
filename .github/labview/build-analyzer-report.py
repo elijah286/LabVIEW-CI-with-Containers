@@ -218,9 +218,10 @@ def parse_failed(report: str) -> list[dict]:
     return vis
 
 
-# A test-error block in the "Testing Errors" section:
-#   <b>TestName</b><table ...><tr><th>..three..</th></tr> ...3-col rows... </table>
-_ERR_BLOCK_RE = re.compile(r"<b>(?P<test>.*?)</b>\s*<table[^>]*>(?P<rows>.*?)</table>", re.S | re.I)
+# A test-error block in the "Testing Errors" section. VI Analyzer heads each
+# category with either <b>Name</b> (per-test errors) or <h3>Name</h3> (e.g.
+# "VI Not Loadable"), followed by a 3-column table (VI Name / VI Path / message).
+_ERR_BLOCK_RE = re.compile(r"<(?:b|h3)>(?P<test>.*?)</(?:b|h3)>\s*<table[^>]*>(?P<rows>.*?)</table>", re.S | re.I)
 _ROW3_RE = re.compile(
     r"<tr>\s*<td>(?P<a>.*?)</td>\s*<td>(?P<b>.*?)</td>\s*<td>(?P<c>.*?)</td>\s*</tr>", re.S | re.I
 )
@@ -306,10 +307,14 @@ def _finalize(vis: list, summary: dict, errors: dict, testing_errors: list,
     }
 
 
-def _project_testing_errors(report: str) -> list:
+def _all_testing_errors(report: str) -> list:
+    # Every VI that could not be tested, grouped by error category. Each item is
+    # tagged `tooling` when it is a CI-tooling VI (under .github/ etc.) rather than
+    # project code, so the report can NAME the VIs + errors and flag which ones are
+    # just CI helpers (and therefore harmless), instead of showing a bare count.
     out = []
     for blk in parse_testing_errors(report):
-        items = [it for it in blk["items"] if not is_tooling_vi(it["vi_rel"])]
+        items = [{**it, "tooling": is_tooling_vi(it["vi_rel"])} for it in blk["items"]]
         if items:
             out.append({"test": blk["test"], "items": items})
     return out
@@ -324,7 +329,7 @@ def build_data(report: str, args: argparse.Namespace) -> dict:
     # exceed it. Surface both so the per-severity/per-VI tallies reconcile (in _finalize).
     meta_extra = dict(parse_meta(report))
     return _finalize(vis, parse_summary(report), parse_errors(report),
-                     _project_testing_errors(report), meta_extra, args)
+                     _all_testing_errors(report), meta_extra, args)
 
 
 # ── Multi-configuration merge ─────────────────────────────────────────────────
@@ -350,7 +355,7 @@ def _parse_pass_report(text: str, label: str) -> dict:
     for v in vis:
         v["config"] = label
     return {"vis": vis, "summary": parse_summary(text), "errors": parse_errors(text),
-            "testing_errors": _project_testing_errors(text), "meta": parse_meta(text)}
+            "testing_errors": _all_testing_errors(text), "meta": parse_meta(text)}
 
 
 def merge_passes(passes: list, args: argparse.Namespace) -> dict:
@@ -577,6 +582,16 @@ h1{font-size:1.35em;margin:0 0 2px}
 .errband table{border-collapse:collapse;width:100%;margin-top:8px;font-size:.8em}
 .errband td,.errband th{border:1px solid var(--border);padding:5px 8px;text-align:left;vertical-align:top}
 .errband th{color:var(--fg-muted);font-weight:600}
+.errbd{font-size:.82em;color:var(--fg-muted)}
+.errnote{font-size:.84em;margin-top:8px;line-height:1.5}
+.errnote code{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:0 4px}
+.errdetail{margin-top:10px;max-height:360px;overflow:auto}
+.errcat{font-weight:600;font-size:.84em;margin:10px 0 2px}
+.errcat .errcount{color:var(--fg-muted);font-weight:400}
+.errband .errvi{font-weight:600}
+.errband .errpath{font-weight:400;color:var(--fg-muted);font-size:.9em;word-break:break-all;margin-top:2px}
+.errband .errmsg{color:var(--fg-muted)}
+.errtool{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:0 8px;font-size:.72em;color:var(--fg-muted);font-weight:600;vertical-align:middle}
 
 /* tabs + toolbar */
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:12px}
@@ -871,16 +886,32 @@ let query = '';
   const totalErr = (ERR.vi_not_loadable+ERR.test_not_loadable+ERR.test_not_runnable+ERR.test_error_out)||0;
   if(!te.length && !totalErr) return;
   const el = document.getElementById('errband'); el.classList.remove('hidden');
-  let rows = '';
-  for(const blk of te){
-    for(const it of blk.items){
-      rows += `<tr><td>${esc(blk.test)}</td><td>${esc(it.vi_name)}</td><td>${esc(it.message)}</td></tr>`;
-    }
+  // Flatten the per-category VI-level detail so we can explain what failed.
+  const items = []; for(const blk of te) for(const it of blk.items) items.push(it);
+  const proj = items.filter(it=>!it.tooling), tool = items.filter(it=>it.tooling);
+  let note;
+  if(items.length){
+    if(tool.length && !proj.length)
+      note = `<div class="errnote">All ${tool.length} are <strong>CI helper VIs</strong> (under <code>.github/</code>), not your project code &mdash; they do not affect your analysis results. Each VI and its error is listed below.</div>`;
+    else if(tool.length && proj.length)
+      note = `<div class="errnote"><strong>${proj.length}</strong> in your project code, <strong>${tool.length}</strong> in CI helper VIs &mdash; each VI and its error is listed below.</div>`;
+    else
+      note = `<div class="errnote">The affected VIs and their errors are listed below.</div>`;
+  } else {
+    note = `<div class="errnote">The native report did not attach VI-level detail &mdash; open the <a href="raw.html" target="_blank" rel="noopener">native report</a> for specifics.</div>`;
   }
+  const chip = it => it.tooling ? ` <span class="errtool" title="CI tooling VI, not your project code">CI tooling</span>` : '';
+  const groups = te.map(blk=>{
+    const rows = blk.items.map(it=>
+      `<tr><td class="errvi">${esc(it.vi_name)}${chip(it)}<div class="errpath">${esc(it.vi_rel||it.vi_path)}</div></td><td class="errmsg">${esc(it.message)}</td></tr>`).join('');
+    return `<div class="errcat">${esc(blk.test)} <span class="errcount">(${blk.items.length})</span></div>`+
+      `<table><tr><th>VI</th><th>Error message</th></tr>${rows}</table>`;
+  }).join('');
   el.innerHTML =
-    `<h2>⚠ ${totalErr} testing error${totalErr===1?'':'s'} — these tests could not run (infrastructure, not code quality)</h2>`+
-    `<div style="font-size:.82em;color:var(--fg-muted)">VI not loadable: ${ERR.vi_not_loadable} &middot; Test not loadable: ${ERR.test_not_loadable} &middot; Test not runnable: ${ERR.test_not_runnable} &middot; Test error out: ${ERR.test_error_out}</div>`+
-    (rows?`<details><summary>Show details</summary><table><tr><th>Test</th><th>VI</th><th>Error</th></tr>${rows}</table></details>`:'');
+    `<h2>&#9888; ${totalErr} testing error${totalErr===1?'':'s'} &mdash; these tests could not run (infrastructure, not code quality)</h2>`+
+    `<div class="errbd">VI not loadable: ${ERR.vi_not_loadable} &middot; Test not loadable: ${ERR.test_not_loadable} &middot; Test not runnable: ${ERR.test_not_runnable} &middot; Test error out: ${ERR.test_error_out}</div>`+
+    note +
+    (items.length ? `<div class="errdetail">${groups}</div>` : '');
 })();
 
 // ── severity chips ───────────────────────────────────────────────────────
