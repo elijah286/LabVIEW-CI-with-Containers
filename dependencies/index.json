@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "e43f5ee9d419348157308e9f4bed73f68766913e",
+  "sha": "3bfb7f949a6c77cd61794ceecc29779eb5ffb804",
   "revisions": [
+    {
+      "sha": "3bfb7f949a6c77cd61794ceecc29779eb5ffb804",
+      "short": "3bfb7f9",
+      "message": "VI Analyzer report: inline VI snapshots + raw report download (4.12.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T21:29:36Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "e43f5ee9d419348157308e9f4bed73f68766913e",
       "short": "e43f5ee",
@@ -891,15 +900,6 @@
       "message": "Dependencies: Run the container update button dispatches the build workflow (4.4.1)",
       "author": "Elijah Kerry",
       "date": "2026-07-07T16:56:13Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "1b13d0e9b628b6f3f18ba7dcc398aa8ba2a5a856",
-      "short": "1b13d0e",
-      "message": "Mass Compile column: threshold-based colours + solid-red failure (4.4.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-06T13:19:52Z",
       "project": false,
       "dep_only": false
     },
