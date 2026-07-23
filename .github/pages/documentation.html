@@ -1353,7 +1353,12 @@ docker run --rm `
         (the other platform's button is disabled with a note when VI Analyzer hasn't run there for that commit),
         mirroring the Mass Compile report. The report builder maps each failed test to a category
         (correctness / performance / style / documentation) for the dashboard's coloured breakdown and preserves the
-        LabVIEW-native HTML as <code>raw.html</code>.</p>
+        LabVIEW-native HTML as <code>raw.html</code>, which the friendly report always links for download
+        (&ldquo;Download raw report&rdquo; in the summary line). Because LabVIEW is a graphical language, each VI card
+        also embeds its rendered <strong>front panel &amp; block diagram</strong> snapshot inline &mdash; lazily
+        pulled from the VI Browser gallery's <code>vi-snapshots/&lt;sha&gt;/manifest.json</code> when the card is
+        expanded &mdash; so the findings sit next to the actual code; an &ldquo;Open full view&rdquo; control opens the
+        larger interactive snapshot drawer.</p>
       <p>Before analyzing, the driver runs a headless <strong>Mass Compile</strong> to upgrade the project's VIs
         to the image's LabVIEW version &mdash; VI Analyzer silently skips VIs saved in an older version, which
         would otherwise report &ldquo;0&nbsp;VIs analyzed.&rdquo; That pre-pass compiles each top-level project

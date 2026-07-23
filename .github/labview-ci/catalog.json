@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.11.12",
+  "version": "4.12.0",
   "stableVersion": "4.10.0",
   "betaVersion": "4.11.10",
   "name": "LabVIEW CI",
@@ -13,6 +13,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet. `betaVersion` is the same pointer for the beta (release-candidate) channel, with entries flagged \"beta\": true. The install/upgrade channel picker is cumulative: release only (stable), release+beta (beta), or release+beta+dev (every published build).",
     "releases": [
+      {"version": "4.12.0", "date": "2026-07-23", "notes": "VI Analyzer report: because LabVIEW is a graphical language, each VI card now embeds its rendered front panel and block diagram snapshot inline (lazily loaded from the VI Browser gallery when you expand a VI) so the findings sit beside the actual code, with an \"Open full view\" control for the larger interactive drawer. The report also always offers a \"Download raw report\" link to the native LabVIEW VI Analyzer HTML it was built from."},
       {"version": "4.11.12", "date": "2026-07-23", "notes": "Windows Debug Run black-screen fix: diagnostics confirmed LabVIEW runs but has no window on the desktop VNC shows - the container entrypoint and its child processes (LabVIEW, the prompt) run on a non-interactive service window station, while TightVNC captures the interactive WinSta0\\Default. The container script now switches to WinSta0\\Default before launching TightVNC and LabVIEW so they share the interactive desktop."},
       {
         "version": "4.11.11",

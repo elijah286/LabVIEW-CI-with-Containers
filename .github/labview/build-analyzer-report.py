@@ -644,6 +644,18 @@ h1{font-size:1.35em;margin:0 0 2px}
 .empty{color:var(--fg-muted);padding:30px;text-align:center}
 .hidden{display:none!important}
 
+/* inline snapshot preview (rendered VI shown inside a card when it is expanded) */
+.snapinline{margin:2px 0 12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)}
+.snapinline-bar{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:.78em;color:var(--fg-muted)}
+.snapinline-cap{flex:1 1 auto}
+.snapinline-frame{width:100%;height:360px;border:none;background:#fff;display:block}
+.snapinline-open{flex:0 0 auto;background:none;border:1px solid var(--border);color:var(--link);border-radius:6px;padding:2px 9px;font:inherit;font-size:.95em;cursor:pointer}
+.snapinline-open:hover{border-color:var(--link)}
+.snapinline-note{padding:12px;font-size:.82em;color:var(--fg-muted);line-height:1.5}
+
+/* raw-report download link in the summary sub-line */
+.rawdl{white-space:nowrap}
+
 /* snapshot drawer */
 #backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .15s;z-index:40}
 #backdrop.show{opacity:1;pointer-events:auto}
@@ -825,7 +837,8 @@ let query = '';
     (m.analysis_date ? `&middot; ${esc(m.analysis_date)} ` : '') +
     (m.duration ? `&middot; ${esc(m.duration)} ` : '') +
     `&middot; generated ${esc(m.generated_utc||'')}` +
-    (ghLink ? ` &middot; <a href="${ghLink}" target="_blank" rel="noopener" title="View this commit on GitHub">commit on GitHub &#8599;</a>` : '');
+    (ghLink ? ` &middot; <a href="${ghLink}" target="_blank" rel="noopener" title="View this commit on GitHub">commit on GitHub &#8599;</a>` : '') +
+    ` &middot; <a class="rawdl" href="raw.html" download="vi-analyzer-${esc(m.short||'report')}-raw.html" title="Download the native LabVIEW VI Analyzer HTML report this summary was built from">&#11015; Download raw report</a>`;
 
   const pct = SUM.tests_run ? Math.round(SUM.passed/SUM.tests_run*1000)/10 : 0;
   // "Failed tests" is VI Analyzer's official count of failed test instances; a
@@ -918,7 +931,7 @@ function viCard(v){
       <button class="snapbtn" data-snap="${esc(v.vi_rel)}" data-name="${esc(v.name)}">Snapshot</button>
       <button class="rerunbtn" data-rerun="${esc(v.vi_rel)}" data-name="${esc(v.name)}" title="Re-run VI Analyzer on this VI with a chosen configuration">Re-run…</button>
     </summary>
-    <div class="vibody">${rules}</div>
+    <div class="vibody"><div class="snapinline" data-snap="${esc(v.vi_rel)}" data-name="${esc(v.name)}"></div>${rules}</div>
   </details>`;
 }
 function renderVI(){
@@ -1054,6 +1067,36 @@ document.addEventListener('click',e=>{
   e.preventDefault(); e.stopPropagation();
   openSnap(b.dataset.snap, b.dataset.name);
 });
+
+// Inline snapshot preview inside each VI card: lazily load the rendered VI when
+// the card is expanded so the graphical code sits right next to its findings.
+// Nothing loads until a VI is opened; the full-size drawer stays available.
+async function loadInlineSnap(host){
+  if(host.dataset.loaded) return;
+  host.dataset.loaded='1';
+  const viRel=host.dataset.snap, name=host.dataset.name;
+  host.innerHTML=`<div class="snapinline-note">Loading snapshot\u2026</div>`;
+  try{ await ensureSnapshots(); }catch(e){}
+  const htmlPath=snapMap && snapMap[viRel];
+  if(htmlPath){
+    const stale=(snapFromSha && META.sha && snapFromSha!==META.sha)
+      ? `<div class="snapinline-note">Latest available snapshot (commit ${esc(snapFromSha.slice(0,7))}); this commit's may still be rendering.</div>` : '';
+    host.innerHTML=
+      `<div class="snapinline-bar"><span class="snapinline-cap">Front panel &amp; block diagram</span>`+
+      `<button class="snapinline-open snapbtn" data-snap="${esc(viRel)}" data-name="${esc(name)}" title="Open a larger, interactive view">Open full view \u2197</button></div>`+
+      `<iframe class="snapinline-frame" loading="lazy" src="${esc(SNAP_BASE+htmlPath)}" title="Snapshot of ${esc(name)}"></iframe>`+stale;
+  }else{
+    host.innerHTML=`<div class="snapinline-note">No snapshot yet for <code>${esc(viRel)}</code> \u2014 it may still be rendering. <a href="${SNAP_BASE}index.html${META.sha?`?sha=${META.sha}`:''}" target="_blank" rel="noopener">Open the VI Browser \u2197</a></div>`;
+  }
+}
+// `toggle` does not bubble, so listen in the capture phase.
+document.addEventListener('toggle',e=>{
+  const vi=e.target;
+  if(vi && vi.classList && vi.classList.contains('vi') && vi.open){
+    const host=vi.querySelector('.snapinline');
+    if(host) loadInlineSnap(host);
+  }
+}, true);
 
 // ── re-run a single VI with a chosen .viancfg configuration ────────────────────
 const RR_TOK = 'lvci_dispatch_token';
