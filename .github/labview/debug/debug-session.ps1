@@ -143,34 +143,57 @@ Write-Host 'Done. This window stays open until the session ends. Press ENTER to 
 Set-Content -Encoding ASCII -Path $prompt -Value $body
 Start-Process 'powershell.exe' -ArgumentList @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $prompt)
 
-# --- 5. Surface the LabVIEW window + diagnostics ----------------------------
-# In a Windows container the apps run in session 0; if LabVIEW's window is
-# created but not shown / not foreground, the VNC view stays black. Log what
-# top-level windows exist and try to show + foreground the LabVIEW window a few
-# times as it finishes loading. All logged to container stdout (docker logs).
-Add-Type @'
-using System; using System.Runtime.InteropServices;
-public static class LvWin {
-  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
-  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
-  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
+# --- 5. Diagnostics: where do the app windows live? -------------------------
+# The container runs in session 0. Enumerate every desktop on WinSta0 and the
+# top-level windows on each, so we can see exactly which desktop LabVIEW's
+# window lands on (if any). Logged to container stdout (docker logs).
+Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class LvDiag {
+  [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  static extern IntPtr OpenWindowStation(string name, bool inherit, uint access);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  static extern IntPtr OpenDesktop(string name, uint flags, bool inherit, uint access);
+  delegate bool EnumDesktopProc(string name, IntPtr lparam);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+  static extern bool EnumDesktopsW(IntPtr hwinsta, EnumDesktopProc cb, IntPtr lparam);
+  delegate bool EnumWindowsProc(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")]
+  static extern bool EnumDesktopWindows(IntPtr hDesktop, EnumWindowsProc cb, IntPtr l);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetWindowTextW(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] static extern int GetWindowTextLength(IntPtr h);
+  const uint MAX = 0x02000000;
+  public static string Windows(string desktop) {
+    IntPtr d = OpenDesktop(desktop, 0, false, MAX);
+    if (d == IntPtr.Zero) return "open-failed-" + Marshal.GetLastWin32Error();
+    var sb = new StringBuilder();
+    EnumDesktopWindows(d, delegate(IntPtr h, IntPtr l) {
+      int len = GetWindowTextLength(h);
+      var t = new StringBuilder(len + 2);
+      GetWindowTextW(h, t, t.Capacity);
+      sb.Append("[" + (IsWindowVisible(h) ? "V" : "h") + ":" + t.ToString() + "] ");
+      return true;
+    }, IntPtr.Zero);
+    string r = sb.ToString();
+    return r.Length == 0 ? "(none)" : r;
+  }
+  public static string AllWindows() {
+    var sb = new StringBuilder();
+    IntPtr ws = OpenWindowStation("WinSta0", false, MAX);
+    if (ws == IntPtr.Zero) return "(winsta open failed " + Marshal.GetLastWin32Error() + ")";
+    EnumDesktopsW(ws, delegate(string n, IntPtr l) { sb.Append(n + "={" + Windows(n) + "} "); return true; }, IntPtr.Zero);
+    return sb.ToString();
+  }
 }
 '@
-for ($t = 0; $t -lt 6; $t++) {
+for ($t = 0; $t -lt 5; $t++) {
   Start-Sleep -Seconds 15
   $lvp = Get-Process LabVIEW -ErrorAction SilentlyContinue | Select-Object -First 1
-  if ($lvp) {
-    Log ('Diag: LabVIEW pid=' + $lvp.Id + ' mainwnd=' + $lvp.MainWindowHandle + ' title=[' + $lvp.MainWindowTitle + ']')
-    if ($lvp.MainWindowHandle -ne [IntPtr]::Zero) {
-      [LvWin]::ShowWindow($lvp.MainWindowHandle, 3) | Out-Null   # SW_SHOWMAXIMIZED
-      [LvWin]::BringWindowToTop($lvp.MainWindowHandle) | Out-Null
-      [LvWin]::SetForegroundWindow($lvp.MainWindowHandle) | Out-Null
-    }
-  } else {
-    Log 'Diag: LabVIEW process is NOT running.'
-  }
-  $wins = (Get-Process | Where-Object { $_.MainWindowTitle } | ForEach-Object { $_.ProcessName + ':[' + $_.MainWindowTitle + ']' }) -join ' | '
-  Log ('Diag: windowed processes: ' + $wins)
+  Log ('Diag: LabVIEW running=' + [bool]$lvp)
+  Log ('Diag: WinSta0 desktops+windows: ' + [LvDiag]::AllWindows())
 }
 
 # --- 6. Hold the session, then exit so the host tears down -------------------
