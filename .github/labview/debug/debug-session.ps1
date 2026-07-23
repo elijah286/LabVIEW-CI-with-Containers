@@ -114,7 +114,37 @@ Write-Host 'Done. This window stays open until the session ends. Press ENTER to 
 Set-Content -Encoding ASCII -Path $prompt -Value $body
 Start-Process 'powershell.exe' -ArgumentList @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $prompt)
 
-# --- 5. Hold the session, then exit so the host tears down -------------------
+# --- 5. Surface the LabVIEW window + diagnostics ----------------------------
+# In a Windows container the apps run in session 0; if LabVIEW's window is
+# created but not shown / not foreground, the VNC view stays black. Log what
+# top-level windows exist and try to show + foreground the LabVIEW window a few
+# times as it finishes loading. All logged to container stdout (docker logs).
+Add-Type @'
+using System; using System.Runtime.InteropServices;
+public static class LvWin {
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
+}
+'@
+for ($t = 0; $t -lt 6; $t++) {
+  Start-Sleep -Seconds 15
+  $lvp = Get-Process LabVIEW -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($lvp) {
+    Log ('Diag: LabVIEW pid=' + $lvp.Id + ' mainwnd=' + $lvp.MainWindowHandle + ' title=[' + $lvp.MainWindowTitle + ']')
+    if ($lvp.MainWindowHandle -ne [IntPtr]::Zero) {
+      [LvWin]::ShowWindow($lvp.MainWindowHandle, 3) | Out-Null   # SW_SHOWMAXIMIZED
+      [LvWin]::BringWindowToTop($lvp.MainWindowHandle) | Out-Null
+      [LvWin]::SetForegroundWindow($lvp.MainWindowHandle) | Out-Null
+    }
+  } else {
+    Log 'Diag: LabVIEW process is NOT running.'
+  }
+  $wins = (Get-Process | Where-Object { $_.MainWindowTitle } | ForEach-Object { $_.ProcessName + ':[' + $_.MainWindowTitle + ']' }) -join ' | '
+  Log ('Diag: windowed processes: ' + $wins)
+}
+
+# --- 6. Hold the session, then exit so the host tears down -------------------
 Log "Debug desktop is up. Holding for $mins minutes."
 Start-Sleep -Seconds ($mins * 60)
 Log 'Session time elapsed; exiting.'
