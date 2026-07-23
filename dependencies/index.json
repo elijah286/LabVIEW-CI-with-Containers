@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "6b55910acbedf7924c2b190c7853b205bef008f2",
+  "sha": "d7df7740d9ee40343bad33199dcce15b54d38738",
   "revisions": [
+    {
+      "sha": "d7df7740d9ee40343bad33199dcce15b54d38738",
+      "short": "d7df774",
+      "message": "Debug Run: Linux-only dialog + \"Open the project\" as the primary action (4.12.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T22:51:27Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "6b55910acbedf7924c2b190c7853b205bef008f2",
       "short": "6b55910",
@@ -891,15 +900,6 @@
       "message": "Fast-abort worker build when VIPM engine wedges (4.4.4)",
       "author": "Elijah Kerry",
       "date": "2026-07-08T19:43:38Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "4698a1014fde7e0358b204a63d6683e5b8eed8f3",
-      "short": "4698a10",
-      "message": "Dependencies: live progress bar tracking the container update run (4.4.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-08T14:47:13Z",
       "project": false,
       "dep_only": false
     },
