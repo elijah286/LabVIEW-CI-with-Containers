@@ -3356,7 +3356,6 @@ debug_dialog = (r"""
     var TOK_KEY = "lvci_dispatch_token";
     var WF = "debug-session.yml";
     var CAP_LABEL = { masscompile:'Mass Compile', vidiff:'VIDiff', snapshots2:'VI Browser 2.0 Snapshots', builds:'Builds' };
-    var tr = null;   // active tracker { runId, dispatchAt, timer }
     function $(id){ return document.getElementById(id); }
     function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
     function getTok(){ try{ return localStorage.getItem(TOK_KEY)||localStorage.getItem("lvci_install_token")||''; }catch(e){ return ''; } }
@@ -3368,21 +3367,6 @@ debug_dialog = (r"""
       return 'https://github.com/settings/personal-access-tokens/new?name='+encodeURIComponent('LabVIEW CI dispatch')
         +'&description='+encodeURIComponent('Queue LabVIEW CI runs for '+REPO)
         +(owner?'&target_name='+encodeURIComponent(owner):'')+'&actions=write';
-    }
-    // Persist the active session so a reload or reopening Debug Run returns to the
-    // live desktop instead of losing it (the "dialog vanished" report). Cleared on
-    // End session and on expiry.
-    var DKEY = 'lvci_debug_session';
-    function saveSession(s){ try{ localStorage.setItem(DKEY, JSON.stringify(s)); }catch(e){} }
-    function clearSession(){ try{ localStorage.removeItem(DKEY); }catch(e){} }
-    function loadSession(){ try{ var s=JSON.parse(localStorage.getItem(DKEY)||'null'); if(!s) return null; if(s.expiresAt && Date.now()>s.expiresAt){ clearSession(); return null; } return s; }catch(e){ return null; } }
-    function persist(){ if(tr) saveSession({ runId:tr.runId, dispatchAt:tr.dispatchAt, sha:tr.sha, acts:tr.acts, mins:tr.mins, expiresAt:tr.expiresAt, url:tr.url||'' }); }
-    function sessionEnded(msg){
-      if(tr&&tr.timer){ clearInterval(tr.timer); } clearLiveTimer(); tr=null; clearSession();
-      var b=$('cidash-debug-body'); if(!b) return;
-      b.innerHTML='<p style="margin:0 0 12px">'+esc(msg||'The debug session has ended.')+'</p>'
-        +'<button id="dbg-new" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start a new session</button>';
-      var nb=$('dbg-new'); if(nb){ nb.addEventListener('click', renderStep1); }
     }
     // Existing debug sessions (any in-progress debug-session run), shown below the
     // start form: reconnect (Open) or End from ANY device, with a live progress
@@ -3403,7 +3387,7 @@ debug_dialog = (r"""
       if(!runId) return;
       if(!window.confirm('End debug session run #'+runId+'? This cancels the run and tears down the container.')) return;
       fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+runId+'/cancel', { method:'POST', headers:ghHeaders() })
-        .then(function(){ if(String(runId)===String(tr&&tr.runId)){ clearSession(); } setTimeout(refreshLiveSessions, 1500); }).catch(function(){});
+        .then(function(){ setTimeout(refreshLiveSessions, 1500); }).catch(function(){});
     }
     function livePlat(r){ var m=/\((windows|linux)\)/i.exec(r.display_title||r.name||''); return m?m[1].toLowerCase():''; }
     function liveRow(r){
@@ -3467,14 +3451,8 @@ debug_dialog = (r"""
           runs.forEach(fillLiveRow);
         }).catch(function(){});
     }
-    // Reflect the run's real step in the connect view so it is never opaque.
-    function updateStageSteps(st){
-      if(!tr||!tr.runId||!st) return;
-      fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+tr.runId+'/jobs?per_page=5', { headers:ghHeaders(), cache:'no-cache' })
-        .then(function(r){ return r.ok?r.json():null; })
-        .then(function(d){ var st=$('dbg-stage'); if(!st) return; var jobs=(d&&d.jobs)||[]; var total=0, done=0, cur=''; jobs.forEach(function(j){ (j.steps||[]).forEach(function(s){ total++; if(s.status==='completed') done++; else if(s.status==='in_progress'&&!cur) cur=s.name; }); }); if(total){ setStageBar('', Math.round(done/total*100)); st.innerHTML = cur ? ('Current step: <strong>'+esc(cur)+'</strong> ('+done+'/'+total+')') : ('Working&hellip; ('+done+'/'+total+')'); } else { setStageBar('indet'); st.innerHTML='Working&hellip;'; } })
-        .catch(function(){});
-    }
+    // Quickly surface a just-dispatched run in the list (before the 5s poll settles).
+    function kickLive(){ refreshLiveSessions(); setTimeout(refreshLiveSessions,1500); setTimeout(refreshLiveSessions,4000); setTimeout(refreshLiveSessions,8000); }
     // Activities that can run in a debug container for the given platform
     // (they have a run target for that OS).
     function platCaps(plat){
@@ -3491,18 +3469,18 @@ debug_dialog = (r"""
                                    : '<div style="color:var(--fg-muted)">No '+esc(platLabel(plat))+' activity runners are installed; you can still open an interactive session.</div>';
     }
     function modal(){ return $('cidash-debug-modal'); }
-    function cidashDebugClose(){ if(tr&&tr.timer){ clearInterval(tr.timer); } clearLiveTimer(); var m=modal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
+    function cidashDebugClose(){ clearLiveTimer(); var m=modal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
     window.cidashDebugClose = cidashDebugClose;
     function debugStatus(html, kind){
       var s=$('dbg-status'); if(!s) return;
       var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
       s.style.color=col; s.innerHTML=html||'';
     }
-    // ── Step 1: choose target ──────────────────────────────────────────────
+    // ── Config form + existing-sessions list ───────────────────────────
     function renderStep1(){
       var revs=HIST.slice(0,200).map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc(r.short||r.sha.slice(0,7))+' &mdash; '+esc((r.msg||'').slice(0,60))+'</option>'; }).join('');
       var body=''
-        + '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.9em">Boot a worker container with a full LabVIEW desktop you can remote into, log in / activate LabVIEW, then run CI activities live. One session at a time.</p>'
+        + '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.9em">Boot a worker container with a full LabVIEW desktop you can remote into, log in / activate LabVIEW, then run CI activities live. Start as many as you need &mdash; each runs on the runner (independent of this browser) and shows up in the list below; extra ones queue and start as earlier sessions finish.</p>'
         + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em">Container</label><br>'
         +   '<label style="margin-right:14px"><input type="radio" name="dbg-plat" value="linux" checked> Linux</label>'
         +   '<label><input type="radio" name="dbg-plat" value="windows"> Windows</label></div>'
@@ -3514,7 +3492,7 @@ debug_dialog = (r"""
         +     '<option value="30">30 minutes</option><option value="45" selected>45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></div>'
         + (getTok()?'':'<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-tok">Dispatch token</label><br><input id="dbg-tok" type="password" placeholder="fine-grained PAT with Actions: write" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)"><div style="font-size:.8em;color:var(--fg-muted);margin-top:3px"><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener">Create one &#8599;</a></div></div>')
         + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="dbg-start" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
-        + '<div id="dbg-live" style="margin:16px 0 0;border-top:1px solid var(--border);padding-top:12px"></div>';
+        + '<div id="dbg-live" style="margin:16px 0 0;border-top:1px solid var(--border);padding-top:12px;max-height:280px;overflow-y:auto"></div>';
       $('cidash-debug-body').innerHTML=body;
       renderActs(selectedPlat());
       var plats=document.querySelectorAll('input[name="dbg-plat"]');
@@ -3540,116 +3518,17 @@ debug_dialog = (r"""
         body:JSON.stringify({ ref:BRANCH, inputs:{ commit_sha:sha, platform:plat, actions:acts.join(' '), minutes:String(mins) } })
       }).then(function(r){
         if(btn){ btn.disabled=false; btn.textContent='Start debug session'; }
-        if(r.status===204){ renderStep2(dispatchAt, sha, acts, mins); return; }
+        if(r.status===204){ debugStatus('Session dispatched &mdash; it will appear below as it boots.', 'ok'); kickLive(); return; }
         if(r.status===401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} debugStatus('Token rejected (401). Paste a valid token above.', 'err'); renderStep1(); return; }
         if(r.status===403){ debugStatus('Dispatch forbidden (403). The token needs <strong>Actions: write</strong> for <code>'+esc(REPO)+'</code>.', 'err'); return; }
         if(r.status===404){ debugStatus('Not found (404). <code>'+esc(WF)+'</code> is not installed, or the token cannot see this repo.', 'err'); return; }
         debugStatus('Dispatch failed (HTTP '+r.status+').', 'err');
       }).catch(function(e){ if(btn){ btn.disabled=false; btn.textContent='Start debug session'; } debugStatus('Network error: '+esc(String(e&&e.message||e)), 'err'); });
     }
-    // ── Step 2: connect ────────────────────────────────────────────────────
-    function setStageBar(mode, pct){
-      var el=$('dbg-stage-bar'); if(!el) return;
-      el.className='dbg-bar'+(mode==='indet'?' dbg-indet':(mode==='ok'?' dbg-ok':''));
-      var sp=el.firstChild; if(!sp) return;
-      if(mode==='indet'){ sp.style.width=''; } else { sp.style.width=(pct==null?0:Math.max(4,Math.min(100,pct)))+'%'; }
-    }
-    function renderStep2(dispatchAt, sha, acts, mins, savedRunId){
-      clearLiveTimer();
-      ensureLiveCss();
-      $('cidash-debug-body').innerHTML=''
-        + '<p style="margin:0 0 10px"><strong>Bringing up the debug desktop&hellip;</strong></p>'
-        + '<ol id="dbg-steps" style="margin:0 0 12px 1.1em;padding:0;color:var(--fg-muted);font-size:.9em;line-height:1.7">'
-        +   '<li id="dbg-s-run">Waiting for the runner to pick up the job&hellip;</li>'
-        +   '<li id="dbg-s-tunnel">Booting the container + LabVIEW, opening the tunnel (this can take a few minutes)&hellip;</li>'
-        + '</ol>'
-        + '<div class="dbg-bar dbg-indet" id="dbg-stage-bar"><span></span></div>'
-        + '<div id="dbg-stage" style="font-size:.85em;color:var(--fg-muted);margin:0 0 8px">Booting&hellip;</div>'
-        + '<div id="dbg-open" style="display:none;margin:10px 0"><a id="dbg-open-link" href="#" target="_blank" rel="noopener" style="display:inline-block;background:#2ea043;border:1px solid #2ea043;color:#fff;padding:8px 18px;border-radius:6px;text-decoration:none;font-size:.92em">Open remote desktop &#8599;</a><div style="font-size:.8em;color:var(--fg-muted);margin-top:5px">If a new tab did not open, click the button (pop-up blockers stop automatic tabs).</div></div>'
-        + '<p style="font-size:.8em;color:var(--fg-muted);margin:8px 0 0">You can close this dialog and reopen Debug Run &mdash; the session keeps booting and you will return here.</p>'
-        + '<div id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></div>';
-      var expiresAt = dispatchAt + ((parseInt(mins,10)||45)+3)*60000;
-      tr = { runId:savedRunId||null, dispatchAt:dispatchAt, sha:sha, acts:acts, mins:mins, expiresAt:expiresAt, url:'', opened:false, timer:null };
-      persist();
-      if(savedRunId){ var s0=$('dbg-s-run'); if(s0){ s0.innerHTML='Runner picked up the job (<a href="https://github.com/'+esc(REPO)+'/actions/runs/'+savedRunId+'" target="_blank" rel="noopener">run #'+savedRunId+' &#8599;</a>).'; } }
-      pollConnect();
-      tr.timer=setInterval(pollConnect, 5000);
-    }
-    function pollConnect(){
-      if(!tr) return;
-      if(tr.expiresAt && Date.now()>tr.expiresAt){ sessionEnded('The session time elapsed.'); return; }
-      if(!tr.runId){
-        fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/runs?event=workflow_dispatch&per_page=10', { headers:ghHeaders(), cache:'no-cache' })
-          .then(function(r){ return r.ok?r.json():null; })
-          .then(function(d){
-            var runs=(d&&d.workflow_runs)||[];
-            var m=runs.find(function(x){ return new Date(x.created_at).getTime() >= tr.dispatchAt-90000; });
-            if(m && tr){ tr.runId=m.id; persist(); var s=$('dbg-s-run'); if(s){ s.innerHTML='Runner picked up the job (<a href="'+esc(m.html_url)+'" target="_blank" rel="noopener">run #'+m.id+' &#8599;</a>).'; } }
-          }).catch(function(){});
-        return;
-      }
-      // Watch the run's real state so this is never opaque: end a dead session,
-      // show a queued state when blocked behind another session, else the live step.
-      fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+tr.runId, { headers:ghHeaders(), cache:'no-cache' })
-        .then(function(r){ return r.ok?r.json():null; })
-        .then(function(run){
-          if(!tr || tr.opened || !run) return;
-          if(run.status==='completed'){ sessionEnded('The debug session ended (run '+esc(run.conclusion||'completed')+').'); return; }
-          var st=$('dbg-stage'); if(!st) return;
-          if(run.status==='queued'||run.status==='pending'){ setStageBar('indet'); st.innerHTML='Queued &mdash; waiting for a runner or another debug session to finish. You can end a live session from step 1.'; }
-          else { updateStageSteps(st); }
-        })
-        .catch(function(){});
-      var url=pagesBase()+'debug/'+tr.runId+'.json?_='+Date.now();
-      fetch(url, { cache:'no-cache' }).then(function(r){ return r.ok?r.json():null; })
-        .then(function(j){ if(j&&j.url) connected(j.url); })
-        .catch(function(){});
-    }
-    function connected(url){
-      if(!tr || tr.opened) return; tr.opened=true; tr.url=url; persist();
-      if(tr.timer){ clearInterval(tr.timer); }
-      setStageBar('ok',100); var stg=$('dbg-stage'); if(stg){ stg.innerHTML='<span style="color:#3fb950">Desktop is live.</span>'; }
-      var s=$('dbg-s-tunnel'); if(s){ s.innerHTML='Desktop is live.'; }
-      var open=$('dbg-open'); if(open){ open.style.display='block'; }
-      var link=$('dbg-open-link'); if(link){ link.href=url; }
-      try{ window.open(url, '_blank', 'noopener'); }catch(e){}
-      renderStep3(url);
-    }
-    // ── Step 3: hand off ───────────────────────────────────────────────────
-    function renderStep3(url){
-      clearLiveTimer();
-      var acts=(tr&&tr.acts&&tr.acts.length)?tr.acts.map(function(c){ return CAP_LABEL[c]||c; }).join(', '):'(none - interactive session)';
-      var runId=tr?tr.runId:null;
-      var body=''
-        + '<p style="margin:0 0 8px"><strong>Your debug desktop is ready.</strong></p>'
-        + '<div style="margin:0 0 12px"><a href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-block;background:#2ea043;border:1px solid #2ea043;color:#fff;padding:8px 18px;border-radius:6px;text-decoration:none;font-size:.92em">Open remote desktop &#8599;</a></div>'
-        + '<ol style="margin:0 0 12px 1.1em;padding:0;font-size:.9em;line-height:1.7">'
-        +   '<li>In the remote desktop, log into / activate LabVIEW.</li>'
-        +   '<li>When it is ready, click the on-screen terminal and press <strong>ENTER</strong> to run: <strong>'+esc(acts)+'</strong>.</li>'
-        +   '<li>Watch the activities run live, then end the session below.</li>'
-        + '</ol>'
-        + '<div style="display:flex;gap:8px;align-items:center"><button id="dbg-end" style="background:transparent;border:1px solid #f85149;color:#f85149;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">End session</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>';
-      $('cidash-debug-body').innerHTML=body;
-      var eb=$('dbg-end'); if(eb){ eb.addEventListener('click', function(){ endSession(runId); }); }
-    }
-    function endSession(runId){
-      clearSession(); if(tr&&tr.timer){ clearInterval(tr.timer); }
-      if(!runId){ cidashDebugClose(); return; }
-      var eb=$('dbg-end'); if(eb){ eb.disabled=true; eb.textContent='Ending...'; }
-      debugStatus('Ending the session...');
-      fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+runId+'/cancel', { method:'POST', headers:ghHeaders() })
-        .then(function(r){ debugStatus(r.ok?'Session ending. You can close this dialog.':'Could not cancel (HTTP '+r.status+'); it will still auto-end.', r.ok?'ok':'warn'); })
-        .catch(function(e){ debugStatus('Network error ending session: '+esc(String(e&&e.message||e)), 'warn'); });
-    }
     // ── Open ───────────────────────────────────────────────────────────────
     function debugOpen(){
       var m=modal(); if(!m) return;
       m.style.display='block'; document.body.style.overflow='hidden';
-      // Resume an in-flight session so a reload / reopen returns to the live
-      // desktop (or the still-booting connect view) instead of a blank step 1.
-      var s=loadSession();
-      if(s && s.url){ tr={ runId:s.runId, dispatchAt:s.dispatchAt, sha:s.sha, acts:s.acts, mins:s.mins, expiresAt:s.expiresAt, url:s.url, opened:true, timer:null }; renderStep3(s.url); return; }
-      if(s){ renderStep2(s.dispatchAt, s.sha, s.acts, s.mins, s.runId||null); return; }
       renderStep1();
     }
     window.lvciDebugRun = debugOpen;
