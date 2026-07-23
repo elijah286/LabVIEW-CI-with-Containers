@@ -2,7 +2,7 @@
 # Updated by the Reconfigure workflow.
 schemaVersion: 1
 installedVersion: 1.0.0
-configuredAt: 2026-07-21T18:41:15Z
+configuredAt: 2026-07-22T18:12:29Z
 config:
   labviewVersion: "2026"
   os: [windows, linux]
@@ -10,6 +10,19 @@ config:
     maxParallel: 5
   container:
     use: latest
+    vipc:
+      - path: ".github/labview/antidoc/antidoc.vipc"
+        monitor: true
+        monitorOn: windows
+      - path: ".github/labview/experimental.vipc"
+        monitor: false
+      - path: ".github/labview/vipm/ci-tooling.vipc"
+        monitor: true
+      - path: "example/Dependencies.vipc"
+        monitor: true
+    dragon:
+      - path: "example/Example.dragon"
+        monitor: false
 activities:
   - dashboard
   - masscompile
