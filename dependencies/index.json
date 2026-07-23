@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "582a5ba0f11b6830f935c5ed19d1f0427437dcff",
+  "sha": "e43f5ee9d419348157308e9f4bed73f68766913e",
   "revisions": [
+    {
+      "sha": "e43f5ee9d419348157308e9f4bed73f68766913e",
+      "short": "e43f5ee",
+      "message": "Windows Debug Run: attach to WinSta0\\Default to fix the black VNC screen",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T21:26:13Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "cdf1029da21dd3268e38db21f779033a061060d3",
+      "short": "cdf1029",
+      "message": "Release channel: stable=4.10.0 (catalog 4.11.11)",
+      "author": "github-actions[bot]",
+      "date": "2026-07-23T20:37:07Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "582a5ba0f11b6830f935c5ed19d1f0427437dcff",
       "short": "582a5ba",
@@ -882,24 +900,6 @@
       "message": "Mass Compile column: threshold-based colours + solid-red failure (4.4.0)",
       "author": "Elijah Kerry",
       "date": "2026-07-06T13:19:52Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "55606adfc90e5069d252369c721196468f8b3d08",
-      "short": "55606ad",
-      "message": "Fix Linux worker image build failing on \"vipm-linux not found\" (4.3.5)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-06T11:49:16Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "56035bb3e34276d7e064c01254b255fb7070bea2",
-      "short": "56035bb",
-      "message": "Mass Compile: colour Win/Linux percentages separately + instant platform mouse-over (4.3.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-30T18:22:05Z",
       "project": false,
       "dep_only": false
     },
