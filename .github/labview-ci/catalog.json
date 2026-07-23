@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.11.4",
+  "version": "4.11.5",
   "stableVersion": "4.10.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
@@ -12,6 +12,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet.",
     "releases": [
+      {"version": "4.11.5", "date": "2026-07-23", "notes": "Fix: Windows debug tunnels went dead (NXDOMAIN) seconds after connecting. The noVNC bridge + Cloudflare tunnel were launched with Start-Process, whose children live in the step's Windows job object and get killed when that step ends - so the tunnel was torn down while the container kept holding. Launch them via WMI (Win32_Process.Create) so they run outside the step's job object and stay up for the whole session."},
       {"version": "4.11.4", "date": "2026-07-23", "notes": "Fix: Windows debug sessions never actually started. The container was launched with -p 127.0.0.1:5900:5900, but Windows containers cannot bind a host IP in NAT, so docker run errored and no container came up - yet the tunnel still published a URL that pointed at nothing. Publish the port without the 127.0.0.1 prefix, and fail the job loudly if the container does not start."},
       {"version": "4.11.3", "date": "2026-07-22", "notes": "Debug Run: the \"Open source\" button now boots the same debug container but opens the LabVIEW project (*.lvproj) in the IDE so you can view the source over VNC, instead of just linking to GitHub. It sends a new open_source input; the Linux and Windows container scripts find the project in the checkout and launch LabVIEW with it."},
       {"version": "4.11.2", "date": "2026-07-22", "notes": "Debug Run: added an \"Open source\" button next to Start debug session. It skips booting a container and just opens the chosen revision's source tree on GitHub in a new tab, for when you only need to read the code rather than run it."},

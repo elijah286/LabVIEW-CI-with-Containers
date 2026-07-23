@@ -293,17 +293,29 @@ jobs:
         run: |
           python -m pip install --quiet --disable-pip-version-check websockify
           if (-not (Test-Path "$env:TEMP\novnc\vnc.html")) { git clone --depth 1 https://github.com/novnc/noVNC "$env:TEMP\novnc" }
-          Start-Process python -ArgumentList @('-m','websockify','--web',"$env:TEMP\novnc",'6080','127.0.0.1:5900') -WindowStyle Hidden
           Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe' -OutFile "$env:TEMP\cloudflared.exe"
-          Start-Process "$env:TEMP\cloudflared.exe" -ArgumentList @('tunnel','--url','http://localhost:6080','--no-autoupdate') -RedirectStandardOutput "$env:TEMP\cf.log" -RedirectStandardError "$env:TEMP\cf.err" -WindowStyle Hidden
+          # Launch the bridge + tunnel via WMI (Win32_Process.Create) so they run
+          # OUTSIDE this step's job object. A plain Start-Process child is killed
+          # when the step ends (the runner terminates the step's job object), which
+          # tore down cloudflared while the container kept holding -> its
+          # trycloudflare.com hostname then NXDOMAIN'd. WMI-created processes are
+          # not in the step's job object, so they live for the whole session and
+          # are stopped in the Tear down step.
+          $novnc = Join-Path $env:TEMP 'novnc'
+          $cf    = Join-Path $env:TEMP 'cloudflared.exe'
+          $wsLog = Join-Path $env:TEMP 'ws.log'
+          $cfLog = Join-Path $env:TEMP 'cf.log'
+          $py = (Get-Command python).Source
+          Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = ('cmd /c ""{0}" -m websockify --web "{1}" 6080 127.0.0.1:5900 > "{2}" 2>&1"' -f $py, $novnc, $wsLog) } | Out-Null
+          Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = ('cmd /c ""{0}" tunnel --url http://localhost:6080 --no-autoupdate > "{1}" 2>&1"' -f $cf, $cfLog) } | Out-Null
           $url = ''
           for ($i = 0; $i -lt 60; $i++) {
             Start-Sleep -Seconds 2
-            $txt = (Get-Content "$env:TEMP\cf.log","$env:TEMP\cf.err" -ErrorAction SilentlyContinue) -join "`n"
+            $txt = (Get-Content $cfLog -ErrorAction SilentlyContinue) -join "`n"
             $m = [regex]::Match($txt, 'https://[a-z0-9-]+\.trycloudflare\.com')
             if ($m.Success) { $url = $m.Value; break }
           }
-          if (-not $url) { Write-Host '::error::Cloudflare tunnel did not come up.'; Get-Content "$env:TEMP\cf.log","$env:TEMP\cf.err" -ErrorAction SilentlyContinue; exit 1 }
+          if (-not $url) { Write-Host '::error::Cloudflare tunnel did not come up.'; Get-Content $cfLog -ErrorAction SilentlyContinue; exit 1 }
           "TUNNEL_URL=$url" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
           Write-Host "Tunnel: $url"
 
