@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "9d71cbdbdbb9b21627cc18ae24ce5f47bae4467a",
+  "sha": "4a9e168ada79bd7b1c138579358208af87a20010",
   "revisions": [
+    {
+      "sha": "4a9e168ada79bd7b1c138579358208af87a20010",
+      "short": "4a9e168",
+      "message": "VI Analyzer report: add Windows/Linux platform toggle",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T19:36:06Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "9d71cbdbdbb9b21627cc18ae24ce5f47bae4467a",
       "short": "9d71cbd",
@@ -891,15 +900,6 @@
       "message": "catalog: list LUnit on the Unit Tests capability card (#16)",
       "author": "Anton Sundqvist",
       "date": "2026-06-29T18:06:48Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "67149ec53d5863d13d6b0a197589524a68cbe25f",
-      "short": "67149ec",
-      "message": "catalog: list all four frameworks on Unit Tests card (4.3.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-29T18:02:25Z",
       "project": false,
       "dep_only": false
     },

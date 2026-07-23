@@ -1348,7 +1348,10 @@ docker run --rm `
         <em>directory</em> / <em>Analyze&nbsp;Project</em> config handling with a directory-mode fallback) and
         deploys its report under <code>vi-analyzer/&lt;sha&gt;/linux/</code> with a <code>CI / VI Analyzer (Linux)</code>
         status, while Windows stays at <code>vi-analyzer/&lt;sha&gt;/</code>. The dashboard's VI Analyzer column shows
-        both platforms' finding counts side by side. The report builder maps each failed test to a category
+        both platforms' finding counts side by side. Inside the report itself, a segmented
+        <strong>Windows&nbsp;|&nbsp;Linux</strong> toggle under the title switches between the two platforms' reports
+        (the other platform's button is disabled with a note when VI Analyzer hasn't run there for that commit),
+        mirroring the Mass Compile report. The report builder maps each failed test to a category
         (correctness / performance / style / documentation) for the dashboard's coloured breakdown and preserves the
         LabVIEW-native HTML as <code>raw.html</code>.</p>
       <p>Before analyzing, the driver runs a headless <strong>Mass Compile</strong> to upgrade the project's VIs
