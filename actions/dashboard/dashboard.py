@@ -3472,7 +3472,7 @@ debug_dialog = (r"""
       if(!tr||!tr.runId||!st) return;
       fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+tr.runId+'/jobs?per_page=5', { headers:ghHeaders(), cache:'no-cache' })
         .then(function(r){ return r.ok?r.json():null; })
-        .then(function(d){ var st=$('dbg-stage'); if(!st) return; var jobs=(d&&d.jobs)||[]; var cur=''; jobs.forEach(function(j){ (j.steps||[]).forEach(function(s){ if(s.status==='in_progress'&&!cur) cur=s.name; }); }); st.innerHTML = cur ? ('Current step: <strong>'+esc(cur)+'</strong>') : 'Working&hellip;'; })
+        .then(function(d){ var st=$('dbg-stage'); if(!st) return; var jobs=(d&&d.jobs)||[]; var total=0, done=0, cur=''; jobs.forEach(function(j){ (j.steps||[]).forEach(function(s){ total++; if(s.status==='completed') done++; else if(s.status==='in_progress'&&!cur) cur=s.name; }); }); if(total){ setStageBar('', Math.round(done/total*100)); st.innerHTML = cur ? ('Current step: <strong>'+esc(cur)+'</strong> ('+done+'/'+total+')') : ('Working&hellip; ('+done+'/'+total+')'); } else { setStageBar('indet'); st.innerHTML='Working&hellip;'; } })
         .catch(function(){});
     }
     // Activities that can run in a Linux debug container (have a linux run target).
@@ -3538,14 +3538,22 @@ debug_dialog = (r"""
       }).catch(function(e){ if(btn){ btn.disabled=false; btn.textContent='Start debug session'; } debugStatus('Network error: '+esc(String(e&&e.message||e)), 'err'); });
     }
     // ── Step 2: connect ────────────────────────────────────────────────────
+    function setStageBar(mode, pct){
+      var el=$('dbg-stage-bar'); if(!el) return;
+      el.className='dbg-bar'+(mode==='indet'?' dbg-indet':(mode==='ok'?' dbg-ok':''));
+      var sp=el.firstChild; if(!sp) return;
+      if(mode==='indet'){ sp.style.width=''; } else { sp.style.width=(pct==null?0:Math.max(4,Math.min(100,pct)))+'%'; }
+    }
     function renderStep2(dispatchAt, sha, acts, mins, savedRunId){
       clearLiveTimer();
+      ensureLiveCss();
       $('cidash-debug-body').innerHTML=''
         + '<p style="margin:0 0 10px"><strong>Bringing up the debug desktop&hellip;</strong></p>'
         + '<ol id="dbg-steps" style="margin:0 0 12px 1.1em;padding:0;color:var(--fg-muted);font-size:.9em;line-height:1.7">'
         +   '<li id="dbg-s-run">Waiting for the runner to pick up the job&hellip;</li>'
         +   '<li id="dbg-s-tunnel">Booting the container + LabVIEW, opening the tunnel (this can take a few minutes)&hellip;</li>'
         + '</ol>'
+        + '<div class="dbg-bar dbg-indet" id="dbg-stage-bar"><span></span></div>'
         + '<div id="dbg-stage" style="font-size:.85em;color:var(--fg-muted);margin:0 0 8px">Booting&hellip;</div>'
         + '<div id="dbg-open" style="display:none;margin:10px 0"><a id="dbg-open-link" href="#" target="_blank" rel="noopener" style="display:inline-block;background:#2ea043;border:1px solid #2ea043;color:#fff;padding:8px 18px;border-radius:6px;text-decoration:none;font-size:.92em">Open remote desktop &#8599;</a><div style="font-size:.8em;color:var(--fg-muted);margin-top:5px">If a new tab did not open, click the button (pop-up blockers stop automatic tabs).</div></div>'
         + '<p style="font-size:.8em;color:var(--fg-muted);margin:8px 0 0">You can close this dialog and reopen Debug Run &mdash; the session keeps booting and you will return here.</p>'
@@ -3578,7 +3586,7 @@ debug_dialog = (r"""
           if(!tr || tr.opened || !run) return;
           if(run.status==='completed'){ sessionEnded('The debug session ended (run '+esc(run.conclusion||'completed')+').'); return; }
           var st=$('dbg-stage'); if(!st) return;
-          if(run.status==='queued'||run.status==='pending'){ st.innerHTML='Queued &mdash; waiting for a runner or another debug session to finish. You can end a live session from step 1.'; }
+          if(run.status==='queued'||run.status==='pending'){ setStageBar('indet'); st.innerHTML='Queued &mdash; waiting for a runner or another debug session to finish. You can end a live session from step 1.'; }
           else { updateStageSteps(st); }
         })
         .catch(function(){});
@@ -3590,6 +3598,7 @@ debug_dialog = (r"""
     function connected(url){
       if(!tr || tr.opened) return; tr.opened=true; tr.url=url; persist();
       if(tr.timer){ clearInterval(tr.timer); }
+      setStageBar('ok',100); var stg=$('dbg-stage'); if(stg){ stg.innerHTML='<span style="color:#3fb950">Desktop is live.</span>'; }
       var s=$('dbg-s-tunnel'); if(s){ s.innerHTML='Desktop is live.'; }
       var open=$('dbg-open'); if(open){ open.style.display='block'; }
       var link=$('dbg-open-link'); if(link){ link.href=url; }
