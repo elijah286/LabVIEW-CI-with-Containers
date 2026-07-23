@@ -1519,24 +1519,30 @@ docker run --rm `
       <p><code>reconfigure.yml</code> backs the <strong>Configure Pipeline</strong> dialog: it rewrites
         <code>.github/labview-ci.yml</code> from a <code>workflow_dispatch</code> form and opens a reviewable pull
         request rather than committing directly.</p>
-      <h3>Release channels (stable vs. beta)</h3>
-      <p>Every catalog change bumps <code>version</code> &mdash; the <strong>beta tip</strong>. A separate optional
-        top-level <code>stableVersion</code> names the newest release the maintainer has <strong>promoted</strong> to
-        the <strong>stable</strong> channel, and each promoted release entry carries <code>"stable": true</code>.
-        Promotion never builds anything: it blesses an already-published, immutable <code>v&lt;version&gt;</code>
-        release. <code>release.yml</code> force-moves a rolling <code>stable</code> git tag to the blessed commit.</p>
-      <p>Installs and upgrades default to the <strong>stable</strong> channel: the What's New page and the header's
-        update indicator only treat a newer <em>stable</em> release as an available update, so a freshly published
-        beta never nags a client onto an unproven build. Users opt into pre-release builds per browser via a
-        &ldquo;Show pre-release updates&rdquo; toggle (<code>localStorage.lvci_update_channel = 'beta'</code>). Until
-        the first promotion, <code>stableVersion</code> is absent and everything falls back to the latest published
-        version &mdash; exactly the pre-channel behaviour.</p>
-      <p>The maintainer promotes from the <strong>Mark as stable release</strong> button on their own source repo's
-        What's New page. It dispatches <code>promote-release.yml</code> (owner-only &mdash; GitHub requires
-        <code>Actions: write</code> on the source repo), which verifies the <code>v&lt;version&gt;</code> tag exists,
-        runs the catalog/source-sync gate, edits the catalog via <code>promote-release.py</code> (set
-        <code>stableVersion</code>, flag the entry, bump the version), and commits to the default branch; the same
-        button un-promotes to roll the channel back to the previous stable.</p>
+      <h3>Release channels (Dev / Beta / Stable)</h3>
+      <p>Every published build is a <strong>Dev</strong> build by default (the tooling ships many a day). The
+        maintainer can then mark a build up two tiers: <strong>Beta</strong> (a release candidate &mdash; &ldquo;might
+        be good enough&rdquo;) and <strong>Stable</strong> (a release, ready for clients). The catalog carries this as
+        two optional top-level pointers &mdash; <code>betaVersion</code> and <code>stableVersion</code> &mdash; plus a
+        <code>"beta": true</code> / <code>"stable": true</code> flag on each marked release entry. Marking never builds
+        anything: it blesses an already-published, immutable <code>v&lt;version&gt;</code> release, and
+        <code>release.yml</code> force-moves a rolling <code>beta</code> and <code>stable</code> git tag to the marked
+        commits.</p>
+      <p>The install and What's New dialogs offer a cumulative channel picker &mdash; <strong>Release only</strong>
+        (<code>stable</code>), <strong>Release + beta</strong> (<code>beta</code>), or <strong>Release + beta + dev</strong>
+        (<code>dev</code>) &mdash; stored per browser in <code>lvci_install_channel</code> /
+        <code>lvci_update_channel</code>. The header's update indicator and the What's New compare resolve the channel
+        target the same way: <code>dev</code>&nbsp;=&nbsp;latest published; <code>beta</code>&nbsp;=&nbsp;newest of
+        <code>betaVersion</code>/<code>stableVersion</code>; <code>stable</code>&nbsp;=&nbsp;<code>stableVersion</code>.
+        Everything gracefully falls back to the latest published version while a tier hasn't been marked yet. The
+        install dialog fetches the target version's own catalog so its version, capabilities, and vendored files are
+        all consistent at the tag being installed.</p>
+      <p>The maintainer marks builds from the per-release <strong>Mark as beta</strong> / <strong>Mark as stable</strong>
+        buttons on their own source repo's What's New page. They dispatch <code>promote-release.yml</code> (owner-only
+        &mdash; GitHub requires <code>Actions: write</code> on the source repo) with a <code>tier</code> input, which
+        verifies the <code>v&lt;version&gt;</code> tag exists, runs the catalog/source-sync gate, edits the catalog via
+        <code>promote-release.py --tier</code> (set the pointer, flag the entry, bump the version), and commits to the
+        default branch; the same buttons un-mark to roll a channel back to the previous build in that tier.</p>
       <h3>Relocation pointer</h3>
       <p><code>.github/labview-ci/source.json</code> lets the project migrate (for example to an official NI repo)
         without breaking installs: if it names a different repo than the current one, the bootstrappers and the

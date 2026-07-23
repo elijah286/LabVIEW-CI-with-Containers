@@ -94,11 +94,16 @@
          color:var(--fg-muted);background:var(--chip)}
     .vpill.new{color:#fff;background:var(--accent);border-color:transparent}
     .vpill.stable{color:var(--accent);background:transparent;border:1px solid var(--accent);font-weight:700}
-    .promote-btn{font:inherit;font-size:.8em;cursor:pointer;border:1px solid var(--border);background:var(--chip);color:var(--fg);border-radius:6px;padding:3px 9px}
+    .vpill.beta{color:var(--warn);background:transparent;border:1px solid var(--warn);font-weight:700}
+    .promote-btn{font:inherit;font-size:.8em;cursor:pointer;border:1px solid var(--border);background:var(--chip);color:var(--fg);border-radius:6px;padding:3px 9px;margin-right:4px}
     .promote-btn:hover{border-color:var(--accent);color:var(--accent)}
     .promote-btn.ghost{color:var(--fg-muted)}
     .chan-note{margin:8px 0 0}
     .chan-switch{cursor:pointer}
+    .chan-picker{margin:10px 0 0;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)}
+    .chan-title{font-weight:600;font-size:.85em;margin-bottom:4px}
+    .chan-opt{display:flex;align-items:center;gap:7px;font-size:.9em;padding:2px 0;cursor:pointer}
+    .chan-hint{color:var(--fg-muted);font-size:.85em}
     .arrow{color:var(--fg-muted)}
     .rel{border:1px solid var(--border);border-radius:8px;background:var(--surface2);padding:12px 14px;margin-bottom:10px}
     .rel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -399,7 +404,7 @@
     }
     // Release channel: which updates this browser is offered. Default "stable" =
     // only versions the owner has blessed; "beta" = every published version.
-    function updChannel() { try { return localStorage.getItem("lvci_update_channel") || "stable"; } catch (_) { return "stable"; } }
+    function updChannel() { try { return localStorage.getItem("lvci_update_channel") || "beta"; } catch (_) { return "beta"; } }
     function setUpdChannel(c) { try { localStorage.setItem("lvci_update_channel", c); } catch (_) {} }
     // True only when this page is showing the tooling's OWN source repo (you are
     // the maintainer viewing your own What's New) -> the promote controls appear.
@@ -473,14 +478,22 @@
       const text = rel.summary || rel.notes || rel.description || "";
       const hi = (rel.highlights || []).map(h => `<li>${esc(h)}</li>`).join("");
       const isStable = !!(state.stableVersion && String(rel.version) === String(state.stableVersion));
-      const badge = isStable ? `<span class="vpill stable">&#10003; Stable</span>` : "";
-      // Owner-only: a per-release promote control. GitHub still enforces access —
+      const isBeta = !!(state.betaVersion && String(rel.version) === String(state.betaVersion));
+      const badge = (isStable ? `<span class="vpill stable">&#10003; Stable</span>` : "")
+                  + (isBeta ? `<span class="vpill beta">Beta</span>` : "");
+      // Owner-only: per-release channel controls. GitHub still enforces access —
       // dispatching promote-release.yml needs Actions:write on the source repo.
       const owner = isOwnerView();
-      const promote = !owner ? ""
-        : (isStable
-            ? `<button type="button" class="promote-btn ghost" data-unver="${esc(rel.version)}">Un-mark stable</button>`
-            : `<button type="button" class="promote-btn" data-ver="${esc(rel.version)}">Mark as stable release</button>`);
+      let promote = "";
+      if (owner) {
+        promote =
+          (isStable
+            ? `<button type="button" class="promote-btn ghost" data-un="stable" data-ver="${esc(rel.version)}">Un-mark stable</button>`
+            : `<button type="button" class="promote-btn" data-tier="stable" data-ver="${esc(rel.version)}">Mark as stable</button>`)
+        + (isBeta
+            ? `<button type="button" class="promote-btn ghost" data-un="beta" data-ver="${esc(rel.version)}">Un-mark beta</button>`
+            : `<button type="button" class="promote-btn" data-tier="beta" data-ver="${esc(rel.version)}">Mark as beta</button>`);
+      }
       return `<div class="rel">
         <div class="rel-head">
           <span class="vpill new">v${esc(rel.version)}</span>
@@ -800,11 +813,12 @@
     // Owner-only: dispatch promote-release.yml to (un)mark a version as the stable
     // release. GitHub enforces access (Actions:write on the source repo), so this
     // is genuinely maintainer-only; a visitor without a write token gets a 403.
-    function promoteRelease(ver, unpromote) {
+    function promoteRelease(ver, tier, unpromote) {
       if (!ver) return;
-      const what = unpromote ? ("un-mark v" + ver + " as the stable release") : ("mark v" + ver + " as the stable release");
+      const tname = tier === "beta" ? "beta" : "stable";
+      const what = unpromote ? ("un-mark v" + ver + " as " + tname) : ("mark v" + ver + " as the " + tname + " release");
       if (!window.confirm("This will " + what + " for everyone installing or upgrading. Continue?")) return;
-      if (!getTok()) { state._pendingPromote = { ver: ver, unpromote: unpromote }; showTokenPanel(); return; }
+      if (!getTok()) { state._pendingPromote = { ver: ver, tier: tname, unpromote: unpromote }; showTokenPanel(); return; }
       const ls = $("loadStatus");
       const say = (cls, html) => { if (ls) { ls.className = "status" + (cls ? " " + cls : ""); ls.innerHTML = html; } };
       say("", "Dispatching&hellip;");
@@ -812,40 +826,46 @@
         fetch(`https://api.github.com/repos/${state.repo}/actions/workflows/promote-release.yml/dispatches`, {
           method: "POST",
           headers: authHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ ref: branch, inputs: { version: ver, unpromote: unpromote ? "true" : "false" } })
+          body: JSON.stringify({ ref: branch, inputs: { version: ver, tier: tname, unpromote: unpromote ? "true" : "false" } })
         })
       ).then((r) => {
-        if (r.status === 204) say("ok", `Promotion dispatched. <a href="https://github.com/${esc(state.repo)}/actions/workflows/promote-release.yml" target="_blank" rel="noopener">Watch the run &#8599;</a> &mdash; reload in a minute to see the Stable badge move.`);
+        if (r.status === 204) say("ok", `Dispatched. <a href="https://github.com/${esc(state.repo)}/actions/workflows/promote-release.yml" target="_blank" rel="noopener">Watch the run &#8599;</a> &mdash; reload in a minute to see the badge move.`);
         else if (r.status === 401) { clearTok(); refreshTokForget(); say("err", "That token was rejected (401). Save a valid one and try again."); showTokenPanel(); }
-        else if (r.status === 403) say("err", "<strong>403</strong> &mdash; your token needs <strong>Actions: Read and write</strong> on this repository to promote a release.");
+        else if (r.status === 403) say("err", "<strong>403</strong> &mdash; your token needs <strong>Actions: Read and write</strong> on this repository to mark a release.");
         else if (r.status === 404) say("err", "<strong>404</strong> &mdash; the promote workflow isn&rsquo;t installed here, or the token can&rsquo;t see this repository.");
-        else say("err", "Could not dispatch the promotion (HTTP " + r.status + ").");
+        else say("err", "Could not dispatch (HTTP " + r.status + ").");
       }).catch((e) => say("err", "Could not reach api.github.com: " + esc(String(e && e.message || e))));
     }
     function wirePromote() {
       if (state._promoteWired) return; state._promoteWired = true;
       document.addEventListener("click", function (e) {
         const b = e.target.closest && e.target.closest(".promote-btn");
-        if (b) { e.preventDefault(); if (b.dataset.ver) promoteRelease(b.dataset.ver, false); else if (b.dataset.unver) promoteRelease(b.dataset.unver, true); return; }
-        const c = e.target.closest && e.target.closest(".chan-switch");
-        if (c) { e.preventDefault(); setUpdChannel(c.dataset.chan === "beta" ? "beta" : "stable"); location.reload(); }
+        if (!b) return;
+        e.preventDefault();
+        if (b.dataset.tier) promoteRelease(b.dataset.ver, b.dataset.tier, false);
+        else if (b.dataset.un) promoteRelease(b.dataset.ver, b.dataset.un, true);
+      });
+      document.addEventListener("change", function (e) {
+        const r = e.target.closest && e.target.closest(".chan-radio");
+        if (r && r.checked) { setUpdChannel(r.value); location.reload(); }
       });
     }
-    // The opt-in pre-release toggle + a heads-up when a beta is available.
+    // The 3-way update-channel picker (cumulative: release only / +beta / +dev).
     function renderChannelNote() {
       let el = $("chanNote");
       if (!el) {
-        el = document.createElement("p");
-        el.id = "chanNote"; el.className = "hint chan-note";
+        el = document.createElement("div");
+        el.id = "chanNote"; el.className = "chan-picker";
         const anchor = $("loadStatus");
         if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(el, anchor.nextSibling); else return;
       }
-      if (state.channel === "beta")
-        el.innerHTML = `Pre-release channel &mdash; you receive beta builds. <a href="#" class="chan-switch" data-chan="stable">Switch to stable</a>.`;
-      else if (state.betaAvailable)
-        el.innerHTML = `A pre-release <strong>v${esc(state.betaTip)}</strong> is available. <a href="#" class="chan-switch" data-chan="beta">Show pre-release updates</a>.`;
-      else
-        el.innerHTML = `<a href="#" class="chan-switch" data-chan="beta">Show pre-release updates</a>`;
+      const chan = state.channel;
+      const opt = (val, label, hint) =>
+        `<label class="chan-opt"><input type="radio" name="lvci-chan" class="chan-radio" value="${val}"${chan === val ? " checked" : ""}> <span>${label}</span> <span class="chan-hint">${hint}</span></label>`;
+      el.innerHTML = `<div class="chan-title">Update channel</div>` +
+        opt("stable", "Release only", "proven builds") +
+        opt("beta", "Release + beta", "release candidates") +
+        opt("dev", "Release + beta + dev", "every build \u2014 may break");
     }
 
     function saveTokAndDispatch() {
@@ -1481,17 +1501,17 @@
 
       state.betaTip = source.version || "";
       state.stableVersion = source.stableVersion || "";
+      state.betaVersion = source.betaVersion || "";
       state.channel = updChannel();
-      // Default channel = stable: only releases up to the blessed stableVersion are
-      // offered, so a freshly published beta never prompts an upgrade. Graceful
-      // fallback: with no stableVersion yet, the latest published version is the
-      // target (exactly the previous behavior).
-      const channelLatest = (state.channel === "beta")
-        ? state.betaTip
+      // Cumulative channels: stable=release only; beta=release+beta; dev=everything.
+      // Default is beta (release+beta). Graceful fallback to the latest published
+      // version when a tier hasn't been marked yet.
+      const newerV = (a, b) => (!a ? b : (!b ? a : (cmpVer(a, b) >= 0 ? a : b)));
+      const channelLatest =
+        state.channel === "dev" ? state.betaTip
+        : state.channel === "beta" ? (newerV(state.betaVersion, state.stableVersion) || state.betaTip)
         : (state.stableVersion || state.betaTip);
       state.latest = channelLatest;
-      state.betaAvailable = !!(state.channel !== "beta" && state.stableVersion &&
-                               cmpVer(state.betaTip, state.stableVersion) > 0);
       state.releases = releases(source);
       state.missing = state.releases.filter(r =>
         (state.from ? cmpVer(r.version, state.from) > 0 : true) &&

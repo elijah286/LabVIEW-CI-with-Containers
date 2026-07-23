@@ -2143,14 +2143,17 @@
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (s) {
             if (!s || !s.version) return;
-            // Release channel: by default only a newer STABLE release counts as an
-            // update, so a freshly published beta never nags. The owner opts into
-            // pre-release updates per browser (lvci_update_channel='beta'). Graceful
-            // fallback: a source with no stableVersion behaves exactly as before
-            // (the latest published version is the target).
-            var chan = 'stable';
-            try { chan = localStorage.getItem('lvci_update_channel') || 'stable'; } catch (e) {}
-            var target = (chan === 'beta') ? s.version : (s.stableVersion || s.version);
+            // Release channel (cumulative): by default only a newer STABLE release
+            // counts as an update, so a freshly published dev/beta build never nags.
+            // The owner opts up per browser (lvci_update_channel = 'stable' | 'beta'
+            // | 'dev'). Graceful fallback: a source with no stable/beta marked
+            // behaves exactly as before (the latest published version is the target).
+            var chan = 'beta';
+            try { chan = localStorage.getItem('lvci_update_channel') || 'beta'; } catch (e) {}
+            var betaV = s.betaVersion || '', stableV = s.stableVersion || '', tip = s.version;
+            var newerV = function (a, b) { return !a ? b : (!b ? a : (cmpVer(a, b) >= 0 ? a : b)); };
+            var target = (chan === 'dev') ? tip
+              : (chan === 'beta' ? (newerV(betaV, stableV) || tip) : (stableV || tip));
             if (target && cmpVer(target, v) > 0) { verState.behind = true; verState.to = target; renderBadge(); }
           }).catch(function () {});
       }).catch(function () {});

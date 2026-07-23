@@ -105,6 +105,25 @@ jobs:
             fi
           fi
 
+          # Same for the rolling `beta` tag (the release-candidate channel), driven
+          # by `betaVersion`. Absent until a beta is marked -> no-op.
+          BETA=$(python3 -c "import json;print(json.load(open('$CAT')).get('betaVersion',''))")
+          if [ -n "$BETA" ]; then
+            if git rev-parse -q --verify "refs/tags/v${BETA}^{}" >/dev/null; then
+              WANTB=$(git rev-parse "v${BETA}^{}")
+              HAVEB=$(git rev-parse -q --verify "refs/tags/beta^{}" 2>/dev/null || echo "")
+              if [ "$WANTB" != "$HAVEB" ]; then
+                git tag -f beta "v${BETA}^{}"
+                git push -f origin beta
+                echo "Moved rolling 'beta' tag -> v${BETA}."
+              else
+                echo "Rolling 'beta' tag already at v${BETA}."
+              fi
+            else
+              echo "::warning::betaVersion ${BETA} has no v${BETA} tag yet; leaving 'beta' unchanged."
+            fi
+          fi
+
           # Build release notes from the catalog's newest history entry.
           python3 - "$CAT" > /tmp/relnotes.md <<'PY'
           import json, sys

@@ -12,18 +12,26 @@
 # is needed for the commit itself.
 name: Promote release
 run-name: >-
-  ${{ github.event.inputs.unpromote == 'true' && 'Un-promote' || 'Promote' }}
-  v${{ github.event.inputs.version }} ${{ github.event.inputs.unpromote == 'true' && 'off stable' || 'to stable' }}
+  ${{ github.event.inputs.unpromote == 'true' && 'Un-mark' || 'Mark' }}
+  v${{ github.event.inputs.version }} ${{ github.event.inputs.unpromote == 'true' && 'off' || 'as' }}
+  ${{ github.event.inputs.tier || 'stable' }}
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Published version to promote to stable (e.g. 4.9.7)'
+        description: 'Published version to mark (e.g. 4.9.7)'
         type: string
         required: true
+      tier:
+        description: 'Which channel to mark it in'
+        type: choice
+        options:
+          - stable
+          - beta
+        default: stable
       unpromote:
-        description: 'Roll the stable channel back OFF this version instead of promoting it'
+        description: 'Roll the chosen channel back OFF this version instead of marking it'
         type: boolean
         default: false
 
@@ -65,10 +73,11 @@ jobs:
       - name: Apply the promotion to the catalog
         env:
           VER: ${{ github.event.inputs.version }}
+          TIER: ${{ github.event.inputs.tier }}
           UNPROMOTE: ${{ github.event.inputs.unpromote }}
         run: |
           set -euo pipefail
-          ARGS=(--version "${VER#v}")
+          ARGS=(--version "${VER#v}" --tier "${TIER:-stable}")
           if [ "${UNPROMOTE}" = "true" ]; then ARGS+=(--unpromote); fi
           python3 .github/labview/promote-release.py "${ARGS[@]}"
           python3 -c "import json;json.load(open('.github/labview-ci/catalog.json'))"  # validity re-check

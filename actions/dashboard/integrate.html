@@ -115,6 +115,12 @@
     .insopt{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:.9em;cursor:pointer}
     .insopt input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px}
     .insopt small{display:block;color:var(--fg-muted);font-size:.84em;margin-top:2px}
+    .chan-picker{margin:2px 0 14px;padding:10px 12px;border:1px solid var(--border);border-radius:8px}
+    .chan-title{font-weight:600;font-size:.86em;margin-bottom:5px}
+    .chan-opt{display:flex;align-items:center;gap:8px;font-size:.9em;padding:2px 0;cursor:pointer}
+    .chan-opt input{accent-color:var(--accent);width:16px;height:16px}
+    .chan-hint{color:var(--fg-muted);font-size:.85em}
+    .chan-target{margin:6px 0 0;font-size:.85em;color:var(--fg-muted)}
     .insdone{list-style:none;margin:14px 0 0;padding:0}
     .insdone li{position:relative;padding:0 0 0 24px;margin:0 0 7px;font-size:.88em;color:var(--fg);line-height:1.5}
     .insdone li::before{content:"\2713";position:absolute;left:0;top:1px;color:var(--accent);font-weight:700}
@@ -266,6 +272,8 @@
         <div id="insFlightList"></div>
       </div>
 
+      <div class="chan-picker" id="installChanPick"></div>
+
       <div class="insopts" id="githubInstallOptions">
         <label class="insopt"><input type="checkbox" id="optReadme" checked>
           <span><strong>Add a CI dashboard link to the README</strong><small>Adds a dashboard badge and link to your README in the same pull request (only if it isn&rsquo;t already there).</small></span>
@@ -411,6 +419,7 @@
     const NO_SUB_PREFIX = ".github/labview-ci/";
 
     let catalog = null;
+    let liveCatalog = null;   // the source's live (dev-tip) catalog; 'catalog' may target an older channel
     let canonical = { repo: SOURCE_FALLBACK.repo, ref: SOURCE_FALLBACK.ref };  // effective tooling source after following the relocation pointer (source.json)
     let relocated = null;         // {from,to} when the tooling has moved to a new official home
     let activeTab = "bash";
@@ -465,6 +474,48 @@
         } catch (_) { /* try next */ }
       }
       throw new Error("Could not load catalog.json");
+    }
+
+    function installChannel() { try { return localStorage.getItem("lvci_install_channel") || "beta"; } catch (_) { return "beta"; } }
+    function setInstallChannel(c) { try { localStorage.setItem("lvci_install_channel", c); } catch (_) {} }
+    // Cumulative install channels: stable=release only; beta=release+beta;
+    // dev=everything. Default beta. Returns the version to install for a channel.
+    function channelTargetVersion(cat, chan) {
+      if (!cat) return "";
+      const betaV = cat.betaVersion || "", stableV = cat.stableVersion || "", tip = cat.version || "";
+      const newerV = (a, b) => (!a ? b : (!b ? a : (cmpVerStr(a, b) >= 0 ? a : b)));
+      return chan === "dev" ? tip : (chan === "beta" ? (newerV(betaV, stableV) || tip) : (stableV || tip));
+    }
+    // Load the catalog for the chosen channel: when it targets an older marked
+    // version than the live dev tip, fetch THAT version's catalog so the version,
+    // capabilities, and vendored files are all consistent at the tag installed.
+    async function catalogForChannel(chan) {
+      if (!liveCatalog) return null;
+      const t = channelTargetVersion(liveCatalog, chan);
+      if (!t || t === liveCatalog.version) return liveCatalog;
+      try {
+        const r = await fetch(`https://raw.githubusercontent.com/${canonical.repo}/v${t}/.github/labview-ci/catalog.json`, { cache: "no-store" });
+        if (r.ok) return await r.json();
+      } catch (_) { /* fall through to live */ }
+      return liveCatalog;
+    }
+    function renderInstallChannel() {
+      const el = $("installChanPick"); if (!el || !liveCatalog) return;
+      const chan = installChannel();
+      const bv = liveCatalog.betaVersion || "", sv = liveCatalog.stableVersion || "";
+      const tv = channelTargetVersion(liveCatalog, chan);
+      const opt = (val, label, hint) =>
+        `<label class="chan-opt"><input type="radio" name="lvci-inschan" class="chan-radio" value="${val}"${chan === val ? " checked" : ""}> <span>${label}</span> <span class="chan-hint">${hint}</span></label>`;
+      el.innerHTML = `<div class="chan-title">Which version to install</div>` +
+        opt("stable", "Release only", sv ? ("v" + esc(sv)) : "none marked yet") +
+        opt("beta", "Release + beta", bv ? ("v" + esc(bv)) : "none marked yet") +
+        opt("dev", "Release + beta + dev", "v" + esc(liveCatalog.version || "")) +
+        `<p class="chan-target">Installs <strong>v${esc(tv)}</strong>.</p>`;
+    }
+    async function onInstallChannelChange(val) {
+      setInstallChannel(val);
+      catalog = (await catalogForChannel(val)) || liveCatalog;
+      renderVersions(); renderCaps(); renderInstallChannel(); update();
     }
 
     function source() {
@@ -3115,14 +3166,17 @@
 
     (async function init() {
       if (window.top !== window.self) { const _bl = document.getElementById("backLink"); if (_bl) _bl.style.display = "none"; }
-      try { catalog = await loadCatalog(); }
+      try { liveCatalog = await loadCatalog(); }
       catch (e) {
         document.querySelector(".wrap").insertAdjacentHTML("afterbegin",
           `<section><h2 class="err">Could not load catalog.json</h2><p class="hint">${e.message}. ` +
           `If you are viewing this locally, serve the folder over HTTP.</p></section>`);
         return;
       }
-      renderVersions(); renderCaps();
+      catalog = (await catalogForChannel(installChannel())) || liveCatalog;
+      renderVersions(); renderCaps(); renderInstallChannel();
+      const _cp = $("installChanPick");
+      if (_cp) _cp.addEventListener("change", (e) => { const r = e.target.closest(".chan-radio"); if (r && r.checked) onInstallChannelChange(r.value); });
       const chooser = $("capChooser"); if (chooser) chooser.open = false;
       wire(); update(); refreshInsForget();
       refreshInstallPause();
