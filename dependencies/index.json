@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "a006257206500f277eeab098226551202da73284",
+  "sha": "c2c6e9750de52a1b859ab7362f3c3aeec9f6d5f1",
   "revisions": [
+    {
+      "sha": "c2c6e9750de52a1b859ab7362f3c3aeec9f6d5f1",
+      "short": "c2c6e97",
+      "message": "Fix: Windows debug container never started (NAT host-IP) (4.11.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T02:49:55Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "a006257206500f277eeab098226551202da73284",
       "short": "a006257",
@@ -891,15 +900,6 @@
       "message": "Populate history: re-run an in-flight (queued/running) activity (4.3.1)",
       "author": "Elijah Kerry",
       "date": "2026-06-29T02:35:41Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "694c0e62804b4b5ba1b2171b638aecbf3dc3d001",
-      "short": "694c0e6",
-      "message": "Bake a no-VIPM-repo package by committing its .vip (#15)",
-      "author": "Anton Sundqvist",
-      "date": "2026-06-29T02:16:49Z",
       "project": false,
       "dep_only": false
     },
