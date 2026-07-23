@@ -3491,7 +3491,7 @@ debug_dialog = (r"""
         +   '<select id="dbg-min" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'
         +     '<option value="30">30 minutes</option><option value="45" selected>45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></div>'
         + (getTok()?'':'<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-tok">Dispatch token</label><br><input id="dbg-tok" type="password" placeholder="fine-grained PAT with Actions: write" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)"><div style="font-size:.8em;color:var(--fg-muted);margin-top:3px"><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener">Create one &#8599;</a></div></div>')
-        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="dbg-start" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
+        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-start" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><button id="dbg-src" title="Browse this revision on GitHub in a new tab" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.9em">Open source &#8599;</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
         + '<div id="dbg-live" style="margin:16px 0 0;border-top:1px solid var(--border);padding-top:12px;max-height:280px;overflow-y:auto"></div>';
       $('cidash-debug-body').innerHTML=body;
       renderActs(selectedPlat());
@@ -3499,8 +3499,16 @@ debug_dialog = (r"""
       for(var i=0;i<plats.length;i++){ plats[i].addEventListener('change', function(){ renderActs(selectedPlat()); }); }
       try{ if(typeof window.lvciRevPicker==='function') window.lvciRevPicker($('dbg-rev')); }catch(e){}
       $('dbg-start').addEventListener('click', startSession);
+      var sb=$('dbg-src'); if(sb){ sb.addEventListener('click', openSource); }
       refreshLiveSessions();
       clearLiveTimer(); liveTimer=setInterval(refreshLiveSessions, 5000);
+    }
+    // Skip the container entirely and just browse the chosen revision's source
+    // tree on GitHub in a new tab.
+    function openSource(){
+      var sha=$('dbg-rev') ? $('dbg-rev').value : '';
+      if(!sha){ debugStatus('Pick a revision.', 'err'); return; }
+      try{ window.open('https://github.com/'+REPO+'/tree/'+encodeURIComponent(sha), '_blank', 'noopener'); }catch(e){}
     }
     function startSession(){
       var t=$('dbg-tok'); if(t && t.value.trim()){ setTok(t.value.trim()); }
