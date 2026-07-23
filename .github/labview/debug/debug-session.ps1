@@ -31,19 +31,30 @@ try {
   $args = @('/i', $msi, '/quiet', '/norestart',
             'ADDLOCAL=Server',
             'SERVER_REGISTER_AS_SERVICE=0',
-            'SERVER_ADD_FIREWALL_EXCEPTION=0',
-            'SET_ACCEPTHTTPCONNECTIONS=1', 'VALUE_OF_ACCEPTHTTPCONNECTIONS=0',
-            'SET_USEVNCAUTHENTICATION=1', 'VALUE_OF_USEVNCAUTHENTICATION=1',
-            'SET_PASSWORD=1', ('VALUE_OF_PASSWORD=' + $pw))
+            'SERVER_ADD_FIREWALL_EXCEPTION=0')
   Start-Process 'msiexec.exe' -Wait -ArgumentList $args
 } catch { Log "TightVNC install failed: $_" }
 
-# --- 2. Start the VNC server as an application (hooks winsta0\default) --------
+# --- 2. Configure + start the VNC server as an application -------------------
+# App mode (tvnserver -run) reads its config from the registry
+# (HKCU/HKLM Software\TightVNC\Server), NOT the MSI's service settings. Leaving
+# UseVncAuthentication=1 with no app-mode password made the server reject every
+# connection ("Server is not configured properly" in noVNC). Setting a real VNC
+# password there needs TightVNC's DES-obfuscated blob; since the one-time tunnel
+# URL is the real access gate (unguessable, short-lived, and it already carries
+# the password), disable VNC auth so the server is configured correctly and
+# noVNC connects straight through.
+foreach ($root in 'HKCU:\Software\TightVNC\Server','HKLM:\SOFTWARE\TightVNC\Server') {
+  New-Item -Path $root -Force | Out-Null
+  Set-ItemProperty -Path $root -Name 'UseVncAuthentication'     -Value 0    -Type DWord
+  Set-ItemProperty -Path $root -Name 'UseControlAuthentication' -Value 0    -Type DWord
+  Set-ItemProperty -Path $root -Name 'AcceptRfbConnections'     -Value 1    -Type DWord
+  Set-ItemProperty -Path $root -Name 'RfbPort'                  -Value 5900 -Type DWord
+  Set-ItemProperty -Path $root -Name 'AcceptHttpConnections'    -Value 0    -Type DWord
+}
 $tvn = 'C:\Program Files\TightVNC\tvnserver.exe'
 if (Test-Path $tvn) {
-  Log 'Starting tvnserver (application mode)...'
-  # Set the password in the app config too (belt and braces), then run.
-  try { & $tvn -controlservice -setvncpassword $pw 2>$null } catch {}
+  Log 'Starting tvnserver (application mode, VNC auth disabled)...'
   Start-Process $tvn -ArgumentList '-run'
 } else {
   Log 'tvnserver.exe not found; the VNC view will be unavailable.'
