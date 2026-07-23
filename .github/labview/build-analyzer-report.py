@@ -686,12 +686,27 @@ h1{font-size:1.35em;margin:0 0 2px}
 .rrnone{font-size:.86em;color:var(--fg-muted);line-height:1.5}
 .rrtok{margin-top:12px;display:flex;flex-direction:column;gap:8px;font-size:.84em}
 .rrtok input{background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font:inherit}
+/* platform toggle */
+.platrow{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+#plat-toggle{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+#plat-toggle button{border:none;background:var(--surface);color:var(--fg-muted);cursor:pointer;font:inherit;
+  font-weight:600;font-size:.82em;padding:7px 16px;display:inline-flex;align-items:center;gap:7px}
+#plat-toggle button:hover:not(.active):not(:disabled){background:var(--hover);color:var(--fg)}
+#plat-toggle button.active{background:var(--link);color:#fff}
+#plat-toggle button:disabled{opacity:.4;cursor:default}
+#plat-toggle .sep{width:1px;align-self:stretch;background:var(--border)}
+.platnote{color:var(--fg-muted);font-size:.8em}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>VI Analyzer Report</h1>
   <div class="sub" id="sub"></div>
+
+  <div class="platrow">
+    <div id="plat-toggle"></div>
+    <span class="platnote" id="platnote"></span>
+  </div>
 
   <div class="cards" id="cards"></div>
   <div class="bar"><span id="barfill"></span></div>
@@ -753,6 +768,41 @@ const SNAP_BASE = '__PAGES_BASE__/vi-snapshots/';
 // applies (excludes don't count); the header note lists all configs incl excludes.
 const MULTICFG = ((META.configs||[]).filter(c=>!c.exclude).length) > 1;
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ── platform toggle (switch between the Windows and Linux VI Analyzer reports) ──
+// The Windows report lives at vi-analyzer/<sha>/ and the Linux report at
+// vi-analyzer/<sha>/linux/, so the two reports are one directory apart. We probe
+// the other platform's summary.json; if it exists the button navigates there,
+// otherwise it is disabled with a note. (The VI Analyzer report renders entirely
+// from its own injected blob, so switching loads the sibling report rather than
+// re-rendering in place.)
+(function platToggle(){
+  const PLAT_LABEL = {windows:'Windows', linux:'Linux'};
+  const ORDER_PLAT = ['windows','linux'];
+  const self = META.platform === 'linux' ? 'linux' : 'windows';
+  const other = self === 'linux' ? 'windows' : 'linux';
+  const otherIndex   = self === 'linux' ? '../index.html'   : 'linux/index.html';
+  const otherSummary = self === 'linux' ? '../summary.json' : 'linux/summary.json';
+  const host = document.getElementById('plat-toggle');
+  const note = document.getElementById('platnote');
+  if(!host) return;
+  function draw(otherOk){
+    host.innerHTML = ORDER_PLAT.map((p,i)=>{
+      const dis = (p!==self && !otherOk) ? 'disabled' : '';
+      return (i?'<span class="sep"></span>':'') +
+        `<button data-plat="${p}" class="${p===self?'active':''}" ${dis}>${esc(PLAT_LABEL[p])}</button>`;
+    }).join('');
+    host.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      if(b.dataset.plat===self || b.disabled) return;
+      window.location.href = otherIndex;
+    }));
+  }
+  draw(false); // optimistic: keep the other platform disabled until the probe returns
+  fetch(otherSummary,{cache:'no-store'}).then(r=>{
+    if(r.ok){ draw(true); note.textContent=''; }
+    else { note.textContent = `VI Analyzer has not run on ${PLAT_LABEL[other]} for this commit.`; }
+  }).catch(()=>{ note.textContent = `VI Analyzer has not run on ${PLAT_LABEL[other]} for this commit.`; });
+})();
 
 // active severity filters (all on by default)
 const active = new Set(ORDER);
