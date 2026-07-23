@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "4.10.1",
+  "version": "4.10.2",
+  "stableVersion": "4.10.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,7 +12,16 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet.",
     "releases": [
-      {"version": "4.10.1", "date": "2026-07-22", "notes": "Debug Run: the connect view (\"Bringing up the debug desktop\") now shows a progress bar that fills as the run advances through its steps - indeterminate while queued, filling with the step count while booting, and solid green when the remote desktop is live - so you get a visual sense of progress instead of static text alone."},
+      {
+        "version": "4.10.2",
+        "date": "2026-07-23",
+        "notes": "Marked v4.10.0 as the stable release. Default installs and upgrades now target it; pre-release (beta) builds stay available behind an opt-in toggle."
+      },
+      {
+        "version": "4.10.1",
+        "date": "2026-07-22",
+        "notes": "Debug Run: the connect view (\"Bringing up the debug desktop\") now shows a progress bar that fills as the run advances through its steps - indeterminate while queued, filling with the step count while booting, and solid green when the remote desktop is live - so you get a visual sense of progress instead of static text alone."
+      },
       {
         "version": "4.10.0",
         "date": "2026-07-22",
@@ -22,21 +32,54 @@
           "The Linux report is published at vi-analyzer/<sha>/linux/ (Windows stays at vi-analyzer/<sha>/) with its own CI / VI Analyzer (Linux) status, so both reports coexist just like Mass Compile and VIDiff.",
           "The dashboard VI Analyzer column now reads the per-platform summary.json and shows a split pill of the Windows and Linux finding counts (a degraded analysis is flagged solid red), letting you parse both outcomes from the table.",
           "Enable Linux for VI Analyzer from the Configure page (it is opt-in, like the other Linux workers); a single-VI re-run from a Linux report dispatches the Linux workflow."
-        ]
+        ],
+        "stable": true
       },
-      {"version": "4.9.12", "date": "2026-07-22", "notes": "Debug Run: the existing-sessions list moved below the start form into an \"Existing debug sessions\" section, and each session now shows a live progress bar + status (Queued / Booting with the current step / Live) alongside Open remote desktop and End, updated every few seconds. So a session that is still starting shows its progress instead of just \"booting\", and you can reconnect to or end any session from any device."},
-      {"version": "4.9.11", "date": "2026-07-22", "notes": "Client discovery finds fork-based installs (follow-up to 4.9.8). GitHub's search APIs exclude forks by default, so the discovery scan now adds the fork:true qualifier to its topic and code searches; a client that forked another LabVIEW project and added this stack now surfaces as a candidate and, after the existing verification (catalog points back here or a workflow references this stack), appears on the Clients page. Forks of this framework repository itself are still excluded."},
-      {"version": "4.9.10", "date": "2026-07-22", "notes": "VI Browser now truly defaults opened files to 2.0 whenever a 2.0 render exists (Windows preferred when both platforms exist): the auto-default path no longer bails out just because local storage previously remembered viewer mode 1.0, so older 1.0 preferences no longer suppress the 2.0-first open behavior."},
+      {
+        "version": "4.9.12",
+        "date": "2026-07-22",
+        "notes": "Debug Run: the existing-sessions list moved below the start form into an \"Existing debug sessions\" section, and each session now shows a live progress bar + status (Queued / Booting with the current step / Live) alongside Open remote desktop and End, updated every few seconds. So a session that is still starting shows its progress instead of just \"booting\", and you can reconnect to or end any session from any device."
+      },
+      {
+        "version": "4.9.11",
+        "date": "2026-07-22",
+        "notes": "Client discovery finds fork-based installs (follow-up to 4.9.8). GitHub's search APIs exclude forks by default, so the discovery scan now adds the fork:true qualifier to its topic and code searches; a client that forked another LabVIEW project and added this stack now surfaces as a candidate and, after the existing verification (catalog points back here or a workflow references this stack), appears on the Clients page. Forks of this framework repository itself are still excluded."
+      },
+      {
+        "version": "4.9.10",
+        "date": "2026-07-22",
+        "notes": "VI Browser now truly defaults opened files to 2.0 whenever a 2.0 render exists (Windows preferred when both platforms exist): the auto-default path no longer bails out just because local storage previously remembered viewer mode 1.0, so older 1.0 preferences no longer suppress the 2.0-first open behavior."
+      },
       {
         "version": "4.9.9",
         "date": "2026-07-22",
         "notes": "Linux worker rendering fix: the Linux worker image and the standalone VI Browser 2.0 render image now bake a set of X11 core and TrueType fonts (DejaVu, Liberation, Noto, and the 75/100 dpi xfonts-* families). NI's minimal Linux base ships almost none, so LabVIEW's UI controls and rendered VI text previously came out blank in VI Browser snapshots and the Debug Run desktop. The Debug Run session also installs those fonts on demand (best-effort), makes them visible to the running Xvfb (xset), and switches fluxbox to focus-follows-mouse so the on-screen terminal reliably receives the ENTER keystroke."
       },
-      {"version": "4.9.8", "date": "2026-07-22", "notes": "Client discovery now lists genuine fork-based installs. The Clients scan no longer drops a repository just because it is a fork: a fork that installed this stack (a fork of some other LabVIEW project) is now discovered and listed, while a fork of this framework repository itself stays excluded. Per-candidate verification (public, and the catalog points back here or a workflow references this stack) is unchanged, so unrelated repositories still never leak in."},
-      {"version": "4.9.7", "date": "2026-07-22", "notes": "Release channels: installs and upgrades now default to a stable release channel and only prompt for versions the maintainer has explicitly marked stable, so a freshly published build never nags users onto an unproven revision; pre-release (beta) builds stay available behind an opt-in toggle. Adds the owner-only 'Mark as stable release' button on the What's New page (dispatching a new Promote release workflow), a rolling 'stable' git tag moved by the release workflow, and a stableVersion/stable catalog contract that is inert until the first version is promoted."},
-      {"version": "4.9.6", "date": "2026-07-22", "notes": "Debug Run now shows what's happening and lists live sessions. The connect view reports the run's real step (\"Current step: ...\") and a clear \"Queued - waiting for another debug session to finish\" state instead of an opaque \"booting\". The dialog lists all live & queued debug sessions (any in-progress debug-session run) with Open remote desktop and End (confirm) buttons, so you can reconnect from any device - not just the browser that started the session - or end one to free the single-session slot."},
-      {"version": "4.9.5", "date": "2026-07-22", "notes": "Debug Run fix: the dashboard's periodic full-page auto-refresh no longer reloads the page out from under an open Debug Run (or Populate history) dialog, which was wiping the connect panel while the container booted (\"the dialog just went away\"). The reload guard now defers while those modals are open. Debug Run is also resumable: the active session is remembered, so reopening Debug Run (or a reload) returns you to the live remote-desktop button or the still-booting connect view instead of a blank form, and a cancelled/finished run is detected and cleared. The manual \"Open remote desktop\" button remains the primary connect action since browsers block auto-opened tabs."},
-      {"version": "4.9.4", "date": "2026-07-22", "notes": "VI Analyzer honours a committed .viancfg again (fixes empty reports since a custom .viancfg was added). RunVIAnalyzer runs ZERO tests when a config\u2019s ItemsToAnalyze is a list of explicit VIs; the default pass now analyzes the whole PROJECT instead - it rewrites the generated config to VI Analyzer\u2019s native Analyze Project mode (AnalyzeProject=TRUE pointed at the detected .lvproj) while keeping the config\u2019s selected tests. Safety net: if the project pass still runs 0 tests (or the repo has no .lvproj) it auto re-runs in directory mode (the full built-in suite that worked historically) so the report is never blank"},
+      {
+        "version": "4.9.8",
+        "date": "2026-07-22",
+        "notes": "Client discovery now lists genuine fork-based installs. The Clients scan no longer drops a repository just because it is a fork: a fork that installed this stack (a fork of some other LabVIEW project) is now discovered and listed, while a fork of this framework repository itself stays excluded. Per-candidate verification (public, and the catalog points back here or a workflow references this stack) is unchanged, so unrelated repositories still never leak in."
+      },
+      {
+        "version": "4.9.7",
+        "date": "2026-07-22",
+        "notes": "Release channels: installs and upgrades now default to a stable release channel and only prompt for versions the maintainer has explicitly marked stable, so a freshly published build never nags users onto an unproven revision; pre-release (beta) builds stay available behind an opt-in toggle. Adds the owner-only 'Mark as stable release' button on the What's New page (dispatching a new Promote release workflow), a rolling 'stable' git tag moved by the release workflow, and a stableVersion/stable catalog contract that is inert until the first version is promoted."
+      },
+      {
+        "version": "4.9.6",
+        "date": "2026-07-22",
+        "notes": "Debug Run now shows what's happening and lists live sessions. The connect view reports the run's real step (\"Current step: ...\") and a clear \"Queued - waiting for another debug session to finish\" state instead of an opaque \"booting\". The dialog lists all live & queued debug sessions (any in-progress debug-session run) with Open remote desktop and End (confirm) buttons, so you can reconnect from any device - not just the browser that started the session - or end one to free the single-session slot."
+      },
+      {
+        "version": "4.9.5",
+        "date": "2026-07-22",
+        "notes": "Debug Run fix: the dashboard's periodic full-page auto-refresh no longer reloads the page out from under an open Debug Run (or Populate history) dialog, which was wiping the connect panel while the container booted (\"the dialog just went away\"). The reload guard now defers while those modals are open. Debug Run is also resumable: the active session is remembered, so reopening Debug Run (or a reload) returns you to the live remote-desktop button or the still-booting connect view instead of a blank form, and a cancelled/finished run is detected and cleared. The manual \"Open remote desktop\" button remains the primary connect action since browsers block auto-opened tabs."
+      },
+      {
+        "version": "4.9.4",
+        "date": "2026-07-22",
+        "notes": "VI Analyzer honours a committed .viancfg again (fixes empty reports since a custom .viancfg was added). RunVIAnalyzer runs ZERO tests when a config’s ItemsToAnalyze is a list of explicit VIs; the default pass now analyzes the whole PROJECT instead - it rewrites the generated config to VI Analyzer’s native Analyze Project mode (AnalyzeProject=TRUE pointed at the detected .lvproj) while keeping the config’s selected tests. Safety net: if the project pass still runs 0 tests (or the repo has no .lvproj) it auto re-runs in directory mode (the full built-in suite that worked historically) so the report is never blank"
+      },
       {
         "version": "4.9.3",
         "date": "2026-07-22",
@@ -48,7 +91,11 @@
           "Runner fallback builds pages themed to match"
         ]
       },
-      {"version": "4.9.2", "date": "2026-07-22", "notes": "VI Analyzer: a pass that completed but analyzed a project containing a broken VI no longer fails the whole job. RunVIAnalyzer (LabVIEWCLI) writes bad-VI warnings to STDERR; under the script-wide ErrorActionPreference=Stop that native stderr write was promoted to a terminating NativeCommandError, aborting the whole-directory fallback pass AFTER it had already run and written its report (job exited 1). Invoke-ViaPass now shields the call the same way the pre-analysis MassCompile does (EAP=Continue + 2>&1), judging success by the process exit code. Unrelated to the pre-analysis MassCompile, which is a normal step that upgrades VIs to the image LabVIEW version before analysis"},
+      {
+        "version": "4.9.2",
+        "date": "2026-07-22",
+        "notes": "VI Analyzer: a pass that completed but analyzed a project containing a broken VI no longer fails the whole job. RunVIAnalyzer (LabVIEWCLI) writes bad-VI warnings to STDERR; under the script-wide ErrorActionPreference=Stop that native stderr write was promoted to a terminating NativeCommandError, aborting the whole-directory fallback pass AFTER it had already run and written its report (job exited 1). Invoke-ViaPass now shields the call the same way the pre-analysis MassCompile does (EAP=Continue + 2>&1), judging success by the process exit code. Unrelated to the pre-analysis MassCompile, which is a normal step that upgrades VIs to the image LabVIEW version before analysis"
+      },
       {
         "version": "4.9.1",
         "date": "2026-07-22",
@@ -60,11 +107,31 @@
           "Applied to build-binaries, mass compile, VI Analyzer, Antidoc and unit-tests container workflows (Windows + Linux); VIDiff already had the fallback."
         ]
       },
-      {"version": "4.9.0", "date": "2026-07-22", "notes": "New Tools > Debug Run: boot the Linux worker for a chosen revision with a full graphical desktop you can remote into over a browser noVNC session (Xvfb + x11vnc + websockify), tunnelled out with an ephemeral Cloudflare quick tunnel (no account or secret). A three-step dialog dispatches debug-session.yml, auto-opens the remote desktop, and lets you log into/activate LabVIEW interactively, then press ENTER in the on-screen prompt to run the selected activities live (masscompile.sh, ...). Sessions self-tear-down after a chosen time or on End session. Linux only, off by default, dispatch-only."},
-      {"version": "4.8.13", "date": "2026-07-22", "notes": "Dashboard resilience: a rate-limited or unavailable GitHub API no longer blanks the dashboard. dashboard.py now retries transient API failures (HTTP 403/429, 5xx, and dropped connections) with backoff that honors Retry-After / X-RateLimit-Reset, and if the commit history still cannot be read completely it refuses to publish and fails the build instead of overwriting the live dashboard with a blank or truncated table -- so the previous good dashboard stays up and rebuilds automatically once the API recovers. This fixes the blank dashboard that a burst of concurrent CI activity (many workflows dispatched at once) could cause by tripping a secondary rate limit while the build paged commit history."},
-      {"version": "4.8.12", "date": "2026-07-22", "notes": "Dependencies: version-tolerant VIPC package matching plus a per-file missing pill. A VIPC that requests one build of a package (e.g. wovalab_lib_antidoc_cli-3.3.0.117) no longer reads as missing when the worker baked a DIFFERENT build of the SAME package (e.g. 3.4.0.126) -- matching now compares the versionless base identifier, because VIPM installs one version per package, so a present-but-different build shows as installed in both the dependency table and the pending-update check. Each VIPC file's header row now also shows an 'N missing' / 'installed' pill rolled up from the same per-package result, so you can see which file is short a package without expanding it"},
-      {"version": "4.8.11", "date": "2026-07-22", "notes": "Unit Tests (NI UTF) project discovery is now robust to any repo layout. Because RunUnitTests runs a whole .lvproj, run-unit-tests.ps1 resolves each configured location to its owning project: a location may be a .lvproj path, a folder containing one or more test-bearing projects, or a folder of .lvtest files whose .lvproj lives in a parent directory (it now walks up to the nearest owning project); an empty location list discovers and runs EVERY test-bearing .lvproj anywhere in the repo. Previously a folder that held .lvtest files but no in-folder .lvproj (e.g. tests in a subfolder of the project) produced no project -> a blank Unit Tests report. CI tooling folders (.github, ci-out, build, .git) are always excluded"},
-      {"version": "4.8.10", "date": "2026-07-22", "notes": "VI Analyzer blank-report fix, take 2: the v4.6.1 change that enumerates a project\u2019s VIs for a custom-.viancfg default pass had a PowerShell array-return bug (return ,($out.ToArray()) wraps the whole list in a one-element array), so the runner saw only 1 VI and still produced a blank report. Return the array without the leading comma so all project VIs (recursively, excluding CI tooling) are analyzed with the committed config\u2019s tests, with un-loadable VIs flagged and skipped"},
+      {
+        "version": "4.9.0",
+        "date": "2026-07-22",
+        "notes": "New Tools > Debug Run: boot the Linux worker for a chosen revision with a full graphical desktop you can remote into over a browser noVNC session (Xvfb + x11vnc + websockify), tunnelled out with an ephemeral Cloudflare quick tunnel (no account or secret). A three-step dialog dispatches debug-session.yml, auto-opens the remote desktop, and lets you log into/activate LabVIEW interactively, then press ENTER in the on-screen prompt to run the selected activities live (masscompile.sh, ...). Sessions self-tear-down after a chosen time or on End session. Linux only, off by default, dispatch-only."
+      },
+      {
+        "version": "4.8.13",
+        "date": "2026-07-22",
+        "notes": "Dashboard resilience: a rate-limited or unavailable GitHub API no longer blanks the dashboard. dashboard.py now retries transient API failures (HTTP 403/429, 5xx, and dropped connections) with backoff that honors Retry-After / X-RateLimit-Reset, and if the commit history still cannot be read completely it refuses to publish and fails the build instead of overwriting the live dashboard with a blank or truncated table -- so the previous good dashboard stays up and rebuilds automatically once the API recovers. This fixes the blank dashboard that a burst of concurrent CI activity (many workflows dispatched at once) could cause by tripping a secondary rate limit while the build paged commit history."
+      },
+      {
+        "version": "4.8.12",
+        "date": "2026-07-22",
+        "notes": "Dependencies: version-tolerant VIPC package matching plus a per-file missing pill. A VIPC that requests one build of a package (e.g. wovalab_lib_antidoc_cli-3.3.0.117) no longer reads as missing when the worker baked a DIFFERENT build of the SAME package (e.g. 3.4.0.126) -- matching now compares the versionless base identifier, because VIPM installs one version per package, so a present-but-different build shows as installed in both the dependency table and the pending-update check. Each VIPC file's header row now also shows an 'N missing' / 'installed' pill rolled up from the same per-package result, so you can see which file is short a package without expanding it"
+      },
+      {
+        "version": "4.8.11",
+        "date": "2026-07-22",
+        "notes": "Unit Tests (NI UTF) project discovery is now robust to any repo layout. Because RunUnitTests runs a whole .lvproj, run-unit-tests.ps1 resolves each configured location to its owning project: a location may be a .lvproj path, a folder containing one or more test-bearing projects, or a folder of .lvtest files whose .lvproj lives in a parent directory (it now walks up to the nearest owning project); an empty location list discovers and runs EVERY test-bearing .lvproj anywhere in the repo. Previously a folder that held .lvtest files but no in-folder .lvproj (e.g. tests in a subfolder of the project) produced no project -> a blank Unit Tests report. CI tooling folders (.github, ci-out, build, .git) are always excluded"
+      },
+      {
+        "version": "4.8.10",
+        "date": "2026-07-22",
+        "notes": "VI Analyzer blank-report fix, take 2: the v4.6.1 change that enumerates a project’s VIs for a custom-.viancfg default pass had a PowerShell array-return bug (return ,($out.ToArray()) wraps the whole list in a one-element array), so the runner saw only 1 VI and still produced a blank report. Return the array without the leading comma so all project VIs (recursively, excluding CI tooling) are analyzed with the committed config’s tests, with un-loadable VIs flagged and skipped"
+      },
       {
         "version": "4.8.9",
         "date": "2026-07-22",
@@ -160,7 +227,11 @@
           "documentation.html: 'Concurrency & parallel deploys' section rewritten for the per-activity model."
         ]
       },
-      {"version": "4.8.0", "date": "2026-07-21", "notes": "VI Browser 2.0 Windows renders now auto-generate on every new revision. The Windows render workflow (vi-snapshots-json-windows.yml) previously ran only on manual dispatch, so a VI a revision changed showed 'No Windows 2.0 render' until someone clicked Re-run; it now has the same workflow_run auto-trigger and config gate as the Linux path, auto-running when config.viBrowser.positionAware includes windows (the configurator default) and the triggering snapshot run succeeded. Renders stay content-addressed by git blob SHA, so unchanged VIs reuse their existing frames with no work and only the new/changed blobs a revision actually touched are rendered."},
+      {
+        "version": "4.8.0",
+        "date": "2026-07-21",
+        "notes": "VI Browser 2.0 Windows renders now auto-generate on every new revision. The Windows render workflow (vi-snapshots-json-windows.yml) previously ran only on manual dispatch, so a VI a revision changed showed 'No Windows 2.0 render' until someone clicked Re-run; it now has the same workflow_run auto-trigger and config gate as the Linux path, auto-running when config.viBrowser.positionAware includes windows (the configurator default) and the triggering snapshot run succeeded. Renders stay content-addressed by git blob SHA, so unchanged VIs reuse their existing frames with no work and only the new/changed blobs a revision actually touched are rendered."
+      },
       {
         "version": "4.7.0",
         "date": "2026-07-21",
@@ -260,7 +331,11 @@
           "documentation.html: note the exact Antidoc CLI invocation (g-cli 'antidoc' tool + mandatory lvproj add-on baked in antidoc.vipc)."
         ]
       },
-      {"version": "4.6.1", "date": "2026-07-21", "notes": "VI Analyzer: a committed project .viancfg used as the default pass now analyzes the WHOLE project again, not just one VI. Once a repo committed a .viancfg, the pipeline applied it by rewriting its <ItemsToAnalyze> to a single folder item pointing at the workspace root; the VI Analyzer does not recurse a folder listed as a .viancfg item (only built-in directory mode recurses), so it analyzed a single VI and produced blank reports (0 tests) even though the container and dependencies were fine. The runner now enumerates the project VIs (recursively, excluding CI tooling under .git/.github/actions/ci-out/build/_lvci) and lists each as an explicit item - the same mechanism the single-VI Re-run uses - so the custom tests run across the full stack and any un-loadable VI is flagged and skipped rather than blanking the report"},
+      {
+        "version": "4.6.1",
+        "date": "2026-07-21",
+        "notes": "VI Analyzer: a committed project .viancfg used as the default pass now analyzes the WHOLE project again, not just one VI. Once a repo committed a .viancfg, the pipeline applied it by rewriting its <ItemsToAnalyze> to a single folder item pointing at the workspace root; the VI Analyzer does not recurse a folder listed as a .viancfg item (only built-in directory mode recurses), so it analyzed a single VI and produced blank reports (0 tests) even though the container and dependencies were fine. The runner now enumerates the project VIs (recursively, excluding CI tooling under .git/.github/actions/ci-out/build/_lvci) and lists each as an explicit item - the same mechanism the single-VI Re-run uses - so the custom tests run across the full stack and any un-loadable VI is flagged and skipped rather than blanking the report"
+      },
       {
         "version": "4.6.0",
         "date": "2026-07-21",
@@ -284,37 +359,121 @@
           "Removed the Linux Beta and Win Beta columns from the Dependencies table"
         ]
       },
-      {"version": "4.4.18", "date": "2026-07-21", "notes": "Fix the report viewer\u2019s \u201cRe-run analysis\u201d / \u201cPopulate history\u201d overlay so the report you are viewing stays visible (dimmed) behind the dialog instead of the background going blank. The dialog is hosted in a transparent iframe of the dashboard; the dim backdrop is now drawn by the overlay itself on the host page \u2014 a semi-transparent element inside a transparent iframe does not reliably composite over the host, which had left the report looking blank behind the popup"},
+      {
+        "version": "4.4.18",
+        "date": "2026-07-21",
+        "notes": "Fix the report viewer’s “Re-run analysis” / “Populate history” overlay so the report you are viewing stays visible (dimmed) behind the dialog instead of the background going blank. The dialog is hosted in a transparent iframe of the dashboard; the dim backdrop is now drawn by the overlay itself on the host page — a semi-transparent element inside a transparent iframe does not reliably composite over the host, which had left the report looking blank behind the popup"
+      },
       {
         "version": "4.4.17",
         "date": "2026-07-21",
-        "notes": "Linux worker dependency updates reach parity with Windows. The Dependencies page\u2019s \u201cRun the container update\u201d flow now dispatches the Linux worker build (build-labview-linux-image.yml) alongside the Windows build for whichever container is behind, each with the chosen update_mode, and its progress bar tracks both runs at once. build-labview-linux-image.yml gained the update_mode input (replace rebuilds the moving linux tags in place; new publishes a dated tag alongside), and the dashboard\u2019s deps-pending signal now flags a Linux dependency gap independently of Windows."
+        "notes": "Linux worker dependency updates reach parity with Windows. The Dependencies page’s “Run the container update” flow now dispatches the Linux worker build (build-labview-linux-image.yml) alongside the Windows build for whichever container is behind, each with the chosen update_mode, and its progress bar tracks both runs at once. build-labview-linux-image.yml gained the update_mode input (replace rebuilds the moving linux tags in place; new publishes a dated tag alongside), and the dashboard’s deps-pending signal now flags a Linux dependency gap independently of Windows."
       },
       {
         "version": "4.4.16",
         "date": "2026-07-21",
         "notes": "Fix report Re-run preselect (a stale histIdx reference threw and swept the whole selection back to defaults after the revision-picker rewrite; now uses histIdxIn) and open the Populate-history dialog as an in-page overlay so re-running a report stays on the page, pre-scoped to that activity and revision."
       },
-      {"version": "4.4.15", "date": "2026-07-21", "notes": "Fix an invalid-workflow-file error in reconfigure.yml (the Configure \u2192 Apply workflow) that failed on every push and would block Reconfigure on every client. Its \u201cValidate committed container VIPCs\u201d step embedded a Python heredoc whose body sat at column 0; because YAML strips the run-block\u2019s base indent, those lines dedented below the block and terminated the scalar, so GitHub rejected the whole file. Replaced the nested heredoc with a single-line python3 -c invocation that stays within the block indent"},
-      {"version": "4.4.14", "date": "2026-07-16", "notes": "Revision pickers across the pages are now a shared searchable widget instead of a raw dropdown of every commit. The Dependencies page, the Unit Testing project picker and the per-revision report viewer\u2019s Revision selector all enhance their native control in place with a filter box (search by commit title, build number or short SHA) and, by default, hide CI/tooling and dependency-only (.vipc/.vip) revisions behind a \u201cShow CI & dependency-only revisions\u201d toggle \u2014 matching the dashboard, so picking \u201cthe latest revision\u201d lands on the latest LabVIEW-code change. Per-revision project/dependency-only classification is now published in dependencies/index.json and vi-snapshots/files.json so every picker filters identically"},
-      {"version": "4.4.13", "date": "2026-07-16", "notes": "Populate history revision picker now matches the dashboard filters. Dependency-only revisions (those whose only change is an external dependency \u2014 .vipc/.vip) are hidden by default behind a \u201cShow dependency-only revisions\u201d toggle that defaults to the dashboard\u2019s own dependency-only filter state, and a new search box narrows the All / range / specific selectors by commit title or short SHA. This lets you queue the latest change to LabVIEW code without accidentally selecting a later CI- or dependency-only revision"},
-      {"version": "4.4.12", "date": "2026-07-15", "notes": "VI Analyzer blank-report fix (\u20180 VIs analyzed\u2019): the pre-analysis Mass Compile that upgrades a project\u2019s VIs to the container\u2019s LabVIEW version now compiles each top-level project folder individually and EXCLUDES the CI\u2019s own tooling under .github/ (and .git/, actions/, ci-out/, build/). Previously it compiled the whole workspace root, hit the bundled VI Browser render engine under .github/labview/toimages (whose VIs depend on files that only exist in its Linux render image, e.g. LV AI Core.lvlib) first (alphabetically), FAILED the compile before reaching the project VIs, and VI Analyzer then silently skipped every not-yet-upgraded project VI and produced an empty report"},
-      {"version": "4.4.11", "date": "2026-07-14", "notes": "Dependencies: the \"Dependency update needed\" banner no longer sticks after a successful container rebuild. The pending check compared VIPC-declared package ids (name-0.5.0.1) against the worker manifest's vipm_packages, whose versions carry a leading v (name-v0.5.0.1), so every already-baked package was falsely reported missing and the banner never cleared; the check now normalizes that v prefix and also unions the manifest's own vipc[].packages list (which already omits the prefix). The update panel now itemizes exactly which dependency files, VIPM packages and .dragon deps are pending, each flagged with a warning icon, instead of only a generic sentence"},
-      {"version": "4.4.10", "date": "2026-07-15", "notes": "Tooling update no longer re-enables activities you turned off. apply-tooling-update.yml\u2019s \u2018enable_new_capabilities\u2019 option now defaults to OFF, so \u2018Update now\u2019 preserves your exact activity selection instead of re-adding every stable capability that isn\u2019t currently enabled (which silently brought back Mass Compile, Unit Tests, etc. that a repo had deliberately unchecked). Turn the option on explicitly if you want an update to also adopt capabilities you don\u2019t currently have"},
-      {"version": "4.4.9", "date": "2026-07-14", "notes": "Settings > VI Analyzer now catches a common misplacement: if the only committed .viancfg lives under a CI-tooling directory (for example .github/labview/via-configs/, the vendored template location that is overwritten on every tooling update and is not scanned), the page no longer just says \u2018no configs found\u2019 \u2014 it warns that the file is in a tooling-managed folder and tells you to commit your VI Analyzer config in your project tree instead, where it is discovered and selectable as the default"},
-      {"version": "4.4.8", "date": "2026-07-13", "notes": "VI Analyzer blank-report fix: the pipeline no longer auto-selects a CI-internal action-source config as the project default. Get-FirstViancfg (which picks the first committed .viancfg when a repo commits a config but doesn\u2019t choose one in the Configure dialog) now also excludes the actions/ directory, alongside .github/, ci-out/ and build/. Previously the source/self-test repo auto-picked actions/vi-analyzer/via-config-default.viancfg, whose empty TestConfigData runs zero tests and produces a blank VI Analyzer report; it now falls back to the project\u2019s real committed config (or the full built-in suite)"},
-      {"version": "4.4.7", "date": "2026-07-13", "notes": "Dark mode fix: forcing the Light/Dark appearance toggle now fully re-themes every page. Pages that define their own CSS tokens beyond the shared header standard set (VI Browser sidebar/item colours; --surface2 on Unit Tests, Dependencies, Configure, VI Analyzer, What's New and Integrate; Dependencies ok/bad; Documentation surface2/danger/plain plus its syntax code/warn colours) previously stayed on the OS colour scheme when the toggle disagreed, giving washed-out text and mismatched panels; each page now re-asserts its own tokens under the forced theme"},
-      {"version": "4.4.6", "date": "2026-07-13", "notes": "Populate history re-run now shows a Queued badge on an in-flight activity too: re-running an activity whose latest-revision cell was still queued/running (a cidash-active-cell) now overlays the optimistic Queued spinner onto that cell, instead of the badge silently failing to appear because the queued bridge only recognized empty (never-run) and finished result cells"},
-      {"version": "4.4.5", "date": "2026-07-09", "notes": "Windows worker image build now self-heals a wedged headless VIPM engine instead of failing the build: when a vipm install hits the full VIPM_TIMEOUT (wait-for-VIPM-startup handshake, operation-timed-out, or CLI exit 124), install-vipc.ps1 tears the VIPM stack down and relaunches it (headless LabVIEW + VIPM engine) and retries the install, bounded by a build-wide budget VIPM_MAX_ENGINE_RESTARTS (default 2); once the budget is spent it still fast-aborts so a genuinely broken engine fails fast instead of hanging"},
-      {"version": "4.4.4", "date": "2026-07-08", "notes": "Windows worker image build now fails fast when the headless VIPM engine wedges: install-vipc.ps1 treats any full VIPM_TIMEOUT install timeout (an operation-timed-out message or CLI exit 124) as a dead engine, so a stuck engine aborts in seconds instead of stacking a 900s timeout per package into a multi-hour build"},
-      {"version": "4.4.3", "date": "2026-07-08", "notes": "Dependencies page now shows a live progress bar for the container update: after you click \"Run the container update\" (or on page load while a build is running) it tracks the Build LabVIEW CI Image run through queued, building (step N of M), and complete/failed"},
-      {"version": "4.4.2", "date": "2026-07-07", "notes": "Dashboard now shows a dismissible update-available banner under the header on client repos when a newer version of the tooling has been released, nudging the repo owner to review What's new and upgrade; the notice reappears when a further version ships"},
-      {"version": "4.4.1", "date": "2026-07-07", "notes": "Dependencies page: the \"Run the container update\" button now dispatches the Build LabVIEW CI Image workflow directly with your chosen update_mode (replace or new) using your saved token, instead of only linking to the Actions tab"},
-      {"version": "4.4.0", "date": "2026-07-06", "notes": "Mass Compile dashboard column now colours the compiled-percentage pill by configurable thresholds (green >= 95%, yellow >= 80%, red below 80%, set in .github/labview-ci.yml under massCompile.thresholds.compiledPercent) and draws a true compile failure as a solid, filled bright-red pill"},
-      {"version": "4.3.5", "date": "2026-07-06", "notes": "Fix the Linux worker image build (apply dependencies) failing with \".github/labview/vipm-linux not found\": the VIPC bake now reads the staged .github/labview/vipm directory that the build writes to"},
-      {"version": "4.3.4", "date": "2026-06-30", "notes": "Mass Compile two-number pill colours Windows and Linux percentages separately and shows an instant Windows/Linux mouse-over on each"},
-      {"version": "4.3.3", "date": "2026-06-29", "notes": "Unit Tests capability card now lists all four supported frameworks (Caraya, LUnit, JKI VI Tester, NI UTF)"},
-      {"version": "4.3.2", "date": "2026-06-28", "notes": "Mass Compile dashboard cell now shows Windows/Linux as a two-number pill"},
+      {
+        "version": "4.4.15",
+        "date": "2026-07-21",
+        "notes": "Fix an invalid-workflow-file error in reconfigure.yml (the Configure → Apply workflow) that failed on every push and would block Reconfigure on every client. Its “Validate committed container VIPCs” step embedded a Python heredoc whose body sat at column 0; because YAML strips the run-block’s base indent, those lines dedented below the block and terminated the scalar, so GitHub rejected the whole file. Replaced the nested heredoc with a single-line python3 -c invocation that stays within the block indent"
+      },
+      {
+        "version": "4.4.14",
+        "date": "2026-07-16",
+        "notes": "Revision pickers across the pages are now a shared searchable widget instead of a raw dropdown of every commit. The Dependencies page, the Unit Testing project picker and the per-revision report viewer’s Revision selector all enhance their native control in place with a filter box (search by commit title, build number or short SHA) and, by default, hide CI/tooling and dependency-only (.vipc/.vip) revisions behind a “Show CI & dependency-only revisions” toggle — matching the dashboard, so picking “the latest revision” lands on the latest LabVIEW-code change. Per-revision project/dependency-only classification is now published in dependencies/index.json and vi-snapshots/files.json so every picker filters identically"
+      },
+      {
+        "version": "4.4.13",
+        "date": "2026-07-16",
+        "notes": "Populate history revision picker now matches the dashboard filters. Dependency-only revisions (those whose only change is an external dependency — .vipc/.vip) are hidden by default behind a “Show dependency-only revisions” toggle that defaults to the dashboard’s own dependency-only filter state, and a new search box narrows the All / range / specific selectors by commit title or short SHA. This lets you queue the latest change to LabVIEW code without accidentally selecting a later CI- or dependency-only revision"
+      },
+      {
+        "version": "4.4.12",
+        "date": "2026-07-15",
+        "notes": "VI Analyzer blank-report fix (‘0 VIs analyzed’): the pre-analysis Mass Compile that upgrades a project’s VIs to the container’s LabVIEW version now compiles each top-level project folder individually and EXCLUDES the CI’s own tooling under .github/ (and .git/, actions/, ci-out/, build/). Previously it compiled the whole workspace root, hit the bundled VI Browser render engine under .github/labview/toimages (whose VIs depend on files that only exist in its Linux render image, e.g. LV AI Core.lvlib) first (alphabetically), FAILED the compile before reaching the project VIs, and VI Analyzer then silently skipped every not-yet-upgraded project VI and produced an empty report"
+      },
+      {
+        "version": "4.4.11",
+        "date": "2026-07-14",
+        "notes": "Dependencies: the \"Dependency update needed\" banner no longer sticks after a successful container rebuild. The pending check compared VIPC-declared package ids (name-0.5.0.1) against the worker manifest's vipm_packages, whose versions carry a leading v (name-v0.5.0.1), so every already-baked package was falsely reported missing and the banner never cleared; the check now normalizes that v prefix and also unions the manifest's own vipc[].packages list (which already omits the prefix). The update panel now itemizes exactly which dependency files, VIPM packages and .dragon deps are pending, each flagged with a warning icon, instead of only a generic sentence"
+      },
+      {
+        "version": "4.4.10",
+        "date": "2026-07-15",
+        "notes": "Tooling update no longer re-enables activities you turned off. apply-tooling-update.yml’s ‘enable_new_capabilities’ option now defaults to OFF, so ‘Update now’ preserves your exact activity selection instead of re-adding every stable capability that isn’t currently enabled (which silently brought back Mass Compile, Unit Tests, etc. that a repo had deliberately unchecked). Turn the option on explicitly if you want an update to also adopt capabilities you don’t currently have"
+      },
+      {
+        "version": "4.4.9",
+        "date": "2026-07-14",
+        "notes": "Settings > VI Analyzer now catches a common misplacement: if the only committed .viancfg lives under a CI-tooling directory (for example .github/labview/via-configs/, the vendored template location that is overwritten on every tooling update and is not scanned), the page no longer just says ‘no configs found’ — it warns that the file is in a tooling-managed folder and tells you to commit your VI Analyzer config in your project tree instead, where it is discovered and selectable as the default"
+      },
+      {
+        "version": "4.4.8",
+        "date": "2026-07-13",
+        "notes": "VI Analyzer blank-report fix: the pipeline no longer auto-selects a CI-internal action-source config as the project default. Get-FirstViancfg (which picks the first committed .viancfg when a repo commits a config but doesn’t choose one in the Configure dialog) now also excludes the actions/ directory, alongside .github/, ci-out/ and build/. Previously the source/self-test repo auto-picked actions/vi-analyzer/via-config-default.viancfg, whose empty TestConfigData runs zero tests and produces a blank VI Analyzer report; it now falls back to the project’s real committed config (or the full built-in suite)"
+      },
+      {
+        "version": "4.4.7",
+        "date": "2026-07-13",
+        "notes": "Dark mode fix: forcing the Light/Dark appearance toggle now fully re-themes every page. Pages that define their own CSS tokens beyond the shared header standard set (VI Browser sidebar/item colours; --surface2 on Unit Tests, Dependencies, Configure, VI Analyzer, What's New and Integrate; Dependencies ok/bad; Documentation surface2/danger/plain plus its syntax code/warn colours) previously stayed on the OS colour scheme when the toggle disagreed, giving washed-out text and mismatched panels; each page now re-asserts its own tokens under the forced theme"
+      },
+      {
+        "version": "4.4.6",
+        "date": "2026-07-13",
+        "notes": "Populate history re-run now shows a Queued badge on an in-flight activity too: re-running an activity whose latest-revision cell was still queued/running (a cidash-active-cell) now overlays the optimistic Queued spinner onto that cell, instead of the badge silently failing to appear because the queued bridge only recognized empty (never-run) and finished result cells"
+      },
+      {
+        "version": "4.4.5",
+        "date": "2026-07-09",
+        "notes": "Windows worker image build now self-heals a wedged headless VIPM engine instead of failing the build: when a vipm install hits the full VIPM_TIMEOUT (wait-for-VIPM-startup handshake, operation-timed-out, or CLI exit 124), install-vipc.ps1 tears the VIPM stack down and relaunches it (headless LabVIEW + VIPM engine) and retries the install, bounded by a build-wide budget VIPM_MAX_ENGINE_RESTARTS (default 2); once the budget is spent it still fast-aborts so a genuinely broken engine fails fast instead of hanging"
+      },
+      {
+        "version": "4.4.4",
+        "date": "2026-07-08",
+        "notes": "Windows worker image build now fails fast when the headless VIPM engine wedges: install-vipc.ps1 treats any full VIPM_TIMEOUT install timeout (an operation-timed-out message or CLI exit 124) as a dead engine, so a stuck engine aborts in seconds instead of stacking a 900s timeout per package into a multi-hour build"
+      },
+      {
+        "version": "4.4.3",
+        "date": "2026-07-08",
+        "notes": "Dependencies page now shows a live progress bar for the container update: after you click \"Run the container update\" (or on page load while a build is running) it tracks the Build LabVIEW CI Image run through queued, building (step N of M), and complete/failed"
+      },
+      {
+        "version": "4.4.2",
+        "date": "2026-07-07",
+        "notes": "Dashboard now shows a dismissible update-available banner under the header on client repos when a newer version of the tooling has been released, nudging the repo owner to review What's new and upgrade; the notice reappears when a further version ships"
+      },
+      {
+        "version": "4.4.1",
+        "date": "2026-07-07",
+        "notes": "Dependencies page: the \"Run the container update\" button now dispatches the Build LabVIEW CI Image workflow directly with your chosen update_mode (replace or new) using your saved token, instead of only linking to the Actions tab"
+      },
+      {
+        "version": "4.4.0",
+        "date": "2026-07-06",
+        "notes": "Mass Compile dashboard column now colours the compiled-percentage pill by configurable thresholds (green >= 95%, yellow >= 80%, red below 80%, set in .github/labview-ci.yml under massCompile.thresholds.compiledPercent) and draws a true compile failure as a solid, filled bright-red pill"
+      },
+      {
+        "version": "4.3.5",
+        "date": "2026-07-06",
+        "notes": "Fix the Linux worker image build (apply dependencies) failing with \".github/labview/vipm-linux not found\": the VIPC bake now reads the staged .github/labview/vipm directory that the build writes to"
+      },
+      {
+        "version": "4.3.4",
+        "date": "2026-06-30",
+        "notes": "Mass Compile two-number pill colours Windows and Linux percentages separately and shows an instant Windows/Linux mouse-over on each"
+      },
+      {
+        "version": "4.3.3",
+        "date": "2026-06-29",
+        "notes": "Unit Tests capability card now lists all four supported frameworks (Caraya, LUnit, JKI VI Tester, NI UTF)"
+      },
+      {
+        "version": "4.3.2",
+        "date": "2026-06-28",
+        "notes": "Mass Compile dashboard cell now shows Windows/Linux as a two-number pill"
+      },
       {
         "version": "4.3.1",
         "date": "2026-06-28",
@@ -784,9 +943,9 @@
         "date": "2026-06-24",
         "title": "Dashboard only offers runs for workflows that are installed",
         "type": "patch",
-        "summary": "The dashboard\u2019s Run and Populate history controls are now gated to the workflows actually present in the repository. Previously every capability in the run-target map was offered regardless of what was installed, so a repo without an experimental workflow (for example the Windows VI Browser 2.0 renderer, which is off by default) still showed a Run button and platform checkbox for it \u2014 and dispatching it failed with a confusing token-permission error even though the token was fine. The dashboard build now reads its own .github/workflows directory and drops any run target whose workflow file is missing (a platform is removed, or the whole capability if none remain), so the option simply isn\u2019t shown. Dispatch failures are also reported accurately: a 404 now says the workflow isn\u2019t installed (update the tooling) instead of blaming the token, and only real token/permission problems (401/403) re-prompt for a token.",
+        "summary": "The dashboard’s Run and Populate history controls are now gated to the workflows actually present in the repository. Previously every capability in the run-target map was offered regardless of what was installed, so a repo without an experimental workflow (for example the Windows VI Browser 2.0 renderer, which is off by default) still showed a Run button and platform checkbox for it — and dispatching it failed with a confusing token-permission error even though the token was fine. The dashboard build now reads its own .github/workflows directory and drops any run target whose workflow file is missing (a platform is removed, or the whole capability if none remain), so the option simply isn’t shown. Dispatch failures are also reported accurately: a 404 now says the workflow isn’t installed (update the tooling) instead of blaming the token, and only real token/permission problems (401/403) re-prompt for a token.",
         "highlights": [
-          "Run / Populate history only offer activities and platforms whose workflow is installed in the repo \u2014 no more dead options that 404 on dispatch.",
+          "Run / Populate history only offer activities and platforms whose workflow is installed in the repo — no more dead options that 404 on dispatch.",
           "A missing-workflow dispatch (404) is reported as out-of-date tooling, not a token error, and does not re-prompt for a token.",
           "Reused saved tokens keep working; only genuine 401/403 token problems ask you to update the token."
         ]
@@ -1368,15 +1527,15 @@
         ]
       },
       {
-              "version": "3.40.0",
-              "date": "2026-06-22",
-              "title": "Windows worker installs JKI Dragon from NI Package Manager",
-              "summary": "The Windows LabVIEW worker image now installs JKI Dragon from the LabVIEW 2026 NI Package Manager feed during image build. Dragon is treated as a required NIPM-delivered dependency-management component, captured by the worker manifest through nipkg list, and shown on the Dependencies page's NI Packages tab so users can verify it is present in the rebuilt container.",
-              "highlights": [
-                      "Installs the NIPM package jki-dragon into the Windows worker image and fails the image build if Dragon cannot be installed.",
-                      "Adds JKI Dragon to the generated and static NI Packages dependency table entries.",
-                      "Relies on the existing worker manifest nipkg_packages capture so the Dependencies page proves Dragon is present after the container is rebuilt."
-              ]
+        "version": "3.40.0",
+        "date": "2026-06-22",
+        "title": "Windows worker installs JKI Dragon from NI Package Manager",
+        "summary": "The Windows LabVIEW worker image now installs JKI Dragon from the LabVIEW 2026 NI Package Manager feed during image build. Dragon is treated as a required NIPM-delivered dependency-management component, captured by the worker manifest through nipkg list, and shown on the Dependencies page's NI Packages tab so users can verify it is present in the rebuilt container.",
+        "highlights": [
+          "Installs the NIPM package jki-dragon into the Windows worker image and fails the image build if Dragon cannot be installed.",
+          "Adds JKI Dragon to the generated and static NI Packages dependency table entries.",
+          "Relies on the existing worker manifest nipkg_packages capture so the Dependencies page proves Dragon is present after the container is rebuilt."
+        ]
       },
       {
         "version": "3.39.4",
@@ -1601,7 +1760,7 @@
         "version": "3.35.6",
         "date": "2026-06-22",
         "title": "Dashboard dialogs no longer vanish mid-install when the page auto-refreshes",
-        "summary": "The dashboard auto-refresh that keeps the page live while CI runs no longer reloads the page while a dialog is open, so Apply to New Repo (and Configure, VI Analyzer, Unit Testing, and What\u0027s New) can finish without the dialog disappearing on its own. Previously a busy dashboard reloaded about once a minute via an HTML meta refresh and a queued-run fast reload, which destroyed the open install iframe before it could show the result -- even though the install itself had completed.",
+        "summary": "The dashboard auto-refresh that keeps the page live while CI runs no longer reloads the page while a dialog is open, so Apply to New Repo (and Configure, VI Analyzer, Unit Testing, and What's New) can finish without the dialog disappearing on its own. Previously a busy dashboard reloaded about once a minute via an HTML meta refresh and a queued-run fast reload, which destroyed the open install iframe before it could show the result -- even though the install itself had completed.",
         "highlights": [
           "Auto-refresh is now a guarded JavaScript timer instead of an uncancellable HTML meta refresh; it reloads on the same cadence but waits while a dialog is open and reloads once it is closed",
           "The queued-run fast reload defers the same way, so neither refresh path can blow away an in-progress install",
@@ -4113,7 +4272,7 @@
       ".github/labview-ci/README.md",
       ".github/labview/wait-for-worker-image.sh",
       ".github/labview/ensure-docker.ps1",
-    ".github/actions/publish-gh-pages/action.yml"
+      ".github/actions/publish-gh-pages/action.yml"
     ]
   },
   "capabilities": [
