@@ -1150,8 +1150,10 @@ docker run --rm `
       <p>The dialog is a single form over a live list. In the form you <strong>choose the target</strong> — the
         container (Linux or Windows), the revision, which activities to run, and a session length — and click
         <strong>Start debug session</strong>, which dispatches <code>debug-session.yml</code>. (An <strong>Open
-        source</strong> button beside it skips the container entirely and just opens the chosen revision&rsquo;s source
-        tree on GitHub in a new tab, for when you only need to read the code.) The form stays put; each
+        source</strong> button beside it boots the <em>same</em> debug desktop but, instead of waiting to run
+        activities, launches the LabVIEW IDE with the checkout&rsquo;s project (<code>*.lvproj</code>) already open, so
+        you can just browse the source in the IDE over VNC. It sets the <code>open_source</code> input, which the
+        container script uses to open the first project it finds under the workspace.) The form stays put; each
         session you start appears in a scrollable <strong>Existing debug sessions</strong> list beneath it, so you can
         launch several (extra ones queue and start as earlier sessions finish). Every row shows a live progress bar and
         status — <em>Queued</em>, <em>Booting</em> with the current step, or <em>Live</em> — plus

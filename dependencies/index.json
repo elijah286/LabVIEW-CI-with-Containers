@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "9028f67a988262ceba388097deac004cddc3d4c8",
+  "sha": "a006257206500f277eeab098226551202da73284",
   "revisions": [
+    {
+      "sha": "a006257206500f277eeab098226551202da73284",
+      "short": "a006257",
+      "message": "Debug Run: \"Open source\" opens the LabVIEW project in the container (4.11.3)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T01:52:35Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "9028f67a988262ceba388097deac004cddc3d4c8",
       "short": "9028f67",
@@ -891,15 +900,6 @@
       "message": "Bake a no-VIPM-repo package by committing its .vip (#15)",
       "author": "Anton Sundqvist",
       "date": "2026-06-29T02:16:49Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "9bd01452270e776209f9bbc9c6fcb08393d05bd9",
-      "short": "9bd0145",
-      "message": "Merge remote-tracking branch 'origin/main' into feat/warm-container-batch-history",
-      "author": "Elijah Kerry",
-      "date": "2026-06-28T17:35:10Z",
       "project": false,
       "dep_only": false
     },
