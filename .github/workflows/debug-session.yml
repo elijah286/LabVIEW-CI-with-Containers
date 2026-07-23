@@ -263,8 +263,12 @@ jobs:
           Write-Host "::add-mask::$pw"
           "VNC_PW=$pw" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
           docker rm -f lvci-debug 2>$null | Out-Null
+          # Windows containers cannot bind a host IP in NAT ("Windows does not
+          # support host IP addresses in NAT settings"), so publish the port
+          # without the 127.0.0.1 prefix. The port is only reached via the host's
+          # noVNC bridge + Cloudflare tunnel; the runner itself is ephemeral.
           docker run -d --name lvci-debug `
-            -p 127.0.0.1:5900:5900 `
+            -p 5900:5900 `
             -e "ACTIONS=${{ github.event.inputs.actions }}" `
             -e "MINUTES=${{ github.event.inputs.minutes }}" `
             -e "OPEN_PROJECT=${{ github.event.inputs.open_source }}" `
@@ -276,6 +280,13 @@ jobs:
             powershell -NoProfile -ExecutionPolicy Bypass -File C:\workspace\.github\labview\debug\debug-session.ps1
           Start-Sleep -Seconds 3
           docker ps --filter name=lvci-debug
+          # Fail loudly if the container did not actually start (otherwise the
+          # tunnel would come up against a dead port and publish a URL to nothing).
+          if (-not (docker ps -q --filter name=lvci-debug)) {
+            Write-Host '::error::The debug container failed to start.'
+            docker logs lvci-debug 2>&1
+            exit 1
+          }
 
       - name: Bring up noVNC + Cloudflare tunnel on the host
         shell: pwsh
