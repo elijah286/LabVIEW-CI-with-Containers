@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "281af132680b33f25fff54f9c435c9d937278ef7",
+  "sha": "9d71cbdbdbb9b21627cc18ae24ce5f47bae4467a",
   "revisions": [
+    {
+      "sha": "9d71cbdbdbb9b21627cc18ae24ce5f47bae4467a",
+      "short": "9d71cbd",
+      "message": "Release channels: three tiers (Dev/Beta/Stable) + cumulative dialog picker (4.11.7)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T11:40:54Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "281af132680b33f25fff54f9c435c9d937278ef7",
       "short": "281af13",
@@ -891,15 +900,6 @@
       "message": "catalog: list all four frameworks on Unit Tests card (4.3.3)",
       "author": "Elijah Kerry",
       "date": "2026-06-29T18:02:25Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "3e16c29ae53dcfd462d75bf5bf3147e0ffea6be2",
-      "short": "3e16c29",
-      "message": "Mass Compile cell: Windows/Linux two-number pill (4.3.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-29T02:59:01Z",
       "project": false,
       "dep_only": false
     },
