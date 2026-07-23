@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "c2c6e9750de52a1b859ab7362f3c3aeec9f6d5f1",
+  "sha": "d1364e35074b0d650b5c92e818bdcdb18b319738",
   "revisions": [
+    {
+      "sha": "d1364e35074b0d650b5c92e818bdcdb18b319738",
+      "short": "d1364e3",
+      "message": "Fix: Windows debug tunnel died at step boundary (job object) (4.11.5)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T03:50:36Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "c2c6e9750de52a1b859ab7362f3c3aeec9f6d5f1",
       "short": "c2c6e97",
@@ -891,15 +900,6 @@
       "message": "Bake tooling VIPC when a repo has no project .vipc (#14)",
       "author": "Anton Sundqvist",
       "date": "2026-06-29T02:40:33Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "9d6190e06d1060d24fb42a443f81466987db3548",
-      "short": "9d6190e",
-      "message": "Populate history: re-run an in-flight (queued/running) activity (4.3.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-29T02:35:41Z",
       "project": false,
       "dep_only": false
     },
