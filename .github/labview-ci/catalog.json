@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.10.2",
+  "version": "4.10.3",
   "stableVersion": "4.10.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
@@ -12,6 +12,11 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet.",
     "releases": [
+      {
+        "version": "4.10.3",
+        "date": "2026-07-23",
+        "notes": "Marked v4.10.0 as the stable release. Default installs and upgrades now target it; pre-release (beta) builds stay available behind an opt-in toggle."
+      },
       {
         "version": "4.10.2",
         "date": "2026-07-23",
