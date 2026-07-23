@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "1b324b7c8e0e052aa91590f796a4e8ef59d3b0c1",
+  "sha": "582a5ba0f11b6830f935c5ed19d1f0427437dcff",
   "revisions": [
+    {
+      "sha": "582a5ba0f11b6830f935c5ed19d1f0427437dcff",
+      "short": "582a5ba",
+      "message": "Windows Debug Run: surface the LabVIEW window (fix black desktop) + diagnostics",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T20:07:19Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "1b324b7c8e0e052aa91590f796a4e8ef59d3b0c1",
       "short": "1b324b7",
@@ -891,15 +900,6 @@
       "message": "Mass Compile: colour Win/Linux percentages separately + instant platform mouse-over (4.3.4)",
       "author": "Elijah Kerry",
       "date": "2026-06-30T18:22:05Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "b26a7eab9ecdf3b197a184c848cfe05ab145cdfb",
-      "short": "b26a7ea",
-      "message": "fix: authenticate to GHCR before pulling Linux worker images (#17)",
-      "author": "Anton Sundqvist",
-      "date": "2026-06-29T18:07:26Z",
       "project": false,
       "dep_only": false
     },
