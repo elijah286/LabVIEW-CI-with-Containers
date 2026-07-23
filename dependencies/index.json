@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "e04699df7aaa465377f6990c774e003cebbf1c97",
+  "sha": "9028f67a988262ceba388097deac004cddc3d4c8",
   "revisions": [
+    {
+      "sha": "9028f67a988262ceba388097deac004cddc3d4c8",
+      "short": "9028f67",
+      "message": "Debug Run: add an \"Open source\" button (4.11.2)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T01:34:22Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "e04699df7aaa465377f6990c774e003cebbf1c97",
       "short": "e04699d",
@@ -891,15 +900,6 @@
       "message": "Merge remote-tracking branch 'origin/main' into feat/warm-container-batch-history",
       "author": "Elijah Kerry",
       "date": "2026-06-28T17:35:10Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "8bb5635b3630bcfd83201ea0095cbd45d5fcd13b",
-      "short": "8bb5635",
-      "message": "Installer: Apply to New Repo prunes obsolete vendored tooling files (4.2.2)",
-      "author": "lvci",
-      "date": "2026-06-28T17:09:02Z",
       "project": false,
       "dep_only": false
     },
