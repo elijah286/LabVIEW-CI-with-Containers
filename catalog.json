@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.10.0",
+  "version": "4.10.1",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet.",
     "releases": [
+      {"version": "4.10.1", "date": "2026-07-22", "notes": "Debug Run: the connect view (\"Bringing up the debug desktop\") now shows a progress bar that fills as the run advances through its steps - indeterminate while queued, filling with the step count while booting, and solid green when the remote desktop is live - so you get a visual sense of progress instead of static text alone."},
       {
         "version": "4.10.0",
         "date": "2026-07-22",
