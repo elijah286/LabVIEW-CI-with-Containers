@@ -1,8 +1,44 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "964dd4e3e0599ca4c8f53afad3d093b58ebfda15",
+  "sha": "24bd13f82fb8506f1b2e8833dbb972164a934b40",
   "revisions": [
+    {
+      "sha": "24bd13f82fb8506f1b2e8833dbb972164a934b40",
+      "short": "24bd13f",
+      "message": "Debug Run: enable Windows containers (4.11.0)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T00:29:30Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "6536ae5ddfeb2de6fadfcb8eea06c6fb1b91dd70",
+      "short": "6536ae5",
+      "message": "Release channel: stable=4.10.0 (catalog 4.10.3)",
+      "author": "github-actions[bot]",
+      "date": "2026-07-23T00:07:08Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "90e3bfa3393eb92a14e43aa694e842c9c4141628",
+      "short": "90e3bfa",
+      "message": "Release channel: stable=4.10.0 (catalog 4.10.2)",
+      "author": "github-actions[bot]",
+      "date": "2026-07-23T00:06:55Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "c96f4791ad152435e7d369bbe407238ace9d530a",
+      "short": "c96f479",
+      "message": "Debug Run: progress bar in the connect view (4.10.1)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T00:05:06Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "964dd4e3e0599ca4c8f53afad3d093b58ebfda15",
       "short": "964dd4e",
@@ -864,42 +900,6 @@
       "message": "Installer: stop the false 'install already in progress' warning (4.2.1)",
       "author": "Elijah Kerry",
       "date": "2026-06-28T17:07:04Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "70f0e93d7f422ee489a3e0e1a214ea1557ec073a",
-      "short": "70f0e93",
-      "message": "Merge remote-tracking branch 'origin/main' into feat/warm-container-batch-history",
-      "author": "Elijah Kerry",
-      "date": "2026-06-28T17:01:46Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "64b68477a478366b208535ff6d8b8f78e48437f9",
-      "short": "64b6847",
-      "message": "Remove throwaway warm-batch smoketest workflows (all 4 caps validated)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-28T16:54:52Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "aaeeffb9be1e86372cbb58a268d4e12f8c91e0f9",
-      "short": "aaeeffb",
-      "message": "Unit Tests: add LUnit + make ci-tooling.vipc a real VIPC (4.2.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-27T11:01:39Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "ddf403cd5397f89a08dda9e8b89472eb18fe44c3",
-      "short": "ddf403c",
-      "message": "README: clear, compelling project overview + matching Apply to New Repo CTA (4.1.36)",
-      "author": "Elijah Kerry",
-      "date": "2026-06-27T04:05:24Z",
       "project": false,
       "dep_only": false
     },
