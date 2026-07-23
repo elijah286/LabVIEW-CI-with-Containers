@@ -3491,47 +3491,46 @@ debug_dialog = (r"""
         +   '<select id="dbg-min" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'
         +     '<option value="30">30 minutes</option><option value="45" selected>45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></div>'
         + (getTok()?'':'<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-tok">Dispatch token</label><br><input id="dbg-tok" type="password" placeholder="fine-grained PAT with Actions: write" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)"><div style="font-size:.8em;color:var(--fg-muted);margin-top:3px"><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener">Create one &#8599;</a></div></div>')
-        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-start" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><button id="dbg-src" title="Browse this revision on GitHub in a new tab" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.9em">Open source &#8599;</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
+        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-start" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><button id="dbg-src" title="Boot a debug desktop with the LabVIEW project open, so you can view the source" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.9em">Open source &#8599;</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
         + '<div id="dbg-live" style="margin:16px 0 0;border-top:1px solid var(--border);padding-top:12px;max-height:280px;overflow-y:auto"></div>';
       $('cidash-debug-body').innerHTML=body;
       renderActs(selectedPlat());
       var plats=document.querySelectorAll('input[name="dbg-plat"]');
       for(var i=0;i<plats.length;i++){ plats[i].addEventListener('change', function(){ renderActs(selectedPlat()); }); }
       try{ if(typeof window.lvciRevPicker==='function') window.lvciRevPicker($('dbg-rev')); }catch(e){}
-      $('dbg-start').addEventListener('click', startSession);
-      var sb=$('dbg-src'); if(sb){ sb.addEventListener('click', openSource); }
+      $('dbg-start').addEventListener('click', function(){ startSession(false); });
+      var sb=$('dbg-src'); if(sb){ sb.addEventListener('click', function(){ startSession(true); }); }
       refreshLiveSessions();
       clearLiveTimer(); liveTimer=setInterval(refreshLiveSessions, 5000);
     }
-    // Skip the container entirely and just browse the chosen revision's source
-    // tree on GitHub in a new tab.
-    function openSource(){
-      var sha=$('dbg-rev') ? $('dbg-rev').value : '';
-      if(!sha){ debugStatus('Pick a revision.', 'err'); return; }
-      try{ window.open('https://github.com/'+REPO+'/tree/'+encodeURIComponent(sha), '_blank', 'noopener'); }catch(e){}
-    }
-    function startSession(){
+    // Dispatch a debug session. openSrc=true boots the same container but opens
+    // the LabVIEW project in the IDE (view source) instead of running activities.
+    function startSession(openSrc){
       var t=$('dbg-tok'); if(t && t.value.trim()){ setTok(t.value.trim()); }
       if(!getTok()){ debugStatus('Enter a token with <strong>Actions: write</strong> to start.', 'err'); return; }
       var sha=$('dbg-rev') ? $('dbg-rev').value : '';
       if(!sha){ debugStatus('Pick a revision.', 'err'); return; }
-      var acts=[].slice.call(document.querySelectorAll('.dbg-act:checked')).map(function(b){ return b.value; });
+      var acts=openSrc ? [] : [].slice.call(document.querySelectorAll('.dbg-act:checked')).map(function(b){ return b.value; });
       var mins=$('dbg-min') ? $('dbg-min').value : '45';
       var plat=selectedPlat();
-      var btn=$('dbg-start'); if(btn){ btn.disabled=true; btn.textContent='Starting...'; }
-      debugStatus('Dispatching the debug session...');
-      var dispatchAt=Date.now();
+      var startBtn=$('dbg-start'), srcBtn=$('dbg-src');
+      if(startBtn) startBtn.disabled=true; if(srcBtn) srcBtn.disabled=true;
+      var busy = openSrc ? srcBtn : startBtn; if(busy){ busy.textContent='Starting...'; }
+      debugStatus(openSrc ? 'Opening the source in a debug desktop...' : 'Dispatching the debug session...');
+      function reset(){ if(startBtn){ startBtn.disabled=false; startBtn.textContent='Start debug session'; } if(srcBtn){ srcBtn.disabled=false; srcBtn.innerHTML='Open source &#8599;'; } }
+      var inputs={ commit_sha:sha, platform:plat, actions:acts.join(' '), minutes:String(mins) };
+      if(openSrc){ inputs.open_source='true'; }
       fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/dispatches', {
         method:'POST', headers:Object.assign({'Content-Type':'application/json'}, ghHeaders()),
-        body:JSON.stringify({ ref:BRANCH, inputs:{ commit_sha:sha, platform:plat, actions:acts.join(' '), minutes:String(mins) } })
+        body:JSON.stringify({ ref:BRANCH, inputs:inputs })
       }).then(function(r){
-        if(btn){ btn.disabled=false; btn.textContent='Start debug session'; }
-        if(r.status===204){ debugStatus('Session dispatched &mdash; it will appear below as it boots.', 'ok'); kickLive(); return; }
+        reset();
+        if(r.status===204){ debugStatus(openSrc ? 'Opening source &mdash; the debug desktop will appear below with the LabVIEW project open.' : 'Session dispatched &mdash; it will appear below as it boots.', 'ok'); kickLive(); return; }
         if(r.status===401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} debugStatus('Token rejected (401). Paste a valid token above.', 'err'); renderStep1(); return; }
         if(r.status===403){ debugStatus('Dispatch forbidden (403). The token needs <strong>Actions: write</strong> for <code>'+esc(REPO)+'</code>.', 'err'); return; }
         if(r.status===404){ debugStatus('Not found (404). <code>'+esc(WF)+'</code> is not installed, or the token cannot see this repo.', 'err'); return; }
         debugStatus('Dispatch failed (HTTP '+r.status+').', 'err');
-      }).catch(function(e){ if(btn){ btn.disabled=false; btn.textContent='Start debug session'; } debugStatus('Network error: '+esc(String(e&&e.message||e)), 'err'); });
+      }).catch(function(e){ reset(); debugStatus('Network error: '+esc(String(e&&e.message||e)), 'err'); });
     }
     // ── Open ───────────────────────────────────────────────────────────────
     function debugOpen(){

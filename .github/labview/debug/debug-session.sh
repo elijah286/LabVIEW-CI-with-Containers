@@ -19,6 +19,7 @@ export HOME="${HOME:-/root}"
 ACTIONS="${ACTIONS:-}"
 MINUTES="${MINUTES:-45}"
 VNC_PW="${VNC_PW:-changeme}"
+OPEN_PROJECT="${OPEN_PROJECT:-}"
 
 log() { echo "[lvci-debug] $*"; }
 
@@ -77,11 +78,18 @@ websockify --web="$NOVNC_WEB" 6080 localhost:5900 >/tmp/websockify.log 2>&1 &
 sleep 1
 
 # --- 4. Launch the LabVIEW IDE UI --------------------------------------------
+# When OPEN_PROJECT is set (the dashboard's "Open source"), find the LabVIEW
+# project in the checkout and open it in the IDE so the user can see the source.
+PROJ=""
+if [ "$OPEN_PROJECT" = "true" ] || [ "$OPEN_PROJECT" = "1" ]; then
+  PROJ="$(find "$WS" -maxdepth 4 -iname '*.lvproj' 2>/dev/null | sort | head -1)"
+  if [ -n "$PROJ" ]; then log "Will open project: $PROJ"; else log "OPEN_PROJECT set but no .lvproj found under $WS"; fi
+fi
 LV="$(command -v labview 2>/dev/null || true)"
 [ -z "$LV" ] && LV="$(ls -1 /usr/local/natinst/LabVIEW-*/labview 2>/dev/null | sort -V | tail -1 || true)"
 if [ -n "$LV" ]; then
-  log "Launching LabVIEW: $LV"
-  ( cd "$WS" && "$LV" >/tmp/labview.log 2>&1 & )
+  log "Launching LabVIEW: $LV ${PROJ:+with $PROJ}"
+  if [ -n "$PROJ" ]; then ( cd "$WS" && "$LV" "$PROJ" >/tmp/labview.log 2>&1 & ); else ( cd "$WS" && "$LV" >/tmp/labview.log 2>&1 & ); fi
 else
   log "Could not find the labview binary; open it from the on-screen terminal."
 fi

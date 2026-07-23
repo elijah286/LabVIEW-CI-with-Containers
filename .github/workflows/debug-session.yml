@@ -35,6 +35,10 @@ on:
         description: Auto-teardown after this many minutes.
         required: false
         default: '45'
+      open_source:
+        description: Open the LabVIEW project in the IDE on launch (view source) instead of running activities.
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -109,6 +113,7 @@ jobs:
             -p 127.0.0.1:6080:6080 \
             -e "ACTIONS=${{ github.event.inputs.actions }}" \
             -e "MINUTES=${{ github.event.inputs.minutes }}" \
+            -e "OPEN_PROJECT=${{ github.event.inputs.open_source }}" \
             -e "VNC_PW=$PW" \
             -e "GITHUB_REPOSITORY=${{ github.repository }}" \
             -e "GITHUB_SHA=${{ github.event.inputs.commit_sha }}" \
@@ -262,6 +267,7 @@ jobs:
             -p 127.0.0.1:5900:5900 `
             -e "ACTIONS=${{ github.event.inputs.actions }}" `
             -e "MINUTES=${{ github.event.inputs.minutes }}" `
+            -e "OPEN_PROJECT=${{ github.event.inputs.open_source }}" `
             -e "VNC_PW=$pw" `
             -e "GITHUB_REPOSITORY=${{ github.repository }}" `
             -e "GITHUB_SHA=${{ github.event.inputs.commit_sha }}" `

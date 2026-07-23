@@ -18,6 +18,7 @@ $ws   = 'C:\workspace'
 $acts = $env:ACTIONS
 $mins = if ($env:MINUTES) { [int]$env:MINUTES } else { 45 }
 $pw   = if ($env:VNC_PW) { $env:VNC_PW } else { 'changeme' }
+$openProj = ($env:OPEN_PROJECT -eq 'true') -or ($env:OPEN_PROJECT -eq '1')
 
 function Log([string]$m) { Write-Host "[lvci-debug] $m" }
 
@@ -55,8 +56,21 @@ $lv = Get-ChildItem 'C:\Program Files\National Instruments' -Directory -Filter '
         ForEach-Object { Join-Path $_.FullName 'LabVIEW.exe' } |
         Where-Object { Test-Path $_ } | Select-Object -First 1
 if ($lv) {
-  Log "Launching LabVIEW: $lv"
-  Start-Process $lv -WorkingDirectory $ws
+  # When OPEN_PROJECT is set (the dashboard's "Open source"), open the LabVIEW
+  # project in the checkout so the user can see the source in the IDE.
+  $proj = ''
+  if ($openProj) {
+    $proj = Get-ChildItem $ws -Recurse -Depth 4 -Filter '*.lvproj' -File -ErrorAction SilentlyContinue |
+              Sort-Object FullName | Select-Object -First 1 -ExpandProperty FullName
+    if ($proj) { Log "Will open project: $proj" } else { Log 'OPEN_PROJECT set but no .lvproj found under the workspace.' }
+  }
+  if ($proj) {
+    Log "Launching LabVIEW: $lv with $proj"
+    Start-Process $lv -WorkingDirectory $ws -ArgumentList ('"' + $proj + '"')
+  } else {
+    Log "Launching LabVIEW: $lv"
+    Start-Process $lv -WorkingDirectory $ws
+  }
 } else {
   Log 'LabVIEW.exe not found; open it from the on-screen terminal.'
 }
