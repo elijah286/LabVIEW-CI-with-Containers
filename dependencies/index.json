@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "d1364e35074b0d650b5c92e818bdcdb18b319738",
+  "sha": "281af132680b33f25fff54f9c435c9d937278ef7",
   "revisions": [
+    {
+      "sha": "281af132680b33f25fff54f9c435c9d937278ef7",
+      "short": "281af13",
+      "message": "Fix: Windows noVNC \"Server is not configured properly\" (4.11.6)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-23T11:26:17Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "d1364e35074b0d650b5c92e818bdcdb18b319738",
       "short": "d1364e3",
@@ -891,15 +900,6 @@
       "message": "Mass Compile cell: Windows/Linux two-number pill (4.3.2)",
       "author": "Elijah Kerry",
       "date": "2026-06-29T02:59:01Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "d3ca09a5cff09f1d458bdffbc23e5f604623817e",
-      "short": "d3ca09a",
-      "message": "Bake tooling VIPC when a repo has no project .vipc (#14)",
-      "author": "Anton Sundqvist",
-      "date": "2026-06-29T02:40:33Z",
       "project": false,
       "dep_only": false
     },

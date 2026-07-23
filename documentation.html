@@ -1173,7 +1173,9 @@ docker run --rm `
         against the session&rsquo;s window station; because the Windows image ships no Python or cloudflared, the
         <strong>noVNC/websockify</strong> bridge and the Cloudflare tunnel run on the runner host against the
         container&rsquo;s published VNC port (5900), and the &ldquo;go&rdquo; signal runs
-        <code>run-debug-actions.ps1</code> (e.g. <code>masscompile.ps1</code>). The session self-tears-down after the chosen minutes, on
+        <code>run-debug-actions.ps1</code> (e.g. <code>masscompile.ps1</code>). (TightVNC in app mode is configured
+        via the registry with VNC authentication disabled &mdash; the one-time tunnel URL is the access gate &mdash;
+        because its app-mode config is separate from the MSI&rsquo;s service settings.) The session self-tears-down after the chosen minutes, on
         <em>End&nbsp;session</em>, or when the run is cancelled — deleting the published connect file.</p>
       <p><strong>No license secret is needed:</strong> LabVIEW prompts for interactive login/activation in the session,
         so you activate it yourself; the activity runners then execute in that same activated session.
