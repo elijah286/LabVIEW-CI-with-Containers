@@ -3453,21 +3453,6 @@ debug_dialog = (r"""
     }
     // Quickly surface a just-dispatched run in the list (before the 5s poll settles).
     function kickLive(){ refreshLiveSessions(); setTimeout(refreshLiveSessions,1500); setTimeout(refreshLiveSessions,4000); setTimeout(refreshLiveSessions,8000); }
-    // Activities that can run in a debug container for the given platform
-    // (they have a run target for that OS).
-    function platCaps(plat){
-      var out=[]; ['masscompile','vidiff','snapshots2','builds'].forEach(function(c){
-        if(RT[c] && RT[c].platforms && RT[c].platforms[plat]) out.push(c);
-      }); return out;
-    }
-    function selectedPlat(){ return 'linux'; }
-    function platLabel(plat){ return plat==='windows'?'Windows':'Linux'; }
-    function renderActs(plat){
-      var host=$('dbg-acts'); if(!host) return;
-      var caps=platCaps(plat);
-      host.innerHTML = caps.length ? caps.map(function(c){ return '<label style="display:block;margin:.15em 0"><input type="checkbox" class="dbg-act" value="'+esc(c)+'"> '+esc(CAP_LABEL[c]||c)+'</label>'; }).join('')
-                                   : '<div style="color:var(--fg-muted)">No '+esc(platLabel(plat))+' activity runners are installed; you can still open an interactive session.</div>';
-    }
     function modal(){ return $('cidash-debug-modal'); }
     function cidashDebugClose(){ clearLiveTimer(); var m=modal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
     window.cidashDebugClose = cidashDebugClose;
@@ -3480,47 +3465,41 @@ debug_dialog = (r"""
     function renderStep1(){
       var revs=HIST.slice(0,200).map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc(r.short||r.sha.slice(0,7))+' &mdash; '+esc((r.msg||'').slice(0,60))+'</option>'; }).join('');
       var body=''
-        + '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.9em">Boot a Linux worker container with a full LabVIEW desktop you can remote into &mdash; open the project to browse the source, or run CI activities live. Start as many as you need; each runs on the runner (independent of this browser) and shows up in the list below.</p>'
+        + '<p style="margin:0 0 10px;color:var(--fg-muted);font-size:.9em">Start an interactive LabVIEW desktop on a worker container for a specific revision, then remote in. The project opens automatically and an on-screen menu lets you run CI operations (Mass Compile, Builds, VIDiff&hellip;) and watch them execute live.</p>'
+        + '<div style="margin:0 0 12px;padding:8px 10px;border:1px solid var(--border);border-left:3px solid #d29922;border-radius:6px;background:rgba(210,153,34,.08);font-size:.85em;color:var(--fg)">Each debug session occupies one of this project\'s Actions runners for its whole lifetime and will block other CI jobs if no runner slots are free. End sessions as soon as you are done.</div>'
         + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-rev">Revision</label><br>'
         +   '<select id="dbg-rev" style="width:100%;max-width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'+revs+'</select></div>'
-        + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em">Run these activities on the go signal</label><div id="dbg-acts"></div></div>'
         + '<div style="margin:0 0 14px"><label style="font-weight:600;font-size:.85em" for="dbg-min">Auto-end after</label><br>'
         +   '<select id="dbg-min" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'
         +     '<option value="30">30 minutes</option><option value="45" selected>45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></div>'
         + (getTok()?'':'<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-tok">Dispatch token</label><br><input id="dbg-tok" type="password" placeholder="fine-grained PAT with Actions: write" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)"><div style="font-size:.8em;color:var(--fg-muted);margin-top:3px"><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener">Create one &#8599;</a></div></div>')
-        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-src" title="Boot a debug desktop with the LabVIEW project open in the IDE" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Open the project</button><button id="dbg-start" title="Boot the desktop and run the checked activities on the go signal" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.9em">Run activities&hellip;</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
+        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-start" title="Boot a LabVIEW debug desktop on this revision; pick operations from the on-screen menu once inside" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
         + '<div id="dbg-live" style="margin:16px 0 0;border-top:1px solid var(--border);padding-top:12px;max-height:280px;overflow-y:auto"></div>';
       $('cidash-debug-body').innerHTML=body;
-      renderActs('linux');
       try{ if(typeof window.lvciRevPicker==='function') window.lvciRevPicker($('dbg-rev')); }catch(e){}
-      $('dbg-start').addEventListener('click', function(){ startSession(false); });
-      var sb=$('dbg-src'); if(sb){ sb.addEventListener('click', function(){ startSession(true); }); }
+      $('dbg-start').addEventListener('click', function(){ startSession(); });
       refreshLiveSessions();
       clearLiveTimer(); liveTimer=setInterval(refreshLiveSessions, 5000);
     }
-    // Dispatch a debug session. openSrc=true boots the same container but opens
-    // the LabVIEW project in the IDE (view source) instead of running activities.
-    function startSession(openSrc){
+    // Dispatch a debug session: boot a LabVIEW desktop on the chosen revision
+    // with the project open; operations are chosen from the on-screen menu.
+    function startSession(){
       var t=$('dbg-tok'); if(t && t.value.trim()){ setTok(t.value.trim()); }
       if(!getTok()){ debugStatus('Enter a token with <strong>Actions: write</strong> to start.', 'err'); return; }
       var sha=$('dbg-rev') ? $('dbg-rev').value : '';
       if(!sha){ debugStatus('Pick a revision.', 'err'); return; }
-      var acts=openSrc ? [] : [].slice.call(document.querySelectorAll('.dbg-act:checked')).map(function(b){ return b.value; });
       var mins=$('dbg-min') ? $('dbg-min').value : '45';
-      var plat=selectedPlat();
-      var startBtn=$('dbg-start'), srcBtn=$('dbg-src');
-      if(startBtn) startBtn.disabled=true; if(srcBtn) srcBtn.disabled=true;
-      var busy = openSrc ? srcBtn : startBtn; if(busy){ busy.textContent='Starting...'; }
-      debugStatus(openSrc ? 'Opening the source in a debug desktop...' : 'Dispatching the debug session...');
-      function reset(){ if(startBtn){ startBtn.disabled=false; startBtn.textContent='Run activities...'; } if(srcBtn){ srcBtn.disabled=false; srcBtn.textContent='Open the project'; } }
-      var inputs={ commit_sha:sha, platform:plat, actions:acts.join(' '), minutes:String(mins) };
-      if(openSrc){ inputs.open_source='true'; }
+      var startBtn=$('dbg-start');
+      if(startBtn){ startBtn.disabled=true; startBtn.textContent='Starting...'; }
+      debugStatus('Dispatching the debug session...');
+      function reset(){ if(startBtn){ startBtn.disabled=false; startBtn.textContent='Start debug session'; } }
+      var inputs={ commit_sha:sha, platform:'linux', actions:'', minutes:String(mins), open_source:'true' };
       fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/dispatches', {
         method:'POST', headers:Object.assign({'Content-Type':'application/json'}, ghHeaders()),
         body:JSON.stringify({ ref:BRANCH, inputs:inputs })
       }).then(function(r){
         reset();
-        if(r.status===204){ debugStatus(openSrc ? 'Opening source &mdash; the debug desktop will appear below with the LabVIEW project open.' : 'Session dispatched &mdash; it will appear below as it boots.', 'ok'); kickLive(); return; }
+        if(r.status===204){ debugStatus('Session dispatched &mdash; it will appear below as it boots.', 'ok'); kickLive(); return; }
         if(r.status===401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} debugStatus('Token rejected (401). Paste a valid token above.', 'err'); renderStep1(); return; }
         if(r.status===403){ debugStatus('Dispatch forbidden (403). The token needs <strong>Actions: write</strong> for <code>'+esc(REPO)+'</code>.', 'err'); return; }
         if(r.status===404){ debugStatus('Not found (404). <code>'+esc(WF)+'</code> is not installed, or the token cannot see this repo.', 'err'); return; }

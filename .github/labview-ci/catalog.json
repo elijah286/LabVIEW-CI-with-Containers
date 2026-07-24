@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.12.3",
+  "version": "4.12.4",
   "stableVersion": "4.10.0",
   "betaVersion": "4.11.10",
   "name": "LabVIEW CI",
@@ -13,6 +13,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet. `betaVersion` is the same pointer for the beta (release-candidate) channel, with entries flagged \"beta\": true. The install/upgrade channel picker is cumulative: release only (stable), release+beta (beta), or release+beta+dev (every published build).",
     "releases": [
+      {"version": "4.12.4", "date": "2026-07-23", "notes": "Debug Run: simplified the dialog to a single Start debug session button on a chosen revision (activities are no longer pre-selected), added a warning that each session occupies one of the project's Actions runners and blocks other CI jobs when no slots are free, and added an on-screen operations menu in the Linux container (first option opens the project; the rest run Mass Compile, Builds, VIDiff, etc. and stream output live)."},
       {"version": "4.12.3", "date": "2026-07-23", "notes": "Debug Run is now Linux-only: removed the Windows container option from the dialog, since Windows containers run in session 0 with no interactive desktop (a Microsoft limitation) so the VNC view is always blank. The primary action is now \"Open the project\" (boots the desktop with the LabVIEW project open); \"Run activities...\" is the secondary action. Windows headless CI is unaffected."},
       {"version": "4.12.2", "date": "2026-07-23", "notes": "VI Analyzer report: the \"testing errors\" banner now names each VI that could not be loaded/analyzed, shows its actual error message, and tags CI-tooling VIs (under .github/) separately -- so a bare count like \"9 VI not loadable\" now explains exactly which VIs failed and whether they are CI helper VIs (harmless) or your project code. The parser also reads the native report\u2019s <h3>-headed error tables, which it previously skipped."},
       {"version": "4.12.1", "date": "2026-07-23", "notes": "Windows Debug Run diagnostics: the black screen persists even after aligning window stations, so the container now enumerates every desktop on WinSta0 and the top-level windows on each, to pin down exactly which desktop LabVIEW's window lands on (or whether it renders no window at all in the container's session 0)."},
