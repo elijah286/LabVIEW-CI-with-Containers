@@ -1,1 +1,21 @@
-ef43ee666cd43c0c58c9a50d2f17425523468245	example/main.vi
+a9ce84e6ac5b6b2d68a7ce4b1405f5d249a016aa	example/Curriculum Launcher.vi
+29fd4fac29848a8aaad2815eaaa1af768364f964	example/Curriculum/Generator Lessons/Generator Lesson 1.vi
+b06d1faf5b5fd64d36a7cda060383b1faf75782a	example/Curriculum/Generator Lessons/Generator Lesson 2.vi
+765532d6a4229de63be8b9224ded235e370c539d	example/Curriculum/Generator Lessons/Generator Lesson 3.vi
+5242f4ac40dc5ddd8e2ad9677013d691c2b98f7f	example/Curriculum/Generator Lessons/Generator Lesson 4.vi
+cfc287287da4da2cc2b71780de7a1a3ec4b63574	example/Curriculum/Generator Lessons/Generator Lesson 5.vi
+fd931b47f0ec991932a17b843e87cb50df6e113d	example/Curriculum/Generator Lessons/Generator Lesson 6.vi
+8edf60cdb325ee0867611210e1ca874071882f50	example/Curriculum/Generator Lessons/Generator Lesson 7.vi
+cbd183ae8ba3e99c117200c75c366aa4b44a9ff5	example/Curriculum/Generator Lessons/subVIs/Command with Return Value.vi
+e9d65e5050deae52ccd4fd4f392b431f85813867	example/Curriculum/Generator Lessons/subVIs/Confirm USB Devices and IO.vi
+b88cf6f4ef61a207135d9c171b9b7b751646d91e	example/Curriculum/Generator Lessons/subVIs/Generator High Speed PIDDW.vi
+a66d3ae0596c31a2b72329cce64bd44682e35967	example/Curriculum/Generator Lessons/subVIs/Get All Values.vi
+4b17d3253604b1c4a78dcc51aaffd5898f9e6a12	example/Curriculum/Generator Lessons/subVIs/USB Device Filter.vi
+de4b9287405405a9718e76b57d60992462df0c16	example/Curriculum/Generator Lessons/subVIs/balance grid.vi
+979cbb915827a25cd0dc9f4d9f6ae70a21d91b9c	example/Curriculum/Main Power Grid/Main Power Grid.vi
+6593a1b255cfa73dfd594ec47346e6d65010a56e	example/Curriculum/Solar Lessons/Solar Example.vi
+6508ece730941ae9dd9ff5ca9a14d6552f246e7a	example/Find Curriculum.vi
+437c94c0540faf91af07e58231abaa1218209620	example/Graph Popup.vi
+b1a672d5ec15c771c8018eee61f6bd696062e234	example/Simple Solar Tracker v4.vi
+fc9755b719d344af1611809c4750de7f59a37414	example/Status String Update.vi
+b39b044c1787c7aadf6619c513bc89446bc1a0f4	example/main.vi
