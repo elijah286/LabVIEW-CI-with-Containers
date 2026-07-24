@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "d7df7740d9ee40343bad33199dcce15b54d38738",
+  "sha": "6ff3ab4fde1eda4ae8fb21e5989109e46884171f",
   "revisions": [
+    {
+      "sha": "6ff3ab4fde1eda4ae8fb21e5989109e46884171f",
+      "short": "6ff3ab4",
+      "message": "Debug Run: simplify the dialog + choose operations inside the container (4.12.4)",
+      "author": "Elijah Kerry",
+      "date": "2026-07-24T00:12:39Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "d7df7740d9ee40343bad33199dcce15b54d38738",
       "short": "d7df774",
@@ -891,15 +900,6 @@
       "message": "readme: add 5-minute YouTube overview video thumbnail",
       "author": "Elijah Kerry",
       "date": "2026-07-08T21:35:41Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "f30dacf285ce27a084b06072a39143d4d3f11fba",
-      "short": "f30dacf",
-      "message": "Fast-abort worker build when VIPM engine wedges (4.4.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-08T19:43:38Z",
       "project": false,
       "dep_only": false
     },
