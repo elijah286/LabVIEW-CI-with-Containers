@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "6ff3ab4fde1eda4ae8fb21e5989109e46884171f",
+  "sha": "0454a45331eb5b49b8c3fa8095cf5616247cb0e7",
   "revisions": [
+    {
+      "sha": "0454a45331eb5b49b8c3fa8095cf5616247cb0e7",
+      "short": "0454a45",
+      "message": "Docs: expand \u00a716.4 Unit Tests into a fully worked replication example",
+      "author": "Elijah Kerry",
+      "date": "2026-07-29T23:28:12Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "6ff3ab4fde1eda4ae8fb21e5989109e46884171f",
       "short": "6ff3ab4",
@@ -891,15 +900,6 @@
       "message": "vipm: self-heal a wedged headless VIPM engine (restart-and-retry) (4.4.5)",
       "author": "Elijah Kerry",
       "date": "2026-07-09T12:11:19Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "ccc7b5c4186eec1879cfef35c8785ce50827aa0c",
-      "short": "ccc7b5c",
-      "message": "readme: add 5-minute YouTube overview video thumbnail",
-      "author": "Elijah Kerry",
-      "date": "2026-07-08T21:35:41Z",
       "project": false,
       "dep_only": false
     },

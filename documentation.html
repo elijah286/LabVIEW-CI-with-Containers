@@ -146,7 +146,7 @@
             <li class="sub"><a href="#cap-masscompile">Mass Compile</a></li>
             <li class="sub"><a href="#cap-vianalyzer">VI Analyzer</a></li>
             <li class="sub"><a href="#cap-vidiff">VIDiff</a></li>
-            <li class="sub"><a href="#cap-unittests">Unit Tests</a></li>
+            <li class="sub"><a href="#cap-unittests">Unit Tests (worked example)</a></li>
             <li class="sub"><a href="#cap-antidoc">Antidoc</a></li>
             <li class="sub"><a href="#cap-snapshots">VI Snapshots / Browser</a></li>
           </ol>
@@ -1285,6 +1285,22 @@ docker run --rm `
 
       <!-- 16 ──────────────────────────────────────────────────────────────── -->
       <h2 id="capabilities">16. Capabilities in depth <a class="anchor" href="#capabilities">#</a></h2>
+      <p class="lead-in">Every capability is built to the same template, so once you understand one you understand them
+        all. <a href="#cap-unittests">§16.4 (Unit Tests)</a> is documented end-to-end as the fully worked example you can
+        copy from.</p>
+      <p>The shared anatomy of a capability:</p>
+      <ul>
+        <li><strong>An in-container driver</strong> (<code>.github/labview/&lt;activity&gt;.ps1</code> / <code>.sh</code>)
+          that invokes headless LabVIEW inside the worker container and writes raw output.</li>
+        <li><strong>A host report builder</strong> (<code>.github/labview/build-&lt;activity&gt;-report.py</code>) that
+          normalises that raw output into <code>summary.json</code>/<code>results.json</code> plus a navigable HTML report.</li>
+        <li><strong>A gated workflow</strong> (<code>&lt;activity&gt;-*-container.yml</code>) that pulls the image,
+          <code>docker run --rm</code>s the driver, builds the report on the host, deploys it to
+          <code>&lt;activity&gt;/&lt;sha&gt;/</code> on <code>gh-pages</code>, and posts a commit status.</li>
+        <li><strong>One catalog entry</strong> (id, <code>statusContext</code>, <code>supportsOs</code>,
+          <code>files</code>) that wires it into the configurator, installer, and dashboard generically
+          (<a href="#extending">§20</a>).</li>
+      </ul>
 
       <h3 id="cap-masscompile">16.1 Mass Compile <a class="anchor" href="#cap-masscompile">#</a></h3>
       <p>Driver: <code>masscompile.ps1</code> / <code>masscompile.sh</code>; report:
@@ -1395,20 +1411,149 @@ docker run --rm `
         <code>.lvclass</code> sourced from NI's <code>labview-for-containers</code> examples; it renders a single VI
         (front panel + block diagram) to a standalone HTML file and powers both added/deleted diffs and snapshots.</div>
 
-      <h3 id="cap-unittests">16.4 Unit Tests <a class="anchor" href="#cap-unittests">#</a></h3>
-      <p>Driver: <code>run-unit-tests.ps1</code>; report: <code>build-unittest-report.py</code>. It reads
-        <code>config.unitTests.tools[]</code> from the manifest, runs each enabled framework headlessly (Caraya and
-        VI Tester via <code>g-cli</code>; NI UTF via <code>LabVIEWCLI -OperationName RunUnitTests</code>; LUnit via the
-        same native CLI with <code>LabVIEWCLI -OperationName LUnit</code>), and
-        collects per-tool JUnit XML. Because NI&nbsp;UTF runs a whole <code>.lvproj</code>, the driver resolves each
-        configured location to its owning project and is robust to however a repo is laid out: a location may be a
-        <code>.lvproj</code> path, a folder that contains one or more test-bearing projects, or a folder of
-        <code>.lvtest</code> files whose <code>.lvproj</code> lives in a parent directory (it walks up to find the
-        nearest owning project); an empty location list discovers and runs <em>every</em> test-bearing
-        <code>.lvproj</code> anywhere in the repo, so a fresh install reports results for one or more projects
-        wherever they live. The framework is inferred from the XML filename, and the "VI under test" is
-        derived by stripping test affixes (e.g. <code>Foo Tests.vi → Foo.vi</code>) so results link back to source.
-        The merged <code>results.json</code> carries per-tool suites, per-case status, and an overall summary.</p>
+      <h3 id="cap-unittests">16.4 Unit Tests &mdash; a fully worked example <a class="anchor" href="#cap-unittests">#</a></h3>
+      <p class="lead-in">Unit Tests is documented end-to-end here as the <strong>reference capability</strong>. Every
+        other activity shares the anatomy above, so if you can reproduce Unit Tests from the detail below &mdash; the
+        frameworks, the exact CLI commands, the container invocation, and the output contract &mdash; you can reproduce
+        any of them.</p>
+
+      <h4>At a glance</h4>
+      <table>
+        <tbody>
+          <tr><th>In-container driver</th><td><code>.github/labview/run-unit-tests.ps1</code> &mdash; runs each enabled framework headless, writes one JUnit XML per tool.</td></tr>
+          <tr><th>Host report builder</th><td><code>.github/labview/build-unittest-report.py</code> &mdash; merges the JUnit XML into <code>results.json</code> + the navigable HTML report.</td></tr>
+          <tr><th>Per-commit workflow</th><td><code>unit-tests-windows-container.yml</code> on <span class="pill win">windows-2022</span>.</td></tr>
+          <tr><th>History backfill</th><td><code>unit-tests-backfill-windows.yml</code> + <code>unit-tests-backfill.ps1</code> &mdash; one warm container across many revisions.</td></tr>
+          <tr><th>Output &amp; status</th><td>Report deploys to <code>unit-tests/&lt;sha&gt;/</code> on <code>gh-pages</code>; commit-status context is <code>CI / Unit Tests</code>.</td></tr>
+          <tr><th>Platform</th><td>Windows only &mdash; every framework depends on baked VIPM/UTF tooling (<a href="#vipm">§15</a>).</td></tr>
+        </tbody>
+      </table>
+
+      <h4>The four frameworks &amp; the exact headless command each runs</h4>
+      <p>Each enabled tool is driven by a per-tool command <strong>template</strong> that <code>run-unit-tests.ps1</code>
+        applies verbatim after token substitution. Any template can be overridden per tool with a <code>command:</code>
+        key in the config, so a precise invocation can be corrected on a real worker with no script change.</p>
+      <table>
+        <thead><tr><th>Framework</th><th>Test unit it discovers</th><th>Runs via</th><th>Default command template</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Caraya</strong> (JKI)</td><td>VIs containing Caraya assertions, under a directory</td><td><code>g-cli</code></td><td><code>g-cli --lv-ver {ver} -- caraya -- --directory "{dir}" --junit "{out}"</code></td></tr>
+          <tr><td><strong>LUnit</strong> (Astemes)</td><td>Test Case classes (<code>.lvclass</code>), under a directory</td><td>native <code>LabVIEWCLI</code></td><td><code>"{cli}" -LogToConsole TRUE -OperationName LUnit -Path "{dir}" -ReportPath "{out}" -LabVIEWPath "{lv}" -Headless</code></td></tr>
+          <tr><td><strong>VI Tester</strong> (JKI)</td><td>xUnit TestCase classes, under a directory <em>(scaffold)</em></td><td><code>g-cli</code></td><td><code>g-cli --lv-ver {ver} -- vitester -- --directory "{dir}" --junit "{out}"</code></td></tr>
+          <tr><td><strong>NI UTF</strong></td><td><code>.lvtest</code> items inside a <code>.lvproj</code></td><td>native <code>LabVIEWCLI</code></td><td><code>"{cli}" -LogToConsole TRUE -OperationName RunUnitTests -ProjectPath "{proj}" -JUnitReportPath "{out}" -LabVIEWPath "{lv}" -Headless</code></td></tr>
+        </tbody>
+      </table>
+      <p>Tokens the driver substitutes: <code>{ver}</code> = LabVIEW year, <code>{dir}</code> = a resolved test-root
+        directory, <code>{proj}</code> = a resolved <code>.lvproj</code>, <code>{out}</code> = the JUnit output path,
+        <code>{lv}</code> = <code>LabVIEW.exe</code>, <code>{cli}</code> = <code>LabVIEWCLI.exe</code>.</p>
+      <p>Directory-based tools (Caraya, LUnit, VI Tester) run once per resolved test-root. <strong>UTF runs a whole
+        <code>.lvproj</code></strong>, so each location resolves to its <em>owning project</em> and is robust to however
+        a repo is laid out: a location may be a <code>.lvproj</code> path, a folder that contains one or more test-bearing
+        projects, or a folder of <code>.lvtest</code> files whose <code>.lvproj</code> lives in a parent directory (the
+        driver walks up to the nearest owning project). An <strong>empty <code>locations</code> list</strong> discovers
+        and runs <em>every</em> test-bearing <code>.lvproj</code> anywhere in the repo, so a fresh install reports results
+        for whatever projects exist.</p>
+
+      <h4>Configuring which frameworks run</h4>
+      <p>The configurator writes a <code>unitTests</code> block into <code>.github/labview-ci.yml</code>; the driver
+        reads it directly. Enable a tool, point it at one or more <code>locations</code>, and optionally override its
+        command or the dashboard pass-rate thresholds:</p>
+      <pre><code>unitTests:
+  thresholds:
+    passedPercent:            # colours the dashboard Unit Tests badge
+      greenAtLeast: 100
+      yellowAtLeast: 80
+      redBelow: 80
+  tools:
+    utf:
+      enabled: true
+      locations:
+        - "example/User-Defined Test/"   # a dir, a glob, or a .lvproj (empty = whole repo)
+    caraya:
+      enabled: false
+      locations: []
+    lunit:
+      enabled: false
+      locations: []
+      # command: '...'                    # optional per-tool override
+    vi-tester:
+      enabled: false
+      locations: []</code></pre>
+      <p>Only tools with <code>enabled: true</code> run. A <code>location</code> may be a directory (recursed), a glob
+        / extension pattern (each match&rsquo;s parent directory becomes a test root), or &mdash; for UTF &mdash; a
+        <code>.lvproj</code> path.</p>
+
+      <h4>How the workflow composes the runner (per commit)</h4>
+      <p>The whole job runs on one <span class="pill win">windows-2022</span> runner and follows a fixed step order
+        (it mirrors VI Analyzer so the two behave identically):</p>
+      <ol>
+        <li><strong>Determine the target SHA</strong> &mdash; from the <code>workflow_dispatch</code> input, the PR head, or <code>github.sha</code>.</li>
+        <li><strong>Post a <code>pending</code> status</strong> (<code>CI / Unit Tests</code>) so the dashboard cell spins immediately.</li>
+        <li><strong>Check out</strong> the target SHA (<code>fetch-depth: 0</code>); on a dispatched historical run, <strong>restore the current CI runtime</strong> (<code>.github/labview</code>, <code>.github/workflows</code>, <code>publish-gh-pages</code>) from the default branch so old commits use today&rsquo;s builders.</li>
+        <li><strong>Resolve the container image</strong> &mdash; <code>config.container.actions.unit-tests</code> &rarr; <code>config.container.use</code> &rarr; the shared worker <code>:latest</code> (<code>base</code>/<code>none</code> forces the bare NI image).</li>
+        <li><strong>Ensure Docker</strong>, <strong>log in to GHCR</strong>, and <strong>wait for the worker-image build</strong> (<code>wait-for-worker-image.sh</code>) when this commit changed a monitored dependency.</li>
+        <li><strong>Pull the image</strong>, then <strong>run the driver inside a throwaway container</strong> (below).</li>
+        <li><strong>Build the report on the host</strong> (Python), <strong>upload the artifact</strong>, <strong>deploy to <code>gh-pages</code></strong> under <code>unit-tests/&lt;sha&gt;/</code>, and <strong>post the final commit status</strong>.</li>
+      </ol>
+      <p>The container invocation is the heart of it &mdash; a single <code>docker run --rm</code> that bind-mounts the
+        checkout and launches the driver under PowerShell:</p>
+      <pre><code>docker run --rm `
+  -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+  -v "${{ github.workspace }}:C:\workspace" `    # the checkout, mounted in
+  $Env:LABVIEW_CONTAINER_IMAGE `
+  powershell -NonInteractive -ExecutionPolicy Bypass `
+    -File "C:\workspace\.github\labview\run-unit-tests.ps1" `
+    -WorkspaceRoot  "C:\workspace" `
+    -ResultsDir     "C:\workspace\ci-out\unit-tests\results" `
+    -LabVIEWVersion "2026" `
+    -LabVIEWPath    "C:\Program Files\National Instruments\LabVIEW 2026\LabVIEW.exe"</code></pre>
+      <p>Because <code>ci-out/&hellip;</code> lives under the bind-mounted workspace, the per-tool JUnit XML the driver
+        writes appears back on the runner host for the report step. (The <em>backfill</em> path cannot rely on that
+        &mdash; see below.)</p>
+
+      <h4>Invoking LabVIEW headless inside the container</h4>
+      <p><code>run-unit-tests.ps1</code> prepares the headless environment before running any framework:</p>
+      <ul>
+        <li><strong>Resolves the toolchain</strong> &mdash; newest <code>LabVIEW.exe</code> under <code>C:\Program Files\National Instruments\LabVIEW *</code>, plus <code>LabVIEWCLI.exe</code> and <code>g-cli</code> from PATH.</li>
+        <li><strong>Refreshes PATH from the registry</strong> (<code>Sync-PathFromRegistry</code>) &mdash; a Windows container&rsquo;s process PATH is baked into the image ENV layer and does not pick up a VIPM-installed <code>g-cli</code>, so the machine/user PATH is re-read and merged; this makes a freshly-baked <code>g-cli</code> visible <em>without</em> an image rebuild.</li>
+        <li><strong>Reads the VI Server port</strong> from <code>LabVIEW.ini</code> (<code>server.tcp.port</code>, default <code>3363</code>).</li>
+        <li><strong>Passes <code>-Headless</code></strong> to every <code>LabVIEWCLI</code> operation &mdash; mandatory on LabVIEW 2026+ in a Windows container or VI Server fails with <code>-350000</code>.</li>
+        <li><strong>Runs each command via <code>cmd.exe /c</code></strong>, capturing exit code and output; on a failed UTF/LUnit run it echoes the LabVIEW CLI <em>session log</em> (the console error is generic) and records a tooling finding.</li>
+      </ul>
+
+      <h4>The output contract</h4>
+      <p>The container emits raw JUnit XML; the host builder normalises it. Two files matter:</p>
+      <ul>
+        <li><strong><code>&lt;ResultsDir&gt;/&lt;tool&gt;-&lt;n&gt;.xml</code></strong> &mdash; one JUnit file per tool per test-root. The report builder infers the framework from the filename (<code>caraya*</code>, <code>lunit*</code>, <code>vi-tester*</code>/<code>vitester*</code>, <code>utf*</code>).</li>
+        <li><strong><code>unit-tests/&lt;sha&gt;/results.json</code></strong> &mdash; the merged model: per-tool suites, per-case status, and a <code>summary</code> of <code>{tests, passed, failed, errored, skipped}</code>. Each failing case deep-links the test VI (and, when derivable by stripping affixes like <code>Foo Tests.vi &rarr; Foo.vi</code>, the VI <em>under test</em>) into the VI Browser for that revision.</li>
+      </ul>
+      <p>The commit status is derived straight from <code>results.json</code> so it always matches the report:</p>
+      <ul>
+        <li><code>tests == 0</code> &rarr; <strong>success</strong>, &ldquo;No unit tests found&rdquo;.</li>
+        <li><code>failed + errored == 0</code> &rarr; <strong>success</strong>, &ldquo;<em>N</em> passed&rdquo;.</li>
+        <li>otherwise &rarr; <strong>failure</strong>, &ldquo;<em>N</em> failed, <em>M</em> passed&rdquo;.</li>
+      </ul>
+      <p>The dashboard colours the Unit Tests badge from the <code>passedPercent</code> thresholds above (green at or
+        above 100%, yellow at or above 80%, red below 80%). When Linux results are present the cell shows the same
+        two-number Windows/Linux pill as Mass Compile.</p>
+
+      <h4>Warm-container history backfill</h4>
+      <p>Backfilling a long history one revision at a time would pay the multi-GB pull and the slow Windows LabVIEW
+        cold-start once per revision. <code>unit-tests-backfill.ps1</code> instead:</p>
+      <ul>
+        <li>starts <strong>one</strong> long-lived container (<code>docker run -d &hellip; while ($true) { Start-Sleep 3600 }</code>);</li>
+        <li>checks out each revision into a throwaway <code>git worktree</code> under <code>C:\wt</code> and runs the driver through <code>docker exec</code>;</li>
+        <li><code>docker cp</code>s each revision&rsquo;s results <em>out</em> of the container &mdash; Windows bind-mount <em>output</em> is unreliable, so results are written to a container-internal dir and copied back &mdash; then builds the report on the host exactly as the per-commit job does;</li>
+        <li>is <strong>resumable</strong> &mdash; a skip-list from the deployed <code>gh-pages</code> tree plus a <code>TimeBudgetMinutes</code> cap lets a batch stop before the 6-hour limit and continue on the next dispatch.</li>
+      </ul>
+      <p>This is the opt-in warm path from <a href="#lifecycle">§14</a>: reusing one container means its mutable state
+        carries across revisions, so it is never the default.</p>
+
+      <div class="warn"><span class="lbl">If the worker lacks a framework&rsquo;s tooling</span>
+        A framework whose CLI add-on is not baked into the image fails to load: UTF/LUnit surface LabVIEW CLI error
+        <code>-350053</code> (&ldquo;missing or bad files in the operation folder&rdquo;). The driver records this in
+        <code>_tooling.json</code> and the report renders an explicit &ldquo;the selected container is missing this
+        dependency&rdquo; banner instead of a bare &ldquo;no tests found.&rdquo; The UTF JUnit reporter in particular is
+        mandatory &mdash; see <a href="#vipm">§15</a>.</div>
 
       <h3 id="cap-antidoc">16.5 Antidoc <a class="anchor" href="#cap-antidoc">#</a></h3>
       <p>Driver: <code>run-antidoc.ps1</code>; report: <code>build-antidoc-report.py</code>. It drives Wovalab's
