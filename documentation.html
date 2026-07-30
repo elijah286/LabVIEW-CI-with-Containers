@@ -1303,32 +1303,57 @@ docker run --rm `
       </ul>
 
       <h3 id="cap-masscompile">16.1 Mass Compile <a class="anchor" href="#cap-masscompile">#</a></h3>
-      <p>Driver: <code>masscompile.ps1</code> / <code>masscompile.sh</code>; report:
-        <code>build-masscompile-report.py</code>. It invokes
-        <code>LabVIEWCLI -OperationName MassCompile -DirectoryToCompile &lt;workspace&gt;</code> (with
-        <code>-Headless</code> on Windows 2026+), which recursively compiles every VI/CTL in a single LabVIEW
-        session.</p>
-      <p>The raw <code>masscompile.log</code> is parsed for two failure signals — <code>### Bad VI</code> entries
-        (VIs LabVIEW cannot load) and <code>Search failed to find …</code> (unresolved subVI dependencies). The
-        report builder enumerates the repo's own VIs (excluding <code>.github/</code>, <code>ci-out/</code>,
-        <code>build/</code>) as the denominator and emits <code>problems.json</code> (per-VI, grouped by top-level
-        folder) plus <code>summary.json</code> (<code>{total, ok, bad, percent, status, missing_deps}</code>).</p>
-      <p>Windows and Linux deploy to disjoint paths &mdash; <code>masscompile/&lt;sha&gt;/summary.json</code> (Windows)
-        and <code>masscompile/&lt;sha&gt;/linux/summary.json</code> (Linux) &mdash; so the two platforms keep separate
-        results. The dashboard reads both and shows a two-number pill (<code>Windows% / Linux%</code>, worst colour
-        wins) when both ran, since the same revision can compile a different set of VIs on each platform; if only one
-        ran it shows that single percentage. Unit Tests use the same two-number pill when Linux results are present.</p>
+
+      <h4>At a glance</h4>
+      <table>
+        <tbody>
+          <tr><th>Driver</th><td><code>.github/labview/masscompile.ps1</code> <span class="pill win">Windows</span> / <code>masscompile.sh</code> <span class="pill lin">Linux</span></td></tr>
+          <tr><th>Report builder</th><td><code>.github/labview/build-masscompile-report.py</code></td></tr>
+          <tr><th>Workflows</th><td><code>masscompile-windows-container.yml</code> <span class="pill win">windows-2022</span>, <code>masscompile-linux-container.yml</code> <span class="pill lin">ubuntu-latest</span>; backfill <code>masscompile-backfill-windows.yml</code></td></tr>
+          <tr><th>Output &amp; status</th><td><code>masscompile/&lt;sha&gt;/</code> (Linux: <code>&hellip;/&lt;sha&gt;/linux/</code>); commit status <code>CI / Mass Compile</code></td></tr>
+        </tbody>
+      </table>
+
+      <h4>What it runs (headless command)</h4>
+      <p>A single <code>LabVIEWCLI</code> <em>MassCompile</em> pass recursively compiles every VI/CTL in one LabVIEW session:</p>
+      <pre><code>LabVIEWCLI -LogToConsole TRUE -OperationName MassCompile `
+  -DirectoryToCompile "C:\workspace" `
+  -LabVIEWPath "C:\Program Files\National Instruments\LabVIEW 2026\LabVIEW.exe" `
+  -Headless</code></pre>
+      <p><code>-Headless</code> is required on LabVIEW 2026+ in a Windows container (VI Server error <code>-350000</code>
+        otherwise). Output is tee&rsquo;d to <code>masscompile.log</code>.</p>
+
+      <h4>Runner composition</h4>
+      <pre><code>docker run --rm `
+  -e "GITHUB_REPOSITORY=${{ github.repository }}" -e "GITHUB_SHA=${{ steps.sha.outputs.sha }}" `
+  -v "${{ github.workspace }}:C:\workspace" `
+  $Env:LABVIEW_CONTAINER_IMAGE `
+  powershell -NonInteractive -ExecutionPolicy Bypass `
+    -File "C:\workspace\.github\labview\masscompile.ps1" `
+    -WorkspaceRoot "C:\workspace" -ReportDir "C:\workspace\ci-out\masscompile" `
+    -LabVIEWPath "C:\Program Files\National Instruments\LabVIEW 2026\LabVIEW.exe"</code></pre>
+
+      <h4>Output contract</h4>
+      <ul>
+        <li>The raw <code>masscompile.log</code> is parsed for two failure signals: <code>### Bad VI</code> (VIs LabVIEW
+          cannot load) and <code>Search failed to find &hellip;</code> (unresolved subVI dependencies).</li>
+        <li>The builder enumerates the repo&rsquo;s own VIs (excluding <code>.github/</code>, <code>ci-out/</code>,
+          <code>build/</code>) as the denominator and emits <code>problems.json</code> (per-VI, grouped by top-level
+          folder) and <code>summary.json</code> (<code>{total, ok, bad, percent, status, missing_deps}</code>).</li>
+        <li>Windows and Linux deploy to disjoint paths (<code>masscompile/&lt;sha&gt;/summary.json</code> vs
+          <code>&hellip;/&lt;sha&gt;/linux/summary.json</code>), so the dashboard shows a two-number
+          <code>Windows% / Linux%</code> pill (worst colour wins) when both ran; a single platform shows one number.</li>
+      </ul>
       <div class="note"><span class="lbl">Exit-code semantics</span>
         <code>0</code> = all compiled; <code>3</code> = partial (some bad VIs, not a container failure); any other
-        non-zero = a real container/configuration error. The Python reader also handles UTF-16 BOMs that Windows
+        non-zero = a real container/configuration error. The reader also handles UTF-16 BOMs that Windows
         <code>Tee-Object</code> can emit.</div>
-      <p>The dashboard's <strong>Mass Compile</strong> column colours the compiled-percentage badge with
-        configurable thresholds (like the Unit Tests column) so revisions read at a glance instead of a near-flat
-        amber: <strong>green</strong> at or above <code>greenAtLeast</code> (default 95%), <strong>yellow</strong>
-        at or above <code>yellowAtLeast</code> (default 80%), and <strong>red</strong> below <code>redBelow</code>
-        (default 80%). A true compile failure (LabVIEW could not finish the compile &mdash; <code>status: failed</code>,
-        which zeroes the percentage) is drawn as a <strong>solid, bright-red filled pill</strong> to distinguish it
-        from a merely low percentage. Override the thresholds in <code>.github/labview-ci.yml</code>:</p>
+
+      <h4>Dashboard badge thresholds</h4>
+      <p>The Mass Compile column colours the compiled-percentage badge: <strong>green</strong> at or above
+        <code>greenAtLeast</code> (95%), <strong>yellow</strong> at or above <code>yellowAtLeast</code> (80%),
+        <strong>red</strong> below <code>redBelow</code> (80%). A true compile failure (<code>status: failed</code>,
+        percentage zeroed) is drawn as a solid, bright-red filled pill. Override in <code>.github/labview-ci.yml</code>:</p>
       <pre><code>massCompile:
   thresholds:
     compiledPercent:
@@ -1337,75 +1362,136 @@ docker run --rm `
       redBelow: 80</code></pre>
 
       <h3 id="cap-vianalyzer">16.2 VI Analyzer <a class="anchor" href="#cap-vianalyzer">#</a></h3>
-      <p>Driver: <code>run-vi-analyzer.ps1</code> <span class="pill win">Windows</span> /
-        <code>run-vi-analyzer.sh</code> <span class="pill lin">Linux</span>; report:
-        <code>build-analyzer-report.py</code>. It runs
-        <code>LabVIEWCLI -OperationName RunVIAnalyzer</code> against a <code>.viancfg</code> configuration. The
-        full built-in suite runs in <em>directory mode</em> — passing the mounted workspace directory itself makes
-        LabVIEWCLI apply every default test to every VI under it. A committed <code>.viancfg</code> instead applies its
-        own <code>TestConfigData</code>; a config whose <code>TestConfigData</code> is <em>empty</em> runs zero tests
-        (a blank report), so when a project commits a config but doesn't pick one, the pipeline auto-selects the first
-        <code>.viancfg</code> in the repo — excluding CI-internal directories (<code>.github/</code>,
-        <code>actions/</code>, <code>ci-out/</code>, <code>build/</code>) so a bundled action-source template
-        (<code>via-config-default.viancfg</code>, which has empty <code>TestConfigData</code>) is never chosen. For
-        that default pass the runner analyzes the whole <strong>project</strong>: it rewrites the generated config to
-        VI Analyzer's native <em>Analyze&nbsp;Project</em> mode (<code>AnalyzeProject=TRUE</code> pointed at the
-        detected <code>.lvproj</code>) while keeping the config's selected tests, because a <code>.viancfg</code> whose
-        <code>ItemsToAnalyze</code> is a list of explicit VIs runs <em>zero</em> tests headlessly. As a safety net, if
-        the project pass still executes no tests (or the repo has no <code>.lvproj</code>), it automatically re-runs in
-        directory mode (the full built-in suite) so the report is never blank.</p>
-      <p>Configuration is layered. The manifest's <code>config.viAnalyzer</code> can name a <code>default</code>
-        config and a list of per-path <code>rules</code> (e.g. strict rules for <code>src/critical/**</code>,
-        relaxed for <code>tests/**</code>). VI Analyzer runs on <strong>both Windows and Linux</strong>: the Linux
-        runner (<code>run-vi-analyzer.sh</code>) mirrors the Windows one (same pre-analysis Mass Compile, the same
-        <em>directory</em> / <em>Analyze&nbsp;Project</em> config handling with a directory-mode fallback) and
-        deploys its report under <code>vi-analyzer/&lt;sha&gt;/linux/</code> with a <code>CI / VI Analyzer (Linux)</code>
-        status, while Windows stays at <code>vi-analyzer/&lt;sha&gt;/</code>. The dashboard's VI Analyzer column shows
-        both platforms' finding counts side by side. Inside the report itself, a segmented
-        <strong>Windows&nbsp;|&nbsp;Linux</strong> toggle under the title switches between the two platforms' reports
-        (the other platform's button is disabled with a note when VI Analyzer hasn't run there for that commit),
-        mirroring the Mass Compile report. The report builder maps each failed test to a category
-        (correctness / performance / style / documentation) for the dashboard's coloured breakdown and preserves the
-        LabVIEW-native HTML as <code>raw.html</code>, which the friendly report always links for download
-        (&ldquo;Download raw report&rdquo; in the summary line). Because LabVIEW is a graphical language, each VI card
-        also embeds its rendered <strong>front panel &amp; block diagram</strong> snapshot inline &mdash; lazily
-        pulled from the VI Browser gallery's <code>vi-snapshots/&lt;sha&gt;/manifest.json</code> when the card is
-        expanded &mdash; so the findings sit next to the actual code; an &ldquo;Open full view&rdquo; control opens the
-        larger interactive snapshot drawer. When VI Analyzer reports <em>testing errors</em> (VIs that could not be
-        loaded/analyzed, e.g. LabVIEW Error&nbsp;14216), the banner names each affected VI, shows its error message, and
-        tags CI-tooling VIs (under <code>.github/</code>) separately so it is clear when the errors are in CI helper VIs
-        rather than your project code.</p>
-      <p>Before analyzing, the driver runs a headless <strong>Mass Compile</strong> to upgrade the project's VIs
-        to the image's LabVIEW version &mdash; VI Analyzer silently skips VIs saved in an older version, which
-        would otherwise report &ldquo;0&nbsp;VIs analyzed.&rdquo; That pre-pass compiles each top-level project
-        folder <em>individually</em> and <strong>excludes the CI's own tooling</strong> under <code>.github/</code>
-        (plus <code>.git/</code>, <code>actions/</code>, <code>ci-out/</code>, <code>build/</code>), so a broken
-        tooling VI &mdash; e.g. the VI Browser render engine under <code>.github/labview/toimages</code>, whose
-        dependencies live only in its own Linux image &mdash; can no longer fail the compile before the project
+
+      <h4>At a glance</h4>
+      <table>
+        <tbody>
+          <tr><th>Driver</th><td><code>run-vi-analyzer.ps1</code> <span class="pill win">Windows</span> / <code>run-vi-analyzer.sh</code> <span class="pill lin">Linux</span></td></tr>
+          <tr><th>Report builder</th><td><code>build-analyzer-report.py</code></td></tr>
+          <tr><th>Workflows</th><td><code>run-vi-analyzer-windows-container.yml</code>; backfill <code>vi-analyzer-backfill-windows.yml</code></td></tr>
+          <tr><th>Output &amp; status</th><td><code>vi-analyzer/&lt;sha&gt;/</code> (<code>CI / VI Analyzer</code>); Linux <code>&hellip;/&lt;sha&gt;/linux/</code> (<code>CI / VI Analyzer (Linux)</code>)</td></tr>
+        </tbody>
+      </table>
+
+      <h4>What it runs (headless command)</h4>
+      <p>Each analysis <em>pass</em> runs one configuration over one scope:</p>
+      <pre><code>LabVIEWCLI -LogToConsole TRUE -OperationName RunVIAnalyzer `
+  -ConfigPath "&lt;config.viancfg&gt;" -ReportPath "&lt;report.html&gt;" `
+  -ReportSaveType HTML `
+  -LabVIEWPath "...\LabVIEW.exe" -Headless</code></pre>
+      <p>Before analysing, the driver runs a headless <strong>Mass Compile</strong> pre-pass
+        (<code>-OperationName MassCompile -DirectoryToCompile &hellip;</code>) to upgrade the project&rsquo;s VIs to the
+        image&rsquo;s LabVIEW year &mdash; VI Analyzer silently skips VIs saved in an older version (&ldquo;0&nbsp;VIs
+        analyzed&rdquo;). The pre-pass compiles each top-level project folder <em>individually</em> and
+        <strong>excludes the CI&rsquo;s own tooling</strong> under <code>.github/</code> (plus <code>.git/</code>,
+        <code>actions/</code>, <code>ci-out/</code>, <code>build/</code>) &mdash; e.g. the VI Browser render engine under
+        <code>.github/labview/toimages</code> &mdash; so a broken tooling VI can&rsquo;t fail the compile before project
         VIs are upgraded.</p>
 
+      <h4>Runner composition</h4>
+      <pre><code>docker run --rm `
+  -e "GITHUB_REPOSITORY=${{ github.repository }}" -e VIA_FILES -e VIA_CONFIG `
+  -v "${{ github.workspace }}:C:\workspace" `
+  $Env:LABVIEW_CONTAINER_IMAGE `
+  powershell -NonInteractive -ExecutionPolicy Bypass `
+    -File "C:\workspace\.github\labview\run-vi-analyzer.ps1" `
+    -WorkspaceRoot "C:\workspace" -ReportDir "C:\workspace\ci-out\vi-analyzer" `
+    -LabVIEWPath "...\LabVIEW.exe"</code></pre>
+      <p><code>VIA_FILES</code> / <code>VIA_CONFIG</code> are passed by name (not spliced onto the command line), so a
+        single-VI re-run&rsquo;s paths and config never break argument parsing; empty means a normal whole-revision run.</p>
+
+      <h4>Which config runs</h4>
+      <ul>
+        <li><strong>Directory mode (default suite).</strong> Passing the mounted workspace directory makes LabVIEWCLI
+          apply every built-in test to every VI under it.</li>
+        <li><strong>Committed <code>.viancfg</code>.</strong> Applies its own <code>TestConfigData</code>; an
+          <em>empty</em> <code>TestConfigData</code> runs zero tests, so when a project commits a config but selects
+          nothing, the pipeline auto-picks the first repo <code>.viancfg</code> &mdash; excluding CI-internal dirs
+          (<code>.github/</code>, <code>actions/</code>, <code>ci-out/</code>, <code>build/</code>) so the bundled
+          <code>via-config-default.viancfg</code> (empty <code>TestConfigData</code>) is never chosen.</li>
+        <li><strong>Analyze-Project rewrite.</strong> For the default pass the runner rewrites the generated config to
+          VI Analyzer&rsquo;s native <em>Analyze&nbsp;Project</em> mode (<code>AnalyzeProject=TRUE</code> pointed at the
+          detected <code>.lvproj</code>) while keeping the selected tests, because a config whose
+          <code>ItemsToAnalyze</code> is a list of explicit VIs runs zero tests headlessly.</li>
+        <li><strong>Safety net.</strong> If the project pass still executes no tests (or there&rsquo;s no
+          <code>.lvproj</code>), it re-runs in directory mode so the report is never blank.</li>
+        <li><strong>Per-path rules.</strong> The manifest&rsquo;s <code>config.viAnalyzer</code> can name a
+          <code>default</code> config and a list of per-path <code>rules</code> (strict for <code>src/critical/**</code>,
+          relaxed for <code>tests/**</code>).</li>
+      </ul>
+
+      <h4>Report &amp; dashboard</h4>
+      <ul>
+        <li>Runs on <strong>both Windows and Linux</strong>: the Linux driver mirrors Windows (same pre-compile, same
+          directory / Analyze-Project handling with a directory-mode fallback) and deploys under
+          <code>vi-analyzer/&lt;sha&gt;/linux/</code>. The dashboard column shows both platforms&rsquo; finding counts, and
+          a segmented <strong>Windows&nbsp;|&nbsp;Linux</strong> toggle in the report switches between them (the other
+          platform&rsquo;s button is disabled when it hasn&rsquo;t run for that commit).</li>
+        <li>The builder maps each failed test to a category (correctness / performance / style / documentation) for the
+          dashboard&rsquo;s coloured breakdown, preserves the LabVIEW-native HTML as <code>raw.html</code> (linked as
+          &ldquo;Download raw report&rdquo;), and writes <code>summary.json</code>.</li>
+        <li>Each VI card embeds its rendered <strong>front panel &amp; block diagram</strong> snapshot inline, lazily
+          pulled from <code>vi-snapshots/&lt;sha&gt;/manifest.json</code> when expanded; &ldquo;Open full view&rdquo;
+          opens the larger snapshot drawer.</li>
+        <li>When VI Analyzer reports <em>testing errors</em> (VIs it couldn&rsquo;t load/analyze, e.g. LabVIEW
+          Error&nbsp;14216), the banner names each affected VI and its message, and tags CI-tooling VIs (under
+          <code>.github/</code>) separately so it&rsquo;s clear when the errors are in CI helper VIs rather than your
+          project code.</li>
+      </ul>
+
       <h3 id="cap-vidiff">16.3 VIDiff <a class="anchor" href="#cap-vidiff">#</a></h3>
-      <p>Driver: <code>vidiff.ps1</code> / <code>.sh</code>; history walker: <code>vidiff-backfill.ps1</code> /
-        <code>.sh</code>. For each changed VI it runs
-        <code>LabVIEWCLI -OperationName CreateComparisonReport</code> (modified VIs, side-by-side) or the custom
-        <code>PrintToSingleFileHtml</code> operation (added/deleted VIs, single snapshot). A magic-byte check at
-        offset 8 confirms a file is a real LabVIEW resource before attempting a render.</p>
-      <p>The job mounts two checkouts — head at <code>C:\workspace</code>, base at
-        <code>C:\workspace-base</code> — and passes the changed-file list as an environment variable. Reports land
-        at <code>vidiff/&lt;pr-N|push-sha&gt;/&lt;platform&gt;/vidiff/</code> with a <code>changes.json</code>
-        manifest (<code>{modified, added, deleted}</code>). The <strong>backfill</strong> variant walks
-        <code>git log --reverse -- '*.vi' '*.ctl'</code>, creates detached worktrees per commit, renders through a
-        warm container, and is resumable via a skip-list so large histories can be processed across runs.</p>
-      <p>On the dashboard, the <strong>VIDiff</strong> column summarises the <em>shape</em> of each revision as a
-        three-number diff stat — <span style="color:#d29922;font-weight:700">different</span> /
-        <span style="color:#3fb950;font-weight:700">new</span> /
-        <span style="color:#f85149;font-weight:700">deleted</span> VI/CTL counts versus the revision's parent —
-        computed by <code>dashboard.py</code> from the two git trees (each file's blob SHA is the content
-        fingerprint: same path + changed blob = different, a path the parent lacked = new, a path the parent had =
-        deleted; a rename reads as one new + one deleted). Zero parts are dimmed so the eye lands on what actually
-        changed, a tip strip spells the counts out, and the whole cell still links into the VI Browser filtered to
-        this revision's changed VIs. The cell falls back to the shared running / queued / one-click-run affordances
-        until a VIDiff result exists.</p>
+
+      <h4>At a glance</h4>
+      <table>
+        <tbody>
+          <tr><th>Driver</th><td><code>vidiff.ps1</code> / <code>vidiff.sh</code>; history walker <code>vidiff-backfill.ps1</code> / <code>.sh</code></td></tr>
+          <tr><th>Deploy + PR comment</th><td><code>vidiff-deploy.yml</code></td></tr>
+          <tr><th>Workflows</th><td><code>vidiff-windows-container.yml</code> <span class="pill win">windows-2022</span>, <code>vidiff-linux-container.yml</code> <span class="pill lin">ubuntu-latest</span>; backfill <code>vidiff-backfill-windows.yml</code></td></tr>
+          <tr><th>Output &amp; status</th><td><code>vidiff/&lt;pr-N|push-sha&gt;/&lt;platform&gt;/vidiff/</code>; status <code>CI / VIDiff (windows|linux)</code></td></tr>
+        </tbody>
+      </table>
+
+      <h4>What it runs (headless commands)</h4>
+      <p>Per changed VI, one of two operations runs (a magic-byte check at offset&nbsp;8 confirms a real LabVIEW resource first):</p>
+      <pre><code># Modified &mdash; side-by-side comparison
+LabVIEWCLI -LogToConsole TRUE -OperationName CreateComparisonReport `
+  -VI1 "&lt;base.vi&gt;" -VI2 "&lt;head.vi&gt;" -ReportType html -ReportPath "&lt;out&gt;\index.html" `
+  -LabVIEWPath "...\LabVIEW.exe" -Headless
+
+# Added / deleted &mdash; single-VI snapshot via the bundled custom operation
+LabVIEWCLI -OperationName PrintToSingleFileHtml `
+  -AdditionalOperationDirectory "&lt;PrintToSingleFileHtml op&gt;" `
+  -VI "&lt;path.vi&gt;" -OutputPath "&lt;out&gt;\index.html" -o -c `
+  -LabVIEWPath "...\LabVIEW.exe" -Headless</code></pre>
+
+      <h4>Runner composition</h4>
+      <p>The job mounts <strong>two</strong> checkouts &mdash; head at <code>C:\workspace</code>, base at
+        <code>C:\workspace-base</code> &mdash; and passes the changed-file list by env var:</p>
+      <pre><code>docker run --rm `
+  -v "${workspace}\head:C:\workspace" -v "${workspace}\base:C:\workspace-base" `
+  -e CHANGED_FILES=$Env:CHANGED_FILES -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+  $Env:LABVIEW_CONTAINER_IMAGE `
+  powershell -NonInteractive -ExecutionPolicy Bypass `
+    -File "C:\workspace\.github\labview\vidiff.ps1" `
+    -BaseDir "C:\workspace-base" -HeadDir "C:\workspace" `
+    -ReportDir "C:\workspace\ci-out\vidiff" -LabVIEWPath "...\LabVIEW.exe"</code></pre>
+
+      <h4>Output &amp; dashboard</h4>
+      <ul>
+        <li>Reports land at <code>vidiff/&lt;pr-N|push-sha&gt;/&lt;platform&gt;/vidiff/</code> with a
+          <code>changes.json</code> manifest (<code>{modified, added, deleted}</code>). <code>vidiff-deploy.yml</code>
+          deploys them to Pages and comments the diff on the PR (it runs even on failure).</li>
+        <li>The <strong>backfill</strong> variant walks <code>git log --reverse -- '*.vi' '*.ctl'</code>, creates
+          detached worktrees per commit, renders through a warm container, and is resumable via a skip-list.</li>
+        <li>The dashboard <strong>VIDiff</strong> column summarises each revision as a three-number diff stat &mdash;
+          <span style="color:#d29922;font-weight:700">different</span> /
+          <span style="color:#3fb950;font-weight:700">new</span> /
+          <span style="color:#f85149;font-weight:700">deleted</span> VI/CTL counts versus the parent &mdash; computed by
+          <code>dashboard.py</code> from the two git trees (each file&rsquo;s blob SHA is the content fingerprint: same
+          path + changed blob = different, a path the parent lacked = new, a path the parent had = deleted; a rename
+          reads as one new + one deleted). Zero parts are dimmed, a tip strip spells the counts out, and the cell links
+          into the VI Browser filtered to this revision&rsquo;s changed VIs.</li>
+      </ul>
       <div class="note"><span class="lbl">PrintToSingleFileHtml</span>
         The custom operation under <code>.github/labview/PrintToSingleFileHtml/</code> is a binary
         <code>.lvclass</code> sourced from NI's <code>labview-for-containers</code> examples; it renders a single VI
@@ -1556,37 +1642,84 @@ docker run --rm `
         mandatory &mdash; see <a href="#vipm">§15</a>.</div>
 
       <h3 id="cap-antidoc">16.5 Antidoc <a class="anchor" href="#cap-antidoc">#</a></h3>
-      <p>Driver: <code>run-antidoc.ps1</code>; report: <code>build-antidoc-report.py</code>. It drives Wovalab's
-        Antidoc CLI through <code>g-cli</code> against the project's <code>.lvproj</code> (auto-detected if not
-        specified), producing AsciiDoc with embedded diagram images. The report page (built by <code>build-antidoc-report.py</code>) is a two-pane in-browser viewer: a file navigator lists the main document, its section includes and every rendered image, and the pane beside it shows the fully rendered document by default &mdash; Asciidoctor.js resolves Antidoc's <code>include::</code> sections (fetched up front) and pins <code>imagesdir</code> at the deployed image folder &mdash; or the raw source of any file or a preview of any image on demand; if the renderer CDN is unreachable the raw source stays visible and every file remains downloadable. The CLI is invoked as the g-cli tool
-        <code>antidoc</code> (renamed from the older <code>antidoccli</code>) with <code>-addon lvproj</code>, so the
-        LabVIEW-project documentation add-on (<code>wovalab_lib_antidoc_add_on_labview_project_documentation</code>)
-        must be &mdash; and is &mdash; baked into the worker image alongside the CLI in
-        <code>antidoc.vipc</code>. Four implementation details are worth knowing:
-        it relies on <strong><code>LV_RTE_HEADLESS=1</code></strong> (set both in the worker base image and, as a belt-and-suspenders fallback, by the runner before launching g-cli) &mdash; g-cli launches
-        <code>LabVIEW.exe</code> directly (not through <code>LabVIEWCLI&nbsp;-Headless</code>), and NI's container
-        otherwise brings that direct launch up at the <em>activation wizard</em> so the tool VI never runs; NI's
-        global headless override (<a href="https://github.com/ni/labview-for-containers/blob/main/docs/headless-labview.md">documented here</a>)
-        makes every LabVIEW launch headless and activation-free, which is why Mass Compile / VI Analyzer (LabVIEWCLI
-        <code>-Headless</code>) always worked but Antidoc (a g-cli tool) did not until this was set;
-        it <strong>re-reads the Windows registry PATH</strong> and merges it into the process environment so a VIPM
-        package installed after the Dockerfile's <code>ENV</code> layer (e.g. <code>g-cli</code>) is visible without
-        an image rebuild; it passes a generous <strong>g-cli <code>--timeout</code></strong> (10&nbsp;minutes,
-        overridable via <code>ANTIDOC_CONNECT_TIMEOUT_MS</code>) so a cold container that must launch LabVIEW and
-        load Antidoc's large VI hierarchy before the tool connects back does not trip the launch handshake with
-        &ldquo;No connection established with application&rdquo;; and it <strong>always emits a safety-net
-        report</strong> even on failure, so the dashboard never links to a 404.</p>
-      <p>Dependency intent for this capability is the committed
-        <code>.github/labview/antidoc/antidoc.vipc</code>. As with <code>ci-tooling.vipc</code>, this file is
-        authoritative and must remain VIPM-openable; optional JSON metadata may assist tooling but does not override
-        the committed VIPC.</p>
+
+      <h4>At a glance</h4>
+      <table>
+        <tbody>
+          <tr><th>Driver</th><td><code>run-antidoc.ps1</code>; report <code>build-antidoc-report.py</code></td></tr>
+          <tr><th>Workflow</th><td><code>run-antidoc-windows-container.yml</code> <span class="pill win">windows-2022</span>; backfill <code>antidoc-backfill-windows.yml</code></td></tr>
+          <tr><th>Trigger</th><td>push to the default branch + dispatch (no per-PR run &mdash; it&rsquo;s a heavier render)</td></tr>
+          <tr><th>Output &amp; status</th><td><code>antidoc/&lt;sha&gt;/</code>; status <code>CI / Antidoc</code></td></tr>
+          <tr><th>Dependencies</th><td>committed <code>.github/labview/antidoc/antidoc.vipc</code> (the CLI + <code>wovalab_lib_antidoc_add_on_labview_project_documentation</code>)</td></tr>
+        </tbody>
+      </table>
+
+      <h4>What it runs (headless command)</h4>
+      <p>Wovalab&rsquo;s Antidoc CLI, driven through <code>g-cli</code> against the project&rsquo;s <code>.lvproj</code>
+        (auto-detected), producing AsciiDoc with embedded diagram images:</p>
+      <pre><code>g-cli -v --lv-ver 2026 --timeout &lt;ms&gt; antidoc -- `
+  -addon lvproj -pp "&lt;project.lvproj&gt;" -t "&lt;title&gt;" -out "&lt;docdir&gt;"</code></pre>
+      <p>The tool is invoked as the g-cli tool <code>antidoc</code> (renamed from the older <code>antidoccli</code>) with
+        <code>-addon lvproj</code>, so the LabVIEW-project documentation add-on must be baked into the worker alongside
+        the CLI. Four implementation details make it work headless:</p>
+      <ul>
+        <li><strong>Headless via <code>LV_RTE_HEADLESS=1</code>.</strong> g-cli launches <code>LabVIEW.exe</code>
+          directly (not <code>LabVIEWCLI&nbsp;-Headless</code>), which NI&rsquo;s container otherwise brings up at the
+          <em>activation wizard</em> so the tool VI never runs. NI&rsquo;s
+          <a href="https://github.com/ni/labview-for-containers/blob/main/docs/headless-labview.md">global headless override</a>
+          makes every launch headless and activation-free &mdash; which is why the LabVIEWCLI activities always worked
+          but Antidoc didn&rsquo;t until this was set (in the base image, and re-set by the runner as a fallback).</li>
+        <li><strong>Registry PATH refresh</strong> &mdash; merges the Windows registry PATH so a VIPM-installed
+          <code>g-cli</code> is visible without an image rebuild.</li>
+        <li><strong>Generous <code>--timeout</code></strong> (10&nbsp;min, override <code>ANTIDOC_CONNECT_TIMEOUT_MS</code>)
+          so a cold container launching LabVIEW and loading Antidoc&rsquo;s large VI hierarchy doesn&rsquo;t trip the
+          connect handshake (&ldquo;No connection established with application&rdquo;).</li>
+        <li><strong>Always emits a safety-net report</strong> even on failure, so the dashboard never links to a 404.</li>
+      </ul>
+
+      <h4>Runner composition</h4>
+      <pre><code>docker run --rm `
+  -e "GITHUB_REPOSITORY=${{ github.repository }}" -e "GITHUB_SHA=${{ steps.sha.outputs.sha }}" `
+  -v "${{ github.workspace }}:C:\workspace" `
+  $Env:LABVIEW_CONTAINER_IMAGE `
+  powershell -NonInteractive -ExecutionPolicy Bypass `
+    -File "C:\workspace\.github\labview\run-antidoc.ps1" `
+    -WorkspaceRoot "C:\workspace" -ReportDir "C:\workspace\ci-out\antidoc" `
+    -LabVIEWPath "...\LabVIEW.exe"</code></pre>
+
+      <h4>The report</h4>
+      <p>The report page is a two-pane in-browser viewer: a file navigator (main document, its <code>include::</code>
+        sections, every rendered image) beside a pane that shows the fully rendered document by default &mdash;
+        Asciidoctor.js resolves Antidoc&rsquo;s includes (fetched up front) and pins <code>imagesdir</code> at the
+        deployed image folder &mdash; or raw source / an image preview on demand. If the renderer CDN is unreachable the
+        raw source stays visible and every file remains downloadable.</p>
+      <p>Dependency intent is the committed <code>.github/labview/antidoc/antidoc.vipc</code>. As with
+        <code>ci-tooling.vipc</code>, this file is authoritative and must remain VIPM-openable; optional JSON metadata
+        may assist tooling but does not override the committed VIPC.</p>
 
       <h3 id="cap-snapshots">16.6 VI Snapshots &amp; VI Browser <a class="anchor" href="#cap-snapshots">#</a></h3>
+
+      <h4>At a glance</h4>
+      <table>
+        <tbody>
+          <tr><th>Drivers</th><td><code>build-snapshots.ps1</code> (orchestrator) &rarr; <code>render-snapshots.ps1</code> (per-VI); gallery <code>build-gallery.py</code>; 2.0 engine <code>toimages</code> / <code>lvctl toimages</code></td></tr>
+          <tr><th>Workflows</th><td><code>vi-snapshots.yml</code> <span class="pill win">windows-2022</span>; 2.0 <code>vi-snapshots-json.yml</code> <span class="pill lin">Linux</span> / <code>vi-snapshots-json-windows.yml</code> <span class="pill win">Windows</span></td></tr>
+          <tr><th>Output &amp; status</th><td><code>vi-snapshots/</code> (content-addressed <code>by-blob/&lt;ab&gt;/&lt;blob&gt;.html|.json</code>); status <code>CI / VI Snapshots</code></td></tr>
+        </tbody>
+      </table>
       <p>This is the one place that deliberately reuses a warm container. Snapshots are <strong>content-addressed by
-        git blob SHA</strong>, so each unique VI is rendered exactly once — ever — and reused across every commit
-        that contains it. If an older revision references a snapshot or report document that has not been published
-        yet, the VI Browser and framed report viewer show an in-page missing-document state with a Populate history
-        link instead of framing a GitHub Pages 404.</p>
+        git blob SHA</strong>, so each unique VI is rendered exactly once &mdash; ever &mdash; and reused across every
+        commit that contains it. If an older revision references a snapshot or report document not yet published, the VI
+        Browser and framed report viewer show an in-page missing-document state with a Populate history link instead of
+        framing a GitHub Pages 404.</p>
+
+      <h4>The warm-container pattern</h4>
+      <p>Both phases start one long-lived container and push every VI through it with <code>docker exec</code> &mdash;
+        no per-VI or per-commit container churn:</p>
+      <pre><code>docker run -d --name &lt;name&gt; ... $Image powershell -NoProfile `
+  -Command "while ($true) { Start-Sleep -Seconds 3600 }"
+docker exec &lt;name&gt; powershell -File C:\ops\render-snapshots.ps1 ...   # per worklist entry</code></pre>
+
       <h4>Phase 1 — HTML snapshots and Windows 2.0 frames <span class="pill win">Windows</span></h4>
       <p>Orchestrated by <code>build-snapshots.ps1</code>, which starts a single long-lived container
         (<code>docker run -d … while true sleep</code>) and renders many commits through it via

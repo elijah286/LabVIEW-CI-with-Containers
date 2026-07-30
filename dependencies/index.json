@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "0454a45331eb5b49b8c3fa8095cf5616247cb0e7",
+  "sha": "7697512d87e54653dba4cec2286a7c6750c44619",
   "revisions": [
+    {
+      "sha": "7697512d87e54653dba4cec2286a7c6750c44619",
+      "short": "7697512",
+      "message": "Docs: give \u00a716.1\u201316.6 the worked-example treatment",
+      "author": "Elijah Kerry",
+      "date": "2026-07-30T00:58:35Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "0454a45331eb5b49b8c3fa8095cf5616247cb0e7",
       "short": "0454a45",
@@ -891,15 +900,6 @@
       "message": "dashboard: show Queued badge when re-running an in-flight activity; force-theme fix",
       "author": "Elijah Kerry",
       "date": "2026-07-14T02:10:54Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "db68dd6b05bde3c0684e71e2a5597161a8aa425a",
-      "short": "db68dd6",
-      "message": "vipm: self-heal a wedged headless VIPM engine (restart-and-retry) (4.4.5)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-09T12:11:19Z",
       "project": false,
       "dep_only": false
     },
