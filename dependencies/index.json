@@ -1,8 +1,80 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "7697512d87e54653dba4cec2286a7c6750c44619",
+  "sha": "8128f4a967b4293a5d4edd19028662e6a54bb847",
   "revisions": [
+    {
+      "sha": "8128f4a967b4293a5d4edd19028662e6a54bb847",
+      "short": "8128f4a",
+      "message": "Merge pull request #42 from danielcoons/feature/#22-SBOM",
+      "author": "Daniel Coons",
+      "date": "2026-07-31T19:40:38Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "847103e9914faeafef60d7a6bf4ce76ddd3540db",
+      "short": "847103e",
+      "message": "update of high-level automation calls file naming",
+      "author": "daniel-coons",
+      "date": "2026-07-31T19:37:39Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "7830d780250129b6ac63e2bb105243b67fc59813",
+      "short": "7830d78",
+      "message": "updated sbom generation yml",
+      "author": "daniel-coons",
+      "date": "2026-07-31T18:28:57Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "c9db59e73b37d31ea9eef71e0a22cb9fffe765f6",
+      "short": "c9db59e",
+      "message": "updated scripting based on other repo integration testing",
+      "author": "daniel-coons",
+      "date": "2026-07-31T18:27:45Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "70e5dfb7cf092e18feaf0601ba43457385bbc4bc",
+      "short": "70e5dfb",
+      "message": "updated catalog json",
+      "author": "daniel-coons",
+      "date": "2026-07-30T19:37:12Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "445ff838d243286c73b792b366e961a522c8d158",
+      "short": "445ff83",
+      "message": "added sbom workflow?",
+      "author": "daniel-coons",
+      "date": "2026-07-30T19:09:34Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "0063d90f0d44c708d5f37d05403efbcafe040d46",
+      "short": "0063d90",
+      "message": "attempt at sbom helper files",
+      "author": "daniel-coons",
+      "date": "2026-07-30T19:09:10Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "e9cd54bde4867ab7e69256ea61a2efed435bdd38",
+      "short": "e9cd54b",
+      "message": "Add LabVIEW CI pipeline",
+      "author": "Daniel Coons",
+      "date": "2026-07-30T18:15:38Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "7697512d87e54653dba4cec2286a7c6750c44619",
       "short": "7697512",
@@ -832,78 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "75407454bf88c53975afff48833b72bbf14c6858",
-      "short": "7540745",
-      "message": "vi-analyzer: pre-analysis Mass Compile now excludes CI tooling (.github)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-15T20:53:26Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "3c542fdee324c995acbe03d84013ed90c0e3c7b9",
-      "short": "3c542fd",
-      "message": "Merge pull request #20 from elijah286/fix/deps-pending-version-mismatch",
-      "author": "Elijah Kerry",
-      "date": "2026-07-15T20:50:59Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "eca6c35d539c2364f80cba395c371dbe146772da",
-      "short": "eca6c35",
-      "message": "Merge remote-tracking branch 'origin/main' into HEAD",
-      "author": "Elijah Kerry",
-      "date": "2026-07-15T20:50:24Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "a701b930a2d6e6b4a5e162839535832a3b78840c",
-      "short": "a701b93",
-      "message": "update: don't re-enable activities the repo turned off",
-      "author": "Elijah Kerry",
-      "date": "2026-07-15T15:58:22Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "07381993887c2136c1072628da0715fb5a97c4c6",
-      "short": "0738199",
-      "message": "vi-analyzer settings: warn when a .viancfg sits in the tooling-managed .github area",
-      "author": "Elijah Kerry",
-      "date": "2026-07-14T15:49:15Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "b4dc48ed204ddabbbb1a4eb802d14e4519df88b6",
-      "short": "b4dc48e",
-      "message": "vi-analyzer: don't auto-select a CI action-source config as the project default (blank-report fix)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-14T15:41:29Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "32e898b12d2b3cf411865855b9dfa45afbe32791",
-      "short": "32e898b",
-      "message": "Dependencies: fix false 'update needed' from VIPM v-prefix mismatch; itemize missing deps (4.4.8)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-14T15:30:07Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "39f802bfbc151b2f484a4705506a3a546ff75e5c",
-      "short": "39f802b",
-      "message": "dashboard: show Queued badge when re-running an in-flight activity; force-theme fix",
-      "author": "Elijah Kerry",
-      "date": "2026-07-14T02:10:54Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1085,7 +1085,7 @@
     }
   ],
   "config": {
-    "use": "latest",
+    "use": "",
     "actions": {},
     "vipc": [],
     "dragon": [],
@@ -1093,46 +1093,6 @@
     "hasDragonList": false
   },
   "vipc": [
-    {
-      "path": ".github/labview/antidoc/antidoc.vipc",
-      "role": "capability",
-      "capability": "antidoc",
-      "tooling": false,
-      "configured": true,
-      "monitored": true,
-      "monitorOn": [
-        "windows"
-      ],
-      "locked": false,
-      "packages": [
-        "graphbuilder-2.3.0.7",
-        "jki_lib_state_machine-2024.0.3.23",
-        "jki_rsc_toolkits_palette-1.1-1",
-        "wiresmith_technology_lib_g_cli-3.0.1.98",
-        "wovalab_lib_antidoc-3.3.1.879",
-        "wovalab_lib_antidoc_add_on_labview_project_documentation-3.2.0.358",
-        "wovalab_lib_antidoc_add_on_labview_toolkit_documentation-3.0.0.77",
-        "wovalab_lib_antidoc_cli-3.4.0.126",
-        "wovalab_lib_asciidoc_for_labview-1.12.1.492"
-      ],
-      "error": ""
-    },
-    {
-      "path": ".github/labview/experimental.vipc",
-      "role": "capability",
-      "capability": "",
-      "tooling": false,
-      "configured": false,
-      "monitored": true,
-      "monitorOn": [
-        "windows"
-      ],
-      "locked": false,
-      "packages": [
-        "wovalab_lib_antidoc_cli-3.3.0.117"
-      ],
-      "error": ""
-    },
     {
       "path": ".github/labview/vipm/ci-tooling.vipc",
       "role": "core",
@@ -1280,67 +1240,11 @@
     "files": [
       {
         "source_file": "example/Example.dragon",
-        "labview_version": "2026",
-        "feeds": {},
-        "dependencies": [
-          {
-            "manager": "vipm",
-            "package_id": "oglib_array",
-            "declared_version": "6.0.1.20",
-            "feed_name": null,
-            "source_file": "example/Example.dragon",
-            "status": "installed",
-            "installed_version": "6.0.1.20",
-            "message": "inferred from Windows worker VIPM package inventory"
-          },
-          {
-            "manager": "vipm",
-            "package_id": "oglib_boolean",
-            "declared_version": "6.0.0.9",
-            "feed_name": null,
-            "source_file": "example/Example.dragon",
-            "status": "missing",
-            "installed_version": "",
-            "message": "package not found in Windows worker VIPM package inventory"
-          }
-        ],
+        "dependencies": [],
         "monitored": true
       }
     ],
-    "install_set": [
-      {
-        "manager": "vipm",
-        "package_id": "oglib_array",
-        "declared_version": "6.0.1.20",
-        "declared_versions": [
-          "6.0.1.20"
-        ],
-        "feed_name": null,
-        "source_files": [
-          "example/Example.dragon"
-        ],
-        "conflict": false,
-        "status": "installed",
-        "installed_version": "6.0.1.20",
-        "message": "inferred from Windows worker VIPM package inventory"
-      },
-      {
-        "manager": "vipm",
-        "package_id": "oglib_boolean",
-        "declared_version": "6.0.0.9",
-        "declared_versions": [
-          "6.0.0.9"
-        ],
-        "feed_name": null,
-        "source_files": [
-          "example/Example.dragon"
-        ],
-        "conflict": false,
-        "status": "missing",
-        "installed_version": "",
-        "message": "package not found in Windows worker VIPM package inventory"
-      }
-    ],
+    "install_set": [],
     "conflicts": []
   },
   "system": [
