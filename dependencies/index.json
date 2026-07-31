@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "8128f4a967b4293a5d4edd19028662e6a54bb847",
+  "sha": "b48e95d35f8e6b5de77fad4bbe81496b64d3e8ec",
   "revisions": [
+    {
+      "sha": "b48e95d35f8e6b5de77fad4bbe81496b64d3e8ec",
+      "short": "b48e95d",
+      "message": "Merge pull request #43 from elijah286/revert-42-feature/#22-SBOM",
+      "author": "Daniel Coons",
+      "date": "2026-07-31T19:47:09Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "fb68140557282ec69eb7056aab7fc8f67a2bf0ae",
+      "short": "fb68140",
+      "message": "Revert \"Feature/#22 SBOM\"",
+      "author": "Daniel Coons",
+      "date": "2026-07-31T19:45:47Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "8128f4a967b4293a5d4edd19028662e6a54bb847",
       "short": "8128f4a",
@@ -886,24 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "381d6f37833788e7a99a0ceb1264b881e8da6a57",
-      "short": "381d6f3",
-      "message": "Add repaired Antidoc VIPC file",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T15:34:29Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "dec7497cde71bdd9b320f1bcea5667fb611447aa",
-      "short": "dec7497",
-      "message": "Create ci-tooling_repaired.vipc",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T15:27:29Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1085,7 +1085,7 @@
     }
   ],
   "config": {
-    "use": "",
+    "use": "latest",
     "actions": {},
     "vipc": [],
     "dragon": [],
@@ -1093,6 +1093,46 @@
     "hasDragonList": false
   },
   "vipc": [
+    {
+      "path": ".github/labview/antidoc/antidoc.vipc",
+      "role": "capability",
+      "capability": "antidoc",
+      "tooling": false,
+      "configured": true,
+      "monitored": true,
+      "monitorOn": [
+        "windows"
+      ],
+      "locked": false,
+      "packages": [
+        "graphbuilder-2.3.0.7",
+        "jki_lib_state_machine-2024.0.3.23",
+        "jki_rsc_toolkits_palette-1.1-1",
+        "wiresmith_technology_lib_g_cli-3.0.1.98",
+        "wovalab_lib_antidoc-3.3.1.879",
+        "wovalab_lib_antidoc_add_on_labview_project_documentation-3.2.0.358",
+        "wovalab_lib_antidoc_add_on_labview_toolkit_documentation-3.0.0.77",
+        "wovalab_lib_antidoc_cli-3.4.0.126",
+        "wovalab_lib_asciidoc_for_labview-1.12.1.492"
+      ],
+      "error": ""
+    },
+    {
+      "path": ".github/labview/experimental.vipc",
+      "role": "capability",
+      "capability": "",
+      "tooling": false,
+      "configured": false,
+      "monitored": true,
+      "monitorOn": [
+        "windows"
+      ],
+      "locked": false,
+      "packages": [
+        "wovalab_lib_antidoc_cli-3.3.0.117"
+      ],
+      "error": ""
+    },
     {
       "path": ".github/labview/vipm/ci-tooling.vipc",
       "role": "core",
@@ -1240,11 +1280,67 @@
     "files": [
       {
         "source_file": "example/Example.dragon",
-        "dependencies": [],
+        "labview_version": "2026",
+        "feeds": {},
+        "dependencies": [
+          {
+            "manager": "vipm",
+            "package_id": "oglib_array",
+            "declared_version": "6.0.1.20",
+            "feed_name": null,
+            "source_file": "example/Example.dragon",
+            "status": "installed",
+            "installed_version": "6.0.1.20",
+            "message": "inferred from Windows worker VIPM package inventory"
+          },
+          {
+            "manager": "vipm",
+            "package_id": "oglib_boolean",
+            "declared_version": "6.0.0.9",
+            "feed_name": null,
+            "source_file": "example/Example.dragon",
+            "status": "missing",
+            "installed_version": "",
+            "message": "package not found in Windows worker VIPM package inventory"
+          }
+        ],
         "monitored": true
       }
     ],
-    "install_set": [],
+    "install_set": [
+      {
+        "manager": "vipm",
+        "package_id": "oglib_array",
+        "declared_version": "6.0.1.20",
+        "declared_versions": [
+          "6.0.1.20"
+        ],
+        "feed_name": null,
+        "source_files": [
+          "example/Example.dragon"
+        ],
+        "conflict": false,
+        "status": "installed",
+        "installed_version": "6.0.1.20",
+        "message": "inferred from Windows worker VIPM package inventory"
+      },
+      {
+        "manager": "vipm",
+        "package_id": "oglib_boolean",
+        "declared_version": "6.0.0.9",
+        "declared_versions": [
+          "6.0.0.9"
+        ],
+        "feed_name": null,
+        "source_files": [
+          "example/Example.dragon"
+        ],
+        "conflict": false,
+        "status": "missing",
+        "installed_version": "",
+        "message": "package not found in Windows worker VIPM package inventory"
+      }
+    ],
     "conflicts": []
   },
   "system": [
