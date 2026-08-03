@@ -418,12 +418,13 @@ def merge_passes(passes: list, args: argparse.Namespace) -> dict:
     if base_meta:
         meta_extra.update(base_meta.get("meta", {}))
     # Which configurations contributed (shown when more than one applies).
+    has_rules = any(p["kind"] == "rule" for p in passes)
     configs = []
     for p in passes:
         if p["kind"] == "default":
             if p.get("config") == "none":
                 continue  # no default suite -> nothing to list for it
-            configs.append({"label": p.get("label", "Built-in full test suite"), "scope": "all other VIs"})
+            configs.append({"label": p.get("label", "Built-in full test suite"), "scope": "all other VIs" if has_rules else "all VIs"})
         elif p["kind"] in ("rule", "exclude"):
             is_excl = p["kind"] == "exclude" or p.get("config") == "none"
             configs.append({"label": "Excluded (not tested)" if is_excl else p.get("label", p.get("config", "")),
@@ -793,7 +794,7 @@ const CATS = DATA.categories, ORDER = DATA.category_order;
 const SNAP_BASE = '__PAGES_BASE__/vi-snapshots/';
 // Show the per-VI configuration pill only when more than one *test* configuration
 // applies (excludes don't count); the header note lists all configs incl excludes.
-const MULTICFG = ((META.configs||[]).filter(c=>!c.exclude).length) > 1;
+const MULTICFG = ((META.configs||[]).filter(c=>!c.exclude).length) >= 1;
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // ── platform toggle (switch between the Windows and Linux VI Analyzer reports) ──
@@ -873,7 +874,7 @@ let query = '';
     (c.sub?`<div class="l" style="text-transform:none;letter-spacing:0;opacity:.75;margin-top:1px">${c.sub}</div>`:'')+`</div>`).join('');
   document.getElementById('barfill').style.width = pct+'%';
   document.getElementById('barlabel').textContent = `${pct}% of ${ (SUM.tests_run||0).toLocaleString() } tests passed · ${(SUM.failed||0).toLocaleString()} failed tests reported ${((SUM.findings!=null?SUM.findings:SUM.failed)||0).toLocaleString()} findings`;
-  if(META.configs && META.configs.length > 1){
+  if(META.configs && META.configs.length >= 1){
     const cfgnote = document.createElement('div'); cfgnote.className='viacfgs';
     cfgnote.innerHTML = 'Test configurations applied: ' + META.configs.map(c=>`<code>${esc(c.label)}</code>${c.scope?` <span style="opacity:.8">(${esc(c.scope)})</span>`:''}`).join(' · ');
     const sub=document.getElementById('sub'); sub.parentNode.insertBefore(cfgnote, sub.nextSibling);

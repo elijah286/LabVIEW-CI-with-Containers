@@ -89,7 +89,8 @@ function Read-ViaConfig([string]$ManifestPath) {
     for (; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
         if ($line -match '^\s{0,3}\S') { break }
-        if ($line -match '^\s{4}default:\s*"?([^"\s]+)"?') { $cfg.default = $Matches[1]; $inRules = $false; continue }
+        if ($line -match '^\s{4}default:\s*"([^"]+)"') { $cfg.default = $Matches[1]; $inRules = $false; continue }
+        elseif ($line -match '^\s{4}default:\s*(\S.*)') { $cfg.default = $Matches[1].Trim(); $inRules = $false; continue }
         if ($line -match '^\s{4}rules:\s*$') { $inRules = $true; continue }
         if ($inRules) {
             if ($line -match '^\s{6}-\s*config:\s*"?([^"]+?)"?\s*$') {
@@ -220,12 +221,17 @@ function Build-ProjectConfig([string]$BaseConfigPath, [string]$ProjectContainerP
     $xml = $xml -replace '__WORKSPACE_PATH__', $Workspace
     $apBlock = '<AnalyzeProject>TRUE</AnalyzeProject>'
     $ppBlock = '<ProjectPath>"' + $ProjectContainerPath + '"</ProjectPath>'
+    # AnalyzeProject=TRUE + any <Item> entries is ambiguous and causes error 14217
+    # in VIAn New Task.vi; clear ItemsToAnalyze so the config is unambiguous.
+    $iaBlock = '<ItemsToAnalyze>' + "`r`n`t</ItemsToAnalyze>"
     $rxAP = [regex]'(?s)<AnalyzeProject>.*?</AnalyzeProject>'
     $rxPP = [regex]'(?s)<ProjectPath>.*?</ProjectPath>'
+    $rxIA = [regex]'(?s)<ItemsToAnalyze>.*?</ItemsToAnalyze>'
     if ($rxAP.IsMatch($xml)) { $xml = $rxAP.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $apBlock }, 1) }
     else { $xml = $xml -replace '</Config>', ($apBlock + "`r`n</Config>") }
     if ($rxPP.IsMatch($xml)) { $xml = $rxPP.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $ppBlock }, 1) }
     else { $xml = $xml -replace '</Config>', ($ppBlock + "`r`n</Config>") }
+    if ($rxIA.IsMatch($xml)) { $xml = $rxIA.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $iaBlock }, 1) }
     [System.IO.File]::WriteAllText($OutPath, $xml, [System.Text.UTF8Encoding]::new($false))
 }
 
