@@ -211,19 +211,16 @@ function Get-ProjectFile([string]$Root) {
     return $null
 }
 
-# Build the DEFAULT-pass config from a committed .viancfg by pointing it at a whole
-# scope (a project .lvproj) while KEEPING the config's selected tests. RunVIAnalyzer
-# runs a PROJECT scope with the config's tests, whereas a config whose ItemsToAnalyze
-# is a list of explicit VIs runs ZERO tests headlessly - so this restores real
-# results while still honouring the user's custom test selection.
-function Build-ProjectConfig([string]$BaseConfigPath, [string]$ProjectContainerPath, [string]$OutPath, [string]$Workspace) {
+# Build the DEFAULT-pass config from a committed .viancfg scoped to the workspace
+# directory. AnalyzeProject=TRUE is not supported by the VI Analyzer API VIs and
+# causes error 14217; directory mode (AnalyzeProject=FALSE + root folder as the
+# single <Item>) is the NI-confirmed workaround and the VI Analyzer recurses it.
+function Build-ProjectConfig([string]$BaseConfigPath, [string]$OutPath, [string]$Workspace) {
     $xml = Get-Content -LiteralPath $BaseConfigPath -Raw
     $xml = $xml -replace '__WORKSPACE_PATH__', $Workspace
-    $apBlock = '<AnalyzeProject>TRUE</AnalyzeProject>'
-    $ppBlock = '<ProjectPath>"' + $ProjectContainerPath + '"</ProjectPath>'
-    # AnalyzeProject=TRUE + any <Item> entries is ambiguous and causes error 14217
-    # in VIAn New Task.vi; clear ItemsToAnalyze so the config is unambiguous.
-    $iaBlock = '<ItemsToAnalyze>' + "`r`n`t</ItemsToAnalyze>"
+    $apBlock = '<AnalyzeProject>FALSE</AnalyzeProject>'
+    $ppBlock = '<ProjectPath>""</ProjectPath>'
+    $iaBlock = "<ItemsToAnalyze>`r`n`t`t<Item>`r`n`t`t`t<Path>`"$Workspace`"</Path>`r`n`t`t`t<Removed>FALSE</Removed>`r`n`t`t</Item>`r`n`t</ItemsToAnalyze>"
     $rxAP = [regex]'(?s)<AnalyzeProject>.*?</AnalyzeProject>'
     $rxPP = [regex]'(?s)<ProjectPath>.*?</ProjectPath>'
     $rxIA = [regex]'(?s)<ItemsToAnalyze>.*?</ItemsToAnalyze>'
@@ -232,6 +229,7 @@ function Build-ProjectConfig([string]$BaseConfigPath, [string]$ProjectContainerP
     if ($rxPP.IsMatch($xml)) { $xml = $rxPP.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $ppBlock }, 1) }
     else { $xml = $xml -replace '</Config>', ($ppBlock + "`r`n</Config>") }
     if ($rxIA.IsMatch($xml)) { $xml = $rxIA.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $iaBlock }, 1) }
+    else { $xml = $xml -replace '</Config>', ($iaBlock + "`r`n</Config>") }
     [System.IO.File]::WriteAllText($OutPath, $xml, [System.Text.UTF8Encoding]::new($false))
 }
 
@@ -357,22 +355,13 @@ if ($filterList.Count -gt 0) {
         if ($def -eq 'builtin') {
             $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
         } elseif ($def -ne 'none') {
-            # Honour the committed .viancfg's tests but analyze the whole PROJECT
-            # (VI Analyzer's native "Analyze Project" mode). A config whose
-            # ItemsToAnalyze is a list of explicit VIs runs ZERO tests headlessly;
-            # a project scope + the config's tests runs them for real. If the repo
-            # has no .lvproj, or the project pass yields 0 tests, the pass loop
-            # falls back to the full built-in directory suite so it is never blank.
+            # Directory mode: AnalyzeProject=FALSE + workspace root as single <Item>.
+            # The VI Analyzer recurses the directory and applies the config's test
+            # selection. Falls back to the built-in suite if 0 tests run.
             $scoped = Join-Path $PassesDir 'default.viancfg'
-            $proj = Get-ProjectFile $WorkspaceRoot
-            if ($proj) {
-                Write-Host ("  Default pass: analyzing project '{0}' with {1}'s tests" -f $proj, $def)
-                Build-ProjectConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $proj $scoped $WorkspaceRoot
-                $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html'; fallback = $WorkspaceRoot }
-            } else {
-                Write-Host "  Default pass: no .lvproj found -> full built-in suite over the workspace directory"
-                $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
-            }
+            Write-Host ("  Default pass: workspace directory with {0}'s tests" -f $def)
+            Build-ProjectConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $scoped $WorkspaceRoot
+            $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html'; fallback = $WorkspaceRoot }
         }
     }
 }
