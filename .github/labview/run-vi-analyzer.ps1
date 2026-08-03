@@ -211,26 +211,18 @@ function Get-ProjectFile([string]$Root) {
     return $null
 }
 
-# Build the DEFAULT-pass config from a committed .viancfg scoped to the workspace
-# directory. AnalyzeProject=TRUE is not supported by the VI Analyzer API VIs and
-# causes error 14217; directory mode (AnalyzeProject=FALSE + root folder as the
-# single <Item>) is the NI-confirmed workaround and the VI Analyzer recurses it.
+# Build the DEFAULT-pass config from a committed .viancfg with <ItemsToAnalyze>
+# rewritten to the full set of project VIs as explicit absolute paths.
+# Headless CLI limitations confirmed by testing:
+#   - AnalyzeProject=TRUE causes error 14217 (VI Analyzer API VIs do not support
+#     project-based configs; see NI forums thread on error 14217).
+#   - A folder path listed as a <Item> produces 0 VIs analyzed headlessly (the
+#     CLI does not recurse directory items, unlike the IDE UI).
+# Explicit individual VI paths are the same mechanism the single-VI re-run uses
+# and are the only scope that works with a custom .viancfg in headless CLI mode.
 function Build-ProjectConfig([string]$BaseConfigPath, [string]$OutPath, [string]$Workspace) {
-    $xml = Get-Content -LiteralPath $BaseConfigPath -Raw
-    $xml = $xml -replace '__WORKSPACE_PATH__', $Workspace
-    $apBlock = '<AnalyzeProject>FALSE</AnalyzeProject>'
-    $ppBlock = '<ProjectPath>""</ProjectPath>'
-    $iaBlock = "<ItemsToAnalyze>`r`n`t`t<Item>`r`n`t`t`t<Path>`"$Workspace`"</Path>`r`n`t`t`t<Removed>FALSE</Removed>`r`n`t`t</Item>`r`n`t</ItemsToAnalyze>"
-    $rxAP = [regex]'(?s)<AnalyzeProject>.*?</AnalyzeProject>'
-    $rxPP = [regex]'(?s)<ProjectPath>.*?</ProjectPath>'
-    $rxIA = [regex]'(?s)<ItemsToAnalyze>.*?</ItemsToAnalyze>'
-    if ($rxAP.IsMatch($xml)) { $xml = $rxAP.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $apBlock }, 1) }
-    else { $xml = $xml -replace '</Config>', ($apBlock + "`r`n</Config>") }
-    if ($rxPP.IsMatch($xml)) { $xml = $rxPP.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $ppBlock }, 1) }
-    else { $xml = $xml -replace '</Config>', ($ppBlock + "`r`n</Config>") }
-    if ($rxIA.IsMatch($xml)) { $xml = $rxIA.Replace($xml, [System.Text.RegularExpressions.MatchEvaluator] { param($m) $iaBlock }, 1) }
-    else { $xml = $xml -replace '</Config>', ($iaBlock + "`r`n</Config>") }
-    [System.IO.File]::WriteAllText($OutPath, $xml, [System.Text.UTF8Encoding]::new($false))
+    $vis = @(Get-ProjectVIs $Workspace)
+    Build-ScopedConfig $BaseConfigPath $vis $OutPath $Workspace
 }
 
 # Total VI Analyzer tests a pass actually executed, parsed from the CLI output
@@ -355,12 +347,13 @@ if ($filterList.Count -gt 0) {
         if ($def -eq 'builtin') {
             $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
         } elseif ($def -ne 'none') {
-            # Directory mode: AnalyzeProject=FALSE + workspace root as single <Item>.
-            # The VI Analyzer recurses the directory and applies the config's test
-            # selection. Falls back to the built-in suite if 0 tests run.
+            # Honour the committed .viancfg's tests over all project VIs as explicit
+            # items — the only .viancfg scope that works with LabVIEWCLI headlessly.
+            # Falls back to the full built-in suite if 0 tests run.
             $scoped = Join-Path $PassesDir 'default.viancfg'
-            Write-Host ("  Default pass: workspace directory with {0}'s tests" -f $def)
-            Build-ProjectConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $scoped $WorkspaceRoot
+            $vis = @(Get-ProjectVIs $WorkspaceRoot)
+            Write-Host ("  Default pass: {0} project VIs with {1}'s tests" -f $vis.Count, $def)
+            Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $vis $scoped $WorkspaceRoot
             $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html'; fallback = $WorkspaceRoot }
         }
     }
