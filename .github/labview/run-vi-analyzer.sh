@@ -68,22 +68,33 @@ first_viancfg() {
 }
 
 # Shallowest .lvproj (fewest path segments) outside CI tooling dirs.
+# Retained for future use; not currently required for config selection.
 first_lvproj() {
   find "$WORKSPACE_ROOT" -type f -name '*.lvproj' 2>/dev/null \
     | grep -vE '/(\.github|actions|ci-out|build)/' \
     | awk -F/ '{print NF" "$0}' | sort -n | head -1 | cut -d' ' -f2-
 }
 
-# Build a runtime .viancfg from a base config, analyzing the whole PROJECT
-# (AnalyzeProject=TRUE + ProjectPath) with the config's own test selection kept.
-# __WORKSPACE_PATH__ is expanded. If the base has no AnalyzeProject/ProjectPath
-# tags the sed no-ops and the caller's 0-tests fallback covers it.
+# Build a runtime .viancfg from a base config with <ItemsToAnalyze> rewritten to
+# every .vi/.vim under the workspace (excluding CI tooling). This mirrors the
+# PowerShell fix for headless CLI error 14217: AnalyzeProject=TRUE is NOT supported
+# by the VI Analyzer API in headless mode; explicit individual paths are required.
 build_project_config() {
-  # $1 base cfg, $2 lvproj abs path, $3 out path
-  sed -e "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" \
-      -e "s|<AnalyzeProject>[^<]*</AnalyzeProject>|<AnalyzeProject>TRUE</AnalyzeProject>|" \
-      -e "s|<ProjectPath>[^<]*</ProjectPath>|<ProjectPath>\"$2\"</ProjectPath>|" \
-      "$1" > "$3"
+  # $1 base cfg, $2 (unused, kept for caller compat), $3 out path
+  local items=""
+  while IFS= read -r vi; do
+    items="${items}\t\t<Item>\n\t\t\t<Path>\"$vi\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
+  done < <(find "$WORKSPACE_ROOT" -type f \( -name '*.vi' -o -name '*.vim' \) 2>/dev/null \
+             | grep -vE '/(\.(git|github)|actions|ci-out|build)/' | sort)
+  [ -n "$items" ] || items="\t\t<Item>\n\t\t\t<Path>\"$WORKSPACE_ROOT\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
+  sed "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" "$1" > "$3.tmp"
+  awk -v items="$items" '
+    /<ItemsToAnalyze>/ { print "\t<ItemsToAnalyze>"; printf items; inblk=1; next }
+    /<\/ItemsToAnalyze>/ { print "\t</ItemsToAnalyze>"; inblk=0; next }
+    inblk { next }
+    { print }
+  ' "$3.tmp" > "$3"
+  rm -f "$3.tmp"
 }
 
 # Build a runtime .viancfg whose <ItemsToAnalyze> lists exactly the given VIs
@@ -187,18 +198,18 @@ else
     echo "  Mode      : full built-in suite (analyze workspace directory)"
   else
     BASE_CFG="$WORKSPACE_ROOT/$DEF"
-    PROJ="$(first_lvproj)"
-    if [ -n "$PROJ" ] && [ -f "$BASE_CFG" ]; then
+    if [ -f "$BASE_CFG" ]; then
       SCOPED="$REPORT_DIR/default.viancfg"
-      build_project_config "$BASE_CFG" "$PROJ" "$SCOPED"
+      build_project_config "$BASE_CFG" "" "$SCOPED"
       CONFIG_ARG="$SCOPED"
       PASS_KIND="project"
       FALLBACK_DIR="$WORKSPACE_ROOT"
-      echo "  Mode      : project config $DEF (AnalyzeProject) with directory fallback"
+      echo "  Mode      : custom config $DEF (explicit VI paths) with directory fallback"
+      echo "  Config    : $SCOPED  (source: $BASE_CFG)"
     else
       CONFIG_ARG="$WORKSPACE_ROOT"
       PASS_KIND="directory"
-      echo "  Mode      : full built-in suite (no project found; analyze workspace directory)"
+      echo "  Mode      : full built-in suite (config not found; analyze workspace directory)"
     fi
   fi
 fi
