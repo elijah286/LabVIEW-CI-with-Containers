@@ -166,8 +166,13 @@ function Build-ScopedConfig([string]$BaseConfigPath, [string[]]$ItemAbsPaths, [s
         }
     }
     if ($resolvedItems.Count -eq 0) { $resolvedItems.Add($Workspace) }
+    # Path strings in a .viancfg are LabVIEW-escaped: one literal backslash is
+    # written as two (see the <RelativePath> entries any IDE-saved config emits).
+    # Writing single backslashes made LabVIEW discard every <Item>, so the pass
+    # loaded 0 VIs and reported 0 tests instead of honouring the custom config.
     $itemXml = ($resolvedItems | ForEach-Object {
-        "`t`t<Item>`r`n`t`t`t<Path>`"$_`"</Path>`r`n`t`t`t<Removed>FALSE</Removed>`r`n`t`t</Item>"
+        $p = $_.Replace('\', '\\')
+        "`t`t<Item>`r`n`t`t`t<Path>`"$p`"</Path>`r`n`t`t`t<Removed>FALSE</Removed>`r`n`t`t</Item>"
     }) -join "`r`n"
     $block = "<ItemsToAnalyze>`r`n$itemXml`r`n`t</ItemsToAnalyze>"
     $rx = [regex]'(?s)<ItemsToAnalyze>.*?</ItemsToAnalyze>'
@@ -177,6 +182,9 @@ function Build-ScopedConfig([string]$BaseConfigPath, [string[]]$ItemAbsPaths, [s
         $xml = $xml -replace '</Config>', ($block + "`r`n</Config>")
     }
     [System.IO.File]::WriteAllText($OutPath, $xml, [System.Text.UTF8Encoding]::new($false))
+    $selected = ([regex]::Matches($xml, '<Selected>TRUE</Selected>')).Count
+    Write-Host ("  Built {0}: {1} <Item>, {2} selected test(s)" -f (Split-Path $OutPath -Leaf), $resolvedItems.Count, $selected)
+    Write-Host ("    first item: {0}" -f ($resolvedItems[0].Replace('\', '\\')))
 }
 
 # Minimal JSON string encoder (PowerShell's ConvertTo-Json collapses single-element

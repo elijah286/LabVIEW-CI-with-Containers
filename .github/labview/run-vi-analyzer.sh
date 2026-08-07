@@ -87,14 +87,20 @@ build_project_config() {
   done < <(find "$WORKSPACE_ROOT" -type f \( -name '*.vi' -o -name '*.vim' \) 2>/dev/null \
              | grep -vE '/(\.(git|github)|actions|ci-out|build)/' | sort)
   [ -n "$items" ] || items="\t\t<Item>\n\t\t\t<Path>\"$WORKSPACE_ROOT\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
-  sed "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" "$1" > "$3.tmp"
+  # An IDE-saved config stores the built-in tests with Windows separators, escaped
+  # as \\ (LabVIEW path strings escape one backslash as two). Linux LabVIEW cannot
+  # resolve those, so every test silently fails to load and the pass runs 0 tests.
+  sed -e "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" \
+      -e '/<RelativePath>/ s|\\\\|/|g' "$1" > "$3.tmp"
   awk -v items="$items" '
-    /<ItemsToAnalyze>/ { print "\t<ItemsToAnalyze>"; printf items; inblk=1; next }
+    /<ItemsToAnalyze>/ { print "\t<ItemsToAnalyze>"; printf "%s", items; inblk=1; next }
     /<\/ItemsToAnalyze>/ { print "\t</ItemsToAnalyze>"; inblk=0; next }
     inblk { next }
     { print }
   ' "$3.tmp" > "$3"
   rm -f "$3.tmp"
+  echo "  Built $(basename "$3"): $(grep -c '<Item>' "$3") <Item>, $(grep -c '<Selected>TRUE</Selected>' "$3") selected test(s)"
+  grep -m1 '<RelativePath>' "$3" | sed 's/^/    first test: /'
 }
 
 # Build a runtime .viancfg whose <ItemsToAnalyze> lists exactly the given VIs
