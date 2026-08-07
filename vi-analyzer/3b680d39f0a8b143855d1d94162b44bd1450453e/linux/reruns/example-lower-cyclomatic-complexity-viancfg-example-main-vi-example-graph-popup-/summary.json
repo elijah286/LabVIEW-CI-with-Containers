@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "sha": "3b680d39f0a8b143855d1d94162b44bd1450453e",
+    "short": "3b680d3",
+    "platform": "linux",
+    "repo": "elijah286/LabVIEW-CI-with-Containers",
+    "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers",
+    "pages_base": "../../../..",
+    "commit": {
+      "message": "\\\\ instead of \\ for parsing .viancfg",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-06T21:14:12-05:00"
+    },
+    "generated_utc": "2026-08-07 03:34 UTC",
+    "analysis_date": "Friday, August 07, 2026 03:34:09 AM",
+    "duration": "00:00:21.53"
+  },
+  "summary": {
+    "vis_analyzed": 1,
+    "tests_run": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "findings": 0,
+    "vis_with_findings": 0
+  },
+  "errors": {
+    "vi_not_loadable": 0,
+    "test_not_loadable": 0,
+    "test_not_runnable": 0,
+    "test_error_out": 0
+  },
+  "rule_counts": []
+}
