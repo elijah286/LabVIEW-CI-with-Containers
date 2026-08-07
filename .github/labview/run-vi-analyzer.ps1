@@ -119,13 +119,6 @@ function Get-FirstViancfg([string]$Root) {
     return ''
 }
 
-function ConvertTo-ContainerPath
-        Where-Object { $exclude -notcontains $_.Name } |
-        ForEach-Object {
-            Get-ChildItem -LiteralPath $_.FullName -Recurse -File -Force -ErrorAction SilentlyContinue |
-                Where-Object { $_.Extension -imatch '^\.vim?$' } |
-                ForEach-Object { $out.Add($_.FullName) }
-        }
 function ConvertTo-ContainerPath([string]$Root, [string]$Rel) {
     return (Join-Path $Root ($Rel -replace '/', '\'))
 }
