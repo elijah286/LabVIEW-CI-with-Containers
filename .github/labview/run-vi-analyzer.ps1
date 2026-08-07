@@ -119,60 +119,33 @@ function Get-FirstViancfg([string]$Root) {
     return ''
 }
 
-# Enumerate the project's analyzable VIs recursively, EXCLUDING the CI tooling
-# (.git/.github/actions/ci-out/build/_lvci). A committed .viancfg is applied as
-# the default pass over 'the whole project'; the VI Analyzer recurses a directory
-# only in built-in DIRECTORY mode, NOT when a folder is listed as a .viancfg
-# <Item> (which then analyzes a single VI). So we list each project VI as its own
-# explicit <Item> -- the same mechanism the working single-VI re-run uses -- which
-# analyzes the full stack and simply flags any VI that will not load.
-function Get-ProjectVIs([string]$Root) {
-    $exclude = @('.git', '.github', 'actions', 'ci-out', 'build', '_lvci')
-    $out = New-Object System.Collections.Generic.List[string]
-    Get-ChildItem -LiteralPath $Root -File -Force -ErrorAction SilentlyContinue |
-        Where-Object { $_.Extension -imatch '^\.vim?$' } |
-        ForEach-Object { $out.Add($_.FullName) }
-    Get-ChildItem -LiteralPath $Root -Directory -Force -ErrorAction SilentlyContinue |
+function ConvertTo-ContainerPath
         Where-Object { $exclude -notcontains $_.Name } |
         ForEach-Object {
             Get-ChildItem -LiteralPath $_.FullName -Recurse -File -Force -ErrorAction SilentlyContinue |
                 Where-Object { $_.Extension -imatch '^\.vim?$' } |
                 ForEach-Object { $out.Add($_.FullName) }
         }
-    return $out.ToArray()
-}
-
 function ConvertTo-ContainerPath([string]$Root, [string]$Rel) {
     return (Join-Path $Root ($Rel -replace '/', '\'))
 }
 
-# Build a runtime .viancfg from a base config with <ItemsToAnalyze> rewritten to
-# the given absolute item paths (so a config's TEST settings apply to a chosen
-# subset). __WORKSPACE_PATH__ is also expanded.
+# <ItemsToAnalyze> paths are relative to the config file's location. "." means
+# the config's own directory. The generated config must be written beside its
+# source so that relative paths resolve against the project folder, not the report dir.
+function Get-RuntimeConfigPath([string]$SourceConfigAbs, [string]$Name) {
+    return (Join-Path (Split-Path -Parent $SourceConfigAbs) $Name)
+}
+
+# Build a runtime .viancfg with <ItemsToAnalyze> rewritten to the given paths,
+# expressed relative to the config file's directory. Used for targeted re-runs.
 function Build-ScopedConfig([string]$BaseConfigPath, [string[]]$ItemAbsPaths, [string]$OutPath, [string]$Workspace) {
     $xml = Get-Content -LiteralPath $BaseConfigPath -Raw
     $xml = $xml -replace '__WORKSPACE_PATH__', $Workspace
-    # A folder listed as a .viancfg <Item> is analyzed as a single VI (the VI
-    # Analyzer does not recurse it), so expand any directory scope into the VIs
-    # it contains; explicit VI paths pass through unchanged.
-    $resolvedItems = New-Object System.Collections.Generic.List[string]
-    foreach ($it in $ItemAbsPaths) {
-        if (Test-Path -LiteralPath $it -PathType Container) {
-            Get-ChildItem -LiteralPath $it -Recurse -File -Force -ErrorAction SilentlyContinue |
-                Where-Object { $_.Extension -imatch '^\.vim?$' } |
-                ForEach-Object { $resolvedItems.Add($_.FullName) }
-        } else {
-            $resolvedItems.Add($it)
-        }
-    }
-    if ($resolvedItems.Count -eq 0) { $resolvedItems.Add($Workspace) }
-    # Path strings in a .viancfg are LabVIEW-escaped: one literal backslash is
-    # written as two (see the <RelativePath> entries any IDE-saved config emits).
-    # Writing single backslashes made LabVIEW discard every <Item>, so the pass
-    # loaded 0 VIs and reported 0 tests instead of honouring the custom config.
-    $itemXml = ($resolvedItems | ForEach-Object {
-        $p = $_.Replace('\', '\\')
-        "`t`t<Item>`r`n`t`t`t<Path>`"$p`"</Path>`r`n`t`t`t<Removed>FALSE</Removed>`r`n`t`t</Item>"
+    $configDir = (Split-Path -Parent $OutPath).TrimEnd('\')
+    $itemXml = ($ItemAbsPaths | ForEach-Object {
+        $rel = $_.Substring($configDir.Length).TrimStart('\', '/') -replace '\\', '/'
+        "`t`t<Item>`r`n`t`t`t<Path>`"$rel`"</Path>`r`n`t`t`t<Removed>FALSE</Removed>`r`n`t`t</Item>"
     }) -join "`r`n"
     $block = "<ItemsToAnalyze>`r`n$itemXml`r`n`t</ItemsToAnalyze>"
     $rx = [regex]'(?s)<ItemsToAnalyze>.*?</ItemsToAnalyze>'
@@ -183,8 +156,8 @@ function Build-ScopedConfig([string]$BaseConfigPath, [string[]]$ItemAbsPaths, [s
     }
     [System.IO.File]::WriteAllText($OutPath, $xml, [System.Text.UTF8Encoding]::new($false))
     $selected = ([regex]::Matches($xml, '<Selected>TRUE</Selected>')).Count
-    Write-Host ("  Built {0}: {1} <Item>, {2} selected test(s)" -f (Split-Path $OutPath -Leaf), $resolvedItems.Count, $selected)
-    Write-Host ("    first item: {0}" -f ($resolvedItems[0].Replace('\', '\\')))
+    Write-Host ("  Built {0}: {1} <Item>, {2} selected test(s)" -f (Split-Path $OutPath -Leaf), $ItemAbsPaths.Count, $selected)
+    Write-Host ("    first item: {0}" -f $ItemAbsPaths[0])
 }
 
 # Minimal JSON string encoder (PowerShell's ConvertTo-Json collapses single-element
@@ -205,32 +178,6 @@ function ConvertTo-JsonString([string]$s) {
         }
     }
     return '"' + $sb.ToString() + '"'
-}
-
-# Find the project (.lvproj) whose tests should drive the default pass. Prefer the
-# SHALLOWEST project in the tree (the top-level application project) and skip CI
-# tooling folders. Returns $null when the repo has no project.
-function Get-ProjectFile([string]$Root) {
-    $exclRe = '(?i)[\\/](\.git|\.github|actions|ci-out|build|_lvci)[\\/]'
-    $projs = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter '*.lvproj' -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch $exclRe } |
-        Sort-Object @{ Expression = { ($_.FullName -split '[\\/]').Count } }, FullName)
-    if ($projs.Count -gt 0) { return $projs[0].FullName }
-    return $null
-}
-
-# Build the DEFAULT-pass config from a committed .viancfg with <ItemsToAnalyze>
-# rewritten to the full set of project VIs as explicit absolute paths.
-# Headless CLI limitations confirmed by testing:
-#   - AnalyzeProject=TRUE causes error 14217 (VI Analyzer API VIs do not support
-#     project-based configs; see NI forums thread on error 14217).
-#   - A folder path listed as a <Item> produces 0 VIs analyzed headlessly (the
-#     CLI does not recurse directory items, unlike the IDE UI).
-# Explicit individual VI paths are the same mechanism the single-VI re-run uses
-# and are the only scope that works with a custom .viancfg in headless CLI mode.
-function Build-ProjectConfig([string]$BaseConfigPath, [string]$OutPath, [string]$Workspace) {
-    $vis = @(Get-ProjectVIs $Workspace)
-    Build-ScopedConfig $BaseConfigPath $vis $OutPath $Workspace
 }
 
 # Total VI Analyzer tests a pass actually executed, parsed from the CLI output
@@ -320,8 +267,9 @@ if ($filterList.Count -gt 0) {
     # Single-VI re-run with a chosen .viancfg (the "Re-run" action on a report).
     if (-not $ConfigOverride) { throw "A single-VI re-run (-FilesFilter) requires -ConfigOverride (a .viancfg)." }
     $abs = @($filterList | ForEach-Object { ConvertTo-ContainerPath $WorkspaceRoot $_ })
-    $scoped = Join-Path $ReportDir 'via-rerun.viancfg'
-    Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $ConfigOverride) $abs $scoped $WorkspaceRoot
+    $srcCfg = ConvertTo-ContainerPath $WorkspaceRoot $ConfigOverride
+    $scoped = Get-RuntimeConfigPath $srcCfg '.lvci-runtime.viancfg'
+    Build-ScopedConfig $srcCfg $abs $scoped $WorkspaceRoot
     $passes = @(@{ kind = 'rule'; config = $ConfigOverride; label = $ConfigOverride; paths = $filterList; configArg = $scoped; report = $HtmlOut })
     $singleMode = $true
     Write-Host "  Mode       : single-VI re-run ($($filterList.Count) VI) with $ConfigOverride"
@@ -346,8 +294,9 @@ if ($filterList.Count -gt 0) {
                 $passes += @{ kind = 'exclude'; config = 'none'; label = 'Excluded (not tested)'; paths = $r.paths; configArg = $null; report = $null }
             } else {
                 $abs = @($r.paths | ForEach-Object { ConvertTo-ContainerPath $WorkspaceRoot $_ })
-                $scoped = Join-Path $PassesDir ("rule{0}.viancfg" -f $idx)
-                Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $r.config) $abs $scoped $WorkspaceRoot
+                $srcCfg = ConvertTo-ContainerPath $WorkspaceRoot $r.config
+                $scoped = Get-RuntimeConfigPath $srcCfg (".lvci-rule{0}.viancfg" -f $idx)
+                Build-ScopedConfig $srcCfg $abs $scoped $WorkspaceRoot
                 $passes += @{ kind = 'rule'; config = $r.config; label = $r.config; paths = $r.paths; configArg = $scoped; report = ("rule{0}.html" -f $idx) }
                 $idx++
             }
@@ -355,14 +304,12 @@ if ($filterList.Count -gt 0) {
         if ($def -eq 'builtin') {
             $passes += @{ kind = 'default'; config = 'builtin'; label = 'Built-in full test suite'; paths = @(); configArg = $WorkspaceRoot; report = 'default.html' }
         } elseif ($def -ne 'none') {
-            # Honour the committed .viancfg's tests over all project VIs as explicit
-            # items — the only .viancfg scope that works with LabVIEWCLI headlessly.
+            # The committed config already has <Path>"."</Path> in <ItemsToAnalyze>,
+            # so it can be passed directly — no runtime copy needed.
             # Falls back to the full built-in suite if 0 tests run.
-            $scoped = Join-Path $PassesDir 'default.viancfg'
-            $vis = @(Get-ProjectVIs $WorkspaceRoot)
-            Write-Host ("  Default pass: {0} project VIs with {1}'s tests" -f $vis.Count, $def)
-            Build-ScopedConfig (ConvertTo-ContainerPath $WorkspaceRoot $def) $vis $scoped $WorkspaceRoot
-            $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $scoped; report = 'default.html'; fallback = $WorkspaceRoot }
+            $srcCfg = ConvertTo-ContainerPath $WorkspaceRoot $def
+            Write-Host ("  Default pass: {0}" -f $def)
+            $passes += @{ kind = 'default'; config = $def; label = $def; paths = @(); configArg = $srcCfg; report = 'default.html'; fallback = $WorkspaceRoot }
         }
     }
 }

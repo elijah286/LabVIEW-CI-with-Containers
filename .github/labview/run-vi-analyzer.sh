@@ -67,59 +67,37 @@ first_viancfg() {
     | sort | head -1
 }
 
-# Shallowest .lvproj (fewest path segments) outside CI tooling dirs.
-# Retained for future use; not currently required for config selection.
-first_lvproj() {
-  find "$WORKSPACE_ROOT" -type f -name '*.lvproj' 2>/dev/null \
-    | grep -vE '/(\.github|actions|ci-out|build)/' \
-    | awk -F/ '{print NF" "$0}' | sort -n | head -1 | cut -d' ' -f2-
+# Build a runtime .viancfg from a base config. On Linux, the committed config's
+# <RelativePath> entries use Windows \\ separators that Linux LabVIEW can't resolve;
+# sed converts them to /. The committed config already has <Path>"."</Path> in
+# <ItemsToAnalyze>, so no rewrite of that block is needed.
+build_folder_scope_config() {
+  # $1 base cfg, $2 out path
+  sed -e "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" \
+      -e '/<RelativePath>/ s|\\\\|/|g' "$1" > "$2"
+  echo "  Built $(basename "$2"): $(grep -c '<Selected>TRUE</Selected>' "$2") selected test(s)"
 }
 
-# Build a runtime .viancfg from a base config with <ItemsToAnalyze> rewritten to
-# every .vi/.vim under the workspace (excluding CI tooling). This mirrors the
-# PowerShell fix for headless CLI error 14217: AnalyzeProject=TRUE is NOT supported
-# by the VI Analyzer API in headless mode; explicit individual paths are required.
-build_project_config() {
-  # $1 base cfg, $2 (unused, kept for caller compat), $3 out path
-  local items=""
-  while IFS= read -r vi; do
-    items="${items}\t\t<Item>\n\t\t\t<Path>\"$vi\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
-  done < <(find "$WORKSPACE_ROOT" -type f \( -name '*.vi' -o -name '*.vim' \) 2>/dev/null \
-             | grep -vE '/(\.(git|github)|actions|ci-out|build)/' | sort)
-  [ -n "$items" ] || items="\t\t<Item>\n\t\t\t<Path>\"$WORKSPACE_ROOT\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
-  # An IDE-saved config stores the built-in tests with Windows separators, escaped
-  # as \\ (LabVIEW path strings escape one backslash as two). Linux LabVIEW cannot
-  # resolve those, so every test silently fails to load and the pass runs 0 tests.
+# Build a runtime .viancfg whose <ItemsToAnalyze> lists exactly the given VIs
+# as paths relative to the config file's directory (the only form LabVIEW accepts).
+build_scoped_items() {
+  # $1 base cfg, $2 out path; VI abs paths in the global VI_ABS[] array.
+  local config_dir items="" rel p
+  config_dir="$(dirname "$2")"
+  for p in "${VI_ABS[@]}"; do
+    rel="${p#"$config_dir"/}"
+    items="${items}\t\t<Item>\n\t\t\t<Path>\"$rel\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
+  done
   sed -e "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" \
-      -e '/<RelativePath>/ s|\\\\|/|g' "$1" > "$3.tmp"
+      -e '/<RelativePath>/ s|\\\\|/|g' "$1" > "$2.tmp"
   awk -v items="$items" '
     /<ItemsToAnalyze>/ { print "\t<ItemsToAnalyze>"; printf "%s", items; inblk=1; next }
     /<\/ItemsToAnalyze>/ { print "\t</ItemsToAnalyze>"; inblk=0; next }
     inblk { next }
     { print }
-  ' "$3.tmp" > "$3"
-  rm -f "$3.tmp"
-  echo "  Built $(basename "$3"): $(grep -c '<Item>' "$3") <Item>, $(grep -c '<Selected>TRUE</Selected>' "$3") selected test(s)"
-  grep -m1 '<RelativePath>' "$3" | sed 's/^/    first test: /'
-}
-
-# Build a runtime .viancfg whose <ItemsToAnalyze> lists exactly the given VIs
-# (the single-VI re-run). __WORKSPACE_PATH__ is expanded.
-build_scoped_items() {
-  # $1 base cfg, $2 out path; VI abs paths in the global VI_ABS[] array.
-  local items=""
-  local p
-  for p in "${VI_ABS[@]}"; do
-    items="${items}\t\t<Item>\n\t\t\t<Path>\"$p\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
-  done
-  sed "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" "$1" > "$2.tmp"
-  awk -v items="$items" '
-    /<ItemsToAnalyze>/ { print "\t<ItemsToAnalyze>"; printf items; inblk=1; next }
-    /<\/ItemsToAnalyze>/ { print "\t</ItemsToAnalyze>"; inblk=0; next }
-    inblk { next }
-    { print }
   ' "$2.tmp" > "$2"
   rm -f "$2.tmp"
+  echo "  Built $(basename "$2"): ${#VI_ABS[@]} <Item>, $(grep -c '<Selected>TRUE</Selected>' "$2") selected test(s)"
 }
 
 # Native "Total Tests Run: N" count from a generated report (for the 0-tests
@@ -181,7 +159,7 @@ if [ -n "$FILES_FILTER" ]; then
     [ -n "$r" ] && VI_ABS+=("$WORKSPACE_ROOT/$r")
   done
   BASE_CFG="$WORKSPACE_ROOT/$CONFIG_OVERRIDE"
-  SCOPED="$REPORT_DIR/via-rerun.viancfg"
+  SCOPED="$(dirname "$BASE_CFG")/.lvci-runtime.viancfg"
   build_scoped_items "$BASE_CFG" "$SCOPED"
   CONFIG_ARG="$SCOPED"
   PASS_KIND="rule"
@@ -205,12 +183,14 @@ else
   else
     BASE_CFG="$WORKSPACE_ROOT/$DEF"
     if [ -f "$BASE_CFG" ]; then
-      SCOPED="$REPORT_DIR/default.viancfg"
-      build_project_config "$BASE_CFG" "" "$SCOPED"
+      # Scope = ".": the config dir is beside the committed .viancfg (e.g. example/),
+      # so LabVIEW recurses that folder and applies the custom tests to every VI there.
+      SCOPED="$(dirname "$BASE_CFG")/.lvci-runtime.viancfg"
+      build_folder_scope_config "$BASE_CFG" "$SCOPED"
       CONFIG_ARG="$SCOPED"
       PASS_KIND="project"
       FALLBACK_DIR="$WORKSPACE_ROOT"
-      echo "  Mode      : custom config $DEF (explicit VI paths) with directory fallback"
+      echo "  Mode      : custom config $DEF (scope: $(dirname "$BASE_CFG")) with directory fallback"
       echo "  Config    : $SCOPED  (source: $BASE_CFG)"
     else
       CONFIG_ARG="$WORKSPACE_ROOT"

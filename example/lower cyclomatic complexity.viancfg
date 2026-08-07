@@ -5,6 +5,14 @@
 <ProjectPath>""</ProjectPath>
 <TargetIndex>0</TargetIndex>
 <ItemsToAnalyze>
+	<Item>
+		<Path>"."</Path>
+		<Removed>FALSE</Removed>
+	</Item>
+	<Item>
+		<Path>"User-Defined Test"</Path>
+		<Removed>TRUE</Removed>
+	</Item>
 </ItemsToAnalyze>
 <TestConfigData>
 	<Test>
