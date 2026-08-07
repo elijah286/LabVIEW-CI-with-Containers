@@ -1,0 +1,10 @@
+{
+  "platform": "linux",
+  "files": [
+    {
+      "file": "example/main.vi",
+      "type": "modified",
+      "report": "example-main.vi/index.html"
+    }
+  ]
+}
