@@ -1,14 +1,122 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "cb4611eabf47ed066128b7ea5c5d7d794e819d34",
+  "sha": "d2e8e2806db14819bcd5d12b541ed5567ff07a86",
   "revisions": [
+    {
+      "sha": "d2e8e2806db14819bcd5d12b541ed5567ff07a86",
+      "short": "d2e8e28",
+      "message": "Merge pull request #44 from danielcoons/main",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-12T20:24:21Z",
+      "project": true,
+      "dep_only": false
+    },
+    {
+      "sha": "50db9eef28e655d9d0e626c7ab8617802bac5788",
+      "short": "50db9ee",
+      "message": "Merge branch 'main' into main",
+      "author": "Elijah Kerry",
+      "date": "2026-08-12T16:30:35Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "cb4611eabf47ed066128b7ea5c5d7d794e819d34",
       "short": "cb4611e",
       "message": "Skip Pages publishing for fork pull requests",
       "author": "elijah286",
       "date": "2026-08-12T16:27:18Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "8f935e6e3379c89c9e08a86d8514fb05b8daee43",
+      "short": "8f935e6",
+      "message": "indentation fixes for report error",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-11T16:43:36Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "5f102c241f6b32338e705a02513d701d3ef2d0f1",
+      "short": "5f102c2",
+      "message": "Correct CycloneDX SBOM componnet supplier data in the generated report.",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-11T15:52:58Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "38a335472926c8d0337c9daa1cfcd63d16ab2a1d",
+      "short": "38a3354",
+      "message": "pass --allow-missing-files to override",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-10T21:14:41Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "4a14d64ddd9d8a57f1e95a52eb3316b0ff0e0573",
+      "short": "4a14d64",
+      "message": "Should detect LabVIEW version installed in the container, then pass this version to VIPM CLI.",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-10T20:53:03Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "34ca150dc89039426f128b89f1010e496e1cba93",
+      "short": "34ca150",
+      "message": "Error handling: SBOM workflow fails if VIPM CLI errors to avoid generating misleading output files",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-10T19:57:36Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "a882308a3602eee952a3b6af04639437ee94ca1c",
+      "short": "a882308",
+      "message": "changed a VI to test the SBOM workflow trigger",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-07T19:53:08Z",
+      "project": true,
+      "dep_only": false
+    },
+    {
+      "sha": "225dc86ea7d781a6941f9fddfb174a2b4f3f932e",
+      "short": "225dc86",
+      "message": "changed main.vi (added a comment, nuthn special) to test the sbom workflow trigger.",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-07T18:43:44Z",
+      "project": true,
+      "dep_only": false
+    },
+    {
+      "sha": "016322233dd49f2959060b5560feb14c88c85f38",
+      "short": "0163222",
+      "message": "so i am going to try to not auto approve this accidentally",
+      "author": "daniel-coons",
+      "date": "2026-07-31T19:53:14Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "cc3ad976c36aeacc5d7d3e8651832c6cd15a48c1",
+      "short": "cc3ad97",
+      "message": "Merge branch 'elijah286:main' into main",
+      "author": "Daniel Coons",
+      "date": "2026-07-31T19:48:45Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "0c4529a9f8cf9114b58a8b4367ac18618cf5e8ac",
+      "short": "0c4529a",
+      "message": "Merge branch 'feature/#22-SBOM'",
+      "author": "daniel-coons",
+      "date": "2026-07-31T19:47:59Z",
       "project": false,
       "dep_only": false
     },
@@ -63,6 +171,15 @@
       "message": "updated scripting based on other repo integration testing",
       "author": "daniel-coons",
       "date": "2026-07-31T18:27:45Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "baba8b6d5fbedf08bb20b658c4529c1f3df0f0fb",
+      "short": "baba8b6",
+      "message": "Merge pull request #2 from danielcoons/feature/#22-SBOM",
+      "author": "Daniel Coons",
+      "date": "2026-07-30T19:39:39Z",
       "project": false,
       "dep_only": false
     },
@@ -787,123 +904,6 @@
       "dep_only": false
     },
     {
-      "sha": "7722b5fe2c9372f1337c09c84388ab177cfe0538",
-      "short": "7722b5f",
-      "message": "dashboard: fix report Re-run preselect (histIdx->histIdxIn) + in-page overlay for Populate history",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T19:33:45Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "a782f16015604f2565f95b1bd77aa8b31bf9c328",
-      "short": "a782f16",
-      "message": "deps: remove duplicate repaired VIPC artifacts (#30)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T18:12:24Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "9a0e1c6251e0c7d5f9f35ec1387fcdae3803602a",
-      "short": "9a0e1c6",
-      "message": "Merge pull request #29 from elijah286/fix/deps-pending-version-mismatch",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T17:33:02Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "8e0a5c34c6ec3e6e3a3d776c913200f719d17ec6",
-      "short": "8e0a5c3",
-      "message": "dependencies: add final approval dialog with per-container diff",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T17:32:48Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "c5fbce24c754b7229f1dfcbd53c62540a0a1c4ad",
-      "short": "c5fbce2",
-      "message": "Merge pull request #28 from elijah286/fix/deps-pending-version-mismatch",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T17:01:15Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "04f82042da70ffdb2c372a6557a4e60415adc12b",
-      "short": "04f8204",
-      "message": "dependencies: restore rebuild panel and update workflow controls",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T17:00:57Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "323dfe85aec291ca9e895220bdf02854cc693eff",
-      "short": "323dfe8",
-      "message": "reconfigure.yml: fix invalid-workflow-file error (col-0 heredoc) (4.4.15)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T16:46:32Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "2e6c84f26ce5d2344b07412d73913a627ef53e30",
-      "short": "2e6c84f",
-      "message": "Revision pickers: shared searchable widget that filters to LabVIEW code (4.4.14)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T16:36:25Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "333db43002ac632f7fe172d3ecb6cfe7a00bee5c",
-      "short": "333db43",
-      "message": "Merge pull request #27 from elijah286/fix/deps-pending-version-mismatch",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T16:13:58Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "c187e7c49057b7780c0c068bcee90c8f7fd7b95b",
-      "short": "c187e7c",
-      "message": "dependencies: handle object-shaped dragon payload in generated index",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T16:13:43Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "565141022e094c39ff77a7914df2c6b36a5548b7",
-      "short": "5651410",
-      "message": "Populate-history: filter revision picker to LabVIEW code + add search (4.4.13)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T16:04:59Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "023c7e6ebb50bcb4cdfef117173e850628329ee9",
-      "short": "023c7e6",
-      "message": "Merge pull request #26 from elijah286/fix/deps-pending-version-mismatch",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T15:52:45Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "9f5bdf304f95ec413b5ba7a8be7e2e53b9e7986e",
-      "short": "9f5bdf3",
-      "message": "Merge origin/main into fix/deps-pending-version-mismatch",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T15:52:33Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359",
       "short": "00839e4",
       "message": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)",
@@ -1085,7 +1085,7 @@
     }
   ],
   "config": {
-    "use": "latest",
+    "use": "",
     "actions": {},
     "vipc": [],
     "dragon": [],

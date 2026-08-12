@@ -241,7 +241,7 @@
     // the install/Configure iframe and its in-flight work. When a refresh comes due
     // with a dialog open, keep re-checking and reload only once it is closed.
     (function () {
-      var REFRESH_MS = 900 * 1000;
+      var REFRESH_MS = 60 * 1000;
       if (!(REFRESH_MS > 0)) return;
       function tick() {
         if (lvciModalOpen()) { setTimeout(tick, 5000); return; }
@@ -281,7 +281,7 @@
   <script>
   (function(){
     var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "masscompile-backfill-windows.yml", "shas_input": "shas"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "vi-analyzer-backfill-windows.yml", "shas_input": "shas"}}, "linux": {"wf": "run-vi-analyzer-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "unit-tests-backfill-windows.yml", "shas_input": "shas"}}}}, "antidoc": {"label": "Antidoc", "platforms": {"windows": {"wf": "run-antidoc-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "antidoc-backfill-windows.yml", "shas_input": "shas"}}}}, "builds": {"label": "Builds", "platforms": {"windows": {"wf": "build-binaries-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "build-binaries-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
-    var RT_TIMING = {"masscompile": {"windows": {"total": 1081.0, "work": 21.0}, "linux": {"total": 97.0, "work": 21.0}}, "vi-analyzer": {"windows": {"total": 1364.0, "work": null}, "linux": {"total": 219.0, "work": null}}, "vidiff": {"windows": {"total": 976.5, "work": null}, "linux": {"total": 72.5, "work": null}}, "snapshots2": {"windows": {"total": 1067.0, "work": null}, "linux": {"total": 80.0, "work": null}}, "unit-tests": {"windows": {"total": 1040.0, "work": null}}, "antidoc": {"windows": {"total": 1103.0, "work": null}}, "builds": {"windows": {"total": 1065.5, "work": null}, "linux": {"total": null, "work": null}}};
+    var RT_TIMING = {"masscompile": {"windows": {"total": 1081.0, "work": 21}, "linux": {"total": 100.0, "work": 21}}, "vi-analyzer": {"windows": {"total": 1364.0, "work": null}, "linux": {"total": 219.0, "work": null}}, "vidiff": {"windows": {"total": 976.5, "work": null}, "linux": {"total": 73.0, "work": null}}, "snapshots2": {"windows": {"total": 1067.0, "work": null}, "linux": {"total": 80.0, "work": null}}, "unit-tests": {"windows": {"total": 1040.0, "work": null}}, "antidoc": {"windows": {"total": 1103.0, "work": null}}, "builds": {"windows": {"total": 1065.5, "work": null}, "linux": {"total": null, "work": null}}};
     var REPO = "elijah286/LabVIEW-CI-with-Containers";
     var BRANCH = "main";
     var TOK_KEY = "lvci_dispatch_token";
@@ -1227,7 +1227,7 @@
     // activities to queue. Reuses dispatchCells (oldest-first, snapshots as one
     // backfill) + the same token and optimistic-queued bridge as every other
     // dispatch on the dashboard.
-    var HIST = [{"sha": "c3394babc0e984a45c9bb2854ab5b54693b6cb29", "short": "c3394ba", "msg": "Added a Build Spec", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359", "short": "00839e4", "msg": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e", "short": "87482e2", "msg": "G Image moves into the core CI tooling VIPC (v3.39.2)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5", "short": "d56ded4", "msg": "Restore Linux-applicable example VIPC artifact (v3.39.1)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a", "short": "197c1be", "msg": "Clean up dependency management around VIPC files as the source of truth (v3.39.0", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "590495f94bf466cf7803e75e075177dd95b19f08", "short": "590495f", "msg": "example: add UTF JUnit reporter deps to Dependencies.vipc", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "eb2240d106503d2e207374ae8e0c7119af656a45", "short": "eb2240d", "msg": "example: run UTF tests from Example project", "dep_only": false, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf", "short": "3d67c5a", "msg": "Add VIPC-baked Windows base image workflow", "dep_only": true, "snapshots2": {"windows": {"have": 44, "total": 44}, "linux": {"have": 44, "total": 44}}}, {"sha": "12553d67f22d02885acfd455c1d68381e8702aca", "short": "12553d6", "msg": "added utf files", "dep_only": false, "snapshots2": {"windows": {"have": 44, "total": 44}, "linux": {"have": 44, "total": 44}}}, {"sha": "df868ea07cef49f7ed721442b627ec78ba306e7f", "short": "df868ea", "msg": "resized the graph", "dep_only": false, "snapshots2": {"windows": {"have": 41, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "c433e9e5e28492955ffa4d83f0434159b64d3fb7", "short": "c433e9e", "msg": "moved a constant", "dep_only": false, "snapshots2": {"windows": {"have": 40, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1", "short": "d1705cb", "msg": "moved the send command button", "dep_only": false, "snapshots2": {"windows": {"have": 39, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "d1a86a8741bec13cfa11446d0e72d12479a209ae", "short": "d1a86a8", "msg": "fixed errors in motor VIs", "dep_only": false, "snapshots2": {"windows": {"have": 39, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6", "short": "2b5f1aa", "msg": "Minor refinements", "dep_only": false, "snapshots2": {"windows": {"have": 34, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "3d513473c8dce75e22b08294b87de2fb37fd9798", "short": "3d51347", "msg": "Excercise manual correction", "dep_only": false, "snapshots2": {"windows": {"have": 31, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "1b00b2d59dd388f8fb93de6661d429025e320a6b", "short": "1b00b2d", "msg": "Copy of excercise generated", "dep_only": false, "snapshots2": {"windows": {"have": 31, "total": 42}, "linux": {"have": 42, "total": 42}}}, {"sha": "f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5", "short": "f4640da", "msg": "Added new excercises", "dep_only": false, "snapshots2": {"windows": {"have": 29, "total": 42}, "linux": {"have": 42, "total": 42}}}, {"sha": "f96842dc7fd776c01e186bb089eb7079444390f1", "short": "f96842d", "msg": "improved resize appearance", "dep_only": false, "snapshots2": {"windows": {"have": 15, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "e2ee064d41e45456d7d51afd63c3fce28713fc94", "short": "e2ee064", "msg": "mass compiled on windows", "dep_only": false, "snapshots2": {"windows": {"have": 15, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "abb3a165d423dff26829fa296e1039bbc3903ece", "short": "abb3a16", "msg": "Windows bug", "dep_only": false, "snapshots2": {"windows": {"have": 10, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "7599b047409f6801f226b06159da3036986c5bb8", "short": "7599b04", "msg": "debugging the assignment of visa resources to curriculum code", "dep_only": false, "snapshots2": {"windows": {"have": 10, "total": 21}, "linux": {"have": 21, "total": 21}}}];                        // [{sha, short, msg}] newest-first (project revisions)
+    var HIST = [{"sha": "d2e8e2806db14819bcd5d12b541ed5567ff07a86", "short": "d2e8e28", "msg": "Merge pull request #44 from danielcoons/main", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "a882308a3602eee952a3b6af04639437ee94ca1c", "short": "a882308", "msg": "changed a VI to test the SBOM workflow trigger", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "225dc86ea7d781a6941f9fddfb174a2b4f3f932e", "short": "225dc86", "msg": "changed main.vi (added a comment, nuthn special) to test the sbom workflow trigg", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "c3394babc0e984a45c9bb2854ab5b54693b6cb29", "short": "c3394ba", "msg": "Added a Build Spec", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359", "short": "00839e4", "msg": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e", "short": "87482e2", "msg": "G Image moves into the core CI tooling VIPC (v3.39.2)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5", "short": "d56ded4", "msg": "Restore Linux-applicable example VIPC artifact (v3.39.1)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a", "short": "197c1be", "msg": "Clean up dependency management around VIPC files as the source of truth (v3.39.0", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "590495f94bf466cf7803e75e075177dd95b19f08", "short": "590495f", "msg": "example: add UTF JUnit reporter deps to Dependencies.vipc", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "eb2240d106503d2e207374ae8e0c7119af656a45", "short": "eb2240d", "msg": "example: run UTF tests from Example project", "dep_only": false, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf", "short": "3d67c5a", "msg": "Add VIPC-baked Windows base image workflow", "dep_only": true, "snapshots2": {"windows": {"have": 44, "total": 44}, "linux": {"have": 44, "total": 44}}}, {"sha": "12553d67f22d02885acfd455c1d68381e8702aca", "short": "12553d6", "msg": "added utf files", "dep_only": false, "snapshots2": {"windows": {"have": 44, "total": 44}, "linux": {"have": 44, "total": 44}}}, {"sha": "df868ea07cef49f7ed721442b627ec78ba306e7f", "short": "df868ea", "msg": "resized the graph", "dep_only": false, "snapshots2": {"windows": {"have": 41, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "c433e9e5e28492955ffa4d83f0434159b64d3fb7", "short": "c433e9e", "msg": "moved a constant", "dep_only": false, "snapshots2": {"windows": {"have": 40, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1", "short": "d1705cb", "msg": "moved the send command button", "dep_only": false, "snapshots2": {"windows": {"have": 39, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "d1a86a8741bec13cfa11446d0e72d12479a209ae", "short": "d1a86a8", "msg": "fixed errors in motor VIs", "dep_only": false, "snapshots2": {"windows": {"have": 39, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6", "short": "2b5f1aa", "msg": "Minor refinements", "dep_only": false, "snapshots2": {"windows": {"have": 34, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "3d513473c8dce75e22b08294b87de2fb37fd9798", "short": "3d51347", "msg": "Excercise manual correction", "dep_only": false, "snapshots2": {"windows": {"have": 31, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "1b00b2d59dd388f8fb93de6661d429025e320a6b", "short": "1b00b2d", "msg": "Copy of excercise generated", "dep_only": false, "snapshots2": {"windows": {"have": 31, "total": 42}, "linux": {"have": 42, "total": 42}}}, {"sha": "f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5", "short": "f4640da", "msg": "Added new excercises", "dep_only": false, "snapshots2": {"windows": {"have": 29, "total": 42}, "linux": {"have": 42, "total": 42}}}, {"sha": "f96842dc7fd776c01e186bb089eb7079444390f1", "short": "f96842d", "msg": "improved resize appearance", "dep_only": false, "snapshots2": {"windows": {"have": 15, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "e2ee064d41e45456d7d51afd63c3fce28713fc94", "short": "e2ee064", "msg": "mass compiled on windows", "dep_only": false, "snapshots2": {"windows": {"have": 15, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "abb3a165d423dff26829fa296e1039bbc3903ece", "short": "abb3a16", "msg": "Windows bug", "dep_only": false, "snapshots2": {"windows": {"have": 10, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "7599b047409f6801f226b06159da3036986c5bb8", "short": "7599b04", "msg": "debugging the assignment of visa resources to curriculum code", "dep_only": false, "snapshots2": {"windows": {"have": 10, "total": 21}, "linux": {"have": 21, "total": 21}}}];                        // [{sha, short, msg}] newest-first (project revisions)
     var RAN = {"antidoc": 1, "builds": 1, "masscompile": 1, "snapshots": 1, "snapshots2": 1, "unit-tests": 1, "vi-analyzer": 1, "vidiff": 1};                     // {cap:1} caps with a result/active run somewhere in history
     var CAP_META = {                            // label + sub for each known capability
       'snapshots':   ['VI Snapshots', 'Renders every changed VI (classic HTML snapshots)'],
@@ -1834,7 +1834,7 @@
   <script>
   (function(){
     var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "masscompile-backfill-windows.yml", "shas_input": "shas"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "vi-analyzer-backfill-windows.yml", "shas_input": "shas"}}, "linux": {"wf": "run-vi-analyzer-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "unit-tests-backfill-windows.yml", "shas_input": "shas"}}}}, "antidoc": {"label": "Antidoc", "platforms": {"windows": {"wf": "run-antidoc-windows-container.yml", "inputs": {"commit_sha": "{sha}"}, "batch": {"wf": "antidoc-backfill-windows.yml", "shas_input": "shas"}}}}, "builds": {"label": "Builds", "platforms": {"windows": {"wf": "build-binaries-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "build-binaries-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
-    var HIST = [{"sha": "c3394babc0e984a45c9bb2854ab5b54693b6cb29", "short": "c3394ba", "msg": "Added a Build Spec", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359", "short": "00839e4", "msg": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e", "short": "87482e2", "msg": "G Image moves into the core CI tooling VIPC (v3.39.2)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5", "short": "d56ded4", "msg": "Restore Linux-applicable example VIPC artifact (v3.39.1)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a", "short": "197c1be", "msg": "Clean up dependency management around VIPC files as the source of truth (v3.39.0", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "590495f94bf466cf7803e75e075177dd95b19f08", "short": "590495f", "msg": "example: add UTF JUnit reporter deps to Dependencies.vipc", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "eb2240d106503d2e207374ae8e0c7119af656a45", "short": "eb2240d", "msg": "example: run UTF tests from Example project", "dep_only": false, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf", "short": "3d67c5a", "msg": "Add VIPC-baked Windows base image workflow", "dep_only": true, "snapshots2": {"windows": {"have": 44, "total": 44}, "linux": {"have": 44, "total": 44}}}, {"sha": "12553d67f22d02885acfd455c1d68381e8702aca", "short": "12553d6", "msg": "added utf files", "dep_only": false, "snapshots2": {"windows": {"have": 44, "total": 44}, "linux": {"have": 44, "total": 44}}}, {"sha": "df868ea07cef49f7ed721442b627ec78ba306e7f", "short": "df868ea", "msg": "resized the graph", "dep_only": false, "snapshots2": {"windows": {"have": 41, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "c433e9e5e28492955ffa4d83f0434159b64d3fb7", "short": "c433e9e", "msg": "moved a constant", "dep_only": false, "snapshots2": {"windows": {"have": 40, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1", "short": "d1705cb", "msg": "moved the send command button", "dep_only": false, "snapshots2": {"windows": {"have": 39, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "d1a86a8741bec13cfa11446d0e72d12479a209ae", "short": "d1a86a8", "msg": "fixed errors in motor VIs", "dep_only": false, "snapshots2": {"windows": {"have": 39, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6", "short": "2b5f1aa", "msg": "Minor refinements", "dep_only": false, "snapshots2": {"windows": {"have": 34, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "3d513473c8dce75e22b08294b87de2fb37fd9798", "short": "3d51347", "msg": "Excercise manual correction", "dep_only": false, "snapshots2": {"windows": {"have": 31, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "1b00b2d59dd388f8fb93de6661d429025e320a6b", "short": "1b00b2d", "msg": "Copy of excercise generated", "dep_only": false, "snapshots2": {"windows": {"have": 31, "total": 42}, "linux": {"have": 42, "total": 42}}}, {"sha": "f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5", "short": "f4640da", "msg": "Added new excercises", "dep_only": false, "snapshots2": {"windows": {"have": 29, "total": 42}, "linux": {"have": 42, "total": 42}}}, {"sha": "f96842dc7fd776c01e186bb089eb7079444390f1", "short": "f96842d", "msg": "improved resize appearance", "dep_only": false, "snapshots2": {"windows": {"have": 15, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "e2ee064d41e45456d7d51afd63c3fce28713fc94", "short": "e2ee064", "msg": "mass compiled on windows", "dep_only": false, "snapshots2": {"windows": {"have": 15, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "abb3a165d423dff26829fa296e1039bbc3903ece", "short": "abb3a16", "msg": "Windows bug", "dep_only": false, "snapshots2": {"windows": {"have": 10, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "7599b047409f6801f226b06159da3036986c5bb8", "short": "7599b04", "msg": "debugging the assignment of visa resources to curriculum code", "dep_only": false, "snapshots2": {"windows": {"have": 10, "total": 21}, "linux": {"have": 21, "total": 21}}}];
+    var HIST = [{"sha": "d2e8e2806db14819bcd5d12b541ed5567ff07a86", "short": "d2e8e28", "msg": "Merge pull request #44 from danielcoons/main", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "a882308a3602eee952a3b6af04639437ee94ca1c", "short": "a882308", "msg": "changed a VI to test the SBOM workflow trigger", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "225dc86ea7d781a6941f9fddfb174a2b4f3f932e", "short": "225dc86", "msg": "changed main.vi (added a comment, nuthn special) to test the sbom workflow trigg", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "c3394babc0e984a45c9bb2854ab5b54693b6cb29", "short": "c3394ba", "msg": "Added a Build Spec", "dep_only": false, "snapshots2": {"windows": {"have": 49, "total": 50}, "linux": {"have": 49, "total": 50}}}, {"sha": "00839e49ffd3f8c73e18bb4b4d67a6df69433359", "short": "00839e4", "msg": "Keep example VIPC in Linux-proven artifact shape (v3.39.3)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "87482e2bb0ee7084a21cf5814f4f5081e862fc4e", "short": "87482e2", "msg": "G Image moves into the core CI tooling VIPC (v3.39.2)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "d56ded46d6b3c8626d3aefd616ee76ae2d4ff4c5", "short": "d56ded4", "msg": "Restore Linux-applicable example VIPC artifact (v3.39.1)", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "197c1be98a17e40b88c4473157fe8aa008acbb3a", "short": "197c1be", "msg": "Clean up dependency management around VIPC files as the source of truth (v3.39.0", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "590495f94bf466cf7803e75e075177dd95b19f08", "short": "590495f", "msg": "example: add UTF JUnit reporter deps to Dependencies.vipc", "dep_only": true, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "eb2240d106503d2e207374ae8e0c7119af656a45", "short": "eb2240d", "msg": "example: run UTF tests from Example project", "dep_only": false, "snapshots2": {"windows": {"have": 50, "total": 50}, "linux": {"have": 50, "total": 50}}}, {"sha": "3d67c5ad9a7394f0fde051389ca3e0f45f98f5bf", "short": "3d67c5a", "msg": "Add VIPC-baked Windows base image workflow", "dep_only": true, "snapshots2": {"windows": {"have": 44, "total": 44}, "linux": {"have": 44, "total": 44}}}, {"sha": "12553d67f22d02885acfd455c1d68381e8702aca", "short": "12553d6", "msg": "added utf files", "dep_only": false, "snapshots2": {"windows": {"have": 44, "total": 44}, "linux": {"have": 44, "total": 44}}}, {"sha": "df868ea07cef49f7ed721442b627ec78ba306e7f", "short": "df868ea", "msg": "resized the graph", "dep_only": false, "snapshots2": {"windows": {"have": 41, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "c433e9e5e28492955ffa4d83f0434159b64d3fb7", "short": "c433e9e", "msg": "moved a constant", "dep_only": false, "snapshots2": {"windows": {"have": 40, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "d1705cb4e4bf97878034ace4aa9ddd2d53bf29d1", "short": "d1705cb", "msg": "moved the send command button", "dep_only": false, "snapshots2": {"windows": {"have": 39, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "d1a86a8741bec13cfa11446d0e72d12479a209ae", "short": "d1a86a8", "msg": "fixed errors in motor VIs", "dep_only": false, "snapshots2": {"windows": {"have": 39, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "2b5f1aa1c18f9777042c0f63fa7174d9c2e0d5b6", "short": "2b5f1aa", "msg": "Minor refinements", "dep_only": false, "snapshots2": {"windows": {"have": 34, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "3d513473c8dce75e22b08294b87de2fb37fd9798", "short": "3d51347", "msg": "Excercise manual correction", "dep_only": false, "snapshots2": {"windows": {"have": 31, "total": 41}, "linux": {"have": 41, "total": 41}}}, {"sha": "1b00b2d59dd388f8fb93de6661d429025e320a6b", "short": "1b00b2d", "msg": "Copy of excercise generated", "dep_only": false, "snapshots2": {"windows": {"have": 31, "total": 42}, "linux": {"have": 42, "total": 42}}}, {"sha": "f4640dad9ee5e8dcc8cdc87917e97a08f0233ba5", "short": "f4640da", "msg": "Added new excercises", "dep_only": false, "snapshots2": {"windows": {"have": 29, "total": 42}, "linux": {"have": 42, "total": 42}}}, {"sha": "f96842dc7fd776c01e186bb089eb7079444390f1", "short": "f96842d", "msg": "improved resize appearance", "dep_only": false, "snapshots2": {"windows": {"have": 15, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "e2ee064d41e45456d7d51afd63c3fce28713fc94", "short": "e2ee064", "msg": "mass compiled on windows", "dep_only": false, "snapshots2": {"windows": {"have": 15, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "abb3a165d423dff26829fa296e1039bbc3903ece", "short": "abb3a16", "msg": "Windows bug", "dep_only": false, "snapshots2": {"windows": {"have": 10, "total": 21}, "linux": {"have": 21, "total": 21}}}, {"sha": "7599b047409f6801f226b06159da3036986c5bb8", "short": "7599b04", "msg": "debugging the assignment of visa resources to curriculum code", "dep_only": false, "snapshots2": {"windows": {"have": 10, "total": 21}, "linux": {"have": 21, "total": 21}}}];
     var REPO = "elijah286/LabVIEW-CI-with-Containers";
     var BRANCH = "main";
     var TOK_KEY = "lvci_dispatch_token";
@@ -1937,6 +1937,21 @@
     }
     // Quickly surface a just-dispatched run in the list (before the 5s poll settles).
     function kickLive(){ refreshLiveSessions(); setTimeout(refreshLiveSessions,1500); setTimeout(refreshLiveSessions,4000); setTimeout(refreshLiveSessions,8000); }
+    // Activities that can run in a debug container for the given platform
+    // (they have a run target for that OS).
+    function platCaps(plat){
+      var out=[]; ['masscompile','vidiff','snapshots2','builds'].forEach(function(c){
+        if(RT[c] && RT[c].platforms && RT[c].platforms[plat]) out.push(c);
+      }); return out;
+    }
+    function selectedPlat(){ var el=document.querySelector('input[name="dbg-plat"]:checked'); return el?el.value:'linux'; }
+    function platLabel(plat){ return plat==='windows'?'Windows':'Linux'; }
+    function renderActs(plat){
+      var host=$('dbg-acts'); if(!host) return;
+      var caps=platCaps(plat);
+      host.innerHTML = caps.length ? caps.map(function(c){ return '<label style="display:block;margin:.15em 0"><input type="checkbox" class="dbg-act" value="'+esc(c)+'"> '+esc(CAP_LABEL[c]||c)+'</label>'; }).join('')
+                                   : '<div style="color:var(--fg-muted)">No '+esc(platLabel(plat))+' activity runners are installed; you can still open an interactive session.</div>';
+    }
     function modal(){ return $('cidash-debug-modal'); }
     function cidashDebugClose(){ clearLiveTimer(); var m=modal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
     window.cidashDebugClose = cidashDebugClose;
@@ -1949,41 +1964,52 @@
     function renderStep1(){
       var revs=HIST.slice(0,200).map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc(r.short||r.sha.slice(0,7))+' &mdash; '+esc((r.msg||'').slice(0,60))+'</option>'; }).join('');
       var body=''
-        + '<p style="margin:0 0 10px;color:var(--fg-muted);font-size:.9em">Start an interactive LabVIEW desktop on a worker container for a specific revision, then remote in. The project opens automatically and an on-screen menu lets you run CI operations (Mass Compile, Builds, VIDiff&hellip;) and watch them execute live.</p>'
-        + '<div style="margin:0 0 12px;padding:8px 10px;border:1px solid var(--border);border-left:3px solid #d29922;border-radius:6px;background:rgba(210,153,34,.08);font-size:.85em;color:var(--fg)">Each debug session occupies one of this project\'s Actions runners for its whole lifetime and will block other CI jobs if no runner slots are free. End sessions as soon as you are done.</div>'
+        + '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.9em">Boot a worker container with a full LabVIEW desktop you can remote into, log in / activate LabVIEW, then run CI activities live. Start as many as you need &mdash; each runs on the runner (independent of this browser) and shows up in the list below; extra ones queue and start as earlier sessions finish.</p>'
+        + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em">Container</label><br>'
+        +   '<label style="margin-right:14px"><input type="radio" name="dbg-plat" value="linux" checked> Linux</label>'
+        +   '<label><input type="radio" name="dbg-plat" value="windows"> Windows</label></div>'
         + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-rev">Revision</label><br>'
         +   '<select id="dbg-rev" style="width:100%;max-width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'+revs+'</select></div>'
+        + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em">Run these activities on the go signal</label><div id="dbg-acts"></div></div>'
         + '<div style="margin:0 0 14px"><label style="font-weight:600;font-size:.85em" for="dbg-min">Auto-end after</label><br>'
         +   '<select id="dbg-min" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'
         +     '<option value="30">30 minutes</option><option value="45" selected>45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></div>'
         + (getTok()?'':'<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-tok">Dispatch token</label><br><input id="dbg-tok" type="password" placeholder="fine-grained PAT with Actions: write" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)"><div style="font-size:.8em;color:var(--fg-muted);margin-top:3px"><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener">Create one &#8599;</a></div></div>')
-        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-start" title="Boot a LabVIEW debug desktop on this revision; pick operations from the on-screen menu once inside" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
+        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-start" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><button id="dbg-src" title="Boot a debug desktop with the LabVIEW project open, so you can view the source" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.9em">Open source &#8599;</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
         + '<div id="dbg-live" style="margin:16px 0 0;border-top:1px solid var(--border);padding-top:12px;max-height:280px;overflow-y:auto"></div>';
       $('cidash-debug-body').innerHTML=body;
+      renderActs(selectedPlat());
+      var plats=document.querySelectorAll('input[name="dbg-plat"]');
+      for(var i=0;i<plats.length;i++){ plats[i].addEventListener('change', function(){ renderActs(selectedPlat()); }); }
       try{ if(typeof window.lvciRevPicker==='function') window.lvciRevPicker($('dbg-rev')); }catch(e){}
-      $('dbg-start').addEventListener('click', function(){ startSession(); });
+      $('dbg-start').addEventListener('click', function(){ startSession(false); });
+      var sb=$('dbg-src'); if(sb){ sb.addEventListener('click', function(){ startSession(true); }); }
       refreshLiveSessions();
       clearLiveTimer(); liveTimer=setInterval(refreshLiveSessions, 5000);
     }
-    // Dispatch a debug session: boot a LabVIEW desktop on the chosen revision
-    // with the project open; operations are chosen from the on-screen menu.
-    function startSession(){
+    // Dispatch a debug session. openSrc=true boots the same container but opens
+    // the LabVIEW project in the IDE (view source) instead of running activities.
+    function startSession(openSrc){
       var t=$('dbg-tok'); if(t && t.value.trim()){ setTok(t.value.trim()); }
       if(!getTok()){ debugStatus('Enter a token with <strong>Actions: write</strong> to start.', 'err'); return; }
       var sha=$('dbg-rev') ? $('dbg-rev').value : '';
       if(!sha){ debugStatus('Pick a revision.', 'err'); return; }
+      var acts=openSrc ? [] : [].slice.call(document.querySelectorAll('.dbg-act:checked')).map(function(b){ return b.value; });
       var mins=$('dbg-min') ? $('dbg-min').value : '45';
-      var startBtn=$('dbg-start');
-      if(startBtn){ startBtn.disabled=true; startBtn.textContent='Starting...'; }
-      debugStatus('Dispatching the debug session...');
-      function reset(){ if(startBtn){ startBtn.disabled=false; startBtn.textContent='Start debug session'; } }
-      var inputs={ commit_sha:sha, platform:'linux', actions:'', minutes:String(mins), open_source:'true' };
+      var plat=selectedPlat();
+      var startBtn=$('dbg-start'), srcBtn=$('dbg-src');
+      if(startBtn) startBtn.disabled=true; if(srcBtn) srcBtn.disabled=true;
+      var busy = openSrc ? srcBtn : startBtn; if(busy){ busy.textContent='Starting...'; }
+      debugStatus(openSrc ? 'Opening the source in a debug desktop...' : 'Dispatching the debug session...');
+      function reset(){ if(startBtn){ startBtn.disabled=false; startBtn.textContent='Start debug session'; } if(srcBtn){ srcBtn.disabled=false; srcBtn.innerHTML='Open source &#8599;'; } }
+      var inputs={ commit_sha:sha, platform:plat, actions:acts.join(' '), minutes:String(mins) };
+      if(openSrc){ inputs.open_source='true'; }
       fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/dispatches', {
         method:'POST', headers:Object.assign({'Content-Type':'application/json'}, ghHeaders()),
         body:JSON.stringify({ ref:BRANCH, inputs:inputs })
       }).then(function(r){
         reset();
-        if(r.status===204){ debugStatus('Session dispatched &mdash; it will appear below as it boots.', 'ok'); kickLive(); return; }
+        if(r.status===204){ debugStatus(openSrc ? 'Opening source &mdash; the debug desktop will appear below with the LabVIEW project open.' : 'Session dispatched &mdash; it will appear below as it boots.', 'ok'); kickLive(); return; }
         if(r.status===401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} debugStatus('Token rejected (401). Paste a valid token above.', 'err'); renderStep1(); return; }
         if(r.status===403){ debugStatus('Dispatch forbidden (403). The token needs <strong>Actions: write</strong> for <code>'+esc(REPO)+'</code>.', 'err'); return; }
         if(r.status===404){ debugStatus('Not found (404). <code>'+esc(WF)+'</code> is not installed, or the token cannot see this repo.', 'err'); return; }
@@ -2014,7 +2040,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — LabVIEW-CI-with-Containers</h1>
-  <div class="sub">Last updated: 2026-08-12 16:59 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-08-12 20:28 UTC &nbsp;|&nbsp; Live — refreshing every 60 s while CI runs</div>
   <div class="nav">
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers">GitHub</a>
     <a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions">Actions</a>
@@ -2059,6 +2085,44 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="true" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(298,42%,45%)" title="MIpetrov-NI" aria-hidden="true">M</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d2e8e2806db14819bcd5d12b541ed5567ff07a86" class="cidash-rev-msg" title="Merge pull request #44 from danielcoons/main">Merge pull request #44 from danielcoons/main</a><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d2e8e2806db14819bcd5d12b541ed5567ff07a86" class="snap-glyph" title="Snapshots exist for this revision (50 of 51 VIs)" aria-label="Snapshots exist for this revision (50 of 51 VIs)"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto"><path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 .354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg></a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=d2e8e2806db14819bcd5d12b541ed5567ff07a86" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">d2e8e28</a><span class="cidash-rev-dot">&middot;</span>MIpetrov-NI<span class="cidash-rev-dot">&middot;</span>2026-08-12</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center" class="cidash-active-cell" data-cap="masscompile" data-sha="d2e8e2806db14819bcd5d12b541ed5567ff07a86" data-parent="cb4611eabf47ed066128b7ea5c5d7d794e819d34" data-short="d2e8e28" data-active="true"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/31637485619" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>compile</a></span></td>
+      <td style="text-align:center" class="cidash-active-cell" data-cap="vi-analyzer" data-sha="d2e8e2806db14819bcd5d12b541ed5567ff07a86" data-parent="cb4611eabf47ed066128b7ea5c5d7d794e819d34" data-short="d2e8e28" data-active="true"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/31637485540" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>analyze</a></span></td>
+      <td style="text-align:center" class="cidash-active-cell" data-cap="vidiff" data-sha="d2e8e2806db14819bcd5d12b541ed5567ff07a86" data-parent="cb4611eabf47ed066128b7ea5c5d7d794e819d34" data-short="d2e8e28" data-active="true"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/31637485492" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>diff</a></span></td>
+      <td style="text-align:center" class="cidash-active-cell" data-cap="snapshots" data-sha="d2e8e2806db14819bcd5d12b541ed5567ff07a86" data-parent="cb4611eabf47ed066128b7ea5c5d7d794e819d34" data-short="d2e8e28" data-active="true"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/31637485534" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>snapshots</a></span></td>
+      <td style="text-align:center" class="cidash-active-cell" data-cap="unit-tests" data-sha="d2e8e2806db14819bcd5d12b541ed5567ff07a86" data-parent="cb4611eabf47ed066128b7ea5c5d7d794e819d34" data-short="d2e8e28" data-active="true"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/31637485517" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>tests</a></span></td>
+      <td style="text-align:center" class="cidash-active-cell" data-cap="antidoc" data-sha="d2e8e2806db14819bcd5d12b541ed5567ff07a86" data-parent="cb4611eabf47ed066128b7ea5c5d7d794e819d34" data-short="d2e8e28" data-active="true"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/31637485561" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>docs</a></span></td>
+      <td style="text-align:center" class="cidash-active-cell" data-cap="builds" data-sha="d2e8e2806db14819bcd5d12b541ed5567ff07a86" data-parent="cb4611eabf47ed066128b7ea5c5d7d794e819d34" data-short="d2e8e28" data-active="true"><span class="run-badge" title="Running — click to view progress"><a href="https://github.com/elijah286/LabVIEW-CI-with-Containers/actions/runs/31637485474" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px"><span class="run-spin"></span>build</a></span></td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=50db9eef28e655d9d0e626c7ab8617802bac5788" class="cidash-rev-msg" title="Merge branch &#x27;main&#x27; into main">Merge branch &#x27;main&#x27; into main</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=50db9eef28e655d9d0e626c7ab8617802bac5788" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">50db9ee</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-08-12</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -2066,6 +2130,196 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=cb4611eabf47ed066128b7ea5c5d7d794e819d34" class="cidash-rev-msg" title="Skip Pages publishing for fork pull requests">Skip Pages publishing for fork pull requests</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=cb4611eabf47ed066128b7ea5c5d7d794e819d34" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">cb4611e</a><span class="cidash-rev-dot">&middot;</span>elijah286<span class="cidash-rev-dot">&middot;</span>2026-08-12</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(298,42%,45%)" title="MIpetrov-NI" aria-hidden="true">M</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=8f935e6e3379c89c9e08a86d8514fb05b8daee43" class="cidash-rev-msg" title="indentation fixes for report error">indentation fixes for report error</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=8f935e6e3379c89c9e08a86d8514fb05b8daee43" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">8f935e6</a><span class="cidash-rev-dot">&middot;</span>MIpetrov-NI<span class="cidash-rev-dot">&middot;</span>2026-08-11</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(298,42%,45%)" title="MIpetrov-NI" aria-hidden="true">M</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=5f102c241f6b32338e705a02513d701d3ef2d0f1" class="cidash-rev-msg" title="Correct CycloneDX SBOM componnet supplier data in the generated report.">Correct CycloneDX SBOM componnet supplier data in the generated report.</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=5f102c241f6b32338e705a02513d701d3ef2d0f1" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">5f102c2</a><span class="cidash-rev-dot">&middot;</span>MIpetrov-NI<span class="cidash-rev-dot">&middot;</span>2026-08-11</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(298,42%,45%)" title="MIpetrov-NI" aria-hidden="true">M</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=38a335472926c8d0337c9daa1cfcd63d16ab2a1d" class="cidash-rev-msg" title="pass --allow-missing-files to override">pass --allow-missing-files to override</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=38a335472926c8d0337c9daa1cfcd63d16ab2a1d" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">38a3354</a><span class="cidash-rev-dot">&middot;</span>MIpetrov-NI<span class="cidash-rev-dot">&middot;</span>2026-08-10</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(298,42%,45%)" title="MIpetrov-NI" aria-hidden="true">M</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=4a14d64ddd9d8a57f1e95a52eb3316b0ff0e0573" class="cidash-rev-msg" title="Should detect LabVIEW version installed in the container, then pass this version">Should detect LabVIEW version installed in the container, then pass this version</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=4a14d64ddd9d8a57f1e95a52eb3316b0ff0e0573" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">4a14d64</a><span class="cidash-rev-dot">&middot;</span>MIpetrov-NI<span class="cidash-rev-dot">&middot;</span>2026-08-10</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(298,42%,45%)" title="MIpetrov-NI" aria-hidden="true">M</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=34ca150dc89039426f128b89f1010e496e1cba93" class="cidash-rev-msg" title="Error handling: SBOM workflow fails if VIPM CLI errors to avoid generating misle">Error handling: SBOM workflow fails if VIPM CLI errors to avoid generating misle</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=34ca150dc89039426f128b89f1010e496e1cba93" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">34ca150</a><span class="cidash-rev-dot">&middot;</span>MIpetrov-NI<span class="cidash-rev-dot">&middot;</span>2026-08-10</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="true" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(298,42%,45%)" title="MIpetrov-NI" aria-hidden="true">M</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a882308a3602eee952a3b6af04639437ee94ca1c" class="cidash-rev-msg" title="changed a VI to test the SBOM workflow trigger">changed a VI to test the SBOM workflow trigger</a><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a882308a3602eee952a3b6af04639437ee94ca1c" class="snap-glyph" title="Snapshots exist for this revision (50 of 51 VIs)" aria-label="Snapshots exist for this revision (50 of 51 VIs)"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto"><path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 .354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg></a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a882308a3602eee952a3b6af04639437ee94ca1c" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">a882308</a><span class="cidash-rev-dot">&middot;</span>MIpetrov-NI<span class="cidash-rev-dot">&middot;</span>2026-08-07</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="a882308a3602eee952a3b6af04639437ee94ca1c" data-parent="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-short="a882308" title="Run Mass Compile for commit a882308">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="a882308a3602eee952a3b6af04639437ee94ca1c" data-parent="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-short="a882308" title="Run VI Analyzer for commit a882308">&#9655;</a></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="a882308a3602eee952a3b6af04639437ee94ca1c" data-parent="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-short="a882308" data-ts="2026-08-07T20:10:36Z"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a882308a3602eee952a3b6af04639437ee94ca1c&changed=1" class="cidash-diffstat" title="VIs changed in this revision: 1 different · 0 new · 0 deleted — click to view the diffs"><span class="ds-mod">1</span><span class="ds-sep">/</span><span class="ds-add ds-zero">0</span><span class="ds-sep">/</span><span class="ds-del ds-zero">0</span></a></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="a882308a3602eee952a3b6af04639437ee94ca1c" data-parent="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-short="a882308" data-ts="" data-done="false"><span class="cidash-chip cc-warn" title="50 of 51 VIs have snapshots; 1 missing - run this revision or use Populate history to backfill"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.46 1.05c.66-1.23 2.43-1.23 3.08 0l6.08 11.38A1.75 1.75 0 0 1 14.08 15H1.92a1.75 1.75 0 0 1-1.54-2.57ZM8.75 5.75a.75.75 0 0 0-1.5 0v3a.75.75 0 0 0 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a882308a3602eee952a3b6af04639437ee94ca1c" style="color:inherit">50/51</a></span></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="a882308a3602eee952a3b6af04639437ee94ca1c" data-parent="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-short="a882308" title="Run Unit Tests for commit a882308">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="a882308a3602eee952a3b6af04639437ee94ca1c" data-parent="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-short="a882308" title="Run Antidoc for commit a882308">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="builds" data-sha="a882308a3602eee952a3b6af04639437ee94ca1c" data-parent="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-short="a882308" title="Run Builds for commit a882308">&#9655;</a></td>
+    </tr>
+
+    <tr data-project="true" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(298,42%,45%)" title="MIpetrov-NI" aria-hidden="true">M</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=225dc86ea7d781a6941f9fddfb174a2b4f3f932e" class="cidash-rev-msg" title="changed main.vi (added a comment, nuthn special) to test the sbom workflow trigg">changed main.vi (added a comment, nuthn special) to test the sbom workflow trigg</a><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=225dc86ea7d781a6941f9fddfb174a2b4f3f932e" class="snap-glyph" title="Snapshots exist for this revision (50 of 51 VIs)" aria-label="Snapshots exist for this revision (50 of 51 VIs)"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto"><path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 .354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg></a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=225dc86ea7d781a6941f9fddfb174a2b4f3f932e" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">225dc86</a><span class="cidash-rev-dot">&middot;</span>MIpetrov-NI<span class="cidash-rev-dot">&middot;</span>2026-08-07</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-parent="016322233dd49f2959060b5560feb14c88c85f38" data-short="225dc86" title="Run Mass Compile for commit 225dc86">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-parent="016322233dd49f2959060b5560feb14c88c85f38" data-short="225dc86" title="Run VI Analyzer for commit 225dc86">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-parent="016322233dd49f2959060b5560feb14c88c85f38" data-short="225dc86" title="Run VIDiff for commit 225dc86">&#9655;</a></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-parent="016322233dd49f2959060b5560feb14c88c85f38" data-short="225dc86" data-ts="" data-done="false"><span class="cidash-chip cc-warn" title="50 of 51 VIs have snapshots; 1 missing - run this revision or use Populate history to backfill"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.46 1.05c.66-1.23 2.43-1.23 3.08 0l6.08 11.38A1.75 1.75 0 0 1 14.08 15H1.92a1.75 1.75 0 0 1-1.54-2.57ZM8.75 5.75a.75.75 0 0 0-1.5 0v3a.75.75 0 0 0 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=225dc86ea7d781a6941f9fddfb174a2b4f3f932e" style="color:inherit">50/51</a></span></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-parent="016322233dd49f2959060b5560feb14c88c85f38" data-short="225dc86" title="Run Unit Tests for commit 225dc86">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-parent="016322233dd49f2959060b5560feb14c88c85f38" data-short="225dc86" title="Run Antidoc for commit 225dc86">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="builds" data-sha="225dc86ea7d781a6941f9fddfb174a2b4f3f932e" data-parent="016322233dd49f2959060b5560feb14c88c85f38" data-short="225dc86" title="Run Builds for commit 225dc86">&#9655;</a></td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(132,42%,45%)" title="daniel-coons" aria-hidden="true">D</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=016322233dd49f2959060b5560feb14c88c85f38" class="cidash-rev-msg" title="so i am going to try to not auto approve this accidentally">so i am going to try to not auto approve this accidentally</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=016322233dd49f2959060b5560feb14c88c85f38" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">0163222</a><span class="cidash-rev-dot">&middot;</span>daniel-coons<span class="cidash-rev-dot">&middot;</span>2026-07-31</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(55,42%,45%)" title="Daniel Coons" aria-hidden="true">D</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=cc3ad976c36aeacc5d7d3e8651832c6cd15a48c1" class="cidash-rev-msg" title="Merge branch &#x27;elijah286:main&#x27; into main">Merge branch &#x27;elijah286:main&#x27; into main</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=cc3ad976c36aeacc5d7d3e8651832c6cd15a48c1" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">cc3ad97</a><span class="cidash-rev-dot">&middot;</span>Daniel Coons<span class="cidash-rev-dot">&middot;</span>2026-07-31</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(132,42%,45%)" title="daniel-coons" aria-hidden="true">D</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=0c4529a9f8cf9114b58a8b4367ac18618cf5e8ac" class="cidash-rev-msg" title="Merge branch &#x27;feature/#22-SBOM&#x27;">Merge branch &#x27;feature/#22-SBOM&#x27;</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=0c4529a9f8cf9114b58a8b4367ac18618cf5e8ac" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">0c4529a</a><span class="cidash-rev-dot">&middot;</span>daniel-coons<span class="cidash-rev-dot">&middot;</span>2026-07-31</div>
           </div>
         </div>
       </td>
@@ -2180,6 +2434,25 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c9db59e73b37d31ea9eef71e0a22cb9fffe765f6" class="cidash-rev-msg" title="updated scripting based on other repo integration testing">updated scripting based on other repo integration testing</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c9db59e73b37d31ea9eef71e0a22cb9fffe765f6" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">c9db59e</a><span class="cidash-rev-dot">&middot;</span>daniel-coons<span class="cidash-rev-dot">&middot;</span>2026-07-31</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(55,42%,45%)" title="Daniel Coons" aria-hidden="true">D</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=baba8b6d5fbedf08bb20b658c4529c1f3df0f0fb" class="cidash-rev-msg" title="Merge pull request #2 from danielcoons/feature/#22-SBOM">Merge pull request #2 from danielcoons/feature/#22-SBOM</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=baba8b6d5fbedf08bb20b658c4529c1f3df0f0fb" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">baba8b6</a><span class="cidash-rev-dot">&middot;</span>Daniel Coons<span class="cidash-rev-dot">&middot;</span>2026-07-30</div>
           </div>
         </div>
       </td>
@@ -3700,253 +3973,6 @@
           <div class="cidash-rev-body">
             <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=40bbce9d088884bc216323827fffd81fe4b16d2e" class="cidash-rev-msg" title="ci: reconfigure LabVIEW CI settings (#31)">ci: reconfigure LabVIEW CI settings (#31)</a></div>
             <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=40bbce9d088884bc216323827fffd81fe4b16d2e" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">40bbce9</a><span class="cidash-rev-dot">&middot;</span>github-actions[bot]<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7722b5fe2c9372f1337c09c84388ab177cfe0538" class="cidash-rev-msg" title="dashboard: fix report Re-run preselect (histIdx-&gt;histIdxIn) + in-page overlay fo">dashboard: fix report Re-run preselect (histIdx-&gt;histIdxIn) + in-page overlay fo</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=7722b5fe2c9372f1337c09c84388ab177cfe0538" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">7722b5f</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a782f16015604f2565f95b1bd77aa8b31bf9c328" class="cidash-rev-msg" title="deps: remove duplicate repaired VIPC artifacts (#30)">deps: remove duplicate repaired VIPC artifacts (#30)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=a782f16015604f2565f95b1bd77aa8b31bf9c328" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">a782f16</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9a0e1c6251e0c7d5f9f35ec1387fcdae3803602a" class="cidash-rev-msg" title="Merge pull request #29 from elijah286/fix/deps-pending-version-mismatch">Merge pull request #29 from elijah286/fix/deps-pending-version-mismatch</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9a0e1c6251e0c7d5f9f35ec1387fcdae3803602a" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">9a0e1c6</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=8e0a5c34c6ec3e6e3a3d776c913200f719d17ec6" class="cidash-rev-msg" title="dependencies: add final approval dialog with per-container diff">dependencies: add final approval dialog with per-container diff</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=8e0a5c34c6ec3e6e3a3d776c913200f719d17ec6" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">8e0a5c3</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c5fbce24c754b7229f1dfcbd53c62540a0a1c4ad" class="cidash-rev-msg" title="Merge pull request #28 from elijah286/fix/deps-pending-version-mismatch">Merge pull request #28 from elijah286/fix/deps-pending-version-mismatch</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c5fbce24c754b7229f1dfcbd53c62540a0a1c4ad" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">c5fbce2</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=04f82042da70ffdb2c372a6557a4e60415adc12b" class="cidash-rev-msg" title="dependencies: restore rebuild panel and update workflow controls">dependencies: restore rebuild panel and update workflow controls</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=04f82042da70ffdb2c372a6557a4e60415adc12b" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">04f8204</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=323dfe85aec291ca9e895220bdf02854cc693eff" class="cidash-rev-msg" title="reconfigure.yml: fix invalid-workflow-file error (col-0 heredoc) (4.4.15)">reconfigure.yml: fix invalid-workflow-file error (col-0 heredoc) (4.4.15)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=323dfe85aec291ca9e895220bdf02854cc693eff" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">323dfe8</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2e6c84f26ce5d2344b07412d73913a627ef53e30" class="cidash-rev-msg" title="Revision pickers: shared searchable widget that filters to LabVIEW code (4.4.14)">Revision pickers: shared searchable widget that filters to LabVIEW code (4.4.14)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=2e6c84f26ce5d2344b07412d73913a627ef53e30" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">2e6c84f</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=333db43002ac632f7fe172d3ecb6cfe7a00bee5c" class="cidash-rev-msg" title="Merge pull request #27 from elijah286/fix/deps-pending-version-mismatch">Merge pull request #27 from elijah286/fix/deps-pending-version-mismatch</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=333db43002ac632f7fe172d3ecb6cfe7a00bee5c" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">333db43</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c187e7c49057b7780c0c068bcee90c8f7fd7b95b" class="cidash-rev-msg" title="dependencies: handle object-shaped dragon payload in generated index">dependencies: handle object-shaped dragon payload in generated index</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=c187e7c49057b7780c0c068bcee90c8f7fd7b95b" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">c187e7c</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=565141022e094c39ff77a7914df2c6b36a5548b7" class="cidash-rev-msg" title="Populate-history: filter revision picker to LabVIEW code + add search (4.4.13)">Populate-history: filter revision picker to LabVIEW code + add search (4.4.13)</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=565141022e094c39ff77a7914df2c6b36a5548b7" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">5651410</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=023c7e6ebb50bcb4cdfef117173e850628329ee9" class="cidash-rev-msg" title="Merge pull request #26 from elijah286/fix/deps-pending-version-mismatch">Merge pull request #26 from elijah286/fix/deps-pending-version-mismatch</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=023c7e6ebb50bcb4cdfef117173e850628329ee9" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">023c7e6</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-    </tr>
-
-    <tr data-project="false" data-deponly="false">
-      <td class="cidash-rev">
-        <div class="cidash-rev-wrap">
-          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
-          <div class="cidash-rev-body">
-            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9f5bdf304f95ec413b5ba7a8be7e2e53b9e7986e" class="cidash-rev-msg" title="Merge origin/main into fix/deps-pending-version-mismatch">Merge origin/main into fix/deps-pending-version-mismatch</a></div>
-            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/LabVIEW-CI-with-Containers/vi-snapshots/index.html?sha=9f5bdf304f95ec413b5ba7a8be7e2e53b9e7986e" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">9f5bdf3</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-07-21</div>
           </div>
         </div>
       </td>
