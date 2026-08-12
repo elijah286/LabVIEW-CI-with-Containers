@@ -346,6 +346,12 @@ flowchart LR
         separate dashboard workflow reacts to those statuses and rebuilds the Pages dashboard. Read the diagram
         top to bottom — it is the same journey as <a href="#concepts">§2</a>, with the real file and job names.</p>
 
+      <p><strong>Fork pull requests are analysis-only.</strong> Their jobs still run and upload report artifacts for
+        review, but they do not publish to the shared <code>gh-pages</code> branch because GitHub gives fork code a
+        read-only token. After a reviewed change merges, the <code>main</code> push reruns the pipeline with
+        repository permissions and publishes the canonical report and dashboard update. Collaborators who need
+        pre-merge publication should create branches in the repository, rather than use forks.</p>
+
       <div class="mermaid">
 flowchart TD
   CP["commit / PR"] --> RW["labview-ci.reusable.yml&lt;br/&gt;config job reads .github/labview-ci.yml"]

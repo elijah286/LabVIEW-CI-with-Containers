@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "b48e95d35f8e6b5de77fad4bbe81496b64d3e8ec",
+  "sha": "cb4611eabf47ed066128b7ea5c5d7d794e819d34",
   "revisions": [
+    {
+      "sha": "cb4611eabf47ed066128b7ea5c5d7d794e819d34",
+      "short": "cb4611e",
+      "message": "Skip Pages publishing for fork pull requests",
+      "author": "elijah286",
+      "date": "2026-08-12T16:27:18Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "b48e95d35f8e6b5de77fad4bbe81496b64d3e8ec",
       "short": "b48e95d",
@@ -891,15 +900,6 @@
       "message": "Merge origin/main into fix/deps-pending-version-mismatch",
       "author": "Elijah Kerry",
       "date": "2026-07-21T15:52:33Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "23c2efaa2af60a56cf9bc258d802040f7eabdec9",
-      "short": "23c2efa",
-      "message": "vipc: make committed VIPCs authoritative and sync dependency surfaces",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T15:46:11Z",
       "project": false,
       "dep_only": false
     },
