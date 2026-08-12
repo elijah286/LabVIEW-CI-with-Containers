@@ -1,0 +1,52 @@
+{
+ "meta": {
+  "sha": "d2e8e2806db14819bcd5d12b541ed5567ff07a86",
+  "short": "d2e8e28",
+  "platform": "windows",
+  "repo": "elijah286/LabVIEW-CI-with-Containers",
+  "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers",
+  "dash_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers/",
+  "labview_version": "2026",
+  "commit": {
+   "message": "Merge pull request #44 from danielcoons/main",
+   "author": "MIpetrov-NI",
+   "date": "2026-08-12T15:24:21-05:00"
+  },
+  "generated_utc": "2026-08-12 20:51 UTC",
+  "spdx_version": "CycloneDX 1.5",
+  "created": ""
+ },
+ "summary": {
+  "total_packages": 3
+ },
+ "platforms": [
+  {
+   "id": "windows",
+   "url": null
+  },
+  {
+   "id": "linux",
+   "url": "linux/results.json"
+  }
+ ],
+ "packages": [
+  {
+   "name": "ni-labview-2026-coreother",
+   "version": "26.1.2.49158-0+f6",
+   "vendor": "National Instruments"
+  },
+  {
+   "name": "ni-labview-2026-vilib",
+   "version": "26.1.2.49158-0+f6",
+   "vendor": "National Instruments"
+  },
+  {
+   "name": "ni-utf-labview-support",
+   "version": "25.1.0.49240-0+f88",
+   "vendor": "National Instruments"
+  }
+ ],
+ "tooling": {
+  "missing": []
+ }
+}

@@ -1,0 +1,184 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "bom-ref": "pkg:nipkg/ni-labview-2026-coreother@26.1.2.49158-0%2Bf6",
+      "description": "This is an infrastructure package for NI Software.",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.ni.com"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "MD5",
+          "content": "c3519ca9486bc55c841c01ba943beef7"
+        },
+        {
+          "alg": "SHA-256",
+          "content": "bbb9f80aa42112fef53cc94c52537ca1fb0101e521a3b9f12a4640fbb0ccd6b3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "NI Software License Agreement for Released Products"
+          }
+        }
+      ],
+      "name": "ni-labview-2026-coreother",
+      "properties": [
+        {
+          "name": "vipm:display-name",
+          "value": "NI LabVIEW (64-bit) Core Files"
+        },
+        {
+          "name": "vipm:display-version",
+          "value": "2026 Q1 Patch 2"
+        }
+      ],
+      "purl": "pkg:nipkg/ni-labview-2026-coreother@26.1.2.49158-0%2Bf6",
+      "supplier": {
+        "contact": [
+          {
+            "email": "support@ni.com"
+          }
+        ],
+        "name": "National Instruments"
+      },
+      "type": "library",
+      "version": "26.1.2.49158-0+f6"
+    },
+    {
+      "bom-ref": "pkg:nipkg/ni-labview-2026-vilib@26.1.2.49158-0%2Bf6",
+      "description": "This is an infrastructure package for NI Software.",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.ni.com"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "MD5",
+          "content": "5c7cd3b5403dbb26312088324a8af5da"
+        },
+        {
+          "alg": "SHA-256",
+          "content": "b8182406b0c40fd045262f1938c5c355bd846896be033c1b2bd8af5c0a53184a"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "NI Software License Agreement for Released Products"
+          }
+        }
+      ],
+      "name": "ni-labview-2026-vilib",
+      "properties": [
+        {
+          "name": "vipm:display-name",
+          "value": "NI LabVIEW (64-bit) VI Library"
+        },
+        {
+          "name": "vipm:display-version",
+          "value": "2026 Q1 Patch 2"
+        }
+      ],
+      "purl": "pkg:nipkg/ni-labview-2026-vilib@26.1.2.49158-0%2Bf6",
+      "supplier": {
+        "contact": [
+          {
+            "email": "support@ni.com"
+          }
+        ],
+        "name": "National Instruments"
+      },
+      "type": "library",
+      "version": "26.1.2.49158-0+f6"
+    },
+    {
+      "bom-ref": "pkg:nipkg/ni-utf-labview-support@25.1.0.49240-0%2Bf88",
+      "description": "The LabVIEW Unit Test Framework Toolkit helps you automate LabVIEW VI unit testing to perform functional validation.\nThe LabVIEW Unit Test Framework Toolkit is a software add-on for LabVIEW that helps you automate functional validation and demonstrate whether an application behaves properly. You can generate a unit test or import test parameters from a text document created in an editor such as Microsoft Excel. Tests can encompass multiple test cases, which define input values and the expected output for any data type, including arrays and clusters. You can identify the source of incorrect outputs, track code coverage, and generate validation documents in HTML, ATML/XML, or ASCII formats.",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.ni.com"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "MD5",
+          "content": "385efb2eb3d7935ba62ca8ebedd6d2da"
+        },
+        {
+          "alg": "SHA-256",
+          "content": "eccf8cc776d2f557949dfca5b85759e7dd893a21f5f8f3b4ff01d60d16dba6d8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "NI Software License Agreement for Released Products"
+          }
+        }
+      ],
+      "name": "ni-utf-labview-support",
+      "properties": [
+        {
+          "name": "vipm:display-name",
+          "value": "NI LabVIEW Unit Test Framework Toolkit Support for LabVIEW"
+        },
+        {
+          "name": "vipm:display-version",
+          "value": "2025 Q1"
+        }
+      ],
+      "purl": "pkg:nipkg/ni-utf-labview-support@25.1.0.49240-0%2Bf88",
+      "supplier": {
+        "contact": [
+          {
+            "email": "support@ni.com"
+          }
+        ],
+        "name": "National Instruments"
+      },
+      "type": "library",
+      "version": "25.1.0.49240-0+f88"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "pkg:nipkg/ni-labview-2026-coreother@26.1.2.49158-0%2Bf6",
+        "pkg:nipkg/ni-labview-2026-vilib@26.1.2.49158-0%2Bf6",
+        "pkg:nipkg/ni-utf-labview-support@25.1.0.49240-0%2Bf88"
+      ],
+      "ref": "pkg:vipm/Example"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "pkg:vipm/Example",
+      "name": "Example",
+      "type": "application"
+    },
+    "timestamp": "2026-08-12T20:51:17.509Z",
+    "tools": {
+      "components": [
+        {
+          "name": "vipm-cli",
+          "publisher": "JKI",
+          "type": "application",
+          "version": "2026.3.0"
+        }
+      ]
+    }
+  },
+  "serialNumber": "urn:uuid:550bbea6-9799-45a0-bbfc-3f702a61769f",
+  "specVersion": "1.5",
+  "version": 1
+}
