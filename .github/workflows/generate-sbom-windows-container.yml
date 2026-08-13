@@ -1,0 +1,281 @@
+name: Generate SBOM — Windows Container
+run-name: Generate SBOM Windows container - ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+# Generates a Software Bill of Materials (SBOM) for LabVIEW VIPM dependencies
+# inside the project's CI worker image, processes the spdx json into a navigable 
+# report (build-sbom-report.py), deploys it under sbom/<sha>/, and posts the 
+# "CI / SBOM" commit status for the dashboard. Manual runs come through workflow_dispatch.
+
+on:
+  # Triggers on changes to VIPM workspace dependencies (.vipc) or LabVIEW files in case that pulls in new dependency
+  pull_request:
+    paths:
+      - '**.vipc'
+      - '**.vip'
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+      - '!.github/**'
+  push:
+    branches: [main]
+    paths:
+      - '**.vipc'
+      - '**.vip'
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+      - '!.github/**'
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to evaluate (leave blank for current HEAD)'
+        required: false
+        default: ''
+
+env:
+  LABVIEW_CONTAINER_IMAGE: ''
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  statuses: write
+  packages: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.commit_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  generate-sbom:
+    runs-on: windows-2022
+
+    steps:
+      - name: Determine target SHA
+        id: sha
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INPUT="${{ github.event.inputs.commit_sha }}"
+          if [ -n "$INPUT" ]; then
+            if printf '%s' "$INPUT" | grep -Eiq '^[0-9a-f]{40}$'; then
+              echo "sha=$INPUT" >> "$GITHUB_OUTPUT"
+            else
+              FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha' 2>/dev/null || true)
+              echo "sha=${FULL:-$INPUT}" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"SBOM generation in progress\",\"context\":\"CI / SBOM\"}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          fetch-depth: 0
+      
+      # When re-running against a historical commit the CI scripts may not
+      # exist in that commit — restore them from main.
+      - name: Restore CI scripts from main
+        if: github.event.inputs.commit_sha != ''
+        shell: bash
+        run: |
+          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
+          git checkout FETCH_HEAD -- .github/labview .github/workflows .github/actions/publish-gh-pages
+
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          ACTION_ID="sbom"
+          CFG=.github/labview-ci.yml
+          sel=""
+          if [ -f "$CFG" ]; then
+            sel=$(awk -v act="$ACTION_ID" '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; ina=0; next}
+              inc && /^    actions:[[:space:]]*$/ {ina=1; next}
+              ina && /^      [A-Za-z0-9_.-]+:/ {
+                k=$1; sub(/:.*/,"",k);
+                v=$0; sub(/^[[:space:]]*[A-Za-z0-9_.-]+:[[:space:]]*/,"",v); gsub(/"/,"",v); gsub(/[[:space:]]/,"",v);
+                if (k==act) {print v; exit}
+                next
+              }
+              ina && /^    [A-Za-z]/ {ina=0}
+              inc && /^[^[:space:]]/ {inc=0; ina=0}
+            ' "$CFG" | tr -d '[:space:]')
+            if [ -z "$sel" ]; then
+              sel=$(awk '
+                /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+                inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+                inc && /^[^[:space:]]/ {inc=0}
+              ' "$CFG" | tr -d '[:space:]')
+            fi
+          fi
+          if [ -z "$sel" ]; then
+            img="${custom}:latest"
+          elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
+            img="${BASE_IMAGE}"
+          elif [ "$sel" = "latest" ]; then
+            img="${custom}:latest"
+          else
+            img="${custom}:${sel}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: ./.github/labview/ensure-docker.ps1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for worker image build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}"
+
+      - name: Pull LabVIEW container image
+        id: pull
+        shell: powershell
+        run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
+        continue-on-error: true
+
+      - name: Read worker version
+        id: worker
+        if: steps.pull.outcome == 'success'
+        shell: powershell
+        run: |
+          $img = $Env:LABVIEW_CONTAINER_IMAGE
+          $wv = ''
+          try {
+            $info = docker inspect $img 2>$null | ConvertFrom-Json
+            if ($info) { $wv = [string]$info[0].Config.Labels.'com.cotc.ci-worker.version' }
+          } catch {}
+          if (-not $wv -or $wv -eq '<no value>') { $wv = '' }
+          "version=$wv" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Worker version: $wv"
+          exit 0
+
+      # SBOM generation step which will make sure that the sbom generation powershell script is called     
+      - name: Run SBOM generator inside container
+        if: steps.pull.outcome == 'success'
+        shell: powershell
+        id: run
+        run: |
+          docker run --rm `
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+            -v "${{ github.workspace }}:C:\workspace" `
+            $Env:LABVIEW_CONTAINER_IMAGE `
+            powershell -NonInteractive -ExecutionPolicy Bypass `
+              -File "C:\workspace\.github\labview\run-sbom-generation.ps1" `
+              -WorkspaceRoot "C:\workspace" `
+              -ResultsDir    "C:\workspace\ci-out\sbom\results"
+
+      - name: Build friendly SBOM report
+        id: report
+        if: steps.pull.outcome == 'success'
+        shell: bash
+        continue-on-error: true
+        run: |
+          OUT="${{ github.workspace }}/ci-out/sbom"
+          python .github/labview/build-sbom-report.py \
+            --results   "$OUT/results" \
+            --out       "$OUT" \
+            --sha       "${{ steps.sha.outputs.sha }}" \
+            --platform  windows \
+            --repo      "${{ github.repository }}" \
+            --pages-url "${{ env.PAGES_URL }}" \
+            --labview-version "${{ vars.LABVIEW_VERSION || '2026' }}" \
+            --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
+            --author     "$(git log -1 --pretty=%an  ${{ steps.sha.outputs.sha }})" \
+            --date       "$(git log -1 --pretty=%cI  ${{ steps.sha.outputs.sha }})"
+          if [ -f "$OUT/index.html" ]; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Upload report artifact
+        if: steps.report.outputs.exists == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: sbom-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/sbom/
+          if-no-files-found: warn
+
+      - name: Enable Git long paths (Windows MAX_PATH workaround)
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        run: |
+          git config --global core.longpaths true
+          git config --system core.longpaths true || true
+
+      - name: Deploy report to GitHub Pages
+        if: steps.report.outputs.exists == 'true'
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          publish_dir: ${{ github.workspace }}/ci-out/sbom
+          destination_dir: sbom/${{ steps.sha.outputs.sha }}
+
+      - name: Post commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OUT="${{ github.workspace }}/ci-out/sbom"
+          STATE="failure"; DESC="SBOM generation failed"
+          if [ "${{ steps.report.outputs.exists }}" = "true" ] && [ -f "$OUT/results.json" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/sbom/${{ steps.sha.outputs.sha }}/index.html"
+            pkgs=$(jq -r '.summary.total_packages // 0' "$OUT/results.json")
+            STATE="success"; DESC="${pkgs} dependencies documented"
+          elif [ "${{ steps.report.outputs.exists }}" = "true" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/sbom/${{ steps.sha.outputs.sha }}/index.html"
+          else
+            REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"$DESC\",\"context\":\"CI / SBOM\"}"
+
+      - name: Post worker version status
+        if: always() && steps.pull.outcome == 'success' && steps.worker.outputs.version != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WV="${{ steps.worker.outputs.version }}"
+          URL="${{ env.PAGES_URL }}/workers/windows/${WV}/manifest.html"
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"$WV\",\"context\":\"CI / Worker (windows)\"}"

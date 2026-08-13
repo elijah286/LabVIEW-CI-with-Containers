@@ -32,9 +32,20 @@ runs:
         DEST_DIR: ${{ inputs.destination_dir }}
         COMMIT_MSG: ${{ inputs.commit_message }}
         PUB_TOKEN: ${{ inputs.github_token }}
+        EVENT_NAME: ${{ github.event_name }}
+        PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || '' }}
       run: |
         import os, sys, time, random, shutil, tempfile, subprocess
         from pathlib import Path
+
+        event_name = os.environ.get("EVENT_NAME", "")
+        pr_head_repository = os.environ.get("PR_HEAD_REPOSITORY", "")
+        repository = os.environ["GITHUB_REPOSITORY"]
+        if event_name == "pull_request" and pr_head_repository and pr_head_repository != repository:
+            print("::notice::Skipped GitHub Pages publication for an external fork pull request. "
+                  "The report artifact remains available for review; the canonical report and dashboard "
+                  "will publish after the change is merged into this repository.")
+            sys.exit(0)
 
         pub = os.environ.get("PUBLISH_DIR", "")
         dest = (os.environ.get("DEST_DIR", "") or "").strip().strip("/")
@@ -42,7 +53,7 @@ runs:
             dest = ""
         msg = os.environ.get("COMMIT_MSG", "Publish to GitHub Pages") or "Publish to GitHub Pages"
         token = os.environ["PUB_TOKEN"]
-        repo = os.environ["GITHUB_REPOSITORY"]
+        repo = repository
 
         src = Path(pub)
         if not src.is_dir():

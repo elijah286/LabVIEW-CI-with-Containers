@@ -346,6 +346,12 @@ flowchart LR
         separate dashboard workflow reacts to those statuses and rebuilds the Pages dashboard. Read the diagram
         top to bottom — it is the same journey as <a href="#concepts">§2</a>, with the real file and job names.</p>
 
+      <p><strong>Fork pull requests are analysis-only.</strong> Their jobs still run and upload report artifacts for
+        review, but they do not publish to the shared <code>gh-pages</code> branch because GitHub gives fork code a
+        read-only token. After a reviewed change merges, the <code>main</code> push reruns the pipeline with
+        repository permissions and publishes the canonical report and dashboard update. Collaborators who need
+        pre-merge publication should create branches in the repository, rather than use forks.</p>
+
       <div class="mermaid">
 flowchart TD
   CP["commit / PR"] --> RW["labview-ci.reusable.yml&lt;br/&gt;config job reads .github/labview-ci.yml"]
@@ -1901,6 +1907,9 @@ docker exec &lt;name&gt; powershell -File C:\ops\render-snapshots.ps1 ...   # pe
         <li><strong>Concurrency is per account, not per repo.</strong> GitHub's job-concurrency limit is shared
           across all your repositories, which is why the per-repo runner cap defaults conservatively.</li>
         <li><strong>Unit Tests &amp; Antidoc are Windows-only</strong> today (they depend on baked VIPM tooling).</li>
+        <li><strong>SBOM now fails fast on VIPM errors.</strong> The SBOM driver treats a non-zero
+          <code>vipm sbom</code> exit (or missing output file) as fatal, and the workflow no longer uses
+          <code>continue-on-error</code> on that step, so failed scans do not publish replacement output artifacts. The generated SBOM JSON is preserved in its native CycloneDX form, and the HTML report now renders the component supplier/vendor field from that source data instead of rewriting it to a generic label. VIPM still auto-detects and explicitly targets the container's installed LabVIEW version (via <code>--labview-version</code>) to prevent auto-detection from project metadata; this avoids errors when a project targets a different year than the container provides.</li>
         <li><strong>First container pull is slow.</strong> The worker image is multi-gigabyte; GitHub-hosted runners
           re-pull every job. A self-hosted runner with a warm Docker layer cache is the cure.</li>
         <li><strong>LabVIEW 2026+ needs <code>-Headless</code></strong> for Windows container operations, or VI

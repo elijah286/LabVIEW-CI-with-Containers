@@ -1,46 +1,21 @@
+# CI Dashboard — GitHub Pages. Thin caller installed by the LabVIEW CI configurator.
+# The dashboard build logic lives in the shared composite action, pulled at the tooling
+# version this repo opted into (.github/labview-ci.yml: source.ref) and checked out at
+# runtime — so this repo keeps no copy of the generator and the dashboard updates only
+# when you opt in. Owns the triggers + the Pages deploy.
 name: CI Dashboard — GitHub Pages
 run-name: Publish CI dashboard - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
 
-# Thin caller: the dashboard build logic lives in the shared composite action
-# actions/dashboard (bundled generator + tooling pages), so this repo eats its
-# own dogfood and there is ONE source of truth for the dashboard. This file owns
-# only the triggers + the Pages deploy.
-
 on:
+  # Build on the install merge + whenever the config changes, so the dashboard
+  # publishes itself the first time without waiting for the hourly schedule.
   push:
     branches: [main]
     paths:
-      - '.github/pages/index.html'
-      - '.github/pages/vi-browser.html'
-      - '.github/pages/vi-interactive.html'
-      - '.github/pages/faq.html'
-      - '.github/pages/documentation.html'
-      - '.github/pages/clients.html'
-      - '.github/pages/lvci-header.js'
-      # The dashboard stages catalog.json at the Pages root (version badge +
-      # What's New), so a catalog/version change must rebuild the dashboard too.
-      - '.github/labview-ci/catalog.json'
+      - '.github/labview-ci.yml'
       - '.github/workflows/dashboard-pages.yml'
-      # Rebuild when the shared dashboard action (generator or its bundled pages)
-      # changes, so this repo's own dashboard always reflects the latest tooling.
-      - 'actions/dashboard/**'
-      # The repo's own example project: a new project revision should add its
-      # dashboard row right away. The build then surfaces each activity's queued
-      # or in-progress run from the Actions API, before any commit status posts.
-      - 'example/**'
-      # A dependency-manifest change (VIPC / Dragon) can add packages that are not
-      # yet baked into the worker container(s); rebuild so the Dependencies page and
-      # the "update container" banner reflect the new declaration right away.
       - '**/*.vipc'
       - '**/*.dragon'
-  # Rebuild whenever ANY CI activity reports a commit status. The dashboard's
-  # badges are sourced from each commit's statuses, so reacting to the `status`
-  # event keeps it current for every workflow that posts one — present or future —
-  # with no per-workflow enumeration and no polling. The dashboard only *reads*
-  # statuses (it never posts one), so this can never self-trigger a loop.
-  status:
-  # Also rebuild after workflows that publish page artifacts (snapshots, diff
-  # reports) without necessarily posting a commit status.
   workflow_run:
     workflows:
       - "Mass Compile — Windows Container"
@@ -49,62 +24,66 @@ on:
       - "VIDiff Report — Windows Container"
       - "VIDiff Report — Linux Container"
       - "VIDiff Deploy — Pages + PR Comment"
-      - "VIDiff Backfill — Windows Container"
-      - "VIDiff Backfill — Linux Container"
       - "VI Snapshots and VI Browser"
-      - "Run Unit Tests — Windows Container"
-      - "Run Antidoc — Windows Container"
-      # A worker-image dependency update publishes a new worker manifest; rebuild
-      # so the Dependencies page and the deps-pending banner reflect the freshly
-      # baked packages instead of showing the pre-update "missing" state.
       - "Build LabVIEW CI Image"
       - "Build LabVIEW CI Image - Linux"
-    # `requested` rebuilds the moment a run is CREATED, so a freshly pushed
-    # revision's row shows its activities as queued within seconds; `completed`
-    # then keeps the row current as each activity finishes.
-    types: [requested, completed]
+      - "Generate SBOM — Windows Container"
+    types: [completed]
+  schedule:
+    - cron: '0 * * * *'
   workflow_dispatch:
 
-# A single push fans out into many status events (each check reports pending then
-# success/failure), so collapse overlapping triggers into one latest-wins rebuild
-# instead of running a separate deploy for every individual status update.
 concurrency:
   group: dashboard-pages
   cancel-in-progress: true
 
-env:
-  # Repo-agnostic: derive the Pages site from the repo (owner.github.io/repo).
-  # Override with an Actions variable PAGES_URL for custom domains.
-  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
-
 permissions:
   contents: write
-  pages: write
+  statuses: read
   actions: read
 
 jobs:
   build-dashboard:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-
-      # Build the dashboard from the shared composite action. It reads commit
-      # statuses + Pages content, stages the tooling pages it bundles, writes
-      # the VI Browser's files.json, and emits ci-out/dashboard.
+      - name: Read opted-in tooling ref from config
+        id: cfg
+        shell: bash
+        run: |
+          REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)
+          echo "ref=${REF:-v4.11.10}" >> "$GITHUB_OUTPUT"
+      - name: Check out tooling (opted-in version)
+        uses: actions/checkout@v5
+        with:
+          repository: elijah286/LabVIEW-CI-with-Containers
+          ref: ${{ steps.cfg.outputs.ref }}
+          path: _lvci
       - name: Build CI dashboard
-        uses: ./actions/dashboard
+        uses: ./_lvci/actions/dashboard
         with:
-          repo: ${{ github.repository }}
-          pages-url: ${{ env.PAGES_URL }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Publish the dashboard to gh-pages. The shared publish action retries on a
-      # concurrent-push conflict (gh-pages is a single branch many jobs push to),
-      # so it no longer needs the manual wait-and-retry this step used to carry.
       - name: Deploy dashboard to GitHub Pages
-        uses: ./.github/actions/publish-gh-pages
+        id: deploy
+        continue-on-error: true
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/dashboard
-          commit_message: Publish dashboard
+          destination_dir: .
+          keep_files: true
+      # Retry once if a concurrent gh-pages push (configurator site, VI
+      # snapshots, report deploys) made this a non-fast-forward; peaceiris
+      # re-clones gh-pages each run, so the retry starts from the new tip.
+      - name: Wait out a gh-pages push race
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 30
+      - name: Deploy dashboard to GitHub Pages (retry)
+        if: steps.deploy.outcome == 'failure'
+        uses: peaceiris/actions-gh-pages@v4.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ci-out/dashboard
+          destination_dir: .
+          keep_files: true

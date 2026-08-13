@@ -103,6 +103,8 @@ The [Documentation](https://elijah286.github.io/LabVIEW-CI-with-Containers/docum
 
 Contributions are welcome — issues, fixes, and new capabilities. The architecture is built to make extension cheap: because the system is catalog-driven, adding a capability is usually a single entry in [`catalog.json`](.github/labview-ci/catalog.json) plus the action that implements it. Start with the [Documentation](https://elijah286.github.io/LabVIEW-CI-with-Containers/documentation.html) ("Capabilities in depth" and the architecture overview) to see how the pieces fit, then open an issue or pull request.
 
+Pull requests from forks run the same analysis and retain their report artifacts for review, but cannot update this repository's shared GitHub Pages dashboard. That is intentional: fork-provided code never receives permission to write here. After a reviewed PR merges, the `main` pipeline reruns with repository permissions and publishes the canonical report. Collaborators who need pre-merge dashboard publication should use feature branches in this repository rather than forks.
+
 ## Versioning & updates
 
 Every change to any part of the stack bumps a version and ships as a release, so installed repositories can see exactly what changed and choose when to adopt it. The [installer guide](.github/labview-ci/README.md) describes the versioning and release model in detail.
