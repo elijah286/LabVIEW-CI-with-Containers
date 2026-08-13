@@ -9,6 +9,8 @@ source:
 config:
   labviewVersion: "2026"
   os: [windows, linux]
+  viAnalyzer:
+    default: builtin
 activities:
   - dashboard
   - masscompile
