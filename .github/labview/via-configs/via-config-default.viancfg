@@ -12,15 +12,19 @@
 	<TargetIndex>0</TargetIndex>
 	<ItemsToAnalyze>
 		<Item>
-			<Path>"__WORKSPACE_PATH__"</Path>
+			<Path>"."</Path>
 			<Removed>FALSE</Removed>
+		</Item>
+		<Item>
+			<Path>"User-Defined Test"</Path>
+			<Removed>TRUE</Removed>
 		</Item>
 	</ItemsToAnalyze>
 	<!--
-	  TestConfigData is intentionally empty. The CI runner (run-vi-analyzer.ps1)
-	  does NOT pass this file to LabVIEWCLI; it analyzes the workspace DIRECTORY
+	  TestConfigData is intentionally empty. In builtin mode the CI runner does
+	  not pass this file to LabVIEWCLI; it analyzes the workspace directory
 	  directly, which runs the full default VI Analyzer test suite. This file is
-	  kept only as a template/reference for config-file-based analysis.
+	  kept as a reference/template for config-file-based analysis.
 	-->
 	<TestConfigData>
 	</TestConfigData>
