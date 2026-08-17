@@ -1,8 +1,35 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "cf05db2f53226c91666ade04fcfa2a908229d147",
+  "sha": "fefb4465569789dddad7f8b90a45e4b43c6650af",
   "revisions": [
+    {
+      "sha": "fefb4465569789dddad7f8b90a45e4b43c6650af",
+      "short": "fefb446",
+      "message": "Release 4.15.0 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-17T20:47:33Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "69d7fadcbd19ddb678343f0aacbbcf972dfdf36a",
+      "short": "69d7fad",
+      "message": "Merge pull request #53 from elijah286/feat/alias-tracks-stable",
+      "author": "Elijah Kerry",
+      "date": "2026-08-17T20:47:20Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "1c68413e56e2b0f30634d8b1a675d4098769505d",
+      "short": "1c68413",
+      "message": "@v<major> tracks the stable channel instead of the development tip",
+      "author": "elijah286",
+      "date": "2026-08-17T20:46:50Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "cf05db2f53226c91666ade04fcfa2a908229d147",
       "short": "cf05db2",
@@ -873,33 +900,6 @@
       "message": "dependencies: Default containers as a Windows/Linux table; drop revision cards + config note (4.6.3)",
       "author": "Elijah Kerry",
       "date": "2026-07-21T22:43:22Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "cf198cd70ee51610e83b0d34ddb8e44ec35e5268",
-      "short": "cf198cd",
-      "message": "Antidoc: call the g-cli 'antidoc' tool with -addon lvproj (fix antidoccli.vi not found) (4.6.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T22:37:57Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "621cc24fdb63d8b65a5a66c7d964bda117e4aa07",
-      "short": "621cc24",
-      "message": "VI Analyzer: custom .viancfg default pass analyzes the whole project again (4.6.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T21:47:42Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "acaac17ce899199db13d566c620f9d8e00f37321",
-      "short": "acaac17",
-      "message": "builds: run LabVIEW build specifications (EXE/PPL/...) as a first-class capability",
-      "author": "LabVIEW CI",
-      "date": "2026-07-21T21:45:10Z",
       "project": false,
       "dep_only": false
     },
