@@ -43,13 +43,67 @@ else
   echo "Created tag ${TAG}."
 fi
 
-# The moving-alias contract: @v<major> always points at the latest release.
+# --- alias contract -----------------------------------------------------------
+#
+#   v<major>.<minor>   newest patch on that line          (moves every release)
+#   v<major>           newest release BLESSED as stable   (moves only on promotion)
+#   dev / beta / stable  the three channels, as rolling tags
+#
+# v<major> used to track the tip, which meant the channel system never reached
+# the people it was for: the README tells consumers to pin @v4, so every client
+# following the documentation was auto-tracking dev builds. `stable` sat on
+# v4.10.0 for weeks while every @v4 consumer ran v4.12.4, and diagnostic releases
+# went straight to production repos.
+#
+# Now @v4 means what the README always promised: the latest release the owner has
+# actually blessed. Consumers who want the edge pin v<major>.<minor>, or the
+# rolling `dev` / `beta` tags.
+
+# Highest v<M>.<m>.<p> tag pointing at the same commit as $1, without the leading v.
+version_at_ref() {
+  local sha
+  sha=$(git rev-parse -q --verify "$1^{}" 2>/dev/null) || return 1
+  git tag --list 'v*.*.*' --points-at "$sha" | sed 's/^v//' \
+    | sort -t. -k1,1n -k2,2n -k3,3n | tail -1
+}
+
+# True when $1 is a strictly higher version than $2.
+version_gt() {
+  [ "$1" != "$2" ] && \
+  [ "$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)" = "$1" ]
+}
+
+# The minor alias still tracks the newest patch on its line.
 if [ "$NEW_TAG" = "true" ] || [ "${FORCE_ALIASES:-false}" = "true" ]; then
-  for A in "$MAJOR_ALIAS" "$MINOR_ALIAS"; do
-    git tag -f "$A" "$TAG^{}"
-    git push -f origin "$A"
-    echo "Moved alias ${A} -> ${TAG}."
-  done
+  git tag -f "$MINOR_ALIAS" "$TAG^{}"
+  git push -f origin "$MINOR_ALIAS"
+  echo "Moved alias ${MINOR_ALIAS} -> ${TAG}."
+fi
+
+STABLE_VER=$(cat_get stableVersion)
+if [ -z "$STABLE_VER" ]; then
+  echo "No stableVersion set; leaving ${MAJOR_ALIAS} untouched."
+elif [ "${STABLE_VER%%.*}" != "$MAJOR" ]; then
+  echo "stableVersion ${STABLE_VER} is not in major ${MAJOR}; leaving ${MAJOR_ALIAS} untouched."
+elif ! git rev-parse -q --verify "refs/tags/v${STABLE_VER}^{}" >/dev/null; then
+  echo "::warning::stableVersion ${STABLE_VER} has no v${STABLE_VER} tag; leaving ${MAJOR_ALIAS} untouched."
+else
+  ALIAS_VER=$(version_at_ref "$MAJOR_ALIAS" || true)
+  if [ -n "$ALIAS_VER" ] && [ "$ALIAS_VER" = "$STABLE_VER" ]; then
+    echo "Alias ${MAJOR_ALIAS} already at v${STABLE_VER}."
+  elif [ -n "$ALIAS_VER" ] && ! version_gt "$STABLE_VER" "$ALIAS_VER" \
+       && [ "${FORCE_ALIASES:-false}" != "true" ]; then
+    # Refusing to move the alias backwards is the whole safety property here.
+    # Consumers pinned at @v<major> update automatically and without review, so a
+    # backwards move is a silent mass DOWNGRADE -- and it would happen the first
+    # time this ran, with the alias on 4.14.1 and stableVersion still 4.10.0.
+    # The alias simply stops advancing until a promotion overtakes it.
+    echo "::notice::${MAJOR_ALIAS} is at v${ALIAS_VER}; stableVersion v${STABLE_VER} is not newer, so the alias stays put (it never moves backwards). Promote a release >= v${ALIAS_VER} to advance it."
+  else
+    git tag -f "$MAJOR_ALIAS" "v${STABLE_VER}^{}"
+    git push -f origin "$MAJOR_ALIAS"
+    echo "Moved alias ${MAJOR_ALIAS} -> v${STABLE_VER} (stable)."
+  fi
 fi
 
 # Rolling channel tags. `stableVersion` / `betaVersion` are set by
@@ -76,6 +130,10 @@ move_channel() {
 }
 move_channel stable "$(cat_get stableVersion)"
 move_channel beta   "$(cat_get betaVersion)"
+# `dev` is the tip by definition -- it needs no catalog pointer. It exists so the
+# people who actually want every build have somewhere to pin now that v<major>
+# tracks stable instead.
+move_channel dev    "$VER"
 
 # Release notes come from the catalog's newest history entry.
 python3 - "$CAT" > /tmp/relnotes.md <<'PY'

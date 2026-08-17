@@ -74,6 +74,23 @@ jobs:
     secrets: inherit
 ```
 
+### Which tag to pin
+
+Every merge here is published as an immutable `v<major>.<minor>.<patch>` release. Which of
+those releases is considered *good* is a separate, later decision, and that's what the moving
+tags encode:
+
+| Pin | You get | Moves when |
+|---|---|---|
+| `@v4` | The latest release blessed as **stable**. Pin this unless you have a reason not to. | A release is promoted to stable |
+| `@beta` | The latest release-candidate | A release is promoted to beta |
+| `@dev` | Every build, including diagnostics | Every merge |
+| `@v4.14` | The newest patch on the 4.14 line | Every patch on that line |
+| `@v4.14.1` | Exactly that release, forever | Never |
+
+`@v4` never moves backwards, so an update can't silently downgrade you. Major-version
+bumps are reserved for breaking changes — that's the only time you'd move off `@v4`.
+
 Once installed, the dashboard's **Configure** and **Update now** buttons let you change settings or pull the latest tooling without leaving the browser.
 
 ## How it works
