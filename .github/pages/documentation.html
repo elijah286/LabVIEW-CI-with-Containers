@@ -1803,6 +1803,12 @@ docker exec &lt;name&gt; powershell -File C:\ops\render-snapshots.ps1 ...   # pe
         <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
           opt-in.</li>
       </ul>
+      <p>The major alias <code>@v&lt;major&gt;</code> tracks the newest release <em>promoted to stable</em>, not the
+        newest release published. Every merge to the source repo is tagged and released, but a release only reaches
+        <code>@v4</code> once the maintainer blesses it — so consumers on the major alias receive reviewed work, not
+        the development tip. Pin <code>@beta</code> for release candidates, <code>@dev</code> for every build, or
+        <code>@v&lt;major&gt;.&lt;minor&gt;</code> to follow one line. The major alias never moves backwards, so an
+        automatic update can never downgrade a consumer.</p>
       <p>The browser <strong>Apply to New Repo</strong> flow (re-applied on top of an existing install) mirrors the
         same prune: when it re-vendors a tooling directory it deletes any target file the source no longer ships,
         except the consumer's own preserved config — so re-applying after a file is removed upstream stays in sync
