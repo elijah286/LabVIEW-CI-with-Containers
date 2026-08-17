@@ -1,1 +1,0 @@
-Branch protection is now active on main: contributors merge through pull requests that must pass the catalog and source-sync guard and carry a code-owner review. Fixed a release-workflow bug where a release with no pending note fragments aborted before publishing.
