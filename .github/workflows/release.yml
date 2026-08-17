@@ -86,7 +86,11 @@ jobs:
                    --jq '.[0] | {labels:[.labels[].name], title:.title}' 2>/dev/null || echo "")
             if [ -n "$PR" ]; then
               LABELS=$(printf '%s' "$PR" | python3 -c "import json,sys;print(' '.join(json.load(sys.stdin)['labels']))" 2>/dev/null || echo "")
-              [ -z "$NOTE" ] && NOTE=$(printf '%s' "$PR" | python3 -c "import json,sys;print(json.load(sys.stdin)['title'])" 2>/dev/null || echo "")
+              # A plain `[ -z "$NOTE" ] && NOTE=...` would return 1 when NOTE is
+              # already set, which `set -e` treats as a step failure.
+              if [ -z "$NOTE" ]; then
+                NOTE=$(printf '%s' "$PR" | python3 -c "import json,sys;print(json.load(sys.stdin)['title'])" 2>/dev/null || echo "")
+              fi
               case " $LABELS " in
                 *" release:major "*) BUMP=major ;;
                 *" release:minor "*) BUMP=minor ;;
@@ -124,9 +128,14 @@ jobs:
           grep '^version=' /tmp/apply.txt >> "$GITHUB_OUTPUT"
           # Fragments are consumed by this release. Deleting them on disk is
           # enough -- the commit step stages the notes directory with `git add -A`.
-          grep '^fragment=' /tmp/apply.txt | cut -d= -f2- | while read -r f; do
-            [ -n "$f" ] && rm -f "$f"
-          done
+          #
+          # `|| true`: a release with no pending fragments is normal (it falls back
+          # to the PR title), and under `set -e` a grep that matches nothing exits 1
+          # and kills the step. That is exactly how the first protected run failed.
+          grep '^fragment=' /tmp/apply.txt | cut -d= -f2- > /tmp/fragments.txt || true
+          while read -r f; do
+            if [ -n "$f" ]; then rm -f "$f"; fi
+          done < /tmp/fragments.txt
 
       - name: Re-validate before committing
         run: python3 .github/labview/validate-catalog-source-sync.py
