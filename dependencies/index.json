@@ -1,8 +1,80 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "d2e8e2806db14819bcd5d12b541ed5567ff07a86",
+  "sha": "cf05db2f53226c91666ade04fcfa2a908229d147",
   "revisions": [
+    {
+      "sha": "cf05db2f53226c91666ade04fcfa2a908229d147",
+      "short": "cf05db2",
+      "message": "Correct the 4.14.1 release note [skip release]",
+      "author": "elijah286",
+      "date": "2026-08-17T20:02:15Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "770d7cf1147df06cf2eb399eb8385d532a106cc8",
+      "short": "770d7cf",
+      "message": "Release 4.14.1 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-17T20:01:27Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "c958a71e4e1ff47ab72e48895d532fcf88377c64",
+      "short": "c958a71",
+      "message": "release: don't abort when no note fragments are pending",
+      "author": "elijah286",
+      "date": "2026-08-17T19:58:12Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "f099373d821d7f028ef115e820cdc755b0227e93",
+      "short": "f099373",
+      "message": "Release 4.14.0 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-17T19:50:07Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "bddc57510ad151b51ffae12181e70496991db053",
+      "short": "bddc575",
+      "message": "Merge pull request #52 from elijah286/feat/auto-version",
+      "author": "Elijah Kerry",
+      "date": "2026-08-17T19:49:56Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "da49fb94312fac7d3694d0705d9100f4b1471992",
+      "short": "da49fb9",
+      "message": "Let CI own the version: derive it from tags, publish every merge",
+      "author": "elijah286",
+      "date": "2026-08-17T19:48:49Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "2e982904f1648f701cd569b4b2c7823679e4669e",
+      "short": "2e98290",
+      "message": "Merge pull request #51 from elijah286/fix/restore-catalog-version",
+      "author": "Elijah Kerry",
+      "date": "2026-08-17T19:40:52Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "19bf1e378d889caf2804304ef8cf4145cc3fd7eb",
+      "short": "19bf1e3",
+      "message": "Restore the version of record to 4.13.0 and guard against another downgrade",
+      "author": "elijah286",
+      "date": "2026-08-17T18:19:48Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "d2e8e2806db14819bcd5d12b541ed5567ff07a86",
       "short": "d2e8e28",
@@ -832,75 +904,12 @@
       "dep_only": false
     },
     {
-      "sha": "744340cab47302fe28f9a57c2d640b814a0a447a",
-      "short": "744340c",
-      "message": "deps: per-container (Windows/Linux) dependency monitoring; remove Beta columns (v4.5.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T21:27:15Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "6c8f6fc0a76f2ce0653810ecc45ceab8d11bf8ba",
-      "short": "6c8f6fc",
-      "message": "Merge branch 'main' of https://github.com/elijah286/LabVIEW-CI-with-Containers",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T20:54:27Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
       "sha": "c3394babc0e984a45c9bb2854ab5b54693b6cb29",
       "short": "c3394ba",
       "message": "Added a Build Spec",
       "author": "Elijah Kerry",
       "date": "2026-07-21T20:54:23Z",
       "project": true,
-      "dep_only": false
-    },
-    {
-      "sha": "df722bc4d9724689d281af26707fdd5bff692e07",
-      "short": "df722bc",
-      "message": "Populate-history overlay: dim the host page so the report stays visible (4.4.18)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T20:52:00Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "90e22a710235970dd9cc29db9bd25585a970f559",
-      "short": "90e22a7",
-      "message": "Linux worker dependency updates reach parity with Windows (4.4.17)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T20:49:41Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "3922f5704c17f82c88bfdf3408c7e575f96a4712",
-      "short": "3922f57",
-      "message": "dependencies: global update card + collapsed file groups with status pills (#34)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T20:00:41Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "1a15012f944547f2477a9584841d65db7aac74db",
-      "short": "1a15012",
-      "message": "dependencies: visually nest package rows under VIPC files (#33)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T19:41:27Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "40bbce9d088884bc216323827fffd81fe4b16d2e",
-      "short": "40bbce9",
-      "message": "ci: reconfigure LabVIEW CI settings (#31)",
-      "author": "github-actions[bot]",
-      "date": "2026-07-21T19:41:19Z",
-      "project": false,
       "dep_only": false
     },
     {
