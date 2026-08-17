@@ -251,6 +251,11 @@ Write-Host "  LabVIEW    : $LabVIEWPath"
 $filterList = @()
 if (-not $FilesFilter -and $env:VIA_FILES) { $FilesFilter = $env:VIA_FILES }
 if (-not $ConfigOverride -and $env:VIA_CONFIG) { $ConfigOverride = $env:VIA_CONFIG }
+
+Write-Host "  VIA_FILES      : '$FilesFilter'"
+Write-Host "  VIA_CONFIG     : '$ConfigOverride'"
+Write-Host "  ConfigManifest : '$ConfigManifest'"
+
 if ($FilesFilter) { $filterList = @($FilesFilter -split '\|' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 
 $passes = @()
