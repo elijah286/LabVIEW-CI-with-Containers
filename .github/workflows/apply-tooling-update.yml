@@ -42,12 +42,109 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     steps:
+      # Check TOOLING_UPDATE_TOKEN before anything depends on it.
+      #
+      # `secrets.X || secrets.GITHUB_TOKEN` only falls back when the secret is
+      # ABSENT. An expired PAT is still a non-empty string, so it wins the `||`
+      # and gets used -- which makes an expired token strictly worse than no
+      # token: checkout dies on `could not read Username for 'https://github.com'`
+      # (git's message for "credential rejected, and I can't prompt"), naming
+      # neither the token nor the secret. PATs expire on a timer, so every client
+      # that adds one eventually walks into this.
+      #
+      # One unauthenticated-cost API call tells us which case we are in, and the
+      # token never leaves this step: it is read from env, sent as a header, and
+      # only the HTTP status is recorded.
+      - name: Check the tooling update token
+        id: token
+        env:
+          TOOLING_UPDATE_TOKEN: ${{ secrets.TOOLING_UPDATE_TOKEN }}
+        run: |
+          set -uo pipefail
+          emit() { echo "usable=$1" >> "$GITHUB_OUTPUT"; echo "state=$2" >> "$GITHUB_OUTPUT"; }
+
+          if [ -z "${TOOLING_UPDATE_TOKEN:-}" ]; then
+            echo "No TOOLING_UPDATE_TOKEN secret; using the built-in token."
+            echo "Workflow files (.github/workflows/**) will be deferred if this update changes any."
+            emit false absent
+            exit 0
+          fi
+
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+                   -H "Authorization: Bearer ${TOOLING_UPDATE_TOKEN}" \
+                   -H "Accept: application/vnd.github+json" \
+                   -H "X-GitHub-Api-Version: 2022-11-28" \
+                   "https://api.github.com/repos/${GITHUB_REPOSITORY}" || echo "000")
+
+          case "$CODE" in
+            200)
+              echo "TOOLING_UPDATE_TOKEN accepted; workflow files can be updated."
+              emit true ok ;;
+            401)
+              echo "::warning title=TOOLING_UPDATE_TOKEN expired::GitHub rejected this repository's TOOLING_UPDATE_TOKEN (HTTP 401). Personal access tokens expire; this one needs rotating. Continuing with the built-in token, so any workflow-file changes in this update will be deferred."
+              emit false expired ;;
+            403|404)
+              echo "::warning title=TOOLING_UPDATE_TOKEN lacks access::This repository's TOOLING_UPDATE_TOKEN authenticated but cannot see ${GITHUB_REPOSITORY} (HTTP ${CODE}) — it is scoped to the wrong repository, or is missing Contents access. Continuing with the built-in token, so any workflow-file changes in this update will be deferred."
+              emit false no_access ;;
+            000)
+              echo "::warning title=Could not verify the token::api.github.com was unreachable, so TOOLING_UPDATE_TOKEN could not be checked. Using the built-in token for this run."
+              emit false unreachable ;;
+            *)
+              echo "::warning title=TOOLING_UPDATE_TOKEN unusable::Checking this repository's TOOLING_UPDATE_TOKEN returned HTTP ${CODE}. Continuing with the built-in token, so any workflow-file changes in this update will be deferred."
+              emit false unknown ;;
+          esac
+
+      - name: Explain how to rotate the token
+        if: steps.token.outputs.usable != 'true' && steps.token.outputs.state != 'absent' && steps.token.outputs.state != 'unreachable'
+        env:
+          STATE: ${{ steps.token.outputs.state }}
+        run: |
+          set -euo pipefail
+          case "$STATE" in
+            expired)
+              HEADLINE="Your TOOLING_UPDATE_TOKEN has expired"
+              CAUSE="GitHub rejected it (HTTP 401). Personal access tokens expire on a schedule; this one has reached its expiry date." ;;
+            no_access)
+              HEADLINE="Your TOOLING_UPDATE_TOKEN cannot access this repository"
+              CAUSE="It authenticated, but has no Contents access to \`${GITHUB_REPOSITORY}\` — usually a fine-grained token scoped to a different repository." ;;
+            *)
+              # Don't guess a cause from an unexpected status: a 5xx is GitHub
+              # having a bad day, not necessarily anything wrong with the token.
+              HEADLINE="Your TOOLING_UPDATE_TOKEN could not be verified"
+              CAUSE="Checking it returned an unexpected response from api.github.com. This may be transient — re-running **Update now** is worth trying before replacing the token." ;;
+          esac
+          {
+            echo "## ⚠️ ${HEADLINE}"
+            echo ""
+            echo "${CAUSE}"
+            echo ""
+            echo "**This update still ran** using the built-in token, so everything except"
+            echo "\`.github/workflows/**\` was applied. Workflow YAMLs keep their current version"
+            echo "until the token is replaced — the built-in token is not allowed to push them."
+            echo ""
+            echo "### Rotate it"
+            echo ""
+            echo "**From the dashboard (easiest):** open **What's New ▸ Update now**. It offers an"
+            echo "\"add a one-time token\" field with a ready-made token link; paste a fresh token"
+            echo "there and it stores the secret and restarts the update for you."
+            echo ""
+            echo "**Or replace the secret yourself:** create a token — fine-grained with"
+            echo "**Contents + Workflows = Read and write** on this repository, or a classic PAT with"
+            echo "\`repo\` + \`workflow\` — then update **TOOLING_UPDATE_TOKEN** under"
+            echo "**Settings ▸ Secrets and variables ▸ Actions** and re-run **Update now**."
+            echo ""
+            echo "Deleting the secret is also valid: the update then always runs on the built-in"
+            echo "token and simply defers workflow files."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           # A PAT with repo + workflow scope (added as TOOLING_UPDATE_TOKEN) lets the
           # update push changes to .github/workflows/** — the default token cannot.
-          token: ${{ secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          # Only used once verified above, so a stale PAT degrades to a deferred
+          # workflow update instead of failing the run at checkout.
+          token: ${{ steps.token.outputs.usable == 'true' && secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -166,7 +263,9 @@ jobs:
 
       - name: Apply the update
         env:
-          GH_TOKEN: ${{ secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          # Same guard as the checkout: a verified token only, so a stale PAT
+          # cannot make the push half-fail after the update has been staged.
+          GH_TOKEN: ${{ steps.token.outputs.usable == 'true' && secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
           INSTALLED: ${{ steps.apply.outputs.installed }}
           LATEST: ${{ steps.apply.outputs.latest }}
           SOURCE_REPO: ${{ steps.apply.outputs.source_repo }}
