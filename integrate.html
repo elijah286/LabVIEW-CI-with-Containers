@@ -2563,10 +2563,52 @@
       await proceedInstall($("repo").value.trim(), { keepSettings, deleteStale });
     }
 
+    // This configurator is a CLIENT installer. It vendors a tooling payload pinned
+    // to the chosen channel and deletes files it does not recognise as current
+    // tooling. The tooling SOURCE repo carries release machinery no client has --
+    // release.yml, promote-release.py, discover-clients.yml, these configurator
+    // pages themselves -- so pointing the installer at the source repo, or at a
+    // fork of it, strips its ability to publish AND overwrites catalog.json (the
+    // version of record) with whatever older version the channel resolves to.
+    //
+    // That is not hypothetical: on 2026-07-30 an install pinned at v4.11.10 (the
+    // beta channel head at the time) landed on a fork of the source, downgraded
+    // the catalog from 4.12.4, deleted 48 source-only files, and stalled every
+    // client release for two weeks. Refuse it, with no override -- there is no
+    // legitimate reason to install the client payload over its own source.
+    async function toolingSourceBlock(repo) {
+      const src = (canonical && canonical.repo) || SOURCE_FALLBACK.repo;
+      const norm = (s) => String(s || "").trim().toLowerCase();
+      if (norm(repo) === norm(src)) return { src, why: "is the LabVIEW CI tooling source repository" };
+      // The fork check needs the API. On a network/permission failure we fall
+      // through and allow the install: the source repo's own catalog-source-sync
+      // check is the authoritative backstop and cannot be bypassed from here.
+      let meta = null;
+      try {
+        const r = await gh(`/repos/${repo}`);
+        meta = r.ok ? await r.json() : null;
+      } catch (_) { return null; }
+      if (!meta || !meta.fork) return null;
+      const parents = [meta.parent && meta.parent.full_name, meta.source && meta.source.full_name].filter(Boolean);
+      if (parents.some(p => norm(p) === norm(src))) return { src, why: "is a fork of the LabVIEW CI tooling source repository" };
+      return null;
+    }
+
+    function toolingSourceMessage(repo, block) {
+      return `<strong>${esc(repo)}</strong> ${esc(block.why)} (<strong>${esc(block.src)}</strong>), so this installer will not run against it.` +
+        ` Installing the client payload here would delete the release machinery that publishes LabVIEW CI and roll <code>catalog.json</code> back to an older version.` +
+        ` To change the tooling itself, edit it in <strong>${esc(block.src)}</strong> and open a pull request there.` +
+        ` To try the pipeline out, point this at a separate test repository instead.`;
+    }
+
     async function installToRepo() {
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) { setInsStatus("Enter your target repository (owner/name) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
       if (!getInsTok()) { showInsTokPanel(); return; }
+      {
+        const block = await toolingSourceBlock(repo);
+        if (block) { setInsStatus(toolingSourceMessage(repo, block), "err"); return; }
+      }
       hideFlightPanel();
       installBusy(true);
       setInsStatus("Checking your repository&hellip;", null);
@@ -2577,6 +2619,12 @@
     }
 
     async function proceedInstall(repo, opts) {
+      // Hard stop at the choke point every install path funnels through
+      // (installToRepo -> continueAfterFlight, and the re-install panel's
+      // confirmReinstall), so the check above cannot be skipped by resuming an
+      // in-flight install or by a stale panel left open from an earlier repo.
+      const blocked = await toolingSourceBlock(repo);
+      if (blocked) { hideReinstallPanel(); setInsStatus(toolingSourceMessage(repo, blocked), "err"); installBusy(false); return; }
       const owner = repo.split("/")[0];
       const s = source();
       installBusy(true);
