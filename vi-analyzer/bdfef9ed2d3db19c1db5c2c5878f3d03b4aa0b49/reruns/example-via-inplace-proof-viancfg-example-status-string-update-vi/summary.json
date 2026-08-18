@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "sha": "bdfef9ed2d3db19c1db5c2c5878f3d03b4aa0b49",
+    "short": "bdfef9e",
+    "platform": "windows",
+    "repo": "elijah286/LabVIEW-CI-with-Containers",
+    "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers",
+    "pages_base": "../../..",
+    "commit": {
+      "message": "put in a debug line",
+      "author": "daniel-coons",
+      "date": "2026-08-17T19:50:26-04:00"
+    },
+    "generated_utc": "2026-08-18 00:27 UTC",
+    "analysis_date": "Tuesday, August 18, 2026 12:26:50 AM",
+    "duration": "00:00:05.93"
+  },
+  "summary": {
+    "vis_analyzed": 1,
+    "tests_run": 6,
+    "passed": 4,
+    "failed": 2,
+    "skipped": 0,
+    "findings": 2,
+    "vis_with_findings": 1
+  },
+  "errors": {
+    "vi_not_loadable": 0,
+    "test_not_loadable": 0,
+    "test_not_runnable": 0,
+    "test_error_out": 0
+  },
+  "rule_counts": [
+    {
+      "test": "Spell Check",
+      "severity": "documentation",
+      "count": 1,
+      "vi_count": 1
+    },
+    {
+      "test": "VI Documentation",
+      "severity": "documentation",
+      "count": 1,
+      "vi_count": 1
+    }
+  ]
+}
