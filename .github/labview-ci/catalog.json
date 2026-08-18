@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "4.15.1",
-  "stableVersion": "4.10.0",
+  "version": "4.15.2",
+  "stableVersion": "4.15.1",
   "betaVersion": "4.11.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
@@ -13,17 +13,67 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet. `betaVersion` is the same pointer for the beta (release-candidate) channel, with entries flagged \"beta\": true. The install/upgrade channel picker is cumulative: release only (stable), release+beta (beta), or release+beta+dev (every published build).",
     "releases": [
-      {"version": "4.15.1", "date": "2026-08-17", "notes": "The update workflow now verifies TOOLING_UPDATE_TOKEN before using it. An expired personal access token previously failed the whole update at checkout with a raw git error that named neither the token nor the secret, because the old fallback only handled a missing secret and an expired token is still a non-empty value. Expired, misscoped or unverifiable tokens now fall back to the built-in token so the update still applies everything except workflow files, and the run summary explains exactly which token failed and how to rotate it."},
-      {"version": "4.15.0", "date": "2026-08-17", "notes": "The major alias now tracks the stable channel. Pinning @v4 gives you the newest release promoted to stable rather than the newest release published, so the development tip no longer reaches consumers automatically; @beta follows release candidates, @dev follows every build, and @v4.14 follows a single line. The major alias never moves backwards, so an update cannot silently downgrade an installation."},
-      {"version": "4.14.1", "date": "2026-08-17", "notes": "Fixed a release-workflow bug where a release with no pending note fragments aborted before publishing. main is now protected against force-pushes and branch deletion; the catalog/source-sync guard runs on every pull request but is not yet a blocking requirement."},
-      {"version": "4.14.0", "date": "2026-08-17", "notes": "Releases are now produced by CI rather than by hand. Every merge to main is published automatically, with the next version derived from the highest published tag instead of from catalog.json, so a stale or conflicted catalog can no longer roll the version of record backwards. Contributors add a release-note fragment and an optional release:minor / release:major label; nobody edits the catalog. The promote-release button now tags and publishes inside its own run, fixing a long-standing bug where promotions bumped the catalog to a version that was never tagged and never moved the rolling stable or beta tag."},
-      {"version": "4.13.0", "date": "2026-08-17", "notes": "SBOM Generation: a new Windows capability that runs a LabVIEW SBOM headlessly in the worker container via VIPM CLI and publishes a CycloneDX report to the dashboard, detecting the container's installed LabVIEW version automatically and failing the run rather than emitting a misleading report. Also: the dashboard no longer attempts to publish GitHub Pages for pull requests from forks (which cannot hold the required token), and the documentation's sections 16.1-16.6 gained fully worked replication examples. This release also restores the catalog after an accidental downgrade to 4.11.10, which had left 4.11.11 through 4.12.4 unpublished to clients."},
-      {"version": "4.12.4", "date": "2026-07-23", "notes": "Debug Run: simplified the dialog to a single Start debug session button on a chosen revision (activities are no longer pre-selected), added a warning that each session occupies one of the project's Actions runners and blocks other CI jobs when no slots are free, and added an on-screen operations menu in the Linux container (first option opens the project; the rest run Mass Compile, Builds, VIDiff, etc. and stream output live)."},
-      {"version": "4.12.3", "date": "2026-07-23", "notes": "Debug Run is now Linux-only: removed the Windows container option from the dialog, since Windows containers run in session 0 with no interactive desktop (a Microsoft limitation) so the VNC view is always blank. The primary action is now \"Open the project\" (boots the desktop with the LabVIEW project open); \"Run activities...\" is the secondary action. Windows headless CI is unaffected."},
-      {"version": "4.12.2", "date": "2026-07-23", "notes": "VI Analyzer report: the \"testing errors\" banner now names each VI that could not be loaded/analyzed, shows its actual error message, and tags CI-tooling VIs (under .github/) separately -- so a bare count like \"9 VI not loadable\" now explains exactly which VIs failed and whether they are CI helper VIs (harmless) or your project code. The parser also reads the native report\u2019s <h3>-headed error tables, which it previously skipped."},
-      {"version": "4.12.1", "date": "2026-07-23", "notes": "Windows Debug Run diagnostics: the black screen persists even after aligning window stations, so the container now enumerates every desktop on WinSta0 and the top-level windows on each, to pin down exactly which desktop LabVIEW's window lands on (or whether it renders no window at all in the container's session 0)."},
-      {"version": "4.12.0", "date": "2026-07-23", "notes": "VI Analyzer report: because LabVIEW is a graphical language, each VI card now embeds its rendered front panel and block diagram snapshot inline (lazily loaded from the VI Browser gallery when you expand a VI) so the findings sit beside the actual code, with an \"Open full view\" control for the larger interactive drawer. The report also always offers a \"Download raw report\" link to the native LabVIEW VI Analyzer HTML it was built from."},
-      {"version": "4.11.12", "date": "2026-07-23", "notes": "Windows Debug Run black-screen fix: diagnostics confirmed LabVIEW runs but has no window on the desktop VNC shows - the container entrypoint and its child processes (LabVIEW, the prompt) run on a non-interactive service window station, while TightVNC captures the interactive WinSta0\\Default. The container script now switches to WinSta0\\Default before launching TightVNC and LabVIEW so they share the interactive desktop."},
+      {
+        "version": "4.15.2",
+        "date": "2026-08-18",
+        "notes": "Marked v4.15.1 as the stable release. Default installs and upgrades target it; beta and dev builds stay available behind the channel picker."
+      },
+      {
+        "version": "4.15.1",
+        "date": "2026-08-17",
+        "notes": "The update workflow now verifies TOOLING_UPDATE_TOKEN before using it. An expired personal access token previously failed the whole update at checkout with a raw git error that named neither the token nor the secret, because the old fallback only handled a missing secret and an expired token is still a non-empty value. Expired, misscoped or unverifiable tokens now fall back to the built-in token so the update still applies everything except workflow files, and the run summary explains exactly which token failed and how to rotate it.",
+        "stable": true
+      },
+      {
+        "version": "4.15.0",
+        "date": "2026-08-17",
+        "notes": "The major alias now tracks the stable channel. Pinning @v4 gives you the newest release promoted to stable rather than the newest release published, so the development tip no longer reaches consumers automatically; @beta follows release candidates, @dev follows every build, and @v4.14 follows a single line. The major alias never moves backwards, so an update cannot silently downgrade an installation."
+      },
+      {
+        "version": "4.14.1",
+        "date": "2026-08-17",
+        "notes": "Fixed a release-workflow bug where a release with no pending note fragments aborted before publishing. main is now protected against force-pushes and branch deletion; the catalog/source-sync guard runs on every pull request but is not yet a blocking requirement."
+      },
+      {
+        "version": "4.14.0",
+        "date": "2026-08-17",
+        "notes": "Releases are now produced by CI rather than by hand. Every merge to main is published automatically, with the next version derived from the highest published tag instead of from catalog.json, so a stale or conflicted catalog can no longer roll the version of record backwards. Contributors add a release-note fragment and an optional release:minor / release:major label; nobody edits the catalog. The promote-release button now tags and publishes inside its own run, fixing a long-standing bug where promotions bumped the catalog to a version that was never tagged and never moved the rolling stable or beta tag."
+      },
+      {
+        "version": "4.13.0",
+        "date": "2026-08-17",
+        "notes": "SBOM Generation: a new Windows capability that runs a LabVIEW SBOM headlessly in the worker container via VIPM CLI and publishes a CycloneDX report to the dashboard, detecting the container's installed LabVIEW version automatically and failing the run rather than emitting a misleading report. Also: the dashboard no longer attempts to publish GitHub Pages for pull requests from forks (which cannot hold the required token), and the documentation's sections 16.1-16.6 gained fully worked replication examples. This release also restores the catalog after an accidental downgrade to 4.11.10, which had left 4.11.11 through 4.12.4 unpublished to clients."
+      },
+      {
+        "version": "4.12.4",
+        "date": "2026-07-23",
+        "notes": "Debug Run: simplified the dialog to a single Start debug session button on a chosen revision (activities are no longer pre-selected), added a warning that each session occupies one of the project's Actions runners and blocks other CI jobs when no slots are free, and added an on-screen operations menu in the Linux container (first option opens the project; the rest run Mass Compile, Builds, VIDiff, etc. and stream output live)."
+      },
+      {
+        "version": "4.12.3",
+        "date": "2026-07-23",
+        "notes": "Debug Run is now Linux-only: removed the Windows container option from the dialog, since Windows containers run in session 0 with no interactive desktop (a Microsoft limitation) so the VNC view is always blank. The primary action is now \"Open the project\" (boots the desktop with the LabVIEW project open); \"Run activities...\" is the secondary action. Windows headless CI is unaffected."
+      },
+      {
+        "version": "4.12.2",
+        "date": "2026-07-23",
+        "notes": "VI Analyzer report: the \"testing errors\" banner now names each VI that could not be loaded/analyzed, shows its actual error message, and tags CI-tooling VIs (under .github/) separately -- so a bare count like \"9 VI not loadable\" now explains exactly which VIs failed and whether they are CI helper VIs (harmless) or your project code. The parser also reads the native report’s <h3>-headed error tables, which it previously skipped."
+      },
+      {
+        "version": "4.12.1",
+        "date": "2026-07-23",
+        "notes": "Windows Debug Run diagnostics: the black screen persists even after aligning window stations, so the container now enumerates every desktop on WinSta0 and the top-level windows on each, to pin down exactly which desktop LabVIEW's window lands on (or whether it renders no window at all in the container's session 0)."
+      },
+      {
+        "version": "4.12.0",
+        "date": "2026-07-23",
+        "notes": "VI Analyzer report: because LabVIEW is a graphical language, each VI card now embeds its rendered front panel and block diagram snapshot inline (lazily loaded from the VI Browser gallery when you expand a VI) so the findings sit beside the actual code, with an \"Open full view\" control for the larger interactive drawer. The report also always offers a \"Download raw report\" link to the native LabVIEW VI Analyzer HTML it was built from."
+      },
+      {
+        "version": "4.11.12",
+        "date": "2026-07-23",
+        "notes": "Windows Debug Run black-screen fix: diagnostics confirmed LabVIEW runs but has no window on the desktop VNC shows - the container entrypoint and its child processes (LabVIEW, the prompt) run on a non-interactive service window station, while TightVNC captures the interactive WinSta0\\Default. The container script now switches to WinSta0\\Default before launching TightVNC and LabVIEW so they share the interactive desktop."
+      },
       {
         "version": "4.11.11",
         "date": "2026-07-23",
