@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "sha": "6f20e2c0b0941dc1aae3ff764c0429953f94ec5e",
+    "short": "6f20e2c",
+    "platform": "linux",
+    "repo": "elijah286/LabVIEW-CI-with-Containers",
+    "pages_url": "https://elijah286.github.io/LabVIEW-CI-with-Containers",
+    "pages_base": "../../../..",
+    "commit": {
+      "message": "Release 4.15.3 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-18T13:56:46Z"
+    },
+    "generated_utc": "2026-08-18 15:32 UTC",
+    "analysis_date": "Tuesday, August 18, 2026 03:32:53 PM",
+    "duration": "00:00:05.32"
+  },
+  "summary": {
+    "vis_analyzed": 1,
+    "tests_run": 6,
+    "passed": 4,
+    "failed": 2,
+    "skipped": 0,
+    "findings": 2,
+    "vis_with_findings": 1
+  },
+  "errors": {
+    "vi_not_loadable": 0,
+    "test_not_loadable": 0,
+    "test_not_runnable": 0,
+    "test_error_out": 0
+  },
+  "rule_counts": [
+    {
+      "test": "Spell Check",
+      "severity": "documentation",
+      "count": 1,
+      "vi_count": 1
+    },
+    {
+      "test": "VI Documentation",
+      "severity": "documentation",
+      "count": 1,
+      "vi_count": 1
+    }
+  ]
+}
