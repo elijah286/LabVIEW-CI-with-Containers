@@ -1,8 +1,44 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "fefb4465569789dddad7f8b90a45e4b43c6650af",
+  "sha": "1132f0d8a6321055976815d55ac15803af092367",
   "revisions": [
+    {
+      "sha": "1132f0d8a6321055976815d55ac15803af092367",
+      "short": "1132f0d",
+      "message": "Release channel: stable=4.15.1 (catalog 4.15.2) [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-18T00:09:21Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "b8e3719ad9c414d54b8b516ae15bbc128eb5b0ff",
+      "short": "b8e3719",
+      "message": "Release 4.15.1 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-17T23:29:01Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "20c3d76610ee4c62a370066da0336ce47bbb4882",
+      "short": "20c3d76",
+      "message": "Merge pull request #55 from elijah286/feat/token-preflight",
+      "author": "Elijah Kerry",
+      "date": "2026-08-17T23:28:51Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "6be6a7042623e4fd9d7870bb9885a2f10027eede",
+      "short": "6be6a70",
+      "message": "Verify TOOLING_UPDATE_TOKEN before using it, and say so when it has expired",
+      "author": "elijah286",
+      "date": "2026-08-17T23:28:08Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "fefb4465569789dddad7f8b90a45e4b43c6650af",
       "short": "fefb446",
@@ -864,42 +900,6 @@
       "message": "dependencies: move per-file monitor checkboxes into the Windows/Linux table columns (4.6.7)",
       "author": "Elijah Kerry",
       "date": "2026-07-21T23:36:57Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "1b825cbff05e5da1fe2844ee41cb78d1413a9c84",
-      "short": "1b825cb",
-      "message": "dashboard: keep the whole project history visible in the revision table (4.6.6)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T23:35:31Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "3c72a97b4ed618123a07b6cc834b9060c9c93cd0",
-      "short": "3c72a97",
-      "message": "dependencies: select Windows/Linux/both for container update; evaluate Linux column like Windows (4.6.5)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T23:17:35Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "fd8c52b5ad66808531691988a1b45c17f0bdaae3",
-      "short": "fd8c52b",
-      "message": "builds: open the Builds report framed in the dashboard (revision picker + Rebuild)",
-      "author": "LabVIEW CI",
-      "date": "2026-07-21T22:53:40Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "cc6e26867c4721f37a2354e97971932fd4cd01d0",
-      "short": "cc6e268",
-      "message": "dependencies: Default containers as a Windows/Linux table; drop revision cards + config note (4.6.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T22:43:22Z",
       "project": false,
       "dep_only": false
     },
