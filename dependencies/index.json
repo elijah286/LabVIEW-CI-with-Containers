@@ -1,14 +1,32 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "1132f0d8a6321055976815d55ac15803af092367",
+  "sha": "70084c8abbd64687f59c4f82b2d7f1e615148bf2",
   "revisions": [
+    {
+      "sha": "70084c8abbd64687f59c4f82b2d7f1e615148bf2",
+      "short": "70084c8",
+      "message": "Merge pull request #50 from elijah286/via-debug",
+      "author": "Daniel Coons",
+      "date": "2026-08-18T13:56:34Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "1132f0d8a6321055976815d55ac15803af092367",
       "short": "1132f0d",
       "message": "Release channel: stable=4.15.1 (catalog 4.15.2) [skip release]",
       "author": "github-actions[bot]",
       "date": "2026-08-18T00:09:21Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "bdfef9ed2d3db19c1db5c2c5878f3d03b4aa0b49",
+      "short": "bdfef9e",
+      "message": "put in a debug line",
+      "author": "daniel-coons",
+      "date": "2026-08-17T23:50:26Z",
       "project": false,
       "dep_only": false
     },
@@ -36,6 +54,15 @@
       "message": "Verify TOOLING_UPDATE_TOKEN before using it, and say so when it has expired",
       "author": "elijah286",
       "date": "2026-08-17T23:28:08Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "5b0461ce2c6b5a62a02015c80ce908db8b189d16",
+      "short": "5b0461c",
+      "message": "documentation only vi analyzer",
+      "author": "daniel-coons",
+      "date": "2026-08-17T21:50:26Z",
       "project": false,
       "dep_only": false
     },
@@ -139,6 +166,33 @@
       "dep_only": false
     },
     {
+      "sha": "6f6b07773d2029cf6cfd6af82e4b0672c89f50e1",
+      "short": "6f6b077",
+      "message": "Set VI Analyzer default to 'builtin'",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-13T21:50:46Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "26b8330acf023225984b98cef5ce7df7a25af1fc",
+      "short": "26b8330",
+      "message": "merge branch 'main' into via-debug",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-13T20:34:53Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "d0e080c128589707c82a13a45d842952fb3a5fc8",
+      "short": "d0e080c",
+      "message": "Merge remote-tracking branch 'origin/main' into via-debug",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-13T19:37:52Z",
+      "project": true,
+      "dep_only": false
+    },
+    {
       "sha": "d2e8e2806db14819bcd5d12b541ed5567ff07a86",
       "short": "d2e8e28",
       "message": "Merge pull request #44 from danielcoons/main",
@@ -226,6 +280,87 @@
       "author": "MIpetrov-NI",
       "date": "2026-08-07T18:43:44Z",
       "project": true,
+      "dep_only": false
+    },
+    {
+      "sha": "d88df15896b71fc12f396a675346a083d0b0b6ec",
+      "short": "d88df15",
+      "message": "Merge branch 'via-debug' of https://github.com/elijah286/LabVIEW-CI-with-Containers into via-debug",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-07T17:09:07Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "b5884b76ae2f23e48ec2dc9c26fec988743dbede",
+      "short": "b5884b7",
+      "message": "remove garbage",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-07T17:08:50Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "e98ea6d708e16a5bdc9a80d032e3bbb0c2f31898",
+      "short": "e98ea6d",
+      "message": "Remove default viAnalyzer configuration",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-07T16:00:56Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "fae088fb547923107f438c06b44d4a1ad6cf7e19",
+      "short": "fae088f",
+      "message": "Added <Path>\".\"<Path> to .viancfg under test",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-07T14:47:24Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "3b680d39f0a8b143855d1d94162b44bd1450453e",
+      "short": "3b680d3",
+      "message": "\\\\ instead of \\ for parsing .viancfg",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-07T02:14:12Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "e666fef4fb299b99cf0deced4021b56deb476e47",
+      "short": "e666fef",
+      "message": "Update the Shell script to match changes in run-vi-analyzer.ps1",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-07T00:10:13Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "1568462d1149e36f8c4c6b3688aa4092afc46006",
+      "short": "1568462",
+      "message": "AnalyzeProject=FALSE + directory <Item> avoids error, but detects 0 VIs. It seems that the headless CLI cannot recurse directory items. Trying now to parse through individual VI files with AnalyzePRoject set to FALSE.",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-03T21:01:50Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "bc16c85081001dce168483a95cd448cce1ce54eb",
+      "short": "bc16c85",
+      "message": "According to Forums: VI-Analyzer API VI's do not support project based viancfg files, shifting to a directory based viancfg by changing <AnalyzeProject> from TRUE to FALSE",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-03T20:31:04Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "f3e6a1459340b43cdceaf4cfe0c269a4d9ba45ab",
+      "short": "f3e6a14",
+      "message": "Extra logic in build-ProjectConfig() to remove ambiguity for a custom via-config with items to analyze, since <AnalyzeProject? is set to true.",
+      "author": "MIpetrov-NI",
+      "date": "2026-08-03T19:03:13Z",
+      "project": false,
       "dep_only": false
     },
     {
@@ -765,141 +900,6 @@
       "message": "Bake LV_RTE_HEADLESS=1 into the worker base image so g-cli/Antidoc run headless in NI's container (4.8.6)",
       "author": "Elijah Kerry",
       "date": "2026-07-22T13:25:48Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "ef5fca624b03eda402f809635be71997ff4e878e",
-      "short": "ef5fca6",
-      "message": "Antidoc: set LV_RTE_HEADLESS=1 so g-cli's direct LabVIEW launch runs headless (no activation wizard) in NI's container (4.8.5)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T11:37:33Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "6313516f68c488d2bc5601aaf778f9303c2c9d53",
-      "short": "6313516",
-      "message": "dependencies: unify revision selector into the shared header context-bar picker (searchable + CI/dep filter) (4.8.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T11:28:00Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "34ce72c6157e39da10e594bc9446509a209c03dd",
-      "short": "34ce72c",
-      "message": "Populate history confirms before queuing a large batch (4.8.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T11:10:37Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "b04e7de5fac414c0ee49b8a5ceaf444585628ee0",
-      "short": "b04e7de",
-      "message": "Dependencies: review capability VIPCs + rebuild on any VIPC/Dragon change (4.8.2)",
-      "author": "lcwc",
-      "date": "2026-07-22T04:02:57Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "10faa6710988c095f78e5cd678aa1810dd1fb6dd",
-      "short": "10faa67",
-      "message": "updates to antidoc.vipc",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T03:35:09Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "b8b16c5c3ffb6259ce89e35c82b8c5839b859b3c",
-      "short": "b8b16c5",
-      "message": "Update antidoc.vipc",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T03:32:01Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "b0cc721b63bd09942dc7e5183bef250039965901",
-      "short": "b0cc721",
-      "message": "CI: per-activity concurrency groups so dispatching one activity no longer cancels another (4.8.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T01:14:19Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "6c500cde7a55bc67eb4cfac0e83fc24a24adb805",
-      "short": "6c500cd",
-      "message": "VI Browser 2.0 Windows renders auto-generate per revision (4.8.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T00:45:36Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "2a467fa693f27c3d0548035486707c2408ff2854",
-      "short": "2a467fa",
-      "message": "Purge Windows Beta / Linux Beta worker containers; Antidoc graduates to opt-in (4.7.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T00:36:45Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "8d01cbbbc8612ac925cb12e112fe8b6708a25f80",
-      "short": "8d01cbb",
-      "message": "Antidoc: g-cli -v verbose + kill stray LabVIEW + post-mortem probe to diagnose the launch-handshake hang (4.6.12)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T00:37:34Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "33498c4763ee90f25a1a5d1c0b714996d9ac97a5",
-      "short": "33498c4",
-      "message": "Add VI Browser coaching tip rollout",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T00:35:02Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "91a41156eb2b2cff0b15bbc61719b68a369e6c66",
-      "short": "91a4115",
-      "message": "Remove Windows Beta / Linux Beta from the dashboard surface (4.6.10)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T00:19:12Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "112a37f7384584273bef64368408a8d7ef6dfe5d",
-      "short": "112a37f",
-      "message": "Refresh the dashboard after a container update + stop false-missing tooling VIPC (4.6.9)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T00:06:11Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "74ec0ef99cf19ab831ac90d5c729d2107339662a",
-      "short": "74ec0ef",
-      "message": "Antidoc: give g-cli a 10-min --timeout so cold-container LabVIEW+Antidoc load doesn't trip the launch handshake (4.6.8)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T23:39:52Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "c97ea229677e3624093d25132e691264575d6fb7",
-      "short": "c97ea22",
-      "message": "dependencies: move per-file monitor checkboxes into the Windows/Linux table columns (4.6.7)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-21T23:36:57Z",
       "project": false,
       "dep_only": false
     },
