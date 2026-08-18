@@ -67,42 +67,37 @@ first_viancfg() {
     | sort | head -1
 }
 
-# Shallowest .lvproj (fewest path segments) outside CI tooling dirs.
-first_lvproj() {
-  find "$WORKSPACE_ROOT" -type f -name '*.lvproj' 2>/dev/null \
-    | grep -vE '/(\.github|actions|ci-out|build)/' \
-    | awk -F/ '{print NF" "$0}' | sort -n | head -1 | cut -d' ' -f2-
-}
-
-# Build a runtime .viancfg from a base config, analyzing the whole PROJECT
-# (AnalyzeProject=TRUE + ProjectPath) with the config's own test selection kept.
-# __WORKSPACE_PATH__ is expanded. If the base has no AnalyzeProject/ProjectPath
-# tags the sed no-ops and the caller's 0-tests fallback covers it.
-build_project_config() {
-  # $1 base cfg, $2 lvproj abs path, $3 out path
+# Build a runtime .viancfg from a base config. On Linux, the committed config's
+# <RelativePath> entries use Windows \\ separators that Linux LabVIEW can't resolve;
+# sed converts them to /. The committed config already has <Path>"."</Path> in
+# <ItemsToAnalyze>, so no rewrite of that block is needed.
+build_folder_scope_config() {
+  # $1 base cfg, $2 out path
   sed -e "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" \
-      -e "s|<AnalyzeProject>[^<]*</AnalyzeProject>|<AnalyzeProject>TRUE</AnalyzeProject>|" \
-      -e "s|<ProjectPath>[^<]*</ProjectPath>|<ProjectPath>\"$2\"</ProjectPath>|" \
-      "$1" > "$3"
+      -e '/<RelativePath>/ s|\\\\|/|g' "$1" > "$2"
+  echo "  Built $(basename "$2"): $(grep -c '<Selected>TRUE</Selected>' "$2") selected test(s)"
 }
 
 # Build a runtime .viancfg whose <ItemsToAnalyze> lists exactly the given VIs
-# (the single-VI re-run). __WORKSPACE_PATH__ is expanded.
+# as paths relative to the config file's directory (the only form LabVIEW accepts).
 build_scoped_items() {
   # $1 base cfg, $2 out path; VI abs paths in the global VI_ABS[] array.
-  local items=""
-  local p
+  local config_dir items="" rel p
+  config_dir="$(dirname "$2")"
   for p in "${VI_ABS[@]}"; do
-    items="${items}\t\t<Item>\n\t\t\t<Path>\"$p\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
+    rel="${p#"$config_dir"/}"
+    items="${items}\t\t<Item>\n\t\t\t<Path>\"$rel\"</Path>\n\t\t\t<Removed>FALSE</Removed>\n\t\t</Item>\n"
   done
-  sed "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" "$1" > "$2.tmp"
+  sed -e "s|__WORKSPACE_PATH__|$WORKSPACE_ROOT|g" \
+      -e '/<RelativePath>/ s|\\\\|/|g' "$1" > "$2.tmp"
   awk -v items="$items" '
-    /<ItemsToAnalyze>/ { print "\t<ItemsToAnalyze>"; printf items; inblk=1; next }
+    /<ItemsToAnalyze>/ { print "\t<ItemsToAnalyze>"; printf "%s", items; inblk=1; next }
     /<\/ItemsToAnalyze>/ { print "\t</ItemsToAnalyze>"; inblk=0; next }
     inblk { next }
     { print }
   ' "$2.tmp" > "$2"
   rm -f "$2.tmp"
+  echo "  Built $(basename "$2"): ${#VI_ABS[@]} <Item>, $(grep -c '<Selected>TRUE</Selected>' "$2") selected test(s)"
 }
 
 # Native "Total Tests Run: N" count from a generated report (for the 0-tests
@@ -164,7 +159,7 @@ if [ -n "$FILES_FILTER" ]; then
     [ -n "$r" ] && VI_ABS+=("$WORKSPACE_ROOT/$r")
   done
   BASE_CFG="$WORKSPACE_ROOT/$CONFIG_OVERRIDE"
-  SCOPED="$REPORT_DIR/via-rerun.viancfg"
+  SCOPED="$(dirname "$BASE_CFG")/.lvci-runtime.viancfg"
   build_scoped_items "$BASE_CFG" "$SCOPED"
   CONFIG_ARG="$SCOPED"
   PASS_KIND="rule"
@@ -187,18 +182,20 @@ else
     echo "  Mode      : full built-in suite (analyze workspace directory)"
   else
     BASE_CFG="$WORKSPACE_ROOT/$DEF"
-    PROJ="$(first_lvproj)"
-    if [ -n "$PROJ" ] && [ -f "$BASE_CFG" ]; then
-      SCOPED="$REPORT_DIR/default.viancfg"
-      build_project_config "$BASE_CFG" "$PROJ" "$SCOPED"
+    if [ -f "$BASE_CFG" ]; then
+      # Scope = ".": the config dir is beside the committed .viancfg (e.g. example/),
+      # so LabVIEW recurses that folder and applies the custom tests to every VI there.
+      SCOPED="$(dirname "$BASE_CFG")/.lvci-runtime.viancfg"
+      build_folder_scope_config "$BASE_CFG" "$SCOPED"
       CONFIG_ARG="$SCOPED"
       PASS_KIND="project"
       FALLBACK_DIR="$WORKSPACE_ROOT"
-      echo "  Mode      : project config $DEF (AnalyzeProject) with directory fallback"
+      echo "  Mode      : custom config $DEF (scope: $(dirname "$BASE_CFG")) with directory fallback"
+      echo "  Config    : $SCOPED  (source: $BASE_CFG)"
     else
       CONFIG_ARG="$WORKSPACE_ROOT"
       PASS_KIND="directory"
-      echo "  Mode      : full built-in suite (no project found; analyze workspace directory)"
+      echo "  Mode      : full built-in suite (config not found; analyze workspace directory)"
     fi
   fi
 fi
