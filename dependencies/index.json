@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "70084c8abbd64687f59c4f82b2d7f1e615148bf2",
+  "sha": "6f20e2c0b0941dc1aae3ff764c0429953f94ec5e",
   "revisions": [
+    {
+      "sha": "6f20e2c0b0941dc1aae3ff764c0429953f94ec5e",
+      "short": "6f20e2c",
+      "message": "Release 4.15.3 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-18T13:56:46Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "70084c8abbd64687f59c4f82b2d7f1e615148bf2",
       "short": "70084c8",
@@ -891,15 +900,6 @@
       "message": "Default VI Browser to 2.0 when available",
       "author": "Elijah Kerry",
       "date": "2026-07-22T13:30:50Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "61ed2ddd21621f0afbd6e9231d9f5e27c710ce46",
-      "short": "61ed2dd",
-      "message": "Bake LV_RTE_HEADLESS=1 into the worker base image so g-cli/Antidoc run headless in NI's container (4.8.6)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T13:25:48Z",
       "project": false,
       "dep_only": false
     },
