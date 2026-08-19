@@ -1,8 +1,35 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "6f20e2c0b0941dc1aae3ff764c0429953f94ec5e",
+  "sha": "c22487324fa9357161a17297f2fdb5a6bc38d57e",
   "revisions": [
+    {
+      "sha": "c22487324fa9357161a17297f2fdb5a6bc38d57e",
+      "short": "c224873",
+      "message": "fix: keep source Pages bundle current",
+      "author": "Elijah Kerry",
+      "date": "2026-08-19T19:10:30Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "82fcdf2c88a259d67a2066b0c55170007cd413bc",
+      "short": "82fcdf2",
+      "message": "Release 4.15.4 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-19T18:52:30Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "91579855c144547f021265c77a293861e929d9de",
+      "short": "9157985",
+      "message": "fix: fail fast on wedged VIPM Desktop",
+      "author": "Elijah Kerry",
+      "date": "2026-08-19T18:52:07Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "6f20e2c0b0941dc1aae3ff764c0429953f94ec5e",
       "short": "6f20e2c",
@@ -873,33 +900,6 @@
       "message": "VI Analyzer: fix PowerShell array-return bug that still blanked the report (4.8.10)",
       "author": "Elijah Kerry",
       "date": "2026-07-22T17:52:20Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "948a581c6d947b4bc715fc9239ff0e1693d04a5a",
-      "short": "948a581",
-      "message": "Failed dashboard runs stay re-runnable and link to their report (4.8.9)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T14:41:52Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "6058776b600c02e9d31e35431c4451f4c9b3f5c4",
-      "short": "6058776",
-      "message": "Antidoc report: in-browser doc viewer (file navigator + rendered doc + images) & fix the Asciidoctor.js CDN URL (4.8.8)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T13:35:09Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "3cbe31f5c3aa67036756a7aa717a9fde974be1ff",
-      "short": "3cbe31f",
-      "message": "Default VI Browser to 2.0 when available",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T13:30:50Z",
       "project": false,
       "dep_only": false
     },
