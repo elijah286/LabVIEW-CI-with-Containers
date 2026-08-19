@@ -1220,6 +1220,11 @@ docker run --rm `
         <li><strong>Extend timeouts</strong> (<code>VIPM_TIMEOUT=900</code>) — cold first-run headless LabVIEW
           exceeds the CLI's short defaults during a build, where <code>CI</code>/<code>GITHUB_ACTIONS</code> env hints
           are absent.</li>
+        <li><strong>Fail fast on a dead Desktop engine</strong> — a refresh message containing
+          <code>wait for VIPM startup</code> proves package installs will wait on the same unresponsive process. The
+          hook restarts headless LabVIEW and VIPM once (<code>VIPM_MAX_REFRESH_RESTARTS=1</code> by default), then
+          stops before package installation if the handshake still fails. A workflow rerun starts from a clean worker
+          build instead of consuming repeated 15-minute install timeouts.</li>
         <li><strong>Use the modern command shape</strong> — <code>vipm refresh --force</code> is a standalone command;
           package installs use <code>vipm --labview-version 2026 --labview-bitness 64 install &lt;name&gt;@&lt;version&gt;</code>
           or <code>vipm install -y project.vipc</code>. The old <code>install --refresh</code> form is rejected by VIPM 26.3.</li>
@@ -1787,19 +1792,20 @@ docker exec &lt;name&gt; powershell -File C:\ops\render-snapshots.ps1 ...   # pe
 
       <!-- 18 ──────────────────────────────────────────────────────────────── -->
       <h2 id="versioning">18. Versioning &amp; updates <a class="anchor" href="#versioning">#</a></h2>
-      <p><code>release.yml</code> fires when <code>catalog.json</code> changes on <code>main</code>. It cuts an
-        immutable tag (<code>v3.24.5</code>) and moves the major/minor aliases (<code>v3</code>, <code>v3.24</code>)
-        so consumers pinned at <code>@v3</code> receive improvements automatically, while consumers pinned at an
-        exact version never change unless they act. Release notes are generated from
-        <code>history.releases[0]</code>.</p>
+      <p><code>release.yml</code> runs for every eligible contributor push to <code>main</code>. It derives the next
+        version from published tags, writes the matching catalog entry, and cuts the immutable tag and GitHub Release
+        in the same run. The minor alias advances to the newest patch on its line; the major alias advances only when
+        a release is promoted to stable. Release notes are generated from <code>history.releases[0]</code>.</p>
       <p>Clients update in one of two ways:</p>
       <ul>
         <li><strong>One-click "Update now"</strong> (<code>apply-tooling-update.yml</code>, launched from the What's
           New dialog) reads the manifest, follows the relocation pointer if present, fetches the latest tooling, runs
           <code>install.py --update</code> (preserving user config, refreshing tooling files, and pruning vendored
           tooling files the source has since removed so an obsolete file can't linger and break a build), and commits
-          to the default branch with the built-in token — falling back to a PR with auto-merge if the branch is
-          protected.</li>
+          to the default branch with the built-in token (re-asserting the git push credentials from that token first,
+          so the commit never stalls on a missing <code>actions/checkout</code> credential with
+          <em>&ldquo;could not read Username &hellip; terminal prompts disabled&rdquo;</em>) &mdash; falling back to a
+          PR with auto-merge if the branch is protected.</li>
         <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
           opt-in.</li>
       </ul>

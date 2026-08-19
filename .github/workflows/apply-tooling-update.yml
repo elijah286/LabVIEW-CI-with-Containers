@@ -275,6 +275,22 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Guarantee push credentials from the step's own token. Relying only on
+          # the credentials actions/checkout persists is fragile: on some runs that
+          # header is absent (or was cleared), so git falls back to an interactive
+          # prompt and dies with "could not read Username for 'https://github.com':
+          # terminal prompts disabled" (exit 128) before any push can land. Re-assert
+          # the same http.extraheader auth that checkout uses, built from GH_TOKEN
+          # (TOOLING_UPDATE_TOKEN or the built-in GITHUB_TOKEN). The base64 blob
+          # embeds the token, so mask it; the token itself is already masked.
+          if [ -n "${GH_TOKEN:-}" ]; then
+            AUTH_B64=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+            echo "::add-mask::${AUTH_B64}"
+            git config --unset-all 'http.https://github.com/.extraheader' 2>/dev/null || true
+            git config 'http.https://github.com/.extraheader' "Authorization: Basic ${AUTH_B64}"
+            git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          fi
+
           if [ -z "$(git status --porcelain)" ]; then
             {
               echo "## ✅ Already up to date"

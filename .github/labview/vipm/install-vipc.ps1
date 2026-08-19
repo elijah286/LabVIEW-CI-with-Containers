@@ -314,13 +314,20 @@ function Start-VipmEngineProcess {
 # fail-fast-on-first-wedge behavior).
 $script:VipmMaxEngineRestarts  = if ($Env:VIPM_MAX_ENGINE_RESTARTS -match '^\d+$') { [int]$Env:VIPM_MAX_ENGINE_RESTARTS } else { 2 }
 $script:VipmEngineRestartsUsed = 0
+# Refresh is the first engine health check. Give a transient cold-start race one
+# clean retry, but do not let a dead engine spend another hour in install calls.
+$script:VipmMaxRefreshRestarts  = if ($Env:VIPM_MAX_REFRESH_RESTARTS -match '^\d+$') { [int]$Env:VIPM_MAX_REFRESH_RESTARTS } else { 1 }
+$script:VipmRefreshRestartsUsed = 0
 
 # Kill the whole VIPM stack (CLI, engine, headless LabVIEW) and relaunch it, then
 # clear the wedged flag so the caller can retry. If the relaunched engine wedges
 # again the next 'vipm install' re-sets the flag and the budget check stops the loop.
 function Restart-VipmStack {
-    param([int] $Attempt)
-    Write-Warning ("  VIPM engine wedged; restarting the VIPM stack (attempt " + $Attempt + "/" + $script:VipmMaxEngineRestarts + ") and retrying ...")
+    param(
+        [int] $Attempt,
+        [int] $Maximum = $script:VipmMaxEngineRestarts
+    )
+    Write-Warning ("  VIPM engine wedged; restarting the VIPM stack (attempt " + $Attempt + "/" + $Maximum + ") and retrying ...")
     foreach ($procName in @('vipm', 'VI Package Manager', 'LabVIEW', 'LabVIEWCLI')) {
         Get-Process -Name $procName -ErrorAction SilentlyContinue |
             Stop-Process -Force -ErrorAction SilentlyContinue
@@ -815,6 +822,34 @@ function Install-VipmSpecs {
     }
 }
 
+# A refresh timeout that specifically says the VIPM Desktop startup handshake
+# failed means installs will hit the same wall. Retry from a fresh process stack
+# once, then mark the engine unavailable so no package install can add 15-minute
+# waits after the failed health check.
+function Invoke-VipmRefresh {
+    while ($true) {
+        $out = & $VipmExe refresh --force 2>&1
+        $out | Out-Host
+        $refreshExit = $LASTEXITCODE
+        $refreshOutput = ($out | Out-String -Width 8192)
+        $flatRefreshOutput = ($refreshOutput -replace '\s+', ' ')
+        $startupTimedOut = $flatRefreshOutput -match 'wait for VIPM startup'
+        if (-not $startupTimedOut) { return $refreshExit }
+
+        if ($script:VipmRefreshRestartsUsed -ge $script:VipmMaxRefreshRestarts) {
+            $script:VipmEngineDead = $true
+            Write-Warning ('VIPM Desktop never completed its startup handshake during package-source refresh. ' +
+                'Skipping package installs because they would time out against the same engine.')
+            return $refreshExit
+        }
+
+        $script:VipmRefreshRestartsUsed++
+        Restart-VipmStack $script:VipmRefreshRestartsUsed $script:VipmMaxRefreshRestarts
+        Write-Host ("Retrying VIPM package-source refresh after engine restart " +
+            $script:VipmRefreshRestartsUsed + "/" + $script:VipmMaxRefreshRestarts + " ...")
+    }
+}
+
 # Refresh all package sources once (best-effort - a refresh failure is only a warning
 # because version-pinned installs can still resolve from the local cache).
 #
@@ -894,7 +929,12 @@ try {
     # a plain `vipm refresh` reported "complete" but downloaded no specs, so every
     # package resolved as "not found" (exit 3). --force re-fetches the index.
     Write-Host 'Refreshing VIPM package sources (vipm refresh --force) ...'
-    & $VipmExe refresh --force 2>&1 | Out-Host
+    $refreshExit = Invoke-VipmRefresh
+    if ($script:VipmEngineDead) {
+        $applyFailed = $true
+    } elseif ($refreshExit -ne 0) {
+        Write-Warning "VIPM package-source refresh failed (exit $refreshExit); continuing because version-pinned installs can use the local cache."
+    }
 
     # Phase A (REQUIRED, installed FIRST): the UTF JUnit essentials the built-in
     # 'LabVIEWCLI -OperationName RunUnitTests' operation links against. Install them
@@ -909,7 +949,10 @@ try {
     $requiredSpecs = @($requiredRaw -split '[,;]' | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne '-' })
     if ($requiredSpecs.Count -gt 0) {
         Write-Host ("Installing REQUIRED UTF essentials first: " + ($requiredSpecs -join ', '))
-        if (Install-VipmSpecs $requiredSpecs) {
+        if ($script:VipmEngineDead) {
+            Write-Warning 'Skipping REQUIRED UTF essentials because VIPM Desktop did not start during the refresh health check.'
+            $applyFailed = $true
+        } elseif (Install-VipmSpecs $requiredSpecs) {
             Write-Host 'REQUIRED UTF essentials installed.'
         } else {
             Write-Warning 'One or more REQUIRED UTF essentials failed to install; headless UTF (RunUnitTests) will fail with -350053.'
@@ -1028,10 +1071,16 @@ if ($VipmEngineProc -and -not $VipmEngineProc.HasExited) {
 }
 
 if ($applyFailed) {
-    $message = ('One or more REQUIRED VIPM packages could not be installed (a project .vipc ' +
-        'dependency or a UTF JUnit essential the RunUnitTests CLI links against). Headless UTF ' +
-        'may fail with LabVIEW CLI error -350053, or project VIs may not load. Check the install ' +
-        'log above for the failing package(s) and confirm they exist on the configured VIPM repository.')
+    if ($script:VipmEngineDead) {
+        $message = ('VIPM Desktop did not complete its startup handshake after the bounded refresh recovery. ' +
+            'No package install was attempted against the unresponsive engine. This is an engine-startup failure, ' +
+            'not a package-resolution failure; rerun the worker-image build on a fresh runner.')
+    } else {
+        $message = ('One or more REQUIRED VIPM packages could not be installed (a project .vipc ' +
+            'dependency or a UTF JUnit essential the RunUnitTests CLI links against). Headless UTF ' +
+            'may fail with LabVIEW CLI error -350053, or project VIs may not load. Check the install ' +
+            'log above for the failing package(s) and confirm they exist on the configured VIPM repository.')
+    }
     if ($Env:VIPM_ALLOW_MISSING_PACKAGES -eq '1') {
         Write-Warning ($message + ' VIPM_ALLOW_MISSING_PACKAGES=1 is set, so the image build will continue without those packages.')
         exit 0
