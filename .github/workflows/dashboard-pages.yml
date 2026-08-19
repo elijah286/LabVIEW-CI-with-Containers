@@ -14,6 +14,8 @@ on:
     paths:
       - '.github/labview-ci.yml'
       - '.github/workflows/dashboard-pages.yml'
+      - '.github/pages/**'
+      - 'actions/dashboard/**'
       - '**/*.vipc'
       - '**/*.dragon'
   workflow_run:
@@ -48,11 +50,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-      - name: Read opted-in tooling ref from config
+      - name: Resolve tooling ref
         id: cfg
         shell: bash
         run: |
-          REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)
+          SOURCE_REPO=$(awk '
+            /^[[:space:]]*source:[[:space:]]*$/ { source=1; next }
+            source && /^[[:space:]]*repo:[[:space:]]/ { print $2; exit }
+          ' .github/labview-ci.yml 2>/dev/null)
+          if [ "$GITHUB_REPOSITORY" = "$SOURCE_REPO" ]; then
+            # The source site must publish the current bundle before its release tag exists.
+            REF="$GITHUB_SHA"
+          else
+            REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)
+          fi
           echo "ref=${REF:-v4.11.10}" >> "$GITHUB_OUTPUT"
       - name: Check out tooling (opted-in version)
         uses: actions/checkout@v5

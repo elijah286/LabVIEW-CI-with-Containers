@@ -660,11 +660,11 @@ flowchart TD
         <code>dashboard.py</code>) and deployed by <code>dashboard-pages.yml</code>. The action bundles all the
         tooling pages — the dashboard, VI Browser, report viewer, Configure, Apply, What's New, this Documentation
         page — so a consumer needs no local copy of any of them.</p>
-      <p><code>dashboard-pages.yml</code> rebuilds on three kinds of trigger: a push that changes the page assets,
-        the GitHub <code>status</code> event (every capability posts statuses, so the dashboard reacts to all of
-        them with no per-workflow enumeration and no polling — and since it only <em>reads</em> statuses, it can
-        never self-trigger), and <code>workflow_run</code> completions for workflows that publish page artifacts
-        without a status.</p>
+      <p><code>dashboard-pages.yml</code> rebuilds after qualifying main-branch pushes (the manifest, dashboard
+        workflow, bundled page assets, or dependency declarations), relevant <code>workflow_run</code> completions,
+        its hourly schedule, and manual dispatch. Installed repositories stage the bundled pages from their selected
+        immutable <code>source.ref</code>; the source repository stages the triggering commit instead, so a page
+        change can deploy before its new release tag exists.</p>
       <p><code>dashboard.py</code> reads each commit's statuses (keyed by the catalog's
         <code>statusContext</code>), classifies whether a commit touched real LabVIEW source vs. CI tooling,
         aggregates per-activity data from the deployed JSON (e.g. <code>masscompile/&lt;sha&gt;/summary.json</code>,
