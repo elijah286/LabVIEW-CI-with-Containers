@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.15.4",
+  "version": "4.15.5",
   "stableVersion": "4.15.1",
   "betaVersion": "4.11.10",
   "name": "LabVIEW CI",
@@ -13,6 +13,7 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet. `betaVersion` is the same pointer for the beta (release-candidate) channel, with entries flagged \"beta\": true. The install/upgrade channel picker is cumulative: release only (stable), release+beta (beta), or release+beta+dev (every published build).",
     "releases": [
+      {"version": "4.15.5", "date": "2026-08-19", "notes": "Dashboard page deployments now run when bundled page assets change, so the source Documentation page is published with the release that changes it. The source repository stages its current commit for Pages while client repositories remain pinned to their selected immutable tooling tag."},
       {"version": "4.15.4", "date": "2026-08-19", "notes": "The one-click tooling update now re-asserts Git's non-interactive push credentials from its validated token, preventing missing checkout credentials from stopping an otherwise valid update. Windows worker dependency bakes now treat a VIPM Desktop startup timeout during refresh as a health-check failure: they restart once, then stop before repeated 15-minute package-install waits if the engine remains unavailable."},
       {"version": "4.15.3", "date": "2026-08-18", "notes": "VI Analyzer Custom Config Debug"},
       {

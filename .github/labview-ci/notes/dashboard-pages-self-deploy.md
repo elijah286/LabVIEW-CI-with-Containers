@@ -1,1 +1,0 @@
-Dashboard page deployments now run when bundled page assets change, so the source Documentation page is published with the release that changes it. The source repository stages its current commit for Pages while client repositories remain pinned to their selected immutable tooling tag.
