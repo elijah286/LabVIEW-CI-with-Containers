@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "c22487324fa9357161a17297f2fdb5a6bc38d57e",
+  "sha": "f4602aff4de345ac24c1001d420761c60b003129",
   "revisions": [
+    {
+      "sha": "f4602aff4de345ac24c1001d420761c60b003129",
+      "short": "f4602af",
+      "message": "Release 4.15.5 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-19T19:10:51Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "c22487324fa9357161a17297f2fdb5a6bc38d57e",
       "short": "c224873",
@@ -891,15 +900,6 @@
       "message": "example: repoint UTF at example/Example.lvproj (fix blank Unit Tests report)",
       "author": "Elijah Kerry",
       "date": "2026-07-22T18:26:27Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "53a0a2a8e2a9571f3452cb80de40e3105250250b",
-      "short": "53a0a2a",
-      "message": "VI Analyzer: fix PowerShell array-return bug that still blanked the report (4.8.10)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T17:52:20Z",
       "project": false,
       "dep_only": false
     },
