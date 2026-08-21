@@ -96,6 +96,38 @@ foreach ($gitDir in @('C:\git\cmd', 'C:\Program Files\Git\cmd')) {
     }
 }
 
+# -- 0. Container memory preflight --------------------------------------------
+# This script runs the whole VIPM stack at once: headless LabVIEW (~300 MB) +
+# the VIPM Desktop engine (>1.3 GB peak during its package-list refresh on
+# LabVIEW 2026 Q3) + the vipm CLI. Windows `docker build` containers are
+# memory-capped by default (unlike `docker run`), and under that cap the engine
+# never finishes starting -- it presents as 'Operation "wait for VIPM startup"
+# timed out after 900s' with zero other symptoms, which cost weeks of
+# misdiagnosis when NI's 2026 Q3 release grew past the cap. Name the condition
+# up front and fail fast instead of wedging: the build workflows pass
+# `docker build -m 8GB`, so tripping this means that flag was lost or the host
+# is genuinely too small. VIPM_ALLOW_LOW_MEMORY=1 proceeds anyway.
+try {
+    $memMB = [int]((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1KB)
+    Write-Host ("Container memory visible: {0:N0} MB" -f $memMB)
+    if ($memMB -lt 2560) {
+        $memMsg = ("Only {0:N0} MB of memory is visible to this container, but the VIPM stack " -f $memMB) +
+            "(headless LabVIEW + VIPM Desktop engine + CLI) needs well over 2 GB - the engine will hang at " +
+            "'wait for VIPM startup' long before any package installs. If this is a docker build step, pass " +
+            "'docker build -m 8GB' (Windows build containers are memory-capped by default; docker run containers are not). " +
+            "Set VIPM_ALLOW_LOW_MEMORY=1 to attempt the install anyway."
+        if ($Env:VIPM_ALLOW_MISSING_PACKAGES -eq '1' -or $Env:VIPM_ALLOW_LOW_MEMORY -eq '1') {
+            Write-Warning $memMsg
+        } else {
+            Write-Error $memMsg
+            exit 1
+        }
+    } elseif ($memMB -lt 4096) {
+        Write-Warning (("Only {0:N0} MB of memory is visible to this container; the VIPM stack peaks near that. " -f $memMB) +
+            "If installs time out at 'wait for VIPM startup', raise the docker build memory limit (-m 8GB).")
+    }
+} catch { Write-Host ("Memory preflight skipped: " + $_.Exception.Message) }
+
 # -- 1. Install VIPM if not already present -----------------------------------
 # VIPM is normally pre-installed into the image by labview-ci.Dockerfile, which
 # downloads the official VIPM 2026 Q3 (26.3.3954) Windows installer from the JKI

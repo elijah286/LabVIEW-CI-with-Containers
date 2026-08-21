@@ -249,8 +249,17 @@ If `vipm refresh --force` reports `wait for VIPM startup`, the Desktop engine
 is unresponsive and package installs will hit the same timeout. The script
 restarts the headless LabVIEW/VIPM stack once (`VIPM_MAX_REFRESH_RESTARTS=1` by
 default); if the refresh handshake still fails, it stops before attempting any
-packages. Rerun the worker-image build on a fresh runner rather than increasing
-`VIPM_TIMEOUT` or changing the dependency declaration.
+packages.
+
+The #1 cause is **container memory**: Windows `docker build` containers are
+memory-capped by default (unlike `docker run`), and the VIPM Desktop engine is
+a LabVIEW-runtime app whose package-list refresh alone peaks over 1.3 GB on
+LabVIEW 2026 Q3 — under the cap it never finishes starting, with no other
+symptom. Every August 2026 bake failure after NI repointed
+`labview:latest-windows` to 2026 Q3 was this. The build workflows pass
+`docker build -m 8GB`, and the script's memory preflight fails fast (with this
+diagnosis) when less than ~2.5 GB is visible. Increasing `VIPM_TIMEOUT` or
+changing the dependency declaration does not help.
 
 ### 7. CLI command shape (26.3 Rust/clap CLI)
 
@@ -295,6 +304,7 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 | `VIPM_ASSUME_YES` | `1` | Auto-confirm. |
 | `VIPM_TIMEOUT` | `900` | Override the per-operation timeout (seconds). |
 | `VIPM_MAX_REFRESH_RESTARTS` | `1` | Number of clean LabVIEW/VIPM restarts after a refresh startup-handshake timeout. Set to `0` to fail immediately. |
+| `VIPM_ALLOW_LOW_MEMORY` | _(unset)_ | Set to `1` to attempt the install even when the container shows <~2.5 GB of memory (the preflight otherwise fails fast, since the VIPM engine cannot start under the Windows `docker build` default memory cap). |
 | `VIPM_REQUIRED_PACKAGES` | UTF JUnit essentials | Comma/semicolon list of `name@version` installed FIRST as required (build fails if they fail). Default: `ni_lib_utf_junit_report@1.0.1.43,ni_lib_junit_results_api@1.0.1.6,ni_lib_simple_xml@1.0.0.4`. Set to `-` to disable the required pre-install. |
 | `VIPM_PUBLIC_REPO_URL` | this repo's clone URL | Public Git repo `origin` used to satisfy Community Edition's public-repo requirement. |
 | `VIPM_ALLOW_MISSING_PACKAGES` | _(unset)_ | Set to `1` only for emergency best-effort builds; otherwise a failed REQUIRED package fails the image build. (Best-effort `ci-tooling*.vipc` add-ons never fail the build regardless.) |
@@ -315,7 +325,7 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 | `Cannot determine repository visibility: … git: program not found` (exit 6) | No git binary on `PATH`. VIPM shells out to `git` to verify the repo is public. The Dockerfile bakes portable MinGit into `C:\git`; check the "Downloading portable Git" step succeeded (`GIT_INSTALLER_URL`). |
 | `IO error: Failed to load …Settings.ini … (os error 2)` | VIPM `Settings.ini` missing — the script's seed step didn't run (no LabVIEW found?). |
 | `Operation 'VIPM command 'library_list'' timed out after 330s` | Short build-time timeout and/or an old CLI. Use VIPM 26.3+ and raise `VIPM_TIMEOUT`. |
-| `wait for VIPM startup` during `vipm refresh` | VIPM Desktop failed to start in the container. The hook restarts once, then fails before package installs; rerun the worker-image build on a fresh runner. |
+| `wait for VIPM startup` during `vipm refresh` | VIPM Desktop failed to start in the container — almost always the Windows `docker build` default memory cap (the engine's refresh peaks >1.3 GB on LabVIEW 2026 Q3). Build with `docker build -m 8GB`; the script's memory preflight names this when <~2.5 GB is visible. The hook restarts the stack once, then fails before package installs. |
 | `error: unexpected argument '--refresh' found` (exit 2) | 26.3 removed `--refresh` from `install`. Run the standalone `vipm refresh` first; don't pass `--refresh` to `install`. |
 | `error: unexpected argument '--labview-version' found` (exit 2) | Global options must go **before** the `install` subcommand: `vipm --labview-version 2026 install <pkgs>`. The script also falls back to the bare form (active target from `Settings.ini`). |
 | `Applying VI Package Configuration ...` followed by `No packages were installed` with exit 0 | Treat it as a no-op failure, not success. The script forces fallback to parsed package specs and then local public-index package files. |

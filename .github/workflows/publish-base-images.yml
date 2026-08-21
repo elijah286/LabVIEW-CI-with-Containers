@@ -117,7 +117,9 @@ jobs:
           $immutable = "${baseRepo}:base-${baseHash}"
           $releaseTag = "${baseRepo}:${{ matrix.id }}"
           Write-Host "::notice::Building ${{ matrix.label }} base: ${{ matrix.windowsTag }} + ${{ matrix.vipmInstallerUrl }}"
-          docker build -f .github/docker/labview-ci-base.Dockerfile `
+          # -m 8GB: Windows docker build containers are memory-capped by default;
+          # the VIPM stack needs >1.7 GB on 2026 Q3 (see build-labview-image.yml).
+          docker build -m 8GB -f .github/docker/labview-ci-base.Dockerfile `
             --build-arg LV_CONTAINER_TAG=$niTag `
             --build-arg NIPM_FEED_URL='${{ matrix.nipmFeedUrl }}' `
             --build-arg VIPM_INSTALLER_URL='${{ matrix.vipmInstallerUrl }}' `

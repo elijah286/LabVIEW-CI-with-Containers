@@ -148,7 +148,7 @@ jobs:
 
           if ($rebuild) {
             Write-Host "Building shared LabVIEW+VIPM base image: $baseRef"
-            docker build -f .github/docker/labview-vipm-base.Dockerfile `
+            docker build -m 8GB -f .github/docker/labview-vipm-base.Dockerfile `
               -t $baseRef `
               -t $latestRef .
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -174,7 +174,7 @@ jobs:
           if ('${{ inputs.push_latest }}' -eq 'true') { $tags += "${base}:latest" }
           $tagFlags = ($tags | ForEach-Object { '-t', $_ })
 
-          docker build -f .github/docker/labview-vipc-layer.Dockerfile `
+          docker build -m 8GB -f .github/docker/labview-vipc-layer.Dockerfile `
             --build-arg VIPM_BASE_IMAGE=$vipmBaseRef `
             --build-arg CI_WORKER_VERSION=$workerVersion `
             --build-arg VIPM_PUBLIC_REPO_URL=$repoUrl `

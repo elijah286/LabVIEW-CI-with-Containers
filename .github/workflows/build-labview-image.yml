@@ -539,7 +539,13 @@ jobs:
             $baseHash = (-join ($sha | ForEach-Object { $_.ToString('x2') })).Substring(0, 12)
             $immutableBase = "${baseRepo}:base-${baseHash}"
             $releaseTag = "${baseRepo}:$($rel.id)"
-            docker build -f .github/docker/labview-ci-base.Dockerfile `
+            # -m 8GB: Windows docker build containers are memory-capped by default
+            # (docker run containers are not). The VIPM Desktop engine is a
+            # LabVIEW-runtime app whose package-list refresh alone peaks over
+            # 1.3 GB on 2026 Q3 -- under the default build cap it never finishes
+            # starting, which presented as every bake wedging at 'wait for VIPM
+            # startup' (900s x 4) after NI repointed latest-windows to Q3.
+            docker build -m 8GB -f .github/docker/labview-ci-base.Dockerfile `
               --build-arg LV_CONTAINER_TAG=$niTag `
               --build-arg NIPM_FEED_URL=$($rel.nipmFeedUrl) `
               --build-arg VIPM_INSTALLER_URL=$($rel.vipmInstallerUrl) `
@@ -684,7 +690,11 @@ jobs:
             Write-Host "::notice::$depCount repository dependency file(s) selected ($vipcCount VIPC, $dragonCount Dragon). Building the repo-specific dependency layer now; this can take a long time because VIPM must apply project dependencies before CI can run on the updated worker."
             $tagFlags = ($tags | ForEach-Object { "-t", $_ })
             $repoUrl = '${{ github.server_url }}/${{ github.repository }}.git'
-            docker build -f .github/docker/labview-ci.Dockerfile `
+            # -m 8GB: the VIPC layer runs the whole VIPM stack (headless LabVIEW +
+            # VIPM Desktop + vipm CLI, together >1.7 GB on 2026 Q3) inside a build
+            # container, which Windows memory-caps by default -- see the base
+            # build above for the wedge this caused.
+            docker build -m 8GB -f .github/docker/labview-ci.Dockerfile `
               --build-arg LCWC_BASE_IMAGE=$lcwcBase `
               --build-arg CI_WORKER_VERSION=$wv `
               --build-arg VIPM_PUBLIC_REPO_URL=$repoUrl `
