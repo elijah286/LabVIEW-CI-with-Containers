@@ -924,6 +924,19 @@ mass-compile:
         support, VIPM, and Git already installed. Every client repo gets its worker from that base in one of two ways,
         and which one runs is the key distinction between <em>installation</em> and an <em>upgrade</em>.</p>
 
+      <h3>Container releases &mdash; pinned, qualified, selectable</h3>
+      <p>The tooling supports a set of <strong>NI LabVIEW container releases</strong> (LabVIEW 2026&nbsp;Q1 and newer),
+        declared in the catalog's <code>containers</code> block. Each release is a pinned triple &mdash; NI container
+        tag, NIPM feed, and VIPM installer &mdash; that moves together and is <em>qualified</em> before clients can
+        select it: the source repo builds every release's base and runs a VIPM-startup probe inside it
+        (<code>publish-base-images.yml</code>), and the shared moving tags only advance after a full dependency bake
+        succeeds on the new base. Nothing floats on NI's <code>latest-*</code> tags &mdash; NI repointed
+        <code>latest-windows</code> from 2026&nbsp;Q1 to 2026&nbsp;Q3 on 2026-07-27 without notice, and a floating base
+        pin turned that into a fleet-wide bake outage. The configurator's <em>LabVIEW version</em> dropdown defaults to
+        the newest qualified release; choosing an older release pins the repository to it via the
+        <code>LCWC_BASE_IMAGE</code> / <code>LCWC_LINUX_BASE_IMAGE</code> Actions variables, which every image workflow
+        resolves first.</p>
+
       <h3>Installation vs. upgrade &mdash; how containers are managed</h3>
       <ul>
         <li><strong>Installation always copies the base.</strong> When a repo installs LabVIEW CI, its worker is
@@ -1220,6 +1233,18 @@ docker run --rm `
         <li><strong>Extend timeouts</strong> (<code>VIPM_TIMEOUT=900</code>) — cold first-run headless LabVIEW
           exceeds the CLI's short defaults during a build, where <code>CI</code>/<code>GITHUB_ACTIONS</code> env hints
           are absent.</li>
+        <li><strong>Never run the VIPM engine under a global headless default</strong> — the worker base bakes
+          <code>LV_RTE_HEADLESS=1</code> so g-cli/Antidoc launch LabVIEW headless at CI time, but the VIPM Desktop
+          engine is <em>itself</em> a LabVIEW-runtime app: under that default it runs yet never completes the CLI's
+          startup handshake, and every operation dies at <code>wait for VIPM startup</code>. This silently broke every
+          Windows dependency bake from 2026-08-01 to 2026-08-21 (NI's unannounced <code>latest-windows</code> repoint
+          to 2026&nbsp;Q3 landed the same week and masked it as a version mismatch). The install hook now clears the
+          variable for its own process tree; the baked image ENV is untouched for runtime workflows.</li>
+        <li><strong>Give the build container enough memory</strong> — the VIPM Desktop engine's package-list refresh
+          alone peaks over 1.3&nbsp;GB on LabVIEW 2026&nbsp;Q3, and a memory-capped Windows <code>docker build</code>
+          container starves it into the identical <code>wait for VIPM startup</code> wedge. The image workflows build
+          with <code>docker build -m 8GB</code>, and the install hook's memory preflight fails fast with this diagnosis
+          when less than ~2.5&nbsp;GB is visible (<code>VIPM_ALLOW_LOW_MEMORY=1</code> overrides).</li>
         <li><strong>Fail fast on a dead Desktop engine</strong> — a refresh message containing
           <code>wait for VIPM startup</code> proves package installs will wait on the same unresponsive process. The
           hook restarts headless LabVIEW and VIPM once (<code>VIPM_MAX_REFRESH_RESTARTS=1</code> by default), then

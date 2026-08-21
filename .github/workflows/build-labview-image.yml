@@ -519,26 +519,66 @@ jobs:
           $isSourceRepo = ('${{ github.repository }}'.ToLowerInvariant() -eq $sourceSlug.ToLowerInvariant())
 
           if ($isSourceRepo) {
-            $baseHash = (Get-FileHash -LiteralPath '.github/docker/labview-ci-base.Dockerfile' -Algorithm SHA256).Hash.ToLower().Substring(0, 12)
+            # The NI container release is resolved from the catalog's containers[]
+            # entry for the DEFAULT release, so the (NI tag, NIPM feed, VIPM
+            # installer) triple always moves together as one qualified unit. The
+            # base NEVER floats on latest-windows: NI repointed that tag from
+            # 2026 Q1 to 2026 Q3 on 2026-07-27 without notice, which made NI's
+            # schedule an unreviewed production change and disguised the Aug 2026
+            # bake outage's real cause (a baked LV_RTE_HEADLESS=1 blocking the
+            # VIPM Desktop startup handshake) as a version mismatch.
+            $catalog = Get-Content '.github/labview-ci/catalog.json' -Raw | ConvertFrom-Json
+            $rel = $catalog.containers.supported | Where-Object { $_.id -eq $catalog.containers.default } | Select-Object -First 1
+            if (-not $rel) { throw "catalog.json containers.default '$($catalog.containers.default)' has no matching containers.supported[] entry" }
+            $niTag = ($rel.windowsTag -split ':')[-1]
+            Write-Host "::notice::Building LCWC base from catalog release '$($rel.id)': $($rel.windowsTag) + $($rel.vipmInstallerUrl)"
+
+            # The immutable tag hashes the Dockerfile AND the release triple, so a
+            # container/feed/VIPM pairing change always yields a new immutable tag.
+            $hashInput = (Get-Content -LiteralPath '.github/docker/labview-ci-base.Dockerfile' -Raw) +
+              "`n" + $rel.windowsTag + "`n" + $rel.nipmFeedUrl + "`n" + $rel.vipmInstallerUrl
+            $sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($hashInput))
+            $baseHash = (-join ($sha | ForEach-Object { $_.ToString('x2') })).Substring(0, 12)
             $immutableBase = "${baseRepo}:base-${baseHash}"
-            Write-Host "::notice::Publishing LCWC base image $baseImage ($immutableBase). Fresh client repositories copy this image into their own GHCR package instead of reinstalling the shared LabVIEW tooling layers."
-            docker build -f .github/docker/labview-ci-base.Dockerfile -t $baseImage -t $immutableBase .
+            $releaseTag = "${baseRepo}:$($rel.id)"
+            # -m 8GB: Windows docker build containers can be memory-capped by
+            # default (docker run containers are not), and the VIPM Desktop
+            # engine's package-list refresh alone peaks over 1.3 GB on 2026 Q3 --
+            # a capped build would reproduce the same 'wait for VIPM startup'
+            # wedge that LV_RTE_HEADLESS caused in Aug 2026. Defense-in-depth,
+            # paired with install-vipc.ps1's memory preflight.
+            docker build -m 8GB -f .github/docker/labview-ci-base.Dockerfile `
+              --build-arg LV_CONTAINER_TAG=$niTag `
+              --build-arg NIPM_FEED_URL=$($rel.nipmFeedUrl) `
+              --build-arg VIPM_INSTALLER_URL=$($rel.vipmInstallerUrl) `
+              -t $baseImage -t $immutableBase -t $releaseTag .
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            foreach ($tag in @($baseImage, $immutableBase)) {
-              Write-Host "Pushing LCWC base $tag"
-              docker push $tag
-              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            }
+            # Push ONLY the immutable tag now. The tags clients actually consume
+            # ($baseImage alias and :<releaseId>) are promoted by the
+            # 'Promote LCWC base tags' step AFTER the worker bake below proves this
+            # base can install VIPM packages -- the 2026-08-01 run pushed the alias
+            # before the bake and shipped a broken base to every client from a run
+            # that itself failed.
+            Write-Host "Pushing LCWC base $immutableBase (candidate; client tags promote after the bake succeeds)"
+            docker push $immutableBase
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            "immutable=$immutableBase" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "release_tag=$releaseTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "is_source=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           } else {
             Write-Host "::notice::Using LCWC base image $baseImage. If this repository has no selected VIPC dependencies, the workflow will only copy/tag this image into the repository's own GHCR package."
+            "is_source=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           }
 
           # Resolve the base image's manifest digest WITHOUT pulling the multi-GB
           # image down to the runner -- crane reads it straight from the registry.
           # Only the VIPC-layer path (docker build FROM the base) needs the image
           # locally, and docker build pulls it then; the no-VIPC copy path never
-          # downloads it at all.
-          $digest = (crane digest $baseImage 2>$null)
+          # downloads it at all. On the source path the alias tag is not pushed yet
+          # (it promotes after the bake), so read the digest from the immutable
+          # candidate -- same manifest, same digest.
+          $digestRef = if ($isSourceRepo) { $immutableBase } else { $baseImage }
+          $digest = (crane digest $digestRef 2>$null)
           if (-not $digest) {
             throw "Could not read the LCWC base image '$baseImage' from the registry. Confirm the source GHCR package is public/readable or set the LCWC_BASE_IMAGE repository variable to a readable base image."
           }
@@ -652,7 +692,11 @@ jobs:
             Write-Host "::notice::$depCount repository dependency file(s) selected ($vipcCount VIPC, $dragonCount Dragon). Building the repo-specific dependency layer now; this can take a long time because VIPM must apply project dependencies before CI can run on the updated worker."
             $tagFlags = ($tags | ForEach-Object { "-t", $_ })
             $repoUrl = '${{ github.server_url }}/${{ github.repository }}.git'
-            docker build -f .github/docker/labview-ci.Dockerfile `
+            # -m 8GB: the VIPC layer runs the whole VIPM stack (headless LabVIEW +
+            # VIPM Desktop + vipm CLI, together >1.7 GB on 2026 Q3) inside a build
+            # container, which Windows can memory-cap by default -- see the base
+            # build above; defense-in-depth with the script's memory preflight.
+            docker build -m 8GB -f .github/docker/labview-ci.Dockerfile `
               --build-arg LCWC_BASE_IMAGE=$lcwcBase `
               --build-arg CI_WORKER_VERSION=$wv `
               --build-arg VIPM_PUBLIC_REPO_URL=$repoUrl `
@@ -666,6 +710,22 @@ jobs:
             if ($updateMode -eq 'new') {
               Write-Host "::notice::Published a NEW worker tag '${base}:${newTag}' alongside the current container. Select it per action in Configure Workers; existing actions keep using the current :latest / :${ver} worker until you switch them."
             }
+          }
+
+      # Only now -- after the worker bake above proved this base can actually
+      # install VIPM packages -- move the tags clients consume onto the new base.
+      # This is the qualification gate that keeps a broken base from escaping: on
+      # 2026-08-01 the alias was pushed BEFORE the bake, so a base whose own run
+      # failed (VIPM wedged against the repointed NI latest-windows) still shipped
+      # to every client. A failed bake now leaves clients on the last good base.
+      - name: Promote LCWC base tags (bake-verified)
+        if: steps.base.outputs.is_source == 'true'
+        shell: pwsh
+        run: |
+          foreach ($tag in @('${{ steps.base.outputs.image }}', '${{ steps.base.outputs.release_tag }}')) {
+            Write-Host "Promoting bake-verified LCWC base tag $tag"
+            docker push $tag
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
 
       # Capture what's installed and render the human/machine worker manifest.

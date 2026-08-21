@@ -50,6 +50,18 @@ if (-not $Env:GITHUB_ACTIONS) { $Env:GITHUB_ACTIONS = 'true' }
 $Env:VIPM_DEBUG   = '1'
 $Env:VIPM_TIMEOUT = if ($Env:PROBE_VIPM_TIMEOUT) { $Env:PROBE_VIPM_TIMEOUT } else { '240' }
 
+# Mirror install-vipc.ps1: LCWC base images bake ENV LV_RTE_HEADLESS=1 for
+# runtime workflows (g-cli/Antidoc), but the VIPM Desktop engine is itself a
+# LabVIEW-runtime app that never completes its startup handshake under a global
+# headless default - the failure that broke every Windows dependency bake after
+# 2026-07-22. install-vipc.ps1 clears it for its process tree, so the
+# qualification probe does the same by default; set PROBE_KEEP_LV_RTE_HEADLESS=1
+# to keep the variable and reproduce the wedge deliberately.
+if ($Env:LV_RTE_HEADLESS -and $Env:PROBE_KEEP_LV_RTE_HEADLESS -ne '1') {
+    Write-Host "Clearing LV_RTE_HEADLESS=$($Env:LV_RTE_HEADLESS) for the probe (matches install-vipc.ps1; set PROBE_KEEP_LV_RTE_HEADLESS=1 to keep it)."
+    Remove-Item Env:LV_RTE_HEADLESS -ErrorAction SilentlyContinue
+}
+
 $VipmDir          = 'C:\Program Files\JKI\VI Package Manager'
 $VipmInstallerUrl = if ($Env:PROBE_VIPM_URL) { $Env:PROBE_VIPM_URL } else { 'https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe' }
 

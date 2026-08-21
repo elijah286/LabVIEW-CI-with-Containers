@@ -54,6 +54,19 @@ $PublicRepoUrl    = if ($Env:VIPM_PUBLIC_REPO_URL) { $Env:VIPM_PUBLIC_REPO_URL }
 $Env:VIPM_NONINTERACTIVE    = '1'
 $Env:VIPM_ASSUME_YES        = '1'
 $Env:NO_COLOR               = '1'
+# The worker base bakes ENV LV_RTE_HEADLESS=1 so g-cli/Antidoc run headless in
+# the finished image at CI time. But the VIPM Desktop engine this script launches
+# is ITSELF a LabVIEW-runtime app: with that global headless default it never
+# completes the startup handshake the vipm CLI waits on, and every operation
+# dies with 'wait for VIPM startup timed out' (the failure that broke all
+# Windows dependency bakes after 2026-07-22 baked the variable in). Clear it for
+# this process tree only - the image keeps the baked ENV for runtime workflows,
+# and the headless LabVIEW below is launched with an explicit --headless flag,
+# which does not depend on this variable.
+if ($Env:LV_RTE_HEADLESS) {
+    Write-Host "Clearing LV_RTE_HEADLESS=$($Env:LV_RTE_HEADLESS) for the VIPM install (the VIPM Desktop engine cannot start under a global headless default; the baked image ENV is unaffected)."
+    Remove-Item Env:LV_RTE_HEADLESS -ErrorAction SilentlyContinue
+}
 # Turn on VIPM's verbose debug log so a failing build records WHY an install
 # fails - e.g. why `vipm refresh` reports success yet `vipm install <name>`
 # returns exit 3 "package not found" (an empty resolver index), and why applying
@@ -95,6 +108,38 @@ foreach ($gitDir in @('C:\git\cmd', 'C:\Program Files\Git\cmd')) {
         $Env:Path = "$gitDir;$Env:Path"
     }
 }
+
+# -- 0. Container memory preflight --------------------------------------------
+# This script runs the whole VIPM stack at once: headless LabVIEW (~300 MB) +
+# the VIPM Desktop engine (>1.3 GB peak during its package-list refresh on
+# LabVIEW 2026 Q3) + the vipm CLI. A memory-capped container (Windows `docker
+# build` can default to a low cap; `docker run` does not) starves the engine so
+# it never finishes starting -- presenting as the same silent 'Operation "wait
+# for VIPM startup" timed out after 900s' the Aug 2026 LV_RTE_HEADLESS outage
+# produced, with zero distinguishing symptoms. Name the condition up front and
+# fail fast instead of wedging: the build workflows pass `docker build -m 8GB`,
+# so tripping this means that flag was lost or the host is genuinely too small.
+# VIPM_ALLOW_LOW_MEMORY=1 proceeds anyway.
+try {
+    $memMB = [int]((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1KB)
+    Write-Host ("Container memory visible: {0:N0} MB" -f $memMB)
+    if ($memMB -lt 2560) {
+        $memMsg = ("Only {0:N0} MB of memory is visible to this container, but the VIPM stack " -f $memMB) +
+            "(headless LabVIEW + VIPM Desktop engine + CLI) needs well over 2 GB - the engine will hang at " +
+            "'wait for VIPM startup' long before any package installs. If this is a docker build step, pass " +
+            "'docker build -m 8GB' (Windows build containers are memory-capped by default; docker run containers are not). " +
+            "Set VIPM_ALLOW_LOW_MEMORY=1 to attempt the install anyway."
+        if ($Env:VIPM_ALLOW_MISSING_PACKAGES -eq '1' -or $Env:VIPM_ALLOW_LOW_MEMORY -eq '1') {
+            Write-Warning $memMsg
+        } else {
+            Write-Error $memMsg
+            exit 1
+        }
+    } elseif ($memMB -lt 4096) {
+        Write-Warning (("Only {0:N0} MB of memory is visible to this container; the VIPM stack peaks near that. " -f $memMB) +
+            "If installs time out at 'wait for VIPM startup', raise the docker build memory limit (-m 8GB).")
+    }
+} catch { Write-Host ("Memory preflight skipped: " + $_.Exception.Message) }
 
 # -- 1. Install VIPM if not already present -----------------------------------
 # VIPM is normally pre-installed into the image by labview-ci.Dockerfile, which
