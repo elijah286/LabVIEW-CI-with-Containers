@@ -43,6 +43,10 @@ on:
         description: "After a failed refresh, retry once with Settings.ini forced to 26.1 to isolate version-string matching"
         required: false
         default: "true"
+      lv_rte_headless:
+        description: "Override the container's LV_RTE_HEADLESS env (e.g. '0' to disable a baked-in headless default); empty = leave the image's value"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -82,7 +86,13 @@ jobs:
 
           $repo = "${{ github.workspace }}"
           $name = "vipm-probe-$([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
-          docker run -d --name $name -v "${repo}:C:\repo" `
+          $envFlags = @()
+          $rteOverride = "${{ github.event.inputs.lv_rte_headless }}"
+          if ($rteOverride -ne '') {
+            Write-Host "Overriding LV_RTE_HEADLESS=$rteOverride for this probe."
+            $envFlags += @('-e', "LV_RTE_HEADLESS=$rteOverride")
+          }
+          docker run -d --name $name -v "${repo}:C:\repo" @envFlags `
             -e PROBE_VIPM_URL="$vipmUrl" `
             -e PROBE_VIPM_TIMEOUT="${{ github.event.inputs.vipm_timeout }}" `
             -e PROBE_SETTINGS_VERSION="${{ github.event.inputs.settings_version }}" `
