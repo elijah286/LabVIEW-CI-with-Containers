@@ -89,8 +89,11 @@ jobs:
           $envFlags = @()
           $rteOverride = "${{ github.event.inputs.lv_rte_headless }}"
           if ($rteOverride -ne '') {
+            # An explicit override also sets PROBE_KEEP_LV_RTE_HEADLESS so the
+            # probe script's default clearing (which mirrors install-vipc.ps1)
+            # does not undo the experiment.
             Write-Host "Overriding LV_RTE_HEADLESS=$rteOverride for this probe."
-            $envFlags += @('-e', "LV_RTE_HEADLESS=$rteOverride")
+            $envFlags += @('-e', "LV_RTE_HEADLESS=$rteOverride", '-e', 'PROBE_KEEP_LV_RTE_HEADLESS=1')
           }
           docker run -d --name $name -v "${repo}:C:\repo" @envFlags `
             -e PROBE_VIPM_URL="$vipmUrl" `

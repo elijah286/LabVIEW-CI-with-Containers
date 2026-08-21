@@ -54,6 +54,19 @@ $PublicRepoUrl    = if ($Env:VIPM_PUBLIC_REPO_URL) { $Env:VIPM_PUBLIC_REPO_URL }
 $Env:VIPM_NONINTERACTIVE    = '1'
 $Env:VIPM_ASSUME_YES        = '1'
 $Env:NO_COLOR               = '1'
+# The worker base bakes ENV LV_RTE_HEADLESS=1 so g-cli/Antidoc run headless in
+# the finished image at CI time. But the VIPM Desktop engine this script launches
+# is ITSELF a LabVIEW-runtime app: with that global headless default it never
+# completes the startup handshake the vipm CLI waits on, and every operation
+# dies with 'wait for VIPM startup timed out' (the failure that broke all
+# Windows dependency bakes after 2026-07-22 baked the variable in). Clear it for
+# this process tree only - the image keeps the baked ENV for runtime workflows,
+# and the headless LabVIEW below is launched with an explicit --headless flag,
+# which does not depend on this variable.
+if ($Env:LV_RTE_HEADLESS) {
+    Write-Host "Clearing LV_RTE_HEADLESS=$($Env:LV_RTE_HEADLESS) for the VIPM install (the VIPM Desktop engine cannot start under a global headless default; the baked image ENV is unaffected)."
+    Remove-Item Env:LV_RTE_HEADLESS -ErrorAction SilentlyContinue
+}
 # Turn on VIPM's verbose debug log so a failing build records WHY an install
 # fails - e.g. why `vipm refresh` reports success yet `vipm install <name>`
 # returns exit 3 "package not found" (an empty resolver index), and why applying
