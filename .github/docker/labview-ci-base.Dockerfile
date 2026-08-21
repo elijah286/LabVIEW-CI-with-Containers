@@ -7,7 +7,14 @@
 # have no repo-specific VIPC dependencies, or build only a thin VIPC layer from
 # it when they do.
 # =============================================================================
-FROM nationalinstruments/labview:latest-windows
+# The NI container release is ALWAYS pinned and passed explicitly by
+# build-labview-image.yml from the catalog's containers[] entry (tag, NIPM feed,
+# and VIPM installer move together as one qualified triple). Never float on
+# latest-windows: NI repointed it from 2026 Q1 to 2026 Q3 on 2026-07-27 and the
+# pre-Q3 VIPM pin wedged every Windows dependency bake at 'wait for VIPM
+# startup'. The default here only covers ad-hoc local builds.
+ARG LV_CONTAINER_TAG=2026q1patch2-windows
+FROM nationalinstruments/labview:${LV_CONTAINER_TAG}
 
 SHELL ["powershell", "-NoLogo", "-NoProfile", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 

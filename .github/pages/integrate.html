@@ -231,8 +231,8 @@
         </div>
         <div class="field">
           <label class="fl" for="version">LabVIEW version</label>
-          <select id="version" disabled aria-disabled="true" title="The CI tooling, container images, and baked dependencies are built for LabVIEW 2026."></select>
-          <p class="hint" style="margin-top:6px">Fixed to LabVIEW 2026 &mdash; the container images and tooling are built for it.</p>
+          <select id="version" title="NI LabVIEW container release the CI workers run."></select>
+          <p class="hint" style="margin-top:6px">Defaults to the newest <em>qualified</em> NI container release; pick an older release (back to LabVIEW 2026 Q1, the first with container CI support) to pin this repository to it.</p>
         </div>
         <div class="field">
           <label class="fl">Operating systems</label>
@@ -537,25 +537,63 @@
     }
 
     // ---- rendering -------------------------------------------------------
-    // The version field is LOCKED. The CI container images, baked VIPC, and the
-    // LabVIEW.exe path in every workflow target a single LabVIEW year
-    // (catalog.defaults.labviewVersion = 2026). Offering another year asked the
-    // jobs to pull a container image / use a LabVIEW path that doesn't exist,
-    // which failed every container run -- the bug a colleague hit by picking 2024.
-    // So render only that year, selected and disabled (grayed out).
-    // Code COMPATIBILITY with an older LabVIEW run-time is NOT handled here: it is
-    // owned by the project's own .lvproj "save for previous version" setting, which
-    // the 2026 container honors when it opens the project. So this field stays
-    // permanently locked -- no version/compatibility picker is needed.
+    // The version dropdown selects an NI CONTAINER RELEASE from the catalog's
+    // containers.supported[] list (newest first), defaulting to containers.default
+    // (the newest QUALIFIED release). Releases still qualifying/broken render
+    // disabled with their status so the choice is informed, never a trap. Picking
+    // a non-default release pins the repo to it via the LCWC_BASE_IMAGE /
+    // LCWC_LINUX_BASE_IMAGE Actions variables (set best-effort during install);
+    // the default choice sets nothing, so the repo tracks the qualified default
+    // as it advances. Arbitrary LabVIEW YEARS remain non-selectable -- offering a
+    // year with no container image failed every run (the bug a colleague hit by
+    // picking 2024). Code COMPATIBILITY with an older LabVIEW run-time is owned
+    // by the project's own .lvproj "save for previous version" setting.
+    // Legacy catalogs without a containers block fall back to the locked year.
+    function containerReleases() {
+      return (catalog.containers && Array.isArray(catalog.containers.supported))
+        ? catalog.containers.supported : [];
+    }
+    function selectedRelease() {
+      const rels = containerReleases();
+      if (!rels.length) return null;
+      return rels.find(r => r.id === $("version").value) || rels.find(r => r.id === catalog.containers.default) || rels[0];
+    }
+    // The LabVIEW YEAR the tooling passes to installers/workflows (--labview-version,
+    // manifest labviewVersion). Distinct from the release id ("2026q1").
+    function labviewYear() {
+      const rel = selectedRelease();
+      if (rel && rel.labviewYear) return rel.labviewYear;
+      return $("version").value || (catalog.defaults && catalog.defaults.labviewVersion) || "2026";
+    }
     function renderVersions() {
       const sel = $("version");
-      const locked = (catalog.defaults && catalog.defaults.labviewVersion) || "2026";
       sel.innerHTML = "";
-      const o = document.createElement("option");
-      o.value = locked; o.textContent = locked; o.selected = true;
-      sel.appendChild(o);
-      sel.disabled = true;
-      sel.setAttribute("aria-disabled", "true");
+      const rels = containerReleases();
+      if (!rels.length) {
+        const locked = (catalog.defaults && catalog.defaults.labviewVersion) || "2026";
+        const o = document.createElement("option");
+        o.value = locked; o.textContent = locked; o.selected = true;
+        sel.appendChild(o);
+        sel.disabled = true;
+        sel.setAttribute("aria-disabled", "true");
+        return;
+      }
+      const def = catalog.containers.default;
+      rels.forEach(rel => {
+        const o = document.createElement("option");
+        const qualified = rel.status === "qualified";
+        o.value = rel.id;
+        o.textContent = rel.label
+          + (rel.id === def ? " — default" : "")
+          + (qualified ? "" : " — " + (rel.status === "qualifying" ? "not yet qualified" : rel.status));
+        o.disabled = !qualified;
+        o.selected = rel.id === def;
+        if (rel.notes) o.title = rel.notes;
+        sel.appendChild(o);
+      });
+      sel.disabled = false;
+      sel.removeAttribute("aria-disabled");
+      sel.title = "NI LabVIEW container release the CI workers run. The newest qualified release is the default; picking an older release pins this repository to it.";
     }
 
     function isPlanned(cap) { return cap && cap.status === "planned"; }
@@ -690,7 +728,7 @@
     function commandText() {
       const acts = csv(selected) || "dashboard";
       const oss = csv(osSel) || "windows,linux";
-      const ver = $("version").value;
+      const ver = labviewYear();
       const repo = $("repo").value.trim();
       const s = source();
       const extra = repo.includes("/") ? ` --repo ${repo}` : "";
@@ -704,11 +742,21 @@
     }
 
     function varsHint() {
-      const ver = $("version").value;
+      const ver = labviewYear();
       const repo = $("repo").value.trim() || "<owner>/<repo>";
+      const rel = selectedRelease();
+      const pinned = rel && catalog.containers && rel.id !== catalog.containers.default;
       if (isGitLab()) {
         $("varsStep").innerHTML =
           `Optional GitLab CI/CD variables can override installer defaults later; the initial scaffold records LabVIEW ${ver} in <code class="inl">.github/labview-ci.yml</code>.`;
+      } else if (pinned) {
+        const s = source();
+        const srcGhcr = "ghcr.io/" + s.repo.toLowerCase();
+        $("varsStep").innerHTML =
+          `Pinning this repo to <strong>${esc(rel.label)}</strong>: the browser install sets ` +
+          `<code class="inl">LCWC_BASE_IMAGE=${esc(srcGhcr)}-labview-base:${esc(rel.id)}</code> and ` +
+          `<code class="inl">LCWC_LINUX_BASE_IMAGE=${esc(srcGhcr)}-labview:linux-${esc(rel.id)}</code> as Actions variables ` +
+          `(command-line installs: set them with <code class="inl">gh variable set</code>).`;
       } else {
         $("varsStep").innerHTML =
           `Optionally pin settings as Actions variables: ` +
@@ -802,6 +850,15 @@
       const s = source();
       const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
       const acts = activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
+      // `ver` is the raw version-select value: a container release id ("2026q1")
+      // on containers-aware catalogs, or a bare LabVIEW year on legacy ones.
+      // labviewVersion always records the YEAR (what workflows/installers use);
+      // containerRelease records the NI container release the repo selected.
+      const rel = containerReleases().find(r => r.id === ver) || null;
+      const year = rel ? rel.labviewYear : ver;
+      const cfg = ["config:", `  labviewVersion: "${year}"`];
+      if (rel) cfg.push(`  containerRelease: "${rel.id}"`);
+      cfg.push(`  os: [${osList.join(", ")}]`);
       return [
         "# LabVIEW CI install manifest - generated by the configurator",
         `schemaVersion: ${catalog.schemaVersion || 1}`,
@@ -809,7 +866,7 @@
         `installedAt: ${now}`,
         `provider: ${provider()}`,
         "source:", `  repo: ${s.repo}`, `  ref: ${s.ref}`,
-        "config:", `  labviewVersion: "${ver}"`, `  os: [${osList.join(", ")}]`,
+        ...cfg,
         "activities:", ...acts.map(a => `  - ${a}`), ""
       ].join("\n");
     }
@@ -1849,6 +1906,34 @@
         setup.workflowPerms = "done";
       } catch (e) { setup.workflowPerms = "manual"; if (e.status === 403 || e.status === 404) setup.adminMissing = true; }
 
+      // Container release pin. Choosing a NON-default release in the LabVIEW
+      // version dropdown pins this repo to it by pointing the base-image Actions
+      // variables at the per-release LCWC tags (published by the source repo's
+      // publish-base-images.yml); every image workflow (copy + bake, Windows +
+      // Linux) already resolves these variables first. The default choice sets
+      // nothing so the repo keeps tracking the qualified default as it advances.
+      // Best-effort like the permissions call: a token without the Variables
+      // permission records "manual" and the varsStep hint shows the gh commands.
+      const rel = selectedRelease();
+      if (rel && catalog.containers && rel.id !== catalog.containers.default) {
+        const srcGhcr = "ghcr.io/" + source().repo.toLowerCase();
+        const pins = [
+          ["LCWC_BASE_IMAGE", `${srcGhcr}-labview-base:${rel.id}`],
+          ["LCWC_LINUX_BASE_IMAGE", `${srcGhcr}-labview:linux-${rel.id}`],
+        ];
+        try {
+          for (const [name, value] of pins) {
+            const cr = await gh(`/repos/${repo}/actions/variables`, { method: "POST", body: { name, value } });
+            if (!cr.ok && cr.status !== 201) {
+              if (cr.status === 409) {
+                await ghJson(await gh(`/repos/${repo}/actions/variables/${name}`, { method: "PATCH", body: { name, value } }));
+              } else { await ghJson(cr); }
+            }
+          }
+          setup.containerPin = "done";
+        } catch (e) { setup.containerPin = "manual"; }
+      }
+
       if (!setup.hasDashboard) return;
       try {
         const pg = await gh(`/repos/${repo}/pages`);
@@ -1923,11 +2008,15 @@
 
     function installPrBody(acts, osList, ver, fileCount, removed, kept) {
       const s = source();
+      // `ver` may be a container release id on containers-aware catalogs; show
+      // the human release label in the PR body table when it is.
+      const relRow = containerReleases().find(r => r.id === ver);
+      const verLabel = relRow ? relRow.label : ver;
       const lines = [
         "## LabVIEW CI pipeline", "",
         "Opened by the **LabVIEW CI configurator** to add a containerized CI pipeline to this repository.", "",
         "| | |", "|---|---|",
-        "| LabVIEW version | `" + ver + "` |",
+        "| LabVIEW version | `" + verLabel + "` |",
         "| Platforms | " + (osList.join(", ") || "windows, linux") + " |",
         "| Capabilities | " + (acts.join(", ") || "dashboard") + " |",
         "| Files added | " + fileCount + " |",
@@ -1992,17 +2081,34 @@
     }
 
     async function dispatchWorkflow(repo, workflowFile, branch, inputs) {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const body = inputs ? { ref: branch, inputs: inputs } : { ref: branch };
-          const r = await gh(`/repos/${repo}/actions/workflows/${workflowFile}/dispatches`,
-            { method: "POST", body });
-          if (r.ok || r.status === 204) return true;
-          if (r.status !== 404) return false;
-        } catch (_) { /* transient network -- retry */ }
-        await sleep(3000);
+      // A 404 on dispatch means GitHub has not INDEXED the just-merged workflow
+      // file yet. On normal repos that takes seconds, but on FORKS a
+      // workflow_dispatch-only file can stay unindexed for many minutes (it never
+      // receives a push/PR event that would register it) -- a fork install's
+      // image-copy dispatch failed exactly this way after a 9-second retry
+      // window. So poll the workflow's registration first with a minutes-scale
+      // budget, then dispatch; between dispatch attempts keep re-checking
+      // registration rather than blind-retrying.
+      const registered = async () => {
+        try { return (await gh(`/repos/${repo}/actions/workflows/${workflowFile}`)).ok; }
+        catch (_) { return false; }
+      };
+      const deadline = Date.now() + 4 * 60 * 1000;
+      let delay = 3000;
+      for (;;) {
+        if (await registered()) {
+          try {
+            const body = inputs ? { ref: branch, inputs: inputs } : { ref: branch };
+            const r = await gh(`/repos/${repo}/actions/workflows/${workflowFile}/dispatches`,
+              { method: "POST", body });
+            if (r.ok || r.status === 204) return true;
+            if (r.status !== 404) return false;   // real error (e.g. perms) -- stop retrying
+          } catch (_) { /* transient network -- retry */ }
+        }
+        if (Date.now() >= deadline) return false;
+        await sleep(delay);
+        delay = Math.min(delay * 1.5, 20000);
       }
-      return false;
     }
 
     async function latestWorkflowRun(repo, workflowFile, branch, sinceMs) {
@@ -2941,11 +3047,12 @@
 
     function gitlabMrBody(acts, osList, ver, fileCount) {
       const s = source();
+      const relRow = containerReleases().find(r => r.id === ver);
       return [
         "## LabVIEW CI pipeline", "",
         "Opened by the **LabVIEW CI configurator** to add the GitLab provider scaffold to this repository.", "",
         "| | |", "|---|---|",
-        "| LabVIEW version | `" + ver + "` |",
+        "| LabVIEW version | `" + (relRow ? relRow.label : ver) + "` |",
         "| Platforms | " + (osList.join(", ") || "windows, linux") + " |",
         "| Capabilities | " + (acts.join(", ") || "dashboard") + " |",
         "| Files added | " + fileCount + " |",

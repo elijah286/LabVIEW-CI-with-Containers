@@ -32,6 +32,10 @@ on:
         type: choice
         options: [replace, new]
         default: replace
+      release_id:
+        description: 'Source repo only: build a specific catalog containers.supported[] release and publish ONLY its linux-<releaseId> tag (the moving linux-2026 / linux-latest tags stay on the default release). Empty = default release.'
+        required: false
+        default: ''
 
 env:
   # IMAGE_NAME is populated at runtime by the resolve step below (-> $GITHUB_ENV);
@@ -372,6 +376,31 @@ jobs:
           else
             image_tags=("${base}:${tag}" "${base}:${tag}-${date_tag}" "${base}:${worker_version}" "${base}:linux-latest")
           fi
+
+          # The source repo pins the NI container release from the catalog's
+          # containers[] default entry (never latest-linux: NI repointed the
+          # latest-* tags to 2026 Q3 on 2026-07-27 unannounced -- pinning keeps a
+          # container change a deliberate, qualified catalog edit) and also
+          # publishes a per-release tag (linux-<releaseId>) so clients pinned to
+          # an older container release keep a stable base to copy.
+          lv_container_args=()
+          if [ "${IS_SOURCE}" = "true" ]; then
+            want_rel="${{ github.event.inputs.release_id }}"
+            rel_json=$(WANT_REL="$want_rel" python3 -c "import json, os; c = json.load(open('.github/labview-ci/catalog.json'))['containers']; want = os.environ.get('WANT_REL', '') or c['default']; rel = next(e for e in c['supported'] if e['id'] == want); print(rel['id'] + ' ' + rel['linuxTag'].split(':')[-1] + ' ' + c['default'])")
+            rel_id=$(echo "$rel_json" | cut -d' ' -f1)
+            ni_linux_tag=$(echo "$rel_json" | cut -d' ' -f2)
+            default_rel=$(echo "$rel_json" | cut -d' ' -f3)
+            echo "::notice::Building Linux worker from catalog release '${rel_id}': nationalinstruments/labview:${ni_linux_tag}"
+            lv_container_args=(--build-arg LV_CONTAINER_TAG="${ni_linux_tag}")
+            if [ "$rel_id" != "$default_rel" ]; then
+              # Non-default release: publish ONLY its pinned per-release tag (plus
+              # the immutable worker version) -- the moving tags keep tracking the
+              # default release so nothing switches containers implicitly.
+              image_tags=("${base}:${worker_version}" "${base}:linux-${rel_id}")
+            elif [ "$update_mode" != "new" ]; then
+              image_tags+=("${base}:linux-${rel_id}")
+            fi
+          fi
           tag_flags=()
           for t in "${image_tags[@]}"; do tag_flags+=(-t "$t"); done
 
@@ -380,6 +409,7 @@ jobs:
             --file .github/docker/labview-ci-linux.Dockerfile \
             --build-arg CI_WORKER_VERSION="${worker_version}" \
             --build-arg LABVIEW_VERSION="${{ vars.LABVIEW_VERSION || '2026' }}" \
+            "${lv_container_args[@]}" \
             "${tag_flags[@]}" \
             "${secret_flags[@]}" \
             --load \

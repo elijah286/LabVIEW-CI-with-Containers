@@ -1,0 +1,171 @@
+name: Publish LCWC base images (per container release)
+run-name: "Publish LCWC base images: ${{ github.event.inputs.releases || 'all supported' }}"
+
+# Source-repo-only. Builds the LCWC Windows base image for EVERY container
+# release listed in catalog.json containers.supported[], qualifies each candidate
+# with the VIPM startup probe (probe-vipm-startup.ps1) INSIDE the built image,
+# and only pushes the per-release client tag (labview-base:<releaseId>) when the
+# probe passes. This is what lets a client repo pin an older container release
+# (LCWC_BASE_IMAGE variable -> labview-base:2026q1) while fresh installs track
+# the default -- and what stops an unqualified (NI container, VIPM) pairing from
+# ever reaching a client tag: NI repointed labview:latest-windows from 2026 Q1
+# to 2026 Q3 on 2026-07-27 and the pre-Q3 VIPM pin wedged every Windows
+# dependency bake at 'wait for VIPM startup'.
+#
+# The moving :2026 alias is NOT touched here; build-labview-image.yml promotes
+# it after a full worker bake succeeds against the default release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      releases:
+        description: "Comma-separated containers.supported[] ids to build (empty = all)"
+        required: false
+        default: ""
+      push:
+        description: "Push per-release tags when the probe passes (false = probe-only dry run)"
+        type: boolean
+        default: true
+  schedule:
+    # Monthly refresh (staggered a day after the default-release bake cron) so
+    # non-default releases also pick up NI base image security updates.
+    - cron: '0 4 2 * *'
+
+env:
+  LCWC_BASE_IMAGE: ${{ vars.LCWC_BASE_IMAGE || 'ghcr.io/elijah286/labview-ci-with-containers-labview-base:2026' }}
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-base-images
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      is_source: ${{ steps.plan.outputs.is_source }}
+      base_repo: ${{ steps.plan.outputs.base_repo }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Plan release matrix from catalog
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Source-repo detection mirrors build-labview-image.yml: the repo that
+          # OWNS the shared base image is the source; everyone else is a client
+          # and must never publish shared base tags.
+          base_image="${LCWC_BASE_IMAGE}"
+          base_repo="${base_image%:*}"
+          source_slug="$(echo "${base_repo}" | sed 's|^[^/]*/||; s|-labview-base$||')"
+          if [ "$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" = "$(echo "${source_slug}" | tr '[:upper:]' '[:lower:]')" ]; then
+            is_source=true
+          else
+            is_source=false
+            echo "::notice::This repository is not the tooling source; skipping shared base publishing."
+          fi
+          matrix=$(python3 -c "import json, os; cat = json.load(open('.github/labview-ci/catalog.json'))['containers']; wanted = [w.strip() for w in os.environ.get('WANTED', '').split(',') if w.strip()]; rels = [e for e in cat['supported'] if not wanted or e['id'] in wanted]; print(json.dumps({'include': [{'id': e['id'], 'label': e['label'], 'windowsTag': e['windowsTag'], 'nipmFeedUrl': e['nipmFeedUrl'], 'vipmInstallerUrl': e['vipmInstallerUrl']} for e in rels]}))")
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+          echo "is_source=${is_source}" >> "$GITHUB_OUTPUT"
+          echo "base_repo=${base_repo}" >> "$GITHUB_OUTPUT"
+          echo "Planned matrix: ${matrix}"
+        env:
+          WANTED: ${{ github.event.inputs.releases }}
+
+  build-qualify-publish:
+    needs: plan
+    if: needs.plan.outputs.is_source == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    # windows-2022 (windows-latest = Server 2025, broken Docker daemon), matching
+    # the production bake so qualification results transfer 1:1.
+    runs-on: windows-2022
+    timeout-minutes: 150
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: ./.github/labview/ensure-docker.ps1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build base candidate for ${{ matrix.id }}
+        id: build
+        shell: pwsh
+        run: |
+          $baseRepo = '${{ needs.plan.outputs.base_repo }}'
+          $niTag = ('${{ matrix.windowsTag }}' -split ':')[-1]
+          # Immutable tag hashes the Dockerfile AND the release triple, matching
+          # build-labview-image.yml, so any pairing change yields a new tag.
+          $hashInput = (Get-Content -LiteralPath '.github/docker/labview-ci-base.Dockerfile' -Raw) +
+            "`n" + '${{ matrix.windowsTag }}' + "`n" + '${{ matrix.nipmFeedUrl }}' + "`n" + '${{ matrix.vipmInstallerUrl }}'
+          $sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($hashInput))
+          $baseHash = (-join ($sha | ForEach-Object { $_.ToString('x2') })).Substring(0, 12)
+          $immutable = "${baseRepo}:base-${baseHash}"
+          $releaseTag = "${baseRepo}:${{ matrix.id }}"
+          Write-Host "::notice::Building ${{ matrix.label }} base: ${{ matrix.windowsTag }} + ${{ matrix.vipmInstallerUrl }}"
+          docker build -f .github/docker/labview-ci-base.Dockerfile `
+            --build-arg LV_CONTAINER_TAG=$niTag `
+            --build-arg NIPM_FEED_URL='${{ matrix.nipmFeedUrl }}' `
+            --build-arg VIPM_INSTALLER_URL='${{ matrix.vipmInstallerUrl }}' `
+            -t $immutable -t $releaseTag .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "immutable=$immutable" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "release_tag=$releaseTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Qualify candidate with the VIPM startup probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $repo = "${{ github.workspace }}"
+          $name = "qualify-${{ matrix.id }}"
+          docker run -d --name $name -v "${repo}:C:\repo" `
+            -e PROBE_VIPM_TIMEOUT='300' `
+            -e PROBE_OUT_DIR='C:\repo\_probe-out' `
+            '${{ steps.build.outputs.immutable }}' `
+            powershell -NoProfile -Command "while (`$true) { Start-Sleep -Seconds 3600 }" | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Error 'qualification container start failed'; exit 1 }
+          $probeExit = 1
+          try {
+            docker exec $name powershell -NoProfile -ExecutionPolicy Bypass `
+              -File 'C:\repo\.github\labview\vipm\probe-vipm-startup.ps1'
+            $probeExit = $LASTEXITCODE
+          } finally {
+            docker rm -f $name | Out-Null
+          }
+          if ($probeExit -ne 0) {
+            Write-Host "::error::${{ matrix.label }} FAILED VIPM startup qualification (exit $probeExit); its client tag will not be pushed. Update the release's (container, VIPM) pairing in catalog.json containers.supported[] and re-run."
+            exit $probeExit
+          }
+          Write-Host "::notice::${{ matrix.label }} passed VIPM startup qualification."
+
+      - name: Push qualified per-release tags
+        if: github.event.inputs.push != 'false'
+        shell: pwsh
+        run: |
+          foreach ($tag in @('${{ steps.build.outputs.immutable }}', '${{ steps.build.outputs.release_tag }}')) {
+            Write-Host "Pushing qualified LCWC base tag $tag"
+            docker push $tag
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Upload probe logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: qualify-logs-${{ matrix.id }}
+          path: _probe-out/
+          if-no-files-found: ignore

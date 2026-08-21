@@ -4364,6 +4364,14 @@
     "2025",
     "2026"
   ],
+  "containers": {
+    "comment": "NI LabVIEW container releases the tooling supports. `default` names the release fresh installs track (the newest QUALIFIED release); the configurator's LabVIEW version dropdown lists every entry here, newest first, and pins a repo to an older release by setting the LCWC_BASE_IMAGE / LCWC_LINUX_BASE_IMAGE Actions variables. Each entry is the single source of truth for the (NI container tag, NIPM feed, VIPM installer) triple - these MUST move together: NI repointed labview:latest-windows from 2026 Q1 to 2026 Q3 on 2026-07-27 while the VIPM pin stayed on a pre-Q3 build, which wedged every Windows dependency bake at 'wait for VIPM startup' (see container-compat-probe.yml). `status` is the qualification state: only `qualified` releases are offered by the configurator and eligible to be `default`; `qualifying` releases are being probed; `broken` records a known-bad pair so nothing regresses into it. Never use a floating NI tag (latest-windows / latest-linux) anywhere in the tooling.",
+    "default": "2026q1",
+    "supported": [
+      {"id": "2026q3", "label": "LabVIEW 2026 Q3", "labviewYear": "2026", "labviewTarget": "26.3", "windowsTag": "nationalinstruments/labview:2026q3-windows", "linuxTag": "nationalinstruments/labview:2026q3-linux", "nipmFeedUrl": "https://download.ni.com/support/nipkg/products/ni-l/ni-labview-2026/26.3/released", "vipmInstallerUrl": "https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe", "status": "qualifying", "notes": "VIPM 2026.3.0 build 3954 wedges at the Desktop startup handshake against LabVIEW 26.3 in the Windows container (every bake since 2026-08-01). Windows qualification pending a working VIPM pairing; Linux works."},
+      {"id": "2026q1", "label": "LabVIEW 2026 Q1", "labviewYear": "2026", "labviewTarget": "26.1", "windowsTag": "nationalinstruments/labview:2026q1patch2-windows", "linuxTag": "nationalinstruments/labview:2026q1patch2-linux", "nipmFeedUrl": "https://download.ni.com/support/nipkg/products/ni-l/ni-labview-2026/26.1/released", "vipmInstallerUrl": "https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe", "status": "qualified", "notes": "The pairing every successful bake through 2026-07-21 used. Earliest release with the container features this tooling needs."}
+    ]
+  },
   "substitutions": {
     "comment": "The installer and the configurator's bundle generator replace these source-repo identifiers with the target repo's values in every copied TEXT file (workflows, scripts, pages). Order matters: most specific first. Functional wiring (image, Pages URL, LabVIEW version) is NOT listed here because it already derives at runtime from the GitHub context / Actions variables; only cosmetic branding is rewritten.",
     "ordered": [
