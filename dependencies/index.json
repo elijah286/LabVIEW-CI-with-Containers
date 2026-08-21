@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "f4602aff4de345ac24c1001d420761c60b003129",
+  "sha": "5a8ef633e271eb5b7d310022494931471d5f75d9",
   "revisions": [
+    {
+      "sha": "5a8ef633e271eb5b7d310022494931471d5f75d9",
+      "short": "5a8ef63",
+      "message": "Add container compatibility probe for VIPM startup qualification [skip release]",
+      "author": "Elijah Kerry",
+      "date": "2026-08-21T16:43:11Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "f4602aff4de345ac24c1001d420761c60b003129",
       "short": "f4602af",
@@ -891,15 +900,6 @@
       "message": "Unit Tests: make UTF project discovery robust to any repo layout (4.8.11)",
       "author": "Elijah Kerry",
       "date": "2026-07-22T18:35:50Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "89b068029ed6384d04c2ae85a3766cc78b8b9f1a",
-      "short": "89b0680",
-      "message": "example: repoint UTF at example/Example.lvproj (fix blank Unit Tests report)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-22T18:26:27Z",
       "project": false,
       "dep_only": false
     },
