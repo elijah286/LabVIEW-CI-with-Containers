@@ -1,0 +1,113 @@
+name: Container compatibility probe (diagnostic)
+run-name: "Container compat probe: ${{ github.event.inputs.base_image }} + VIPM ${{ github.event.inputs.vipm_build }}"
+
+# Diagnostic AND qualification harness (workflow_dispatch). Answers: does the
+# VIPM CLI complete its Desktop startup handshake + package-source refresh
+# against a candidate NI LabVIEW Windows container? Runs the same startup
+# sequence as install-vipc.ps1 with a SHORT timeout and captures the
+# diagnostics (JKI logs, process/port state, event log) that the production
+# bake's 900s wedges never surface.
+#
+# Context: NI repointed labview:latest-windows from 2026 Q1 (LabVIEW 26.1) to
+# 2026 Q3 (LabVIEW 26.3) on 2026-07-27; since then every Windows dependency
+# bake wedges at 'wait for VIPM startup' with the pinned VIPM 2026.3.0 build
+# 3954. A candidate (container tag, VIPM build) pair must PASS this probe
+# before it is promoted into the tooling catalog / base image pins.
+#
+# Touches nothing in production: pulls a public image, probes it, uploads logs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_image:
+        description: "NI LabVIEW Windows container image to probe"
+        required: false
+        default: "nationalinstruments/labview:2026q3-windows"
+      vipm_build:
+        description: "VIPM Windows installer build (forms the libsyn URL), e.g. 26.3.3954"
+        required: false
+        default: "26.3.3954"
+      vipm_url:
+        description: "Full VIPM installer URL (overrides vipm_build when set)"
+        required: false
+        default: ""
+      vipm_timeout:
+        description: "Seconds per vipm operation (short = fail fast)"
+        required: false
+        default: "240"
+      settings_version:
+        description: "Override seeded Settings.ini LabVIEW version string (e.g. '26.1 (64-bit)'); empty = honest ProductVersion"
+        required: false
+        default: ""
+      variations:
+        description: "After a failed refresh, retry once with Settings.ini forced to 26.1 to isolate version-string matching"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    # windows-2022 (windows-latest = Server 2025, broken Docker daemon), same
+    # as the production bake, so probe results transfer 1:1.
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: |
+          $svc = Get-Service docker -ErrorAction SilentlyContinue
+          if (-not $svc) { Write-Error 'Docker service not found on runner'; exit 1 }
+          if ($svc.Status -ne 'Running') { Start-Service docker; Start-Sleep -Seconds 5 }
+          docker version
+
+      - name: Probe VIPM startup in the candidate container
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $image = "${{ github.event.inputs.base_image }}"
+          $vipmUrl = "${{ github.event.inputs.vipm_url }}"
+          if (-not $vipmUrl) {
+            $vipmUrl = "https://traffic.libsyn.com/secure/jkinc/vipm-${{ github.event.inputs.vipm_build }}-windows-setup.exe"
+          }
+          Write-Host "Probing image: $image"
+          Write-Host "VIPM installer: $vipmUrl"
+          Write-Host "Pulling $image ..."
+          docker pull $image | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Error "docker pull failed"; exit 1 }
+
+          $repo = "${{ github.workspace }}"
+          $name = "vipm-probe-$([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
+          docker run -d --name $name -v "${repo}:C:\repo" `
+            -e PROBE_VIPM_URL="$vipmUrl" `
+            -e PROBE_VIPM_TIMEOUT="${{ github.event.inputs.vipm_timeout }}" `
+            -e PROBE_SETTINGS_VERSION="${{ github.event.inputs.settings_version }}" `
+            -e PROBE_VARIATIONS="${{ github.event.inputs.variations == 'true' && '1' || '0' }}" `
+            -e PROBE_OUT_DIR='C:\repo\_probe-out' `
+            $image `
+            powershell -NoProfile -Command "while (`$true) { Start-Sleep -Seconds 3600 }" | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Error "container start failed"; exit 1 }
+
+          $probeExit = 1
+          try {
+            docker exec $name powershell -NoProfile -ExecutionPolicy Bypass `
+              -File 'C:\repo\.github\labview\vipm\probe-vipm-startup.ps1'
+            $probeExit = $LASTEXITCODE
+            Write-Host "probe exit code: $probeExit"
+          }
+          finally {
+            docker rm -f $name | Out-Null
+          }
+          exit $probeExit
+
+      - name: Upload captured logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: probe-logs
+          path: _probe-out/
+          if-no-files-found: ignore
