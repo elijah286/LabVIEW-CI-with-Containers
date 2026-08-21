@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "4.15.5",
-  "stableVersion": "4.15.1",
+  "version": "4.16.1",
+  "stableVersion": "4.16.0",
   "betaVersion": "4.11.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
@@ -13,9 +13,32 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet. `betaVersion` is the same pointer for the beta (release-candidate) channel, with entries flagged \"beta\": true. The install/upgrade channel picker is cumulative: release only (stable), release+beta (beta), or release+beta+dev (every published build).",
     "releases": [
-      {"version": "4.15.5", "date": "2026-08-19", "notes": "Dashboard page deployments now run when bundled page assets change, so the source Documentation page is published with the release that changes it. The source repository stages its current commit for Pages while client repositories remain pinned to their selected immutable tooling tag."},
-      {"version": "4.15.4", "date": "2026-08-19", "notes": "The one-click tooling update now re-asserts Git's non-interactive push credentials from its validated token, preventing missing checkout credentials from stopping an otherwise valid update. Windows worker dependency bakes now treat a VIPM Desktop startup timeout during refresh as a health-check failure: they restart once, then stop before repeated 15-minute package-install waits if the engine remains unavailable."},
-      {"version": "4.15.3", "date": "2026-08-18", "notes": "VI Analyzer Custom Config Debug"},
+      {
+        "version": "4.16.1",
+        "date": "2026-08-21",
+        "notes": "Marked v4.16.0 as the stable release. Default installs and upgrades target it; beta and dev builds stay available behind the channel picker."
+      },
+      {
+        "version": "4.16.0",
+        "date": "2026-08-21",
+        "notes": "Fixed the failure that broke every Windows worker dependency build since August 1: the base image bakes `LV_RTE_HEADLESS=1` so documentation tools run headless, but the VIPM Desktop engine is itself a LabVIEW-built app and never finished starting under that global headless default — every build died at `wait for VIPM startup timed out after 900s`. The dependency install now clears the variable for its own process tree (runtime tools keep the baked value), and builds also pass an 8 GB memory limit with a fail-fast preflight, since a memory-starved build container produces the identical symptom. The LabVIEW version picker in the configurator now works: it lists the supported NI container releases (LabVIEW 2026 Q1 and 2026 Q3), defaults to the newest release that has passed qualification, and pins a repository to an older release when you pick one. Container releases are pinned (container tag, NI package feed, VIPM installer move together) and qualified by an automated VIPM-startup probe plus a full dependency build before clients can select them — the shared base image tags only advance after a successful build, so a broken base can no longer reach client repositories from a failing run. LabVIEW 2026 Q3 is qualified and is the new default; rebuild your worker image from Configure Pipeline (or merge the update and click Build worker image) to get it.",
+        "stable": true
+      },
+      {
+        "version": "4.15.5",
+        "date": "2026-08-19",
+        "notes": "Dashboard page deployments now run when bundled page assets change, so the source Documentation page is published with the release that changes it. The source repository stages its current commit for Pages while client repositories remain pinned to their selected immutable tooling tag."
+      },
+      {
+        "version": "4.15.4",
+        "date": "2026-08-19",
+        "notes": "The one-click tooling update now re-asserts Git's non-interactive push credentials from its validated token, preventing missing checkout credentials from stopping an otherwise valid update. Windows worker dependency bakes now treat a VIPM Desktop startup timeout during refresh as a health-check failure: they restart once, then stop before repeated 15-minute package-install waits if the engine remains unavailable."
+      },
+      {
+        "version": "4.15.3",
+        "date": "2026-08-18",
+        "notes": "VI Analyzer Custom Config Debug"
+      },
       {
         "version": "4.15.2",
         "date": "2026-08-18",
@@ -4368,8 +4391,30 @@
     "comment": "NI LabVIEW container releases the tooling supports. `default` names the release fresh installs track (the newest QUALIFIED release); the configurator's LabVIEW version dropdown lists every entry here, newest first, and pins a repo to an older release by setting the LCWC_BASE_IMAGE / LCWC_LINUX_BASE_IMAGE Actions variables. Each entry is the single source of truth for the (NI container tag, NIPM feed, VIPM installer) triple - these move together and each release is qualified by the VIPM startup probe plus a full bake before clients can select it (see container-compat-probe.yml / publish-base-images.yml). Never use a floating NI tag (latest-windows / latest-linux) anywhere in the tooling: NI repointed latest-windows from 2026 Q1 to 2026 Q3 on 2026-07-27 without notice, so a floating pin turns NI's schedule into an unreviewed production change - it also spent three weeks disguising the Aug 2026 bake outage's real cause (a baked LV_RTE_HEADLESS=1 blocking the VIPM Desktop startup handshake) as a version mismatch. `status`: only `qualified` releases are offered by the configurator and eligible to be `default`; `qualifying` releases are being probed; `broken` records a known-bad pairing so nothing regresses into it.",
     "default": "2026q3",
     "supported": [
-      {"id": "2026q3", "label": "LabVIEW 2026 Q3", "labviewYear": "2026", "labviewTarget": "26.3", "windowsTag": "nationalinstruments/labview:2026q3-windows", "linuxTag": "nationalinstruments/labview:2026q3-linux", "nipmFeedUrl": "https://download.ni.com/support/nipkg/products/ni-l/ni-labview-2026/26.3/released", "vipmInstallerUrl": "https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe", "status": "qualified", "notes": "Qualified 2026-08-21: VIPM startup probe passed on the stock NI image and the full dependency bake (34 packages incl. UTF essentials and the Antidoc suite) succeeded end-to-end (run 32510104950). The Aug 2026 bake wedge was a baked LV_RTE_HEADLESS=1, not this pairing."},
-      {"id": "2026q1", "label": "LabVIEW 2026 Q1", "labviewYear": "2026", "labviewTarget": "26.1", "windowsTag": "nationalinstruments/labview:2026q1patch2-windows", "linuxTag": "nationalinstruments/labview:2026q1patch2-linux", "nipmFeedUrl": "https://download.ni.com/support/nipkg/products/ni-l/ni-labview-2026/26.1/released", "vipmInstallerUrl": "https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe", "status": "qualified", "notes": "The pairing every successful bake through 2026-07-21 used. Earliest release with the container features this tooling needs."}
+      {
+        "id": "2026q3",
+        "label": "LabVIEW 2026 Q3",
+        "labviewYear": "2026",
+        "labviewTarget": "26.3",
+        "windowsTag": "nationalinstruments/labview:2026q3-windows",
+        "linuxTag": "nationalinstruments/labview:2026q3-linux",
+        "nipmFeedUrl": "https://download.ni.com/support/nipkg/products/ni-l/ni-labview-2026/26.3/released",
+        "vipmInstallerUrl": "https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe",
+        "status": "qualified",
+        "notes": "Qualified 2026-08-21: VIPM startup probe passed on the stock NI image and the full dependency bake (34 packages incl. UTF essentials and the Antidoc suite) succeeded end-to-end (run 32510104950). The Aug 2026 bake wedge was a baked LV_RTE_HEADLESS=1, not this pairing."
+      },
+      {
+        "id": "2026q1",
+        "label": "LabVIEW 2026 Q1",
+        "labviewYear": "2026",
+        "labviewTarget": "26.1",
+        "windowsTag": "nationalinstruments/labview:2026q1patch2-windows",
+        "linuxTag": "nationalinstruments/labview:2026q1patch2-linux",
+        "nipmFeedUrl": "https://download.ni.com/support/nipkg/products/ni-l/ni-labview-2026/26.1/released",
+        "vipmInstallerUrl": "https://traffic.libsyn.com/secure/jkinc/vipm-26.3.3954-windows-setup.exe",
+        "status": "qualified",
+        "notes": "The pairing every successful bake through 2026-07-21 used. Earliest release with the container features this tooling needs."
+      }
     ]
   },
   "substitutions": {
