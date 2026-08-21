@@ -251,15 +251,22 @@ restarts the headless LabVIEW/VIPM stack once (`VIPM_MAX_REFRESH_RESTARTS=1` by
 default); if the refresh handshake still fails, it stops before attempting any
 packages.
 
-The #1 cause is **container memory**: Windows `docker build` containers are
-memory-capped by default (unlike `docker run`), and the VIPM Desktop engine is
-a LabVIEW-runtime app whose package-list refresh alone peaks over 1.3 GB on
-LabVIEW 2026 Q3 — under the cap it never finishes starting, with no other
-symptom. Every August 2026 bake failure after NI repointed
-`labview:latest-windows` to 2026 Q3 was this. The build workflows pass
-`docker build -m 8GB`, and the script's memory preflight fails fast (with this
-diagnosis) when less than ~2.5 GB is visible. Increasing `VIPM_TIMEOUT` or
-changing the dependency declaration does not help.
+Two known causes, one symptom — increasing `VIPM_TIMEOUT` or changing the
+dependency declaration helps with neither:
+
+1. **A global headless default.** The VIPM Desktop engine is a LabVIEW-runtime
+   app: with `LV_RTE_HEADLESS=1` in its environment it runs but never completes
+   the CLI's startup handshake. The worker base bakes that variable for
+   g-cli/Antidoc, and it silently broke **every** Windows dependency bake from
+   2026-08-01 to 2026-08-21 (probe-proven: the same base passes the moment the
+   variable is cleared). The script now clears it for its own process tree;
+   see the preflight/launch sections.
+2. **Container memory.** The engine's package-list refresh alone peaks over
+   1.3 GB on LabVIEW 2026 Q3; a memory-capped build container (Windows `docker
+   build` can default to a low cap, unlike `docker run`) starves it into the
+   identical wedge. The build workflows pass `docker build -m 8GB`, and the
+   script's memory preflight fails fast with this diagnosis when less than
+   ~2.5 GB is visible.
 
 ### 7. CLI command shape (26.3 Rust/clap CLI)
 
@@ -325,7 +332,7 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 | `Cannot determine repository visibility: … git: program not found` (exit 6) | No git binary on `PATH`. VIPM shells out to `git` to verify the repo is public. The Dockerfile bakes portable MinGit into `C:\git`; check the "Downloading portable Git" step succeeded (`GIT_INSTALLER_URL`). |
 | `IO error: Failed to load …Settings.ini … (os error 2)` | VIPM `Settings.ini` missing — the script's seed step didn't run (no LabVIEW found?). |
 | `Operation 'VIPM command 'library_list'' timed out after 330s` | Short build-time timeout and/or an old CLI. Use VIPM 26.3+ and raise `VIPM_TIMEOUT`. |
-| `wait for VIPM startup` during `vipm refresh` | VIPM Desktop failed to start in the container — almost always the Windows `docker build` default memory cap (the engine's refresh peaks >1.3 GB on LabVIEW 2026 Q3). Build with `docker build -m 8GB`; the script's memory preflight names this when <~2.5 GB is visible. The hook restarts the stack once, then fails before package installs. |
+| `wait for VIPM startup` during `vipm refresh` | The VIPM Desktop engine started but never completed the CLI handshake. Cause 1: `LV_RTE_HEADLESS=1` in its environment (a LabVIEW-runtime app cannot finish starting under the global headless default; the script clears it for its process tree — broke every bake Aug 2026). Cause 2: a memory-capped build container (refresh peaks >1.3 GB on LabVIEW 2026 Q3) — build with `docker build -m 8GB`; the preflight names this when <~2.5 GB is visible. The hook restarts the stack once, then fails before package installs. |
 | `error: unexpected argument '--refresh' found` (exit 2) | 26.3 removed `--refresh` from `install`. Run the standalone `vipm refresh` first; don't pass `--refresh` to `install`. |
 | `error: unexpected argument '--labview-version' found` (exit 2) | Global options must go **before** the `install` subcommand: `vipm --labview-version 2026 install <pkgs>`. The script also falls back to the bare form (active target from `Settings.ini`). |
 | `Applying VI Package Configuration ...` followed by `No packages were installed` with exit 0 | Treat it as a no-op failure, not success. The script forces fallback to parsed package specs and then local public-index package files. |

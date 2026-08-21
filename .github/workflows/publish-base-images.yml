@@ -7,10 +7,13 @@ run-name: "Publish LCWC base images: ${{ github.event.inputs.releases || 'all su
 # and only pushes the per-release client tag (labview-base:<releaseId>) when the
 # probe passes. This is what lets a client repo pin an older container release
 # (LCWC_BASE_IMAGE variable -> labview-base:2026q1) while fresh installs track
-# the default -- and what stops an unqualified (NI container, VIPM) pairing from
-# ever reaching a client tag: NI repointed labview:latest-windows from 2026 Q1
-# to 2026 Q3 on 2026-07-27 and the pre-Q3 VIPM pin wedged every Windows
-# dependency bake at 'wait for VIPM startup'.
+# the default -- and what stops an unqualified base from ever reaching a client
+# tag. The Aug 2026 outage this guards against: a base rebuild silently picked
+# up both NI's unannounced latest-windows repoint (2026 Q1 -> Q3) and a freshly
+# baked LV_RTE_HEADLESS=1, whose global headless default blocked the VIPM
+# Desktop startup handshake in every downstream dependency bake -- and the
+# broken base shipped to clients anyway because tags were pushed before any
+# health check ran.
 #
 # The moving :2026 alias is NOT touched here; build-labview-image.yml promotes
 # it after a full worker bake succeeds against the default release.

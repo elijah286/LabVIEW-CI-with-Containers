@@ -112,14 +112,14 @@ foreach ($gitDir in @('C:\git\cmd', 'C:\Program Files\Git\cmd')) {
 # -- 0. Container memory preflight --------------------------------------------
 # This script runs the whole VIPM stack at once: headless LabVIEW (~300 MB) +
 # the VIPM Desktop engine (>1.3 GB peak during its package-list refresh on
-# LabVIEW 2026 Q3) + the vipm CLI. Windows `docker build` containers are
-# memory-capped by default (unlike `docker run`), and under that cap the engine
-# never finishes starting -- it presents as 'Operation "wait for VIPM startup"
-# timed out after 900s' with zero other symptoms, which cost weeks of
-# misdiagnosis when NI's 2026 Q3 release grew past the cap. Name the condition
-# up front and fail fast instead of wedging: the build workflows pass
-# `docker build -m 8GB`, so tripping this means that flag was lost or the host
-# is genuinely too small. VIPM_ALLOW_LOW_MEMORY=1 proceeds anyway.
+# LabVIEW 2026 Q3) + the vipm CLI. A memory-capped container (Windows `docker
+# build` can default to a low cap; `docker run` does not) starves the engine so
+# it never finishes starting -- presenting as the same silent 'Operation "wait
+# for VIPM startup" timed out after 900s' the Aug 2026 LV_RTE_HEADLESS outage
+# produced, with zero distinguishing symptoms. Name the condition up front and
+# fail fast instead of wedging: the build workflows pass `docker build -m 8GB`,
+# so tripping this means that flag was lost or the host is genuinely too small.
+# VIPM_ALLOW_LOW_MEMORY=1 proceeds anyway.
 try {
     $memMB = [int]((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1KB)
     Write-Host ("Container memory visible: {0:N0} MB" -f $memMB)
