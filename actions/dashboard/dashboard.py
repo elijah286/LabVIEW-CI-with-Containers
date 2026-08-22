@@ -677,21 +677,27 @@ for _cap, _d in RUN_TARGETS.items():
     for _p in (_d.get('platforms') or {}).values():
         if _p.get('wf'):
             _WF_TO_CAP[_p['wf']] = _cap
+        # Warm-container batch backfills belong to the same capability column —
+        # without this mapping a queued/running/dead batch run is invisible here.
+        if _p.get('batch') and _p['batch'].get('wf'):
+            _WF_TO_CAP[_p['batch']['wf']] = _cap
 _CAP_RUN_LABEL = {'masscompile': 'compile', 'vi-analyzer': 'analyze', 'vidiff': 'diff',
                   'snapshots': 'snapshots', 'snapshots2': '2.0 snapshots',
                   'unit-tests': 'tests', 'antidoc': 'docs'}
 _WAITING_RUN_STATUSES = {'queued', 'requested', 'waiting', 'pending'}
 
-def _target_sha_for_run(run, cap):
+def _target_shas_for_run(run, cap):
+    # Which revision row(s) a run belongs to. A snapshots-gallery dispatch covers
+    # every row ('*'). Any other workflow_dispatch run is matched by the full
+    # 40-hex SHA(s) embedded in its run-name — a warm-container backfill lists
+    # several, so it maps onto every revision it walks. Push/PR runs key off
+    # head_sha. An unattributable run maps to no row (empty list).
     if cap == 'snapshots' and run.get('event') == 'workflow_dispatch':
-        return '*'
+        return ['*']
     if run.get('event') == 'workflow_dispatch':
         text = ' '.join(str(run.get(k) or '') for k in ('display_title', 'name'))
-        m = re.search(r'\b[0-9a-f]{40}\b', text, re.I)
-        if m:
-            return m.group(0).lower()
-        return ''
-    return run.get('head_sha') or ''
+        return [s.lower() for s in re.findall(r'\b[0-9a-f]{40}\b', text, re.I)]
+    return [run['head_sha']] if run.get('head_sha') else []
 
 def fetch_active_runs():
     by_sha = {}
@@ -700,13 +706,46 @@ def fetch_active_runs():
         for run in ((data or {}).get('workflow_runs') or []):
             wf = (run.get('path') or '').rsplit('/', 1)[-1]
             cap = _WF_TO_CAP.get(wf)
-            sha_ = _target_sha_for_run(run, cap) if cap else ''
-            if not cap or not sha_:
+            if not cap:
                 continue
-            by_sha.setdefault(sha_, {}).setdefault(cap, run)
+            for sha_ in _target_shas_for_run(run, cap):
+                by_sha.setdefault(sha_, {}).setdefault(cap, run)
     return by_sha
 
 active_runs = fetch_active_runs()
+
+# ── Recently-dead runs: failed WITHOUT ever posting a commit status ──────────
+# A dispatch that dies before its first status step (startup failure, an Actions
+# spending-limit / billing refusal, cancelled while still queued) used to leave
+# NO trace: no active run, no status, so its cell silently reverted to an idle
+# run arrow — to anyone watching, the queued work just evaporated. Key the
+# FAILED ones by row + capability so run_cell can show a red badge instead.
+# Only the newest completed run per (sha, cap) counts — a later success (which
+# posts statuses and renders through the normal result path) supersedes an
+# older failure — and only within a 24h window, so a stale incident ages back
+# to a clean idle cell instead of haunting the row forever.
+_FAILED_CONCLUSIONS = {'failure', 'startup_failure', 'timed_out', 'cancelled'}
+
+def fetch_failed_runs():
+    cutoff = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - 24 * 3600))
+    by_sha = {}
+    seen = set()
+    data = gh_get('actions/runs?status=completed&per_page=100')
+    for run in ((data or {}).get('workflow_runs') or []):   # newest first
+        wf = (run.get('path') or '').rsplit('/', 1)[-1]
+        cap = _WF_TO_CAP.get(wf)
+        if not cap:
+            continue
+        for sha_ in _target_shas_for_run(run, cap):
+            if (sha_, cap) in seen:
+                continue
+            seen.add((sha_, cap))
+            if (run.get('conclusion') in _FAILED_CONCLUSIONS
+                    and (run.get('created_at') or '') >= cutoff):
+                by_sha.setdefault(sha_, {})[cap] = run
+    return by_sha
+
+failed_runs = fetch_failed_runs()
 
 # Small "image" glyph (GitHub octicon) shown beside a commit message when that
 # revision has rendered VI snapshots, so snapshot coverage is discoverable from
@@ -955,6 +994,12 @@ for c in commits_data:
             if ar.get('status') in _WAITING_RUN_STATUSES:
                 return queued_cell(ar.get('html_url', ''), cap=cap)
             return running_cell(_CAP_RUN_LABEL.get(cap, cap), ar.get('html_url', ''), cap=cap)
+        # No live run and no status: before falling back to an idle arrow, check
+        # whether a recent run for this cell DIED without reporting (see
+        # fetch_failed_runs) — that must stay visible, not silently reset.
+        fr = failed_runs.get(sha, {}).get(cap) or failed_runs.get('*', {}).get(cap)
+        if fr is not None:
+            return failed_cell(fr, cap=cap)
         run_count['n'] += 1
         return ('<td style="text-align:center">'
                 f'<a href="#" class="cidash-run" data-cap="{cap}" data-sha="{sha}" '
@@ -1013,6 +1058,31 @@ for c in commits_data:
                  if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
         return (f'<td style="text-align:center"{_active_attrs(cap)}>'
                 '<span class="run-badge" title="Queued on GitHub Actions - waiting for a runner">'
+                f'{body}</span></td>')
+
+    def failed_cell(run, cap=None):
+        # A run for this cell that completed WITHOUT ever posting a commit status
+        # (startup failure, spending-limit refusal, cancelled while queued). An
+        # idle run arrow here would erase all evidence the run existed — the
+        # "queued pills silently disappear" failure mode — so render a sticky red
+        # badge linking to the dead run (same look as the browser-local overlay's
+        # confirmed-failure bang, and the row-status filter already counts
+        # .run-badge.cidash-failed as a failed row). Tagged as a cap-cell with
+        # data-done="false" so the Populate-history dialog still counts the cell
+        # as MISSING (Fill re-queues it) and the optimistic overlay can paint
+        # over it — and restore it — on a re-run.
+        url   = run.get('html_url', '')
+        concl = run.get('conclusion') or 'failure'
+        inner = '<span class="cidash-bang" aria-hidden="true">!</span>Failed'
+        body  = (f'<a href="{url}" style="color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:5px">{inner}</a>'
+                 if url else f'<span style="display:inline-flex;align-items:center;gap:5px">{inner}</span>')
+        attrs = ''
+        if cap and cap in RUN_TARGETS:
+            attrs = (f' class="cidash-cap-cell" data-cap="{cap}" data-sha="{sha}"'
+                     f' data-parent="{parent}" data-short="{short}"'
+                     f' data-ts="{run.get("created_at", "")}" data-done="false"')
+        return (f'<td style="text-align:center"{attrs}>'
+                f'<span class="run-badge cidash-failed" title="This run ended ({concl}) before reporting a result — click to see why on GitHub, then re-queue it from Populate history">'
                 f'{body}</span></td>')
 
     def active_run_cell(cap, label):
@@ -1487,8 +1557,9 @@ if not lvci_version:
         pass
 
 # Per-repo concurrency cap (config.concurrency.maxParallel in .github/labview-ci.yml,
-# default 5). Surfaced on the backfill card so a user queuing all of history knows the
-# runs are paced/queued rather than all firing at once.
+# default 5). Parsed for config compatibility, but NOT currently enforced for the
+# workflow_dispatch backfills (each is an independent run paced only by GitHub's
+# account-wide runner concurrency), so the backfill card no longer advertises it.
 lvci_max_parallel = 5
 try:
     for _cline in open('.github/labview-ci.yml', encoding='utf-8'):
@@ -2062,20 +2133,31 @@ run_dialog = (r"""
         var o = qLoad(); var e = o[key]; if(!e){ done(); return; }
         e.runs = e.runs || [];
         var have = {}; e.runs.forEach(function(r){ have[r.plat]=1; });
+        var claimedDone = false;
         resps.forEach(function(rp){
           var cands = rp.runs.filter(function(run){
             var created = Date.parse(run.created_at || run.run_started_at || 0);
-            var active = ['queued','in_progress','requested','waiting','pending','action_required'].indexOf(run.status) >= 0;
-            return active && created >= (t0 - 12000) && !claim[run.id];
+            // Claim recently-COMPLETED runs too: a dispatch that dies within
+            // seconds (startup failure, spending limit, cancelled while queued)
+            // is already 'completed' by the time this lookup runs, and skipping
+            // it left the cell an unconfirmable spinner that silently timed out
+            // at QTTL. Claiming it lets qSync turn the cell into the sticky red
+            // "Failed" bang instead. The t0 window keeps unrelated old runs out.
+            var live = ['queued','in_progress','requested','waiting','pending','action_required','completed'].indexOf(run.status) >= 0;
+            return live && created >= (t0 - 12000) && !claim[run.id];
           }).sort(function(a,b){ return Date.parse(b.created_at) - Date.parse(a.created_at); });
           (byWf[rp.wf]||[]).forEach(function(plat){
             if(have[plat]) return;
             var run = cands.shift(); if(!run) return;
             e.runs.push({ wf: rp.wf, plat: plat, id: run.id, url: run.html_url, status: run.status });
+            if(run.status === 'completed') claimedDone = true;
             claim[run.id] = 1; have[plat] = 1;
           });
         });
         o[key] = e; qSave(o);
+        // A claimed run has already finished — judge it now (red bang / done
+        // handoff) instead of leaving a spinner up until the next lazy sync.
+        if(claimedDone) qRecheck();
         var gotAll = entryItems(c, e).every(function(it){ return (e.runs||[]).some(function(r){ return r.plat===it.plat; }); });
         if(!gotAll && attempt < 5){ setTimeout(function(){ captureRuns(c, sha, attempt+1, null); }, 2000); }
         else { done(); }
@@ -2107,6 +2189,37 @@ run_dialog = (r"""
           if(changed) qSave(o);
         }).catch(function(){});
     }
+    function captureBatchRun(wf, t0, attempt){
+      // A warm-container batch is ONE run of the backfill workflow covering every
+      // SHA in its list — captureRuns can never attribute it (it queries the
+      // per-revision workflow, and its per-cell claim would hand a single run to
+      // just the first sha anyway; the exact gap captureSnapshotRun closes for
+      // snapshots). Look the batch run up once and write it into EVERY entry
+      // stamped with this backfill workflow (dispatchCells sets entry.batchWf)
+      // that still lacks a run id, so the whole group outlives the optimistic
+      // window — or turns into the sticky red bang together if the run dies
+      // before starting.
+      var tok = getTok(); if(!tok) return;
+      t0 = t0 || Date.now(); attempt = attempt || 1;
+      fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(wf)+'/runs?event=workflow_dispatch&per_page=20',
+        { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' } })
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){
+          var runs = (j && j.workflow_runs) || [];
+          var run = runs.filter(function(rn){
+            return Date.parse(rn.created_at || rn.run_started_at || 0) >= (t0 - 12000);
+          }).sort(function(a,b){ return Date.parse(b.created_at) - Date.parse(a.created_at); })[0];
+          if(!run){ if(attempt < 4){ setTimeout(function(){ captureBatchRun(wf, t0, attempt+1); }, 2500); } return; }
+          var o = qLoad(); var changed = false;
+          Object.keys(o).forEach(function(key){
+            var e = o[key];
+            if(!e || e.batchWf !== wf || (e.runs||[]).length) return;
+            e.runs = [{ wf: wf, plat: (e.plats||[])[0] || 'windows', id: run.id, url: run.html_url, status: run.status }];
+            changed = true;
+          });
+          if(changed){ qSave(o); if(run.status === 'completed') qRecheck(); }
+        }).catch(function(){});
+    }
     function qSync(){
       // Reconcile the optimistic "Queued" overlays against the REAL run status on
       // GitHub so a cell never silently reverts to its run glyph: a run still
@@ -2126,9 +2239,21 @@ run_dialog = (r"""
         if(k.indexOf('snapshots|')===0){ var ts=o[k].ts||0; if(!snapTs||ts<snapTs) snapTs=ts; if(!((o[k].runs||[]).length)) snapNeedsId=true; }
       });
       if(snapNeedsId) captureSnapshotRun(snapTs);
+      // Batch entries share ONE backfill run, so route their id lookup through
+      // captureBatchRun (once per workflow, from the earliest entry ts) —
+      // captureRuns would query the per-revision workflow and find nothing.
+      var batchNeed = {};
+      live.forEach(function(k){
+        var eB = o[k];
+        if(eB.batchWf && !((eB.runs||[]).length)){
+          var bts = eB.ts || 0;
+          if(!(eB.batchWf in batchNeed) || bts < batchNeed[eB.batchWf]) batchNeed[eB.batchWf] = bts;
+        }
+      });
+      Object.keys(batchNeed).forEach(function(bwf){ captureBatchRun(bwf, batchNeed[bwf]); });
       live.forEach(function(k){
         var c = k.slice(0, k.indexOf('|')); var sha = k.slice(k.indexOf('|')+1);
-        if(c!=='snapshots' && !((o[k].runs||[]).length)) captureRuns(c, sha);
+        if(c!=='snapshots' && !o[k].batchWf && !((o[k].runs||[]).length)) captureRuns(c, sha);
       });
       // Every run id we still need a verdict on, across all non-terminal entries.
       var wantIds = {};
@@ -2637,6 +2762,22 @@ run_dialog = (r"""
       if(sawSnap){ snapShas.forEach(function(sha){ markQueued('snapshots', sha, ['all'], '', t0); }); }
       batchOrder.forEach(function(key){ var g=batchGroups[key]; g.shas.forEach(function(sha){ markQueued(g.cap, sha, [g.plat], '', t0); }); });
       perRevActive.forEach(function(x){ var d=RT[x.cap]; if(d) markQueued(x.cap, x.sha, x._plats, x.parent, t0); });
+      // Stamp every batch-group member with its backfill workflow so run-id
+      // capture (captureBatchRun, incl. the qSync retry path) knows where the
+      // ONE shared run lives. Done AFTER the markQueued paints above, because
+      // markQueued rebuilds the stored entry and would drop the stamp. (A cell
+      // whose OTHER platform also dispatches per-revision gets re-marked when
+      // that dispatch resolves and loses the stamp; it stays alive via its
+      // per-revision run id, and the server-side attribution — backfill
+      // run-names carry the SHA list — still covers the batch half.)
+      if(batchOrder.length){
+        var oStamp = qLoad();
+        batchOrder.forEach(function(key){
+          var g = batchGroups[key];
+          g.shas.forEach(function(sha){ var eS = oStamp[g.cap+'|'+sha]; if(eS) eS.batchWf = g.wf; });
+        });
+        qSave(oStamp);
+      }
       statusFn('Queuing '+total+' workflow'+(total>1?'s':'')+'\u2026', null);
       var chain=Promise.resolve();
       // 1) Snapshots — one backfill run for the whole history (oldest→newest, deduped).
@@ -2660,7 +2801,10 @@ run_dialog = (r"""
           var inputs={}; inputs[g.shasInput]=g.shas.join(' '); if(g.force) inputs.force='true';
           return dispatchOne(g.wf, inputs).then(function(r){
             done++;
-            if(r.ok){ ok++; }
+            // On success, capture the ONE batch run's id into every member entry
+            // (mirrors the snapshots path) — without it the whole group's badges
+            // could never be reconciled and silently expired at QTTL.
+            if(r.ok){ ok++; captureBatchRun(g.wf, t0); }
             else { err++; fails.push({wf:g.wf, status:r.status}); if(r.status===401) clearTok(); g.shas.forEach(function(sha){ qForget(g.cap, sha); }); }
             statusFn('Queuing\u2026 '+done+'/'+total, null);
           }).catch(function(){ err++; });
@@ -3540,25 +3684,27 @@ debug_dialog = (r"""
 # below is an f-string; this is spliced in as {backfill_card}).
 backfill_card = ''
 if not any_output['on'] and not running_flag['on'] and run_count['n'] > 0:
-    _cfg_repo = html.escape(repo, quote=True)
+    # NOTE: deliberately no per-repo "runs N at a time" claim here. The
+    # config's maxParallel is not enforced for these workflow_dispatch
+    # backfills (each is an independent run with its own per-revision
+    # concurrency group) — pacing comes from GitHub's account-wide runner
+    # concurrency, which queues the surplus in creation order.
     bf_conc_html = (
         '<span class="lvci-bf-note">'
-        f'This repository is currently set to run up to <b>{lvci_max_parallel}</b> '
-        f'CI job{"" if lvci_max_parallel == 1 else "s"} at a time. Anything past that '
-        '&mdash; or past your GitHub account&rsquo;s own concurrency limit &mdash; just '
-        'waits its turn and runs in order, so it&rsquo;s safe to queue the whole history at once.'
+        'Queued runs wait for a free runner and start automatically as earlier '
+        'ones finish &mdash; nothing is lost &mdash; so it&rsquo;s safe to queue '
+        'the whole history at once.'
         '</span>'
         '<details class="lvci-bf-info">'
         '<summary>&#9432; How concurrency works</summary>'
         '<div class="lvci-bf-infobody">'
         'GitHub caps how many CI jobs run at the same time <b>per account</b> &mdash; shared '
-        'across every repository you own (for example 20 jobs on Free, 40 on Pro), not per repo. '
-        f'This repository adds its own limit, <b>Max concurrent runners = {lvci_max_parallel}</b>, '
-        'so a large history backfill paces itself instead of monopolising your account&rsquo;s '
-        'runners; routine pushes and tooling updates draw from the same pool. Runs beyond the '
-        'limit are queued and start automatically as earlier ones finish &mdash; nothing is lost.'
-        f'<a href="#" class="lvci-bf-cfg" onclick="lvciOpen(&#39;configure.html?repo={_cfg_repo}&#39;,&#39;Configure Pipeline&#39;);return false;">'
-        f'Change this for {html.escape(repo_name)} &rarr;</a>'
+        'across every repository you own (for example 20 jobs on Free, 40 on Pro), not per '
+        'repo &mdash; and queues the rest in the order they were created. A history backfill '
+        'is paced by that account-wide limit; routine pushes and tooling updates draw from '
+        'the same pool. If a queued run ever ends without reporting a result (out of Actions '
+        'minutes, a billing block, or cancelled while waiting), its cell shows a red '
+        '<b>Failed</b> badge linking to the dead run instead of quietly resetting.'
         '</div></details>'
     )
     backfill_card = (
