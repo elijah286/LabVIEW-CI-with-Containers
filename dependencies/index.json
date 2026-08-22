@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "b43ab7c99f648911e1aa65de6e0913b7c620cf3e",
+  "sha": "f007975c794ab6a09786b9c44ebaab0e5510f504",
   "revisions": [
+    {
+      "sha": "f007975c794ab6a09786b9c44ebaab0e5510f504",
+      "short": "f007975",
+      "message": "Merge pull request #61 from elijah286/fix/dashboard-dead-run-visibility",
+      "author": "Elijah Kerry",
+      "date": "2026-08-22T16:46:41Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "643405a4654ea88ae4a1604aeb632c324062ba06",
+      "short": "643405a",
+      "message": "Dashboard: keep dead CI runs visible instead of silently resetting cells",
+      "author": "Elijah Kerry",
+      "date": "2026-08-22T16:45:57Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "b43ab7c99f648911e1aa65de6e0913b7c620cf3e",
       "short": "b43ab7c",
@@ -882,24 +900,6 @@
       "message": "Debug Run: enable Windows containers (4.11.0)",
       "author": "Elijah Kerry",
       "date": "2026-07-23T00:29:30Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "6536ae5ddfeb2de6fadfcb8eea06c6fb1b91dd70",
-      "short": "6536ae5",
-      "message": "Release channel: stable=4.10.0 (catalog 4.10.3)",
-      "author": "github-actions[bot]",
-      "date": "2026-07-23T00:07:08Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "90e3bfa3393eb92a14e43aa694e842c9c4141628",
-      "short": "90e3bfa",
-      "message": "Release channel: stable=4.10.0 (catalog 4.10.2)",
-      "author": "github-actions[bot]",
-      "date": "2026-07-23T00:06:55Z",
       "project": false,
       "dep_only": false
     },
