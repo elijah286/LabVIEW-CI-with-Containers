@@ -97,6 +97,15 @@ if ($PublicRepoUrl -match 'github\.com[:/]+(?<owner>[^/]+)/(?<name>[^/]+?)(?:\.g
 # overrides the default/CI-adjusted timeout, in seconds.
 # See docs.vipm.io/latest/cli/environment-variables.
 $Env:VIPM_TIMEOUT           = if ($Env:VIPM_TIMEOUT) { $Env:VIPM_TIMEOUT } else { '900' }
+# Large packages (wovalab_lib_asciidoc_for_labview is the repeat offender) run
+# post-install actions where VIPM Desktop is silently busy for minutes. The CLI's
+# default 60s liveliness watchdog then aborts a HEALTHY install with "VIPM
+# command 'package_set_install' made no progress for 60.0s - VIPM Desktop may be
+# stuck" (exit 124); whether a bake survived was pure timing (the source repo's
+# validation bake squeaked past the same error a client bake failed on 3/3
+# retries). Tolerate long silences up to the same ceiling as VIPM_TIMEOUT - the
+# per-operation timeout still bounds a genuinely stuck install.
+$Env:VIPM_DESKTOP_LIVELINESS_TIMEOUT = if ($Env:VIPM_DESKTOP_LIVELINESS_TIMEOUT) { $Env:VIPM_DESKTOP_LIVELINESS_TIMEOUT } else { $Env:VIPM_TIMEOUT }
 
 # VIPM 26.3 Community Edition shells out to a real `git` binary to verify that the
 # working directory is a PUBLIC Git repository (see New-PublicRepoWorkdir below). The
