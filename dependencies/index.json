@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "f007975c794ab6a09786b9c44ebaab0e5510f504",
+  "sha": "087224a30ece39d5bd499d7ee847499ed7dc1001",
   "revisions": [
+    {
+      "sha": "087224a30ece39d5bd499d7ee847499ed7dc1001",
+      "short": "087224a",
+      "message": "Release 4.17.0 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-22T16:46:51Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "f007975c794ab6a09786b9c44ebaab0e5510f504",
       "short": "f007975",
@@ -891,15 +900,6 @@
       "message": "Debug Run: single form + scrollable sessions list, no step-by-step takeover (4.11.1)",
       "author": "Elijah Kerry",
       "date": "2026-07-23T01:26:31Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "24bd13f82fb8506f1b2e8833dbb972164a934b40",
-      "short": "24bd13f",
-      "message": "Debug Run: enable Windows containers (4.11.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T00:29:30Z",
       "project": false,
       "dep_only": false
     },
