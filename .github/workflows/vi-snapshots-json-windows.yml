@@ -53,6 +53,7 @@ on:
 permissions:
   contents: write
   packages: read
+  actions: write  # wait-for-worker-image.sh reads worker-image build runs and starts the first build on a fresh fork
 
 env:
   LABVIEW_CONTAINER_IMAGE: ''

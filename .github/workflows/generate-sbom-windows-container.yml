@@ -45,7 +45,7 @@ permissions:
   pages: write
   statuses: write
   packages: read
-  actions: read
+  actions: write  # wait-for-worker-image.sh reads worker-image build runs and starts the first build on a fresh fork
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.inputs.commit_sha || github.sha }}
@@ -259,6 +259,10 @@ jobs:
             REPORT_URL="${{ env.PAGES_URL }}/sbom/${{ steps.sha.outputs.sha }}/index.html"
           else
             REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          # A pull failure means the generator never ran; make the status say so.
+          if [ "${{ steps.pull.outcome }}" != "success" ]; then
+            DESC="Worker image unavailable - build it via Configure Workers"
           fi
           curl -s -X POST \
             -H "Authorization: token $GH_TOKEN" \

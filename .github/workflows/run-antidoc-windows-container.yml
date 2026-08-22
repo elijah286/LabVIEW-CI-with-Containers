@@ -40,7 +40,7 @@ permissions:
   pages: write
   statuses: write
   packages: read
-  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
+  actions: write  # wait-for-worker-image.sh reads worker-image build runs and starts the first build on a fresh fork
 
 # Each activity+revision gets its OWN concurrency group so different activities
 # (and different revisions) run in PARALLEL, and re-dispatching the SAME
@@ -265,8 +265,14 @@ jobs:
           else
             STATE="failure"
           fi
+          DESC="Antidoc $STATE"
+          # A pull failure means Antidoc never ran; say that instead of a generic
+          # "failure" so the dashboard message is actionable.
+          if [ "${{ steps.pull.outcome }}" != "success" ]; then
+            DESC="Worker image unavailable - build it via Configure Workers"
+          fi
           curl -s -X POST \
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
-            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"Antidoc $STATE\",\"context\":\"CI / Antidoc\"}"
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"$DESC\",\"context\":\"CI / Antidoc\"}"

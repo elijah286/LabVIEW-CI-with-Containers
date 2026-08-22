@@ -43,6 +43,7 @@ on:
 permissions:
   contents: write
   packages: read
+  actions: write  # wait-for-worker-image.sh reads worker-image build runs and starts the first build on a fresh fork
 
 # One debug session at a time. Queue a second dispatch instead of cancelling the
 # live one (the dashboard also disables Start while a session is active).
