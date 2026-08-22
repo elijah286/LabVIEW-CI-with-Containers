@@ -9,6 +9,13 @@ on:
   # install; dependency baking is the separate Build workflow run from the
   # Dependencies page afterwards. Mirrors copy-labview-image.yml for Windows.
   workflow_dispatch:
+  # Fork-install self-heal -- see copy-labview-image.yml: forks may never index a
+  # workflow_dispatch-only file, so the install/update push triggers the seed
+  # directly (idempotent registry copy) and forces workflow registration.
+  push:
+    paths:
+      - '.github/labview-ci.yml'
+      - '.github/workflows/copy-labview-linux-image.yml'
 
 env:
   IMAGE_NAME: ''
