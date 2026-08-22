@@ -8,6 +8,18 @@ on:
   # rebuild. The installer dispatches it once on a fresh install; dependency baking
   # is the separate Build workflow run from the Dependencies page afterwards.
   workflow_dispatch:
+  # Fork-install self-heal. On a FORKED repository GitHub may never index a
+  # workflow_dispatch-only file (it receives no event that would register it), so
+  # the installer's dispatch 404s forever and the worker image is never seeded --
+  # every container job then dies at wait-for-worker-image with "manifest
+  # unknown". Trigger the seed from the push itself: the install/update merge
+  # writes .github/labview-ci.yml, and listing this file's own path both fires a
+  # seed when the tooling updates and forces GitHub to register the workflow.
+  # Safe to re-run: crane copy of an unchanged digest is a no-op re-tag.
+  push:
+    paths:
+      - '.github/labview-ci.yml'
+      - '.github/workflows/copy-labview-image.yml'
 
 env:
   IMAGE_NAME: ''
