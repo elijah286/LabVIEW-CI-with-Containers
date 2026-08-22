@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "4.16.1",
-  "stableVersion": "4.16.0",
+  "version": "4.16.4",
+  "stableVersion": "4.16.3",
   "betaVersion": "4.11.10",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
@@ -13,6 +13,22 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release. `stableVersion` (top level, optional) names the newest release the maintainer has promoted to the stable channel, and each such release entry is flagged \"stable\": true; installs and upgrades default to the stable channel and fall back to `version` (the beta tip) only while no stable release has been promoted yet. `betaVersion` is the same pointer for the beta (release-candidate) channel, with entries flagged \"beta\": true. The install/upgrade channel picker is cumulative: release only (stable), release+beta (beta), or release+beta+dev (every published build).",
     "releases": [
+      {
+        "version": "4.16.4",
+        "date": "2026-08-22",
+        "notes": "Marked v4.16.3 as the stable release. Default installs and upgrades target it; beta and dev builds stay available behind the channel picker."
+      },
+      {
+        "version": "4.16.3",
+        "date": "2026-08-22",
+        "notes": "Fixed large-package installs (the Antidoc/AsciiDoc suite in particular) aborting during the worker dependency build with \"VIPM command 'package_set_install' made no progress for 60.0s — VIPM Desktop may be stuck\": VIPM Desktop is silently busy for minutes running a big package's install actions, and the CLI's default 60-second liveliness watchdog declared the healthy install stuck — whether a build survived was pure timing. The dependency install now raises the liveliness tolerance to the same ceiling as the overall operation timeout, so slow-but-working installs complete while a genuinely stuck install still fails at the operation timeout.",
+        "stable": true
+      },
+      {
+        "version": "4.16.2",
+        "date": "2026-08-22",
+        "notes": "Fixed installs on forked repositories never getting their worker container images: GitHub can leave a fork's dispatch-only workflows unindexed indefinitely, so the installer's image-copy dispatch failed with \"not found\" and every later container job died waiting for a worker image that was never seeded. The two Copy worker image workflows now also trigger directly from the install or update push (a fast, idempotent registry copy), which both seeds the images without needing a dispatch and forces GitHub to register the workflows on forks."
+      },
       {
         "version": "4.16.1",
         "date": "2026-08-21",
