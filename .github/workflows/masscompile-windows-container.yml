@@ -35,7 +35,7 @@ permissions:
   pages: write
   statuses: write
   packages: read
-  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
+  actions: write  # wait-for-worker-image.sh reads worker-image build runs and starts the first build on a fresh fork
 
 # Each activity+revision gets its OWN concurrency group so different activities
 # (and different revisions) run in PARALLEL, and re-dispatching the SAME
@@ -291,6 +291,10 @@ jobs:
           else
             DESC="Mass Compile $STATE"
           fi
+          # A pull failure means the compile never ran; make the status say so.
+          if [ "${{ steps.pull.outcome }}" != "success" ]; then
+            DESC="Worker image unavailable - build it via Configure Workers"
+          fi
           curl -s -X POST \
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -299,4 +303,11 @@ jobs:
 
       - name: Fail the job if compile failed
         if: always() && (steps.pull.outcome != 'success' || steps.compile.outcome != 'success')
-        run: exit 1
+        shell: bash
+        run: |
+          if [ "${{ steps.pull.outcome }}" != "success" ]; then
+            echo "::error::The worker container image could not be pulled, so Mass Compile never ran. If it has never been built for this repository, run 'Build LabVIEW CI Image' (Actions) or use Configure Workers on the dashboard, then re-run this job."
+          else
+            echo "::error::Mass Compile failed - open the compile step log or the report above."
+          fi
+          exit 1
