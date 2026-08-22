@@ -1,5 +1,7 @@
 name: Antidoc Backfill — Windows Container
-run-name: Antidoc Windows backfill - ${{ github.event_name == 'workflow_dispatch' && 'manual run' || github.sha }}
+# The SHA list rides in run-name so the dashboard can attribute this ONE run to
+# every revision row it covers (it scans display_title for full 40-hex SHAs).
+run-name: Antidoc Windows backfill - ${{ github.event_name == 'workflow_dispatch' && (inputs.shas || 'manual run') || github.sha }}
 
 # Warm-container "batch" counterpart of run-antidoc-windows-container.yml. Generates
 # documentation for a set of revisions inside ONE long-lived container (docker exec
