@@ -2112,12 +2112,24 @@
     }
 
     async function latestWorkflowRun(repo, workflowFile, branch, sinceMs) {
+      // The install merge can legitimately create TWIN runs of a copy workflow:
+      // this page dispatches it AND the file's own push trigger fires from the
+      // merge (the fork self-heal, #58). Their shared concurrency lane runs one
+      // twin and CANCELS the other while it is still pending -- and which twin
+      // dies is a race. Judging the NEWEST run alone therefore misreads a
+      // successful seed as "finished with cancelled" (observed on a fork
+      // install: the Linux dispatch run succeeded while its newer push twin was
+      // cancelled, and the watcher happened to track the twin). Prefer, among
+      // the runs since the cutoff: any SUCCESS, else any still-active run (keep
+      // waiting on it), else the newest completed one.
       try {
         const r = await gh(`/repos/${repo}/actions/workflows/${workflowFile}/runs?branch=${encodeURIComponent(branch)}&per_page=10`);
         if (!r.ok) return null;
         const cutoff = (sinceMs || 0) - 60000;
-        const runs = ((await r.json()).workflow_runs || []).filter(x => x && x.created_at);
-        return runs.find(x => Date.parse(x.created_at) >= cutoff) || null;
+        const runs = ((await r.json()).workflow_runs || []).filter(x => x && x.created_at && Date.parse(x.created_at) >= cutoff);
+        return runs.find(x => x.status === "completed" && x.conclusion === "success")
+            || runs.find(x => x.status !== "completed")
+            || runs[0] || null;
       } catch (_) { return null; }
     }
 

@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "74477c8364a39561c05bc960fe75e55707397d8f",
+  "sha": "e78344b6df1c2abde4feccf15765c0f5fdc20240",
   "revisions": [
+    {
+      "sha": "e78344b6df1c2abde4feccf15765c0f5fdc20240",
+      "short": "e78344b",
+      "message": "Merge pull request #63 from elijah286/fix/install-watcher-twin-cancel",
+      "author": "Elijah Kerry",
+      "date": "2026-08-23T22:19:31Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "b8049760f473e04e98716181c0764d5fd2b8e69f",
+      "short": "b804976",
+      "message": "Install watcher: don't misread a cancelled copy-twin as a failed seed",
+      "author": "Elijah Kerry",
+      "date": "2026-08-23T22:18:09Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "74477c8364a39561c05bc960fe75e55707397d8f",
       "short": "74477c8",
@@ -882,24 +900,6 @@
       "message": "Fix: Windows noVNC \"Server is not configured properly\" (4.11.6)",
       "author": "Elijah Kerry",
       "date": "2026-07-23T11:26:17Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "d1364e35074b0d650b5c92e818bdcdb18b319738",
-      "short": "d1364e3",
-      "message": "Fix: Windows debug tunnel died at step boundary (job object) (4.11.5)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T03:50:36Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "c2c6e9750de52a1b859ab7362f3c3aeec9f6d5f1",
-      "short": "c2c6e97",
-      "message": "Fix: Windows debug container never started (NAT host-IP) (4.11.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T02:49:55Z",
       "project": false,
       "dep_only": false
     },
