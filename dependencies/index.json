@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "e78344b6df1c2abde4feccf15765c0f5fdc20240",
+  "sha": "dc09f4cd38c4552d69048504a1af1ce87f04bbf9",
   "revisions": [
+    {
+      "sha": "dc09f4cd38c4552d69048504a1af1ce87f04bbf9",
+      "short": "dc09f4c",
+      "message": "Release 4.17.2 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-23T22:19:44Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "e78344b6df1c2abde4feccf15765c0f5fdc20240",
       "short": "e78344b",
@@ -891,15 +900,6 @@
       "message": "Release channels: three tiers (Dev/Beta/Stable) + cumulative dialog picker (4.11.7)",
       "author": "Elijah Kerry",
       "date": "2026-07-23T11:40:54Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "281af132680b33f25fff54f9c435c9d937278ef7",
-      "short": "281af13",
-      "message": "Fix: Windows noVNC \"Server is not configured properly\" (4.11.6)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T11:26:17Z",
       "project": false,
       "dep_only": false
     },
