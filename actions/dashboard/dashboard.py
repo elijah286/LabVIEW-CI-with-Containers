@@ -2674,9 +2674,13 @@ run_dialog = (r"""
     // history doesn't trip GitHub's secondary rate limits. Resolves with an
     // {ok, err, total} tally; the caller owns its own status line + buttons.
     // Turn collected dispatch failures into an accurate message. A 404 means the
-    // targeted workflow file is not installed on this repo (its LabVIEW CI tooling
-    // is out of date) -- NOT a token problem -- so callers do not re-prompt for a
-    // token in that case. .tok = whether the failure is token/permission related.
+    // targeted workflow is not RUNNABLE on this repo -- the file is not installed
+    // (tooling out of date), or it exists but GitHub never registered it as a
+    // workflow (fork installs that pushed the files while Actions was disabled) --
+    // NOT a token problem, so callers do not re-prompt for a token in that case.
+    // Both causes share one remedy: a tooling update rewrites every workflow file
+    // (version stamp), so the update push registers them. .tok = whether the
+    // failure is token/permission related.
     function dispatchFailMsg(fails){
       fails = fails || [];
       var has = function(code){ return fails.some(function(f){ return f.status===code; }); };
@@ -2684,7 +2688,7 @@ run_dialog = (r"""
       if(has(404)){
         var wfs=[]; fails.forEach(function(f){ if(f.status===404 && f.wf && wfs.indexOf(f.wf)<0) wfs.push(f.wf); });
         var list=wfs.map(function(w){ return '<code>'+esc(w)+'</code>'; }).join(', ');
-        return { html:'<strong>Not a token problem</strong> \u2014 your saved token worked, but '+(wfs.length>1?'these workflows are':'this workflow is')+' not installed on <code>'+esc(REPO)+'</code> (HTTP 404): '+list+'. This repository\u2019s LabVIEW CI tooling is out of date \u2014 update it from <strong>What\u2019s new \u2192 Update</strong> to add the missing workflow'+(wfs.length>1?'s':'')+', then queue again.', tok:false };
+        return { html:'<strong>Not a token problem</strong> \u2014 your saved token worked, but '+(wfs.length>1?'these workflows are':'this workflow is')+' not runnable on <code>'+esc(REPO)+'</code> (HTTP 404): '+list+'. Either the file is not installed (this repository\u2019s LabVIEW CI tooling is out of date), or it exists but GitHub never registered it as a workflow \u2014 typical for fork installs that pushed the pipeline while Actions was disabled. Both have the same fix: update from <strong>What\u2019s new \u2192 Update</strong> \u2014 the update rewrites every workflow file so GitHub registers '+(wfs.length>1?'them':'it')+' \u2014 then queue again.', tok:false };
       }
       if(has(403)) return { html:'The saved token is missing the <strong>Actions: Read and write</strong> permission on <code>'+esc(REPO)+'</code> (HTTP 403). On the token page set <strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong>, then <strong>Update</strong>. <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Update token \u2197</a>', tok:true };
       if(has(422)) return { html:'GitHub rejected the dispatch (HTTP 422) \u2014 usually a bad branch ref (<code>'+esc(BRANCH)+'</code>) or inputs.', tok:false };

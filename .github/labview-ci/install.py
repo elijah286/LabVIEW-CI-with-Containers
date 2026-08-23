@@ -53,6 +53,33 @@ NO_SUBSTITUTION_PREFIX = ".github/labview-ci/"
 DEFAULT_EXCLUDED_STATUSES = {"planned", "experimental"}
 GITHUB_WORKFLOW_PREFIX = ".github/workflows/"
 
+# Every vendored workflow file gets a first-line version stamp when installed or
+# updated. The stamp is not decoration: GitHub only registers a workflow file
+# (making it dispatchable via the API and listed under Actions) when a push
+# touches it while Actions is enabled, or when an event first runs it. Fork
+# installs typically push the whole pipeline while Actions is still disabled, so
+# every workflow_dispatch-only workflow stays permanently unregistered -- the
+# file exists on the default branch, yet dispatching it returns 404 forever
+# (the dashboard's Reconfigure / "Save monitored files" buttons hit exactly
+# this). An update can only heal that by touching the file, and git only
+# records files whose CONTENT changed -- so the stamp embeds the tooling
+# version, guaranteeing every "Update now" rewrites every workflow file and the
+# update push (re)registers any that were stuck.
+WORKFLOW_STAMP_RE = re.compile(r"^# LabVIEW CI tooling v[^\n]*\n")
+
+
+def stamp_workflow(text: str, version: str) -> str:
+    """Prepend (or refresh, when re-installing over an already-stamped copy) the
+    single-line tooling-version stamp comment on a workflow file."""
+    stamp = (f"# LabVIEW CI tooling v{version} - this version stamp changes on every tooling "
+             "update so the update push touches this file and GitHub (re)registers the workflow.\n")
+    return stamp + WORKFLOW_STAMP_RE.sub("", text, count=1)
+
+
+def should_stamp(rel_path: str) -> bool:
+    norm = rel_path.replace("\\", "/")
+    return norm.startswith(GITHUB_WORKFLOW_PREFIX) and Path(norm).suffix.lower() in (".yml", ".yaml")
+
 
 def log(msg: str = "") -> None:
     print(msg, flush=True)
@@ -218,7 +245,8 @@ def apply_substitutions(text: str, subs: list[tuple[str, str]]) -> str:
 
 def copy_one(src: Path, dst: Path, rel_path: str, subs: list[tuple[str, str]],
              force: bool, dry_run: bool, stats: dict,
-             preserve: set = frozenset(), update: bool = False) -> None:
+             preserve: set = frozenset(), update: bool = False,
+             stamp_version: str = "") -> None:
     norm = rel_path.replace("\\", "/")
     # On update, never clobber the consumer's own config files.
     if update and norm in preserve and dst.exists():
@@ -235,10 +263,16 @@ def copy_one(src: Path, dst: Path, rel_path: str, subs: list[tuple[str, str]],
         log(f"  would {'update ' if (update and existed) else 'install'}  {rel_path}")
         return
     dst.parent.mkdir(parents=True, exist_ok=True)
-    if subs and should_substitute(rel_path):
+    wants_subs = bool(subs) and should_substitute(rel_path)
+    wants_stamp = bool(stamp_version) and should_stamp(rel_path)
+    if wants_subs or wants_stamp:
         try:
             text = src.read_text(encoding="utf-8")
-            dst.write_text(apply_substitutions(text, subs), encoding="utf-8")
+            if wants_subs:
+                text = apply_substitutions(text, subs)
+            if wants_stamp:
+                text = stamp_workflow(text, stamp_version)
+            dst.write_text(text, encoding="utf-8")
         except UnicodeDecodeError:
             shutil.copy2(src, dst)
     else:
@@ -253,7 +287,8 @@ def copy_one(src: Path, dst: Path, rel_path: str, subs: list[tuple[str, str]],
 
 def copy_entry(entry: str, source_root: Path, target_root: Path,
                subs: list[tuple[str, str]], force: bool, dry_run: bool, stats: dict,
-               preserve: set = frozenset(), update: bool = False) -> None:
+               preserve: set = frozenset(), update: bool = False,
+               stamp_version: str = "") -> None:
     is_dir = entry.endswith("/")
     src = source_root / entry
     if is_dir:
@@ -265,7 +300,7 @@ def copy_entry(entry: str, source_root: Path, target_root: Path,
             if child.is_file():
                 rel = child.relative_to(source_root).as_posix()
                 source_files.add(rel)
-                copy_one(child, target_root / rel, rel, subs, force, dry_run, stats, preserve, update)
+                copy_one(child, target_root / rel, rel, subs, force, dry_run, stats, preserve, update, stamp_version)
         # On update, mirror the source: prune tooling files that the source has
         # REMOVED so a vendored directory matches the source exactly. Without this,
         # a file the tooling deletes (e.g. an obsolete Go source) lingers on the
@@ -303,7 +338,7 @@ def copy_entry(entry: str, source_root: Path, target_root: Path,
         if not src.is_file():
             warn(f"missing source file {entry} - skipping.")
             return
-        copy_one(src, target_root / entry, entry, subs, force, dry_run, stats, preserve, update)
+        copy_one(src, target_root / entry, entry, subs, force, dry_run, stats, preserve, update, stamp_version)
 
 
 def write_manifest(target_root: Path, catalog: dict, activities: list[str], os_list: list[str],
@@ -960,9 +995,10 @@ def main() -> int:
     if args.provider == "gitlab":
         file_list = [f for f in file_list if not f.replace("\\", "/").startswith(GITHUB_WORKFLOW_PREFIX)]
     stats = {"installed": 0, "updated": 0, "skipped": 0, "planned": 0, "preserved": 0, "pruned": 0}
+    stamp_version = str(catalog.get("version", "0.0.0"))
     for entry in file_list:
         copy_entry(entry, source_root, target_root, subs, force, args.dry_run, stats,
-                   preserve, update)
+                   preserve, update, stamp_version)
 
     # The dashboard generator (actions/dashboard) is a local path that only exists
     # in the tooling repo and can't be rebranded into a consumer, so the vendored
