@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "087224a30ece39d5bd499d7ee847499ed7dc1001",
+  "sha": "0716a0e0ef4414c853473f393b8a6cfbfff7042e",
   "revisions": [
+    {
+      "sha": "0716a0e0ef4414c853473f393b8a6cfbfff7042e",
+      "short": "0716a0e",
+      "message": "Merge pull request #62 from elijah286/fix/fork-workflow-registration",
+      "author": "Elijah Kerry",
+      "date": "2026-08-23T15:50:16Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "cdde6fd72b461af8f6f770bfd089a968566b9d70",
+      "short": "cdde6fd",
+      "message": "Version-stamp vendored workflows so updates re-register them on forks",
+      "author": "Elijah Kerry",
+      "date": "2026-08-23T13:38:24Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "087224a30ece39d5bd499d7ee847499ed7dc1001",
       "short": "087224a",
@@ -882,24 +900,6 @@
       "message": "Debug Run: \"Open source\" opens the LabVIEW project in the container (4.11.3)",
       "author": "Elijah Kerry",
       "date": "2026-07-23T01:52:35Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "9028f67a988262ceba388097deac004cddc3d4c8",
-      "short": "9028f67",
-      "message": "Debug Run: add an \"Open source\" button (4.11.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T01:34:22Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "e04699df7aaa465377f6990c774e003cebbf1c97",
-      "short": "e04699d",
-      "message": "Debug Run: single form + scrollable sessions list, no step-by-step takeover (4.11.1)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T01:26:31Z",
       "project": false,
       "dep_only": false
     },
