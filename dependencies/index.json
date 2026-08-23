@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "0716a0e0ef4414c853473f393b8a6cfbfff7042e",
+  "sha": "74477c8364a39561c05bc960fe75e55707397d8f",
   "revisions": [
+    {
+      "sha": "74477c8364a39561c05bc960fe75e55707397d8f",
+      "short": "74477c8",
+      "message": "Release 4.17.1 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-23T15:50:28Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "0716a0e0ef4414c853473f393b8a6cfbfff7042e",
       "short": "0716a0e",
@@ -891,15 +900,6 @@
       "message": "Fix: Windows debug container never started (NAT host-IP) (4.11.4)",
       "author": "Elijah Kerry",
       "date": "2026-07-23T02:49:55Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "a006257206500f277eeab098226551202da73284",
-      "short": "a006257",
-      "message": "Debug Run: \"Open source\" opens the LabVIEW project in the container (4.11.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T01:52:35Z",
       "project": false,
       "dep_only": false
     },
