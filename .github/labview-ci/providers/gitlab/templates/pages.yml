@@ -1,0 +1,20 @@
+# The visible `pages` job is generated in pipeline.yml so it can own the selected
+# capability artifacts. This hidden job provides a GitLab-native Pages publisher.
+
+.lvci:pages:
+  stage: pages
+  image: python:3.12-alpine
+  resource_group: labview-ci-pages
+  before_script:
+    - apk add --no-cache curl unzip
+  script:
+    - python .gitlab/labview-ci/scripts/restore-pages.py --out .lvci-previous-pages
+    - python .gitlab/labview-ci/scripts/merge-snapshot-store.py --reports ci-out/gitlab-pages
+    - python .gitlab/labview-ci/scripts/build-dashboard.py --out public --previous .lvci-previous-pages --reports ci-out/gitlab-pages
+    - cp .gitlab/labview-ci/assets/lvci-header.js public/lvci-header.js
+  pages:
+    publish: public
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days

@@ -1,0 +1,60 @@
+lvci:worker-linux:
+  extends: .lvci:linux-docker
+  stage: prepare
+  resource_group: labview-ci-linux-worker
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - changes:
+        - ".github/labview-ci/catalog.json"
+        - ".github/docker/labview-ci-linux.Dockerfile"
+        - ".github/labview/vipm/**/*"
+        - ".github/labview/toimages/**/*"
+        - ".github/labview-ci.yml"
+        - ".gitlab/labview-ci/templates/custom-image-linux.yml"
+        - "**/*.vipc"
+        - "**/*.dragon"
+  script:
+    - |
+      set -euo pipefail
+      vipm_dir=".github/labview/vipm"
+      mkdir -p "$vipm_dir"
+      while IFS= read -r dependency; do
+        case "$dependency" in .github/*) continue ;; esac
+        cp "$dependency" "$vipm_dir/$(basename "$dependency")"
+      done < <(find . -type f \( -name '*.vipc' -o -name '*.dragon' \) -print | sed 's#^./##')
+      echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+      image="$CI_REGISTRY_IMAGE/labview"
+      release_json="$(python3 - <<'PY'
+      import json
+      import os
+
+      with open('.github/labview-ci/catalog.json', encoding='utf-8') as stream:
+          containers = json.load(stream)['containers']
+      release_id = os.environ.get('LVCI_CONTAINER_RELEASE') or containers['default']
+      release = next((item for item in containers['supported'] if item['id'] == release_id), None)
+      if release is None:
+          raise SystemExit(f"Unknown LabVIEW container release: {release_id}")
+      print(f"{release['id']} {release['linuxTag'].rsplit(':', 1)[-1]}")
+      PY
+      )"
+      release_id="${release_json%% *}"
+      lv_container_tag="${release_json#* }"
+      echo "Building Linux worker from catalog release $release_id: nationalinstruments/labview:$lv_container_tag"
+      docker build --pull \
+        --build-arg "LV_CONTAINER_TAG=$lv_container_tag" \
+        --build-arg "LABVIEW_VERSION=$LVCI_LABVIEW_VERSION" \
+        -f .github/docker/labview-ci-linux.Dockerfile \
+        -t "$image:linux-$CI_COMMIT_SHA" \
+        -t "$image:linux-latest" \
+        .
+      docker push "$image:linux-$CI_COMMIT_SHA"
+      docker push "$image:linux-latest"
+      mkdir -p "ci-out/gitlab-pages/workers/linux/$CI_COMMIT_SHA"
+      printf '{"platform":"linux","image":"%s","sha":"%s"}\n' "$image:linux-latest" "$CI_COMMIT_SHA" > "ci-out/gitlab-pages/workers/linux/$CI_COMMIT_SHA/manifest.json"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - ci-out/gitlab-pages/workers/linux/$CI_COMMIT_SHA/

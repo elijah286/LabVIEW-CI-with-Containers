@@ -13,6 +13,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / ".github" / "labview-ci" / "catalog.json"
+GITLAB_PROVIDER_ENTRY = ".github/labview-ci/providers/gitlab/"
+GITLAB_PROVIDER_ROOT = ROOT / GITLAB_PROVIDER_ENTRY
+GITLAB_PROVIDER_TARGET = ".gitlab/labview-ci"
 
 # Files that exist ONLY in the tooling source repository -- the release and
 # publishing machinery. A consumer install never has them, so the configurator
@@ -26,6 +29,7 @@ CATALOG = ROOT / ".github" / "labview-ci" / "catalog.json"
 # bypassed by a stale browser tab or a hand-edited PR the way a UI check can.
 SOURCE_ONLY_FILES = [
     ".github/labview-ci/source.json",
+    ".github/labview-ci/sync-gitlab-mirror.sh",
     ".github/labview/promote-release.py",
     ".github/labview/validate-catalog-source-sync.py",
     ".github/labview/vipm/build-tooling-vipc.py",
@@ -42,6 +46,7 @@ SOURCE_ONLY_FILES = [
     ".github/workflows/labview-ci.reusable.yml",
     ".github/workflows/promote-release.yml",
     ".github/workflows/release.yml",
+    ".github/workflows/sync-gitlab-distribution.yml",
 ]
 
 REQUIRED_CUSTOM_IMAGE_WINDOWS = [
@@ -117,6 +122,139 @@ def highest_published_version() -> tuple[tuple[int, int, int], str] | None:
         if best is None or parsed > best[0]:
             best = (parsed, line.strip())
     return best
+
+
+def validate_gitlab_provider(catalog: dict, capabilities: list[dict]) -> list[str]:
+    """Validate the vendored GitLab adapter and its catalog coverage."""
+    failures: list[str] = []
+    base_files = (catalog.get("base") or {}).get("files") or []
+    if GITLAB_PROVIDER_ENTRY not in base_files:
+        failures.append(
+            f"base.files must include {GITLAB_PROVIDER_ENTRY!r} so GitLab installs can update locally"
+        )
+
+    manifest_path = GITLAB_PROVIDER_ROOT / "files.json"
+    if not manifest_path.is_file():
+        return failures + [f"GitLab provider manifest is missing: {manifest_path.relative_to(ROOT)}"]
+    try:
+        provider = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return failures + [f"GitLab provider manifest is invalid: {exc}"]
+
+    if provider.get("targetRoot") != GITLAB_PROVIDER_TARGET:
+        failures.append(
+            f"GitLab provider targetRoot must be {GITLAB_PROVIDER_TARGET!r}"
+        )
+    files = provider.get("files")
+    if not isinstance(files, list):
+        return failures + ["GitLab provider files.json must contain a files list"]
+    listed_files: set[str] = set()
+    for relpath in files:
+        path = Path(relpath) if isinstance(relpath, str) else None
+        if path is None or not relpath or path.is_absolute() or ".." in path.parts or "\\" in relpath:
+            failures.append(f"GitLab provider contains an unsafe file path: {relpath!r}")
+            continue
+        if relpath in listed_files:
+            failures.append(f"GitLab provider lists {relpath!r} more than once")
+            continue
+        listed_files.add(relpath)
+        if not (GITLAB_PROVIDER_ROOT / path).is_file():
+            failures.append(f"GitLab provider lists missing file: {GITLAB_PROVIDER_ENTRY}{relpath}")
+    for required in ("files.json", "templates/common.yml", "templates/pages.yml"):
+        if required not in listed_files:
+            failures.append(f"GitLab provider must package {required!r}")
+
+    known_capabilities = {cap.get("id") for cap in capabilities if cap.get("id")}
+    active_capabilities = {
+        cap["id"] for cap in capabilities
+        if cap.get("id") and cap.get("status") != "planned"
+    }
+    built_in = provider.get("builtInCapabilities") or []
+    if not isinstance(built_in, list) or not all(isinstance(capability, str) for capability in built_in):
+        failures.append("GitLab provider builtInCapabilities must be a list of capability ids")
+        built_in = []
+    if len(set(built_in)) != len(built_in):
+        failures.append("GitLab provider builtInCapabilities contains duplicates")
+    for capability in built_in:
+        if capability not in known_capabilities:
+            failures.append(f"GitLab provider names unknown built-in capability: {capability!r}")
+
+    mappings = provider.get("capabilityTemplates")
+    if not isinstance(mappings, dict):
+        return failures + ["GitLab provider capabilityTemplates must be an object"]
+    overlap = set(built_in) & set(mappings)
+    if overlap:
+        failures.append(f"GitLab provider maps built-in capabilities redundantly: {sorted(overlap)!r}")
+    uncovered = active_capabilities - set(built_in) - set(mappings)
+    if uncovered:
+        failures.append(
+            f"GitLab provider lacks native coverage for active capabilities: {sorted(uncovered)!r}"
+        )
+    by_id = {cap.get("id"): cap for cap in capabilities if cap.get("id")}
+    for capability, templates in mappings.items():
+        cap = by_id.get(capability)
+        if cap is None:
+            failures.append(f"GitLab provider maps unknown capability: {capability!r}")
+            continue
+        if not isinstance(templates, dict):
+            failures.append(f"GitLab provider mapping for {capability!r} is not an object")
+            continue
+        supported_os = set(cap.get("supportsOs") or [])
+        mapped_os = set(templates)
+        if mapped_os != supported_os:
+            failures.append(
+                f"GitLab provider mapping for {capability!r} must cover exactly "
+                f"{sorted(supported_os)!r}, got {sorted(mapped_os)!r}"
+            )
+        for os_name, template in templates.items():
+            if os_name not in supported_os:
+                failures.append(
+                    f"GitLab provider maps unsupported {os_name!r} platform for {capability!r}"
+                )
+            if not isinstance(template, str) or template not in listed_files:
+                failures.append(
+                    f"GitLab provider template for {capability!r} ({os_name}) is not packaged: {template!r}"
+                )
+    return failures
+
+
+def validate_source_distributions(catalog: dict) -> list[str]:
+    """Validate the canonical source and its GitHub/GitLab distribution endpoints."""
+    failures: list[str] = []
+    pointer_path = ROOT / ".github" / "labview-ci" / "source.json"
+    try:
+        pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"source.json is invalid: {exc}"]
+
+    source = catalog.get("source") or {}
+    if pointer.get("repo") != source.get("repo"):
+        failures.append("source.json repo must match catalog.source.repo")
+    if pointer.get("ref") != source.get("ref"):
+        failures.append("source.json ref must match catalog.source.ref")
+
+    distributions = pointer.get("distributions")
+    if not isinstance(distributions, dict):
+        return failures + ["source.json distributions must be an object"]
+    for host in ("github", "gitlab"):
+        entry = distributions.get(host)
+        if not isinstance(entry, dict):
+            failures.append(f"source.json distributions.{host} must be an object")
+            continue
+        repo = entry.get("repo")
+        ref = entry.get("ref")
+        url = entry.get("url")
+        if not isinstance(repo, str) or not re.fullmatch(r"[^/\s]+(?:/[^/\s]+)+", repo):
+            failures.append(f"source.json distributions.{host}.repo must be a namespace/project path")
+        if not isinstance(ref, str) or not ref.strip():
+            failures.append(f"source.json distributions.{host}.ref must be non-empty")
+        if not isinstance(url, str) or not re.fullmatch(r"https://[^\s/]+(?:/[^\s]*)?", url):
+            failures.append(f"source.json distributions.{host}.url must be an HTTPS base URL")
+
+    github = distributions.get("github") or {}
+    if github.get("repo") != pointer.get("repo") or github.get("ref") != pointer.get("ref"):
+        failures.append("source.json distributions.github must match the canonical repo/ref")
+    return failures
 
 
 def main() -> int:
@@ -209,6 +347,8 @@ def main() -> int:
             )
 
     capabilities = catalog.get("capabilities") or []
+    failures.extend(validate_source_distributions(catalog))
+    failures.extend(validate_gitlab_provider(catalog, capabilities))
     custom_image = next((cap for cap in capabilities if cap.get("id") == "custom-image"), None)
     if custom_image is None:
         failures.append("catalog is missing the custom-image capability")

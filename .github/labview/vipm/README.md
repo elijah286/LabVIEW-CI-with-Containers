@@ -1,4 +1,4 @@
-# Baking VIPM (VIPC) dependencies into the Windows CI worker
+# Baking VIPM (VIPC) dependencies into the CI workers
 
 This folder holds everything the Windows CI worker needs to install **VIPM**
 (JKI VI Package Manager) packages into the LabVIEW container image at build time,
@@ -19,6 +19,7 @@ false "no unit tests found".
 | File | Role |
 | --- | --- |
 | `install-vipc.ps1` | Build-time hook. Uses the VIPM CLI already present in the shared VIPM base image, launches headless LabVIEW, then installs the packages listed in every staged `*.vipc`. A failed bake fails the image build unless `VIPM_ALLOW_MISSING_PACKAGES=1` is explicitly set. |
+| `install-vipc-linux.sh` | Linux build-time hook. Starts Xvfb and headless LabVIEW, clears the runtime-only `LV_RTE_HEADLESS` default while the VIPM engine starts, extracts each VIPC's `config.xml`, installs the resulting `name@version` specs with the VIPM 26.3 CLI, forces phase progress in CI logs, and prints focused process/display diagnostics when a package action fails. |
 | `ci-tooling.vipc` | The default CI-tooling configuration (Caraya, VI Tester, LUnit base + CLI, UTF JUnit Report, G Image). This committed file is the **source of truth** and must remain VIPM-openable. Edit it in VIPM when changing dependency intent. |
 | `ci-tooling.packages.json` / `ci-tooling.defaults.json` | Optional metadata and automation inputs used by dashboards/config tools and by ad-hoc regeneration. They are **not authoritative** for what gets installed at build time. |
 | `build-tooling-vipc.py` | Optional helper to build a real VIPM-openable VIPC from JSON inputs. It resolves each package (and its dependency closure) against the public VIPM indexes and downloads each package's real spec + icon. Stdlib only, but **requires network** to the public indexes. |
@@ -290,6 +291,9 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 - `-y` / `--yes` **does** exist in 26.3 (skips the confirm prompt when installing
   **from a file**), but the script relies on the `VIPM_NONINTERACTIVE` /
   `VIPM_ASSUME_YES` env vars instead, so it isn't needed.
+- The Linux hook adds `--show-progress --verbose` so a CI log records whether a
+   package is resolving, extracting files, or running its own post-install action.
+   These flags add observability only; they do not bypass package scripts.
 - The `config.xml`-only `.vipc` produced by VIPM/project tooling is **not**
   reliably accepted by `vipm install <file.vipc>` directly in a Windows Server
   Core build. VIPM can return exit `0` while printing `No packages were installed`.
@@ -310,6 +314,8 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 | `VIPM_NONINTERACTIVE` | `1` | Never block on prompts. |
 | `VIPM_ASSUME_YES` | `1` | Auto-confirm. |
 | `VIPM_TIMEOUT` | `900` | Override the per-operation timeout (seconds). |
+| `VIPM_DESKTOP_LIVELINESS_TIMEOUT` | `900` (Linux) | Maximum silent interval while the VIPM Desktop engine performs a package operation. |
+| `VIPM_DEBUG` | `1` (Linux) | Ask the CLI for diagnostic detail alongside the Linux hook's forced progress output. |
 | `VIPM_MAX_REFRESH_RESTARTS` | `1` | Number of clean LabVIEW/VIPM restarts after a refresh startup-handshake timeout. Set to `0` to fail immediately. |
 | `VIPM_ALLOW_LOW_MEMORY` | _(unset)_ | Set to `1` to attempt the install even when the container shows <~2.5 GB of memory (the preflight otherwise fails fast, since the VIPM engine cannot start under the Windows `docker build` default memory cap). |
 | `VIPM_DESKTOP_LIVELINESS_TIMEOUT` | `= VIPM_TIMEOUT` (900) | Seconds of Desktop silence the CLI tolerates before declaring `made no progress ... VIPM Desktop may be stuck` (its default is 60s). Large packages (e.g. `wovalab_lib_asciidoc_for_labview`) run post-install actions that are silently busy for minutes; the script raises this to the per-operation timeout so a healthy install is not aborted. |
@@ -339,6 +345,7 @@ changed shape vs. the older `2026.1.0` build — mind the differences:**
 | `error: unexpected argument '--labview-version' found` (exit 2) | Global options must go **before** the `install` subcommand: `vipm --labview-version 2026 install <pkgs>`. The script also falls back to the bare form (active target from `Settings.ini`). |
 | `Applying VI Package Configuration ...` followed by `No packages were installed` with exit 0 | Treat it as a no-op failure, not success. The script forces fallback to parsed package specs and then local public-index package files. |
 | Package install reports "not found" | In Free/Community Windows containers this usually means VIPM's resolver index is empty even after `refresh`. The script falls back to direct public-index `.vip` / `.ogp` downloads and local-file installs; if that also fails, check package URLs, MD5s, and whether the package is in a custom/private repo. |
+| `[VIPM] ... Executing PostInstall Custom Action` then timeout | The package's own post-install VI did not return. `VIPM_NONINTERACTIVE` only controls CLI prompts, and VIPM 26.3 exposes no supported way to skip package scripts. The Linux hook preserves package contents, prints its phase/process/display diagnostics, and fails the image build rather than publishing an incomplete worker. Use a headless-compatible package release or resolve the package's install action upstream. |
 
 ---
 

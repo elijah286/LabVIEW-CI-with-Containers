@@ -1,0 +1,71 @@
+lvci:builds-linux:
+  extends: .lvci:linux-docker
+  stage: verify
+  needs:
+    - job: lvci:worker-linux
+      optional: true
+      artifacts: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: manual
+      allow_failure: true
+    - changes:
+        - "**/*.vi"
+        - "**/*.ctl"
+        - "**/*.lvproj"
+        - "**/*.lvlib"
+        - "**/*.lvclass"
+  script:
+    - |
+      set +e
+      report_dir="ci-out/builds"
+      mkdir -p "$report_dir"
+      if [ -n "${LVCI_LINUX_IMAGE:-}" ]; then
+        image="$LVCI_LINUX_IMAGE"
+      elif [ "${LVCI_USE_CUSTOM_IMAGE:-false}" = "true" ]; then
+        image="${CI_REGISTRY_IMAGE}/labview:linux-latest"
+      else
+        image="nationalinstruments/labview:latest-linux"
+      fi
+      if [[ "$image" == "${CI_REGISTRY_IMAGE}"/* ]]; then
+        echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+      fi
+      docker pull "$image"
+      pull_exit=$?
+      build_exit=1
+      if [ "$pull_exit" -eq 0 ]; then
+        docker run --rm \
+          -e "GITHUB_REPOSITORY=$CI_PROJECT_PATH" \
+          -e "GITHUB_SHA=$CI_COMMIT_SHA" \
+          -e "GITHUB_REF=$CI_COMMIT_REF_NAME" \
+          -v "$CI_PROJECT_DIR:/workspace" \
+          "$image" \
+          bash /workspace/.github/labview/build-binaries.sh /workspace "/workspace/$report_dir"
+        build_exit=$?
+      else
+        printf 'Could not pull LabVIEW image %s\n' "$image" > "$report_dir/builds.log"
+      fi
+      python3 .github/labview/build-binaries-report.py \
+        --summary "$report_dir/summary.json" \
+        --out "$report_dir" \
+        --platform linux \
+        --sha "$CI_COMMIT_SHA" \
+        --repo "$CI_PROJECT_PATH" \
+        --pages-url "$CI_PAGES_URL" \
+        --labview-version "$LVCI_LABVIEW_VERSION" \
+        --run-url "$CI_PIPELINE_URL" \
+        --commit-msg "$(git log -1 --pretty=%s "$CI_COMMIT_SHA")" \
+        --author "$(git log -1 --pretty=%an "$CI_COMMIT_SHA")" \
+        --date "$(git log -1 --pretty=%cI "$CI_COMMIT_SHA")" || true
+      python3 .gitlab/labview-ci/scripts/stage-report.py \
+        --source "$report_dir" \
+        --destination "builds/$CI_COMMIT_SHA/linux" \
+        --fallback "Build specifications did not produce a report. See the GitLab job log."
+      exit "$build_exit"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - ci-out/builds/
+      - ci-out/gitlab-pages/builds/$CI_COMMIT_SHA/linux/

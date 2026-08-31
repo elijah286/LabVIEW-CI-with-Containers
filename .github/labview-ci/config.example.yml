@@ -2,25 +2,34 @@
 #
 # This file is written by the installer to record what was installed, and is the
 # single place to review/repin the configuration for this repo. The workflows
-# themselves read their settings at runtime from the GitHub context and from
-# optional GitHub Actions *variables* (Settings > Secrets and variables >
-# Actions > Variables), all of which have safe fallbacks - so this file is a
+# themselves read their settings at runtime from their CI provider context and
+# provider variables, all of which have safe fallbacks - so this file is a
 # human-facing record, not a hard dependency.
 #
 # Everything below is OPTIONAL. With nothing set, the pipeline uses sensible
-# defaults: LabVIEW 2026, an image named "<repo>-labview", and a Pages site at
-# https://<owner>.github.io/<repo>.
+# defaults: LabVIEW 2026, an image named "<repo>-labview", and a provider Pages
+# site (GitHub's default is https://<owner>.github.io/<repo>).
 
 schemaVersion: 1
 
-# Where the tooling was installed from. Used by `install.py` for re-runs/upgrades.
+# Where the tooling was installed from. Used by `install.py` and the bootstrappers
+# for re-runs/upgrades.
 source:
   repo: elijah286/LabVIEW-CI-with-Containers
   ref: main
+  # The bootstrap distribution is recorded so `install.sh --update` and
+  # `install.ps1 --update` refetch tooling from the same origin. GitLab mirror
+  # installs record host: gitlab and their GitLab project here instead.
+  distribution:
+    host: github
+    repo: elijah286/LabVIEW-CI-with-Containers
+    ref: main
+    url: https://github.com
 
 config:
   # LabVIEW year. Drives the in-container LabVIEW.exe path and the image tag.
-  # To pin it for CI, set the Actions variable LABVIEW_VERSION to the same value.
+  # GitHub: pin it with the Actions variable LABVIEW_VERSION. GitLab: override
+  # LVCI_LABVIEW_VERSION as a CI/CD variable.
   labviewVersion: "2026"
 
   # Default branch the push-triggered workflows watch.
@@ -29,12 +38,14 @@ config:
   # Operating systems the analysis jobs run on.
   os: [windows, linux]
 
-  # Optional GHCR image name override (default: "<repo>-labview").
-  # To pin it for CI, set the Actions variable LABVIEW_IMAGE_NAME.
+  # Optional GitHub GHCR image-name override (default: "<repo>-labview").
+  # To pin it for GitHub CI, set the Actions variable LABVIEW_IMAGE_NAME. GitLab
+  # uses its project registry; set LVCI_WINDOWS_IMAGE or LVCI_LINUX_IMAGE there.
   # imageName: my-labview-ci
 
-  # Worker container (optional). Choose which prebuilt GHCR image CI runs in and
-  # the VIPC dependency files baked into it. Managed by the Configure dialog.
+  # Worker container (optional, GitHub workflows). Choose which prebuilt GHCR
+  # image CI runs in and the VIPC dependency files baked into it. GitLab native
+  # templates use their project registry and LVCI_* CI/CD variables instead.
   container:
     # Default image tag every container action uses: "latest" (recommended;
     # tracks your newest build), a pinned per-content tag (e.g. win-ab12cd34ef56),
@@ -76,11 +87,15 @@ activities:
   - vidiff
 
 # ----------------------------------------------------------------------------
-# Actions variables the workflows honor at runtime (set with `gh variable set`):
+# GitHub Actions variables the GitHub workflows honor at runtime (set with
+# `gh variable set`):
 #
 #   gh variable set LABVIEW_VERSION    -b 2026
 #   gh variable set LABVIEW_IMAGE_NAME -b my-labview-ci      # optional
 #   gh variable set PAGES_URL          -b https://ci.example.com   # custom domain
 #
 # None are required; each falls back to a value derived from the repository.
+# GitLab users set equivalent overrides in Settings > CI/CD > Variables, notably
+# LVCI_WINDOWS_RUNNER_TAG, LVCI_LINUX_RUNNER_TAG, LVCI_WINDOWS_IMAGE,
+# LVCI_LINUX_IMAGE, and LVCI_CONTAINER_RELEASE.
 # ----------------------------------------------------------------------------

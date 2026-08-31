@@ -1,0 +1,84 @@
+lvci:vidiff-windows:
+  extends: .lvci:windows-docker
+  stage: verify
+  needs:
+    - job: lvci:worker-windows
+      optional: true
+      artifacts: false
+  variables:
+    GIT_DEPTH: "0"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: manual
+      allow_failure: true
+    - changes:
+        - "**/*.vi"
+        - "**/*.ctl"
+  script:
+    - |
+      $ErrorActionPreference = 'Continue'
+      $headSha = if ($env:CI_MERGE_REQUEST_SOURCE_BRANCH_SHA) { $env:CI_MERGE_REQUEST_SOURCE_BRANCH_SHA } else { $env:CI_COMMIT_SHA }
+      $baseSha = if ($env:CI_MERGE_REQUEST_DIFF_BASE_SHA) { $env:CI_MERGE_REQUEST_DIFF_BASE_SHA } else { $env:CI_COMMIT_BEFORE_SHA }
+      if (-not $baseSha -or $baseSha -match '^0+$') { $baseSha = (& git rev-parse "$headSha^" 2>$null).Trim() }
+      $reportDir = Join-Path $env:CI_PROJECT_DIR 'ci-out\vidiff'
+      $headDir = Join-Path $env:CI_PROJECT_DIR '.lvci-vidiff-head'
+      $baseDir = Join-Path $env:CI_PROJECT_DIR '.lvci-vidiff-base'
+      Remove-Item -Path $reportDir, $headDir, $baseDir -Recurse -Force -ErrorAction SilentlyContinue
+      New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
+      git worktree add --detach $headDir $headSha
+      $headExit = $LASTEXITCODE
+      git worktree add --detach $baseDir $baseSha
+      $baseExit = $LASTEXITCODE
+      $diffExit = 1
+      if ($headExit -eq 0 -and $baseExit -eq 0) {
+        $changedFiles = (& git -C $headDir diff --name-only $baseSha $headSha -- '*.vi' '*.ctl') -join "`n"
+        if ($env:LVCI_WINDOWS_IMAGE) {
+          $image = $env:LVCI_WINDOWS_IMAGE
+        } elseif ($env:LVCI_USE_CUSTOM_IMAGE -eq 'true') {
+          $image = "$env:CI_REGISTRY_IMAGE/labview:windows-latest"
+        } else {
+          $image = 'nationalinstruments/labview:latest-windows'
+        }
+        if ($image.StartsWith("$env:CI_REGISTRY_IMAGE/", [System.StringComparison]::OrdinalIgnoreCase)) {
+          $env:CI_REGISTRY_PASSWORD | docker login $env:CI_REGISTRY --username $env:CI_REGISTRY_USER --password-stdin
+        }
+        docker pull $image
+        if ($LASTEXITCODE -eq 0) {
+          $env:CHANGED_FILES = $changedFiles
+          docker run --rm `
+            -v "$headDir:C:\workspace" `
+            -v "$baseDir:C:\workspace-base" `
+            -e CHANGED_FILES `
+            -e "GITHUB_REPOSITORY=$env:CI_PROJECT_PATH" `
+            -e "GITHUB_SHA=$headSha" `
+            $image `
+            powershell -NonInteractive -ExecutionPolicy Bypass `
+              -File 'C:\workspace\.github\labview\vidiff.ps1' `
+              -BaseDir 'C:\workspace-base' `
+              -HeadDir 'C:\workspace' `
+              -ReportDir 'C:\workspace\ci-out\vidiff' `
+              -LabVIEWPath "C:\Program Files\National Instruments\LabVIEW $env:LVCI_LABVIEW_VERSION\LabVIEW.exe"
+          $diffExit = $LASTEXITCODE
+          $headReport = Join-Path $headDir 'ci-out\vidiff'
+          if (Test-Path $headReport) { Copy-Item -Path (Join-Path $headReport '*') -Destination $reportDir -Recurse -Force }
+        } else {
+          Set-Content -Path (Join-Path $reportDir 'vidiff.log') -Value "Could not pull LabVIEW image $image"
+        }
+      } else {
+        Set-Content -Path (Join-Path $reportDir 'vidiff.log') -Value 'Could not materialize the GitLab comparison revisions.'
+      }
+      git worktree remove --force $headDir 2>$null
+      git worktree remove --force $baseDir 2>$null
+      python .gitlab\labview-ci\scripts\stage-report.py `
+        --source $reportDir `
+        --destination "vidiff/$headSha" `
+        --fallback 'VIDiff did not produce a report. See the GitLab job log.'
+      $ErrorActionPreference = 'Stop'
+      exit $diffExit
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - ci-out/vidiff/
+      - ci-out/gitlab-pages/vidiff/

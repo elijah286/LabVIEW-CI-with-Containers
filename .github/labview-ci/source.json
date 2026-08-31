@@ -1,5 +1,17 @@
 {
-  "comment": "Canonical home of the LabVIEW CI tooling -- the SINGLE place to redirect existing clients and new installs to a different repository for UPDATES and INSTALLATION. How it works: every client reads this file from the repo it currently pulls from (raw.githubusercontent.com/<that repo>/<ref>/.github/labview-ci/source.json); if \"repo\" below names a DIFFERENT repository than the one it was read from, the tooling has relocated, so the update-check, the one-click 'Update now' upgrade, the web installer, and the curl/irm CLI installers all follow it there -- and after one redirected update/install each client re-pins its own .github/labview-ci.yml to the new repo, so it polls the new home directly from then on. TODAY this names this very repository, so there is no redirect (clients keep using their current source). TO RELOCATE (e.g. when this project moves to an official NI repo): (1) in the NEW repo, set \"repo\" to the NEW repo's OWN owner/name so its own clients do not bounce; (2) in THIS repo, set \"repo\" to the NEW repo's owner/name; (3) bump the catalog version (.github/labview-ci/catalog.json) so clients see the move in the What's New dialog. Keep this repo reachable afterwards so already-installed clients can follow the pointer on their next update. NOTE: only clients running the version that introduced this pointer (or newer) will auto-follow; older clients adopt the follow-logic the next time they update.",
+  "comment": "Canonical home of the LabVIEW CI tooling -- the SINGLE source of implementation and the place to redirect existing clients and new installs when the canonical source moves. The legacy repo/ref fields retain the GitHub relocation contract for installed GitHub clients. The distributions object names supported download endpoints: GitHub is canonical and GitLab is an automated, one-way release mirror that carries the same source tree and released tags. New bootstrappers select a distribution explicitly and record it in the target manifest, so a GitLab-installed target updates from GitLab without creating a second codebase. To relocate the canonical source, update the legacy fields and the github distribution together, then update the gitlab distribution after its mirror changes. Keep the old canonical repo reachable so older clients can follow the pointer on their next update.",
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "ref": "main"
+  "ref": "main",
+  "distributions": {
+    "github": {
+      "repo": "elijah286/LabVIEW-CI-with-Containers",
+      "ref": "main",
+      "url": "https://github.com"
+    },
+    "gitlab": {
+      "repo": "elijah286/ci-for-labview",
+      "ref": "main",
+      "url": "https://gitlab.com"
+    }
+  }
 }

@@ -169,3 +169,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FORCE_ALIASES: ${{ inputs.move_aliases }}
         run: bash .github/labview/publish-release.sh
+
+      - name: Synchronize the GitLab distribution mirror
+        if: vars.GITLAB_MIRROR_ENABLED == 'true'
+        env:
+          GITLAB_MIRROR_TOKEN: ${{ secrets.GITLAB_MIRROR_TOKEN }}
+          GITLAB_MIRROR_USERNAME: ${{ vars.GITLAB_MIRROR_USERNAME }}
+        run: .github/labview-ci/sync-gitlab-mirror.sh

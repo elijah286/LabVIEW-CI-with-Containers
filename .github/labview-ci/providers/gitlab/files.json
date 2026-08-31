@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "targetRoot": ".gitlab/labview-ci",
+  "builtInCapabilities": ["dashboard"],
+  "files": [
+    "files.json",
+    "README.md",
+    "templates/common.yml",
+    "templates/custom-image-linux.yml",
+    "templates/custom-image-windows.yml",
+    "templates/masscompile-linux.yml",
+    "templates/masscompile-windows.yml",
+    "templates/pages.yml",
+    "templates/sbom-windows.yml",
+    "templates/snapshots-2-linux.yml",
+    "templates/snapshots-2-windows.yml",
+    "templates/snapshots-windows.yml",
+    "templates/unit-tests-windows.yml",
+    "templates/vi-analyzer-linux.yml",
+    "templates/vi-analyzer-windows.yml",
+    "templates/antidoc-windows.yml",
+    "templates/builds-linux.yml",
+    "templates/builds-windows.yml",
+    "templates/vidiff-linux.yml",
+    "templates/vidiff-windows.yml",
+    "assets/lvci-header.js",
+    "scripts/build-dashboard.py",
+    "scripts/merge-snapshot-store.py",
+    "scripts/restore-pages.py",
+    "scripts/stage-report.py",
+    "scripts/stage-tree.py"
+  ],
+  "capabilityTemplates": {
+    "custom-image": {
+      "windows": "templates/custom-image-windows.yml",
+      "linux": "templates/custom-image-linux.yml"
+    },
+    "masscompile": {
+      "windows": "templates/masscompile-windows.yml",
+      "linux": "templates/masscompile-linux.yml"
+    },
+    "vi-analyzer": {
+      "windows": "templates/vi-analyzer-windows.yml",
+      "linux": "templates/vi-analyzer-linux.yml"
+    },
+    "unit-tests": {
+      "windows": "templates/unit-tests-windows.yml"
+    },
+    "antidoc": {
+      "windows": "templates/antidoc-windows.yml"
+    },
+    "sbom-generation": {
+      "windows": "templates/sbom-windows.yml"
+    },
+    "builds": {
+      "windows": "templates/builds-windows.yml",
+      "linux": "templates/builds-linux.yml"
+    },
+    "vidiff": {
+      "windows": "templates/vidiff-windows.yml",
+      "linux": "templates/vidiff-linux.yml"
+    },
+    "snapshots": {
+      "windows": "templates/snapshots-windows.yml"
+    },
+    "snapshots-2": {
+      "windows": "templates/snapshots-2-windows.yml",
+      "linux": "templates/snapshots-2-linux.yml"
+    }
+  }
+}

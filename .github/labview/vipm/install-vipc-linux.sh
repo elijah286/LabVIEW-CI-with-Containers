@@ -6,6 +6,17 @@ LABVIEW_VERSION="${LABVIEW_VERSION:-2026}"
 export VIPM_NONINTERACTIVE="${VIPM_NONINTERACTIVE:-1}"
 export VIPM_ASSUME_YES="${VIPM_ASSUME_YES:-1}"
 export NO_COLOR="${NO_COLOR:-1}"
+export VIPM_DEBUG="${VIPM_DEBUG:-1}"
+export VIPM_TIMEOUT="${VIPM_TIMEOUT:-900}"
+export VIPM_DESKTOP_LIVELINESS_TIMEOUT="${VIPM_DESKTOP_LIVELINESS_TIMEOUT:-900}"
+export CI="${CI:-true}"
+
+# The worker runtime needs this default, but VIPM's desktop engine cannot finish
+# its startup handshake while it inherits it during the image build.
+if [ -n "${LV_RTE_HEADLESS:-}" ]; then
+  echo "Clearing LV_RTE_HEADLESS for the VIPM install."
+  unset LV_RTE_HEADLESS
+fi
 
 setup_display() {
   export DISPLAY="${DISPLAY:-:99}"
@@ -50,6 +61,56 @@ find_vipm() {
   find /usr/local /usr /opt -type f \( -name vipm -o -name vipm-cli \) -perm -111 2>/dev/null | head -n 1
 }
 
+vipc_package_specs() {
+  local vipc_file="$1"
+  unzip -p "$vipc_file" config.xml | awk '
+    /<Package([[:space:]>])/ { in_package = 1; next }
+    /<\/Package>/ { in_package = 0; next }
+    in_package && /<Name>/ {
+      sub(/.*<Name>/, "")
+      sub(/<\/Name>.*/, "")
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+      if (length) print
+    }
+  '
+}
+
+package_install_spec() {
+  local package_name="$1"
+  if [[ "$package_name" =~ ^(.+)-([0-9]+(\.[0-9]+)+)(-[0-9]+)?$ ]]; then
+    printf '%s@%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+  else
+    printf '%s\n' "$package_name"
+  fi
+}
+
+install_package_specs() {
+  local result
+  if "$VIPM_BIN" --show-progress --verbose --labview-version "$LABVIEW_VERSION" --labview-bitness 64 install "$@"; then
+    return 0
+  else
+    result=$?
+  fi
+  if [ "$result" -eq 2 ]; then
+    echo "VIPM rejected global LabVIEW flags; retrying against the active target."
+    "$VIPM_BIN" --show-progress --verbose install "$@"
+    return $?
+  fi
+  return "$result"
+}
+
+print_install_diagnostics() {
+  local result="$1"
+  echo "VIPM install failed with exit $result; collecting process and display diagnostics." >&2
+  ps -eo pid,ppid,stat,etime,comm | grep -Ei 'labview|vipm|xvfb' || true
+  for log_file in /tmp/labview-headless.log /tmp/xvfb.log; do
+    if [ -f "$log_file" ]; then
+      echo "--- $log_file ---" >&2
+      tail -n 200 "$log_file" >&2 || true
+    fi
+  done
+}
+
 VIPM_BIN="$(find_vipm || true)"
 if [ -z "$VIPM_BIN" ]; then
   echo "VIPM CLI was not found after installing the native VIPM package." >&2
@@ -80,28 +141,39 @@ if [ -n "${VIPM_SERIAL_NUMBER:-}" ]; then
   echo "VIPM activation command was not accepted; continuing with the installed license state."
 fi
 
-"$VIPM_BIN" refresh || "$VIPM_BIN" update || true
+start_labview
+echo "Refreshing VIPM package sources..."
+if refresh_output=$("$VIPM_BIN" refresh --force 2>&1); then
+  printf '%s\n' "$refresh_output"
+else
+  refresh_result=$?
+  printf '%s\n' "$refresh_output"
+  if printf '%s\n' "$refresh_output" | grep -Fqi 'wait for VIPM startup'; then
+    echo "VIPM's desktop engine did not finish starting; aborting before package installs repeat the same timeout." >&2
+    exit "$refresh_result"
+  fi
+  echo "VIPM package-source refresh failed (exit $refresh_result); continuing with version-pinned installs." >&2
+fi
 
 for vipc_file in "${vipc_files[@]}"; do
   echo "Applying VIPC: $vipc_file"
-  start_labview
-  if "$VIPM_BIN" install -y "$vipc_file" --labview-version "$LABVIEW_VERSION"; then
+  package_specs=()
+  while IFS= read -r package_name; do
+    package_specs+=("$(package_install_spec "$package_name")")
+  done < <(vipc_package_specs "$vipc_file")
+  if [ "${#package_specs[@]}" -eq 0 ]; then
+    echo "No package names could be read from $vipc_file" >&2
+    exit 1
+  fi
+  printf 'Installing packages: %s\n' "${package_specs[*]}"
+  install_result=0
+  install_package_specs "${package_specs[@]}" || install_result=$?
+  if [ "$install_result" -eq 0 ]; then
     continue
   fi
-  if "$VIPM_BIN" install -y "$vipc_file"; then
-    continue
-  fi
-  if "$VIPM_BIN" install "$vipc_file" --labview-version "$LABVIEW_VERSION" --yes; then
-    continue
-  fi
-  if "$VIPM_BIN" apply_vipc "$vipc_file" --labview-version "$LABVIEW_VERSION"; then
-    continue
-  fi
-  if "$VIPM_BIN" apply_vipc "$vipc_file"; then
-    continue
-  fi
+  print_install_diagnostics "$install_result"
   echo "Failed to apply VIPC: $vipc_file" >&2
-  exit 1
+  exit "$install_result"
 done
 
 "$VIPM_BIN" list --installed || true
