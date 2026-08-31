@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "3f7e6d84af2460890772bbb6c0e9b2359fa36b78",
+  "sha": "c7d0df871eaa85ef18a7095ee705bc10bd2eed1a",
   "revisions": [
+    {
+      "sha": "c7d0df871eaa85ef18a7095ee705bc10bd2eed1a",
+      "short": "c7d0df8",
+      "message": "Release 4.18.0 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-31T00:44:10Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "3f7e6d84af2460890772bbb6c0e9b2359fa36b78",
       "short": "3f7e6d8",
@@ -891,15 +900,6 @@
       "message": "Windows Debug Run: surface the LabVIEW window (fix black desktop) + diagnostics",
       "author": "Elijah Kerry",
       "date": "2026-07-23T20:07:19Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "1b324b7c8e0e052aa91590f796a4e8ef59d3b0c1",
-      "short": "1b324b7",
-      "message": "What's New: hide the update-channel picker on the source repo (4.11.9)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T20:04:45Z",
       "project": false,
       "dep_only": false
     },
