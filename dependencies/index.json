@@ -1,8 +1,35 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "127c8793640cc5b8aec1b8c59b9fdbe1606c3181",
+  "sha": "ff4daab9ff9a92cbd90dda1c5dfff27f6a88f73e",
   "revisions": [
+    {
+      "sha": "ff4daab9ff9a92cbd90dda1c5dfff27f6a88f73e",
+      "short": "ff4daab",
+      "message": "Release 4.18.2 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-31T12:51:13Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "485c5fef96f3fe21578a7f07d9bcdb7018a3e2c3",
+      "short": "485c5fe",
+      "message": "Merge pull request #60 from elijah286/fix/fork-first-run-worker-image",
+      "author": "Elijah Kerry",
+      "date": "2026-08-31T12:51:02Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "fa4affb724ac18a5b22bf205365d9ada7c5e6544",
+      "short": "fa4affb",
+      "message": "Release 4.18.1 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-08-31T12:50:16Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "127c8793640cc5b8aec1b8c59b9fdbe1606c3181",
       "short": "127c879",
@@ -126,6 +153,15 @@
       "message": "Dashboard: keep dead CI runs visible instead of silently resetting cells",
       "author": "Elijah Kerry",
       "date": "2026-08-22T16:45:57Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "35f457ed7da0303428bb337e10d983d990e6c81b",
+      "short": "35f457e",
+      "message": "Fork-safe first run: auto-build the missing worker image",
+      "author": "Elijah Kerry",
+      "date": "2026-08-22T01:11:28Z",
       "project": false,
       "dep_only": false
     },
@@ -864,42 +900,6 @@
       "message": "Debug Run: Linux-only dialog + \"Open the project\" as the primary action (4.12.3)",
       "author": "Elijah Kerry",
       "date": "2026-07-23T22:51:27Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "6b55910acbedf7924c2b190c7853b205bef008f2",
-      "short": "6b55910",
-      "message": "VI Analyzer report: testing-errors banner now names the VIs + errors (4.12.2)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T22:07:19Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "2b5f4672de2dd55526a3c554e62c1a3f60fc9c1f",
-      "short": "2b5f467",
-      "message": "Windows Debug Run: enumerate all desktops+windows to locate LabVIEW's window",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T21:58:23Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "3bfb7f949a6c77cd61794ceecc29779eb5ffb804",
-      "short": "3bfb7f9",
-      "message": "VI Analyzer report: inline VI snapshots + raw report download (4.12.0)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T21:29:36Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "e43f5ee9d419348157308e9f4bed73f68766913e",
-      "short": "e43f5ee",
-      "message": "Windows Debug Run: attach to WinSta0\\Default to fix the black VNC screen",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T21:26:13Z",
       "project": false,
       "dep_only": false
     },
