@@ -312,13 +312,26 @@ jobs:
           else
             STATE="failure"
           fi
+          DESC="VI Analyzer $STATE"
+          # A pull failure means the analyzer never ran; say that instead of a
+          # generic "failure" so the dashboard message is actionable.
+          if [ "${{ steps.pull.outcome }}" != "success" ]; then
+            DESC="Worker image unavailable - build it via Configure Workers"
+          fi
           curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"VI Analyzer $STATE\",\"context\":\"CI / VI Analyzer\"}"
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"$DESC\",\"context\":\"CI / VI Analyzer\"}"
 
       - name: Fail the job if analysis failed
         if: always() && (steps.pull.outcome != 'success' || steps.analyze.outcome != 'success')
-        run: exit 1
+        shell: bash
+        run: |
+          if [ "${{ steps.pull.outcome }}" != "success" ]; then
+            echo "::error::The worker container image could not be pulled, so VI Analyzer never ran. If it has never been built for this repository, run 'Build LabVIEW CI Image' (Actions) or use Configure Workers on the dashboard, then re-run this workflow."
+          else
+            echo "::error::VI Analyzer failed - open the analysis step log or the report above for the findings."
+          fi
+          exit 1
 
   # VIDiff (Windows container). Renders visual diffs for changed VIs between the
   # base and head commits, deploys them to the caller's Pages, and posts the

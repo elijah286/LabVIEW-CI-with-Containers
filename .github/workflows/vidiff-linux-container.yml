@@ -35,7 +35,7 @@ permissions:
   contents: read
   statuses: write
   packages: read
-  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
+  actions: write  # wait-for-worker-image.sh reads worker-image build runs and starts the first build on a fresh fork
 
 jobs:
   vidiff-linux:
