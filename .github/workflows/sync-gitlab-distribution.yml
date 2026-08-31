@@ -1,0 +1,30 @@
+name: Sync GitLab Distribution
+run-name: Sync GitLab distribution - ${{ inputs.ref }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Immutable release tag to synchronize, for example v4.17.4
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    if: vars.GITLAB_MIRROR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Synchronize the GitLab release mirror
+        env:
+          GITLAB_MIRROR_TOKEN: ${{ secrets.GITLAB_MIRROR_TOKEN }}
+          GITLAB_MIRROR_USERNAME: ${{ vars.GITLAB_MIRROR_USERNAME }}
+          GITLAB_MIRROR_REF: ${{ inputs.ref }}
+        run: .github/labview-ci/sync-gitlab-mirror.sh

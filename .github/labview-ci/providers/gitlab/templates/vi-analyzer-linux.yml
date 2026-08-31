@@ -1,0 +1,79 @@
+lvci:vi-analyzer-linux:
+  extends: .lvci:linux-docker
+  stage: verify
+  needs:
+    - job: lvci:worker-linux
+      optional: true
+      artifacts: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: manual
+      allow_failure: true
+    - changes:
+        - "**/*.vi"
+        - "**/*.ctl"
+        - "**/*.lvproj"
+        - "**/*.lvlib"
+        - "**/*.lvclass"
+        - "**/*.viancfg"
+  script:
+    - |
+      set +e
+      report_dir="ci-out/vi-analyzer"
+      mkdir -p "$report_dir"
+      if [ -n "${LVCI_LINUX_IMAGE:-}" ]; then
+        image="$LVCI_LINUX_IMAGE"
+      elif [ "${LVCI_USE_CUSTOM_IMAGE:-false}" = "true" ]; then
+        image="${CI_REGISTRY_IMAGE}/labview:linux-latest"
+      else
+        image="nationalinstruments/labview:latest-linux"
+      fi
+      if [[ "$image" == "${CI_REGISTRY_IMAGE}"/* ]]; then
+        echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+      fi
+      docker pull "$image"
+      pull_exit=$?
+      analyze_exit=1
+      if [ "$pull_exit" -eq 0 ]; then
+        docker run --rm \
+          -e "GITHUB_REPOSITORY=$CI_PROJECT_PATH" \
+          -e "GITHUB_SHA=$CI_COMMIT_SHA" \
+          -v "$CI_PROJECT_DIR:/workspace" \
+          "$image" \
+          bash /workspace/.github/labview/run-vi-analyzer.sh /workspace "/workspace/$report_dir"
+        analyze_exit=$?
+      else
+        printf 'Could not pull LabVIEW image %s\n' "$image" > "$report_dir/vi-analyzer.log"
+      fi
+      if [ -f "$report_dir/passes/manifest.json" ]; then
+        report_input=(--passes-dir "$report_dir/passes")
+      elif [ -f "$report_dir/index.html" ]; then
+        report_input=(--in "$report_dir/index.html")
+      else
+        report_input=()
+      fi
+      if [ "${#report_input[@]}" -gt 0 ]; then
+        python3 .github/labview/build-analyzer-report.py \
+          "${report_input[@]}" \
+          --out "$report_dir" \
+          --pages-base "../../.." \
+          --sha "$CI_COMMIT_SHA" \
+          --platform linux \
+          --repo "$CI_PROJECT_PATH" \
+          --pages-url "$CI_PAGES_URL" \
+          --commit-msg "$(git log -1 --pretty=%s "$CI_COMMIT_SHA")" \
+          --author "$(git log -1 --pretty=%an "$CI_COMMIT_SHA")" \
+          --date "$(git log -1 --pretty=%cI "$CI_COMMIT_SHA")" || true
+      fi
+      python3 .gitlab/labview-ci/scripts/stage-report.py \
+        --source "$report_dir" \
+        --destination "vi-analyzer/$CI_COMMIT_SHA/linux" \
+        --fallback "VI Analyzer did not produce a report. See the GitLab job log."
+      exit "$analyze_exit"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - ci-out/vi-analyzer/
+      - ci-out/gitlab-pages/vi-analyzer/$CI_COMMIT_SHA/linux/

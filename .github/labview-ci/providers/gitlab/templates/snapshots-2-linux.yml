@@ -1,0 +1,71 @@
+lvci:snapshots-2-linux:
+  extends: .lvci:linux-docker
+  stage: verify
+  needs:
+    - job: lvci:worker-linux
+      optional: true
+      artifacts: false
+    - job: lvci:snapshots-windows
+      optional: true
+      artifacts: true
+  variables:
+    GIT_DEPTH: "0"
+  resource_group: labview-ci-snapshot-render
+  timeout: 3h
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - changes:
+        - "**/*.vi"
+        - "**/*.ctl"
+        - "**/*.lvproj"
+        - "**/*.lvlib"
+        - "**/*.lvclass"
+  script:
+    - |
+      set +e
+      previous=".lvci-previous-pages"
+      output="ci-out/vi-snapshots-2-linux"
+      rm -rf "$output"
+      mkdir -p "$output"
+      python3 .gitlab/labview-ci/scripts/restore-pages.py --out "$previous"
+      if [ -n "${LVCI_LINUX_IMAGE:-}" ]; then
+        image="$LVCI_LINUX_IMAGE"
+      elif [ "${LVCI_USE_CUSTOM_IMAGE:-false}" = "true" ]; then
+        image="${CI_REGISTRY_IMAGE}/labview:linux-latest"
+      else
+        printf '%s\n' 'VI Snapshots 2.0 on Linux needs a custom Linux worker image. Enable custom-image or set LVCI_LINUX_IMAGE.' > "$output/render.log"
+        python3 .gitlab/labview-ci/scripts/stage-tree.py \
+          --source "$output" \
+          --destination "ci-out/gitlab-pages/snapshots-2-linux/vi-snapshots"
+        exit 0
+      fi
+      if [[ "$image" == "${CI_REGISTRY_IMAGE}"/* ]]; then
+        echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+      fi
+      docker pull "$image"
+      render_exit=$?
+      if [ "$render_exit" -eq 0 ]; then
+        WS="$CI_PROJECT_DIR" \
+        MODE="${LVCI_SNAPSHOT_MODE:-head}" \
+        TARGET_SHA="$CI_COMMIT_SHA" \
+        FORCE="${LVCI_SNAPSHOT_FORCE:-false}" \
+        IMAGE="$image" \
+        OUT="$CI_PROJECT_DIR/$output" \
+        GHP="$CI_PROJECT_DIR/$previous/public" \
+        MAX_COMMITS="${LVCI_SNAPSHOT_MAX_COMMITS:-0}" \
+        TIME_BUDGET_MIN="${LVCI_SNAPSHOT_TIME_BUDGET_MINUTES:-110}" \
+        bash .github/labview/run-toimages.sh
+        render_exit=$?
+      else
+        printf 'Could not pull the Linux worker image %s\n' "$image" > "$output/render.log"
+      fi
+      python3 .gitlab/labview-ci/scripts/stage-tree.py \
+        --source "$output" \
+        --destination "ci-out/gitlab-pages/snapshots-2-linux/vi-snapshots"
+      exit "$render_exit"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - ci-out/vi-snapshots-2-linux/
+      - ci-out/gitlab-pages/snapshots-2-linux/

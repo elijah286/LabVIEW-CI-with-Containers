@@ -1,0 +1,70 @@
+lvci:snapshots-windows:
+  extends: .lvci:windows-docker
+  stage: verify
+  needs:
+    - job: lvci:worker-windows
+      optional: true
+      artifacts: false
+  variables:
+    GIT_DEPTH: "0"
+  resource_group: labview-ci-snapshot-render
+  timeout: 6h
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - changes:
+        - "**/*.vi"
+        - "**/*.ctl"
+        - "**/*.lvproj"
+        - "**/*.lvlib"
+        - "**/*.lvclass"
+  script:
+    - |
+      $ErrorActionPreference = 'Continue'
+      $previous = Join-Path $env:CI_PROJECT_DIR '.lvci-previous-pages'
+      $outDir = Join-Path $env:CI_PROJECT_DIR 'ci-out\vi-snapshots'
+      Remove-Item -Path $outDir -Recurse -Force -ErrorAction SilentlyContinue
+      New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+      python .gitlab\labview-ci\scripts\restore-pages.py --out $previous
+      $previousGallery = Join-Path $previous 'public\vi-snapshots'
+      if (Test-Path $previousGallery) {
+        Copy-Item -Path (Join-Path $previousGallery '*') -Destination $outDir -Recurse -Force
+      }
+      if ($env:LVCI_WINDOWS_IMAGE) {
+        $image = $env:LVCI_WINDOWS_IMAGE
+      } elseif ($env:LVCI_USE_CUSTOM_IMAGE -eq 'true') {
+        $image = "$env:CI_REGISTRY_IMAGE/labview:windows-latest"
+      } else {
+        $image = 'nationalinstruments/labview:latest-windows'
+      }
+      if ($image.StartsWith("$env:CI_REGISTRY_IMAGE/", [System.StringComparison]::OrdinalIgnoreCase)) {
+        $env:CI_REGISTRY_PASSWORD | docker login $env:CI_REGISTRY --username $env:CI_REGISTRY_USER --password-stdin
+      }
+      $mode = if ($env:LVCI_SNAPSHOT_MODE) { $env:LVCI_SNAPSHOT_MODE } else { 'head' }
+      $maxCommits = if ($env:LVCI_SNAPSHOT_MAX_COMMITS) { [int]$env:LVCI_SNAPSHOT_MAX_COMMITS } else { 0 }
+      $maxVis = if ($env:LVCI_SNAPSHOT_MAX_VIS) { [int]$env:LVCI_SNAPSHOT_MAX_VIS } else { 0 }
+      $timeBudget = if ($env:LVCI_SNAPSHOT_TIME_BUDGET_MINUTES) { [int]$env:LVCI_SNAPSHOT_TIME_BUDGET_MINUTES } else { 300 }
+      $force = if ($env:LVCI_SNAPSHOT_FORCE) { $env:LVCI_SNAPSHOT_FORCE } else { 'false' }
+      & .github\labview\build-snapshots.ps1 `
+        -Mode $mode `
+        -WorkspaceRoot $env:CI_PROJECT_DIR `
+        -TargetSha $env:CI_COMMIT_SHA `
+        -OutDir $outDir `
+        -ExistingByBlobDir (Join-Path $outDir 'by-blob') `
+        -Image $image `
+        -MaxCommits $maxCommits `
+        -MaxVIs $maxVis `
+        -TimeBudgetMinutes $timeBudget `
+        -Force $force
+      $renderExit = $LASTEXITCODE
+      $valid = (Test-Path (Join-Path $outDir 'commits.json')) -and (Test-Path (Join-Path $outDir 'by-blob'))
+      python .gitlab\labview-ci\scripts\stage-tree.py `
+        --source $outDir `
+        --destination 'ci-out/gitlab-pages/snapshots-classic/vi-snapshots'
+      $ErrorActionPreference = 'Stop'
+      if ($renderExit -ne 0 -or -not $valid) { exit 1 }
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - ci-out/vi-snapshots/
+      - ci-out/gitlab-pages/snapshots-classic/

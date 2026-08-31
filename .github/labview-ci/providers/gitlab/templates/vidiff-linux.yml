@@ -1,0 +1,78 @@
+lvci:vidiff-linux:
+  extends: .lvci:linux-docker
+  stage: verify
+  needs:
+    - job: lvci:worker-linux
+      optional: true
+      artifacts: false
+  variables:
+    GIT_DEPTH: "0"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: manual
+      allow_failure: true
+    - changes:
+        - "**/*.vi"
+        - "**/*.ctl"
+  script:
+    - |
+      set +e
+      head_sha="${CI_MERGE_REQUEST_SOURCE_BRANCH_SHA:-$CI_COMMIT_SHA}"
+      base_sha="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-$CI_COMMIT_BEFORE_SHA}"
+      if [ -z "$base_sha" ] || [[ "$base_sha" =~ ^0+$ ]]; then
+        base_sha="$(git rev-parse "$head_sha^" 2>/dev/null)"
+      fi
+      report_dir="ci-out/vidiff"
+      head_dir=".lvci-vidiff-head"
+      base_dir=".lvci-vidiff-base"
+      rm -rf "$report_dir" "$head_dir" "$base_dir"
+      mkdir -p "$report_dir"
+      git worktree add --detach "$head_dir" "$head_sha"
+      head_exit=$?
+      git worktree add --detach "$base_dir" "$base_sha"
+      base_exit=$?
+      diff_exit=1
+      if [ "$head_exit" -eq 0 ] && [ "$base_exit" -eq 0 ]; then
+        changed_files="$(git -C "$head_dir" diff --name-only "$base_sha" "$head_sha" -- '*.vi' '*.ctl')"
+        if [ -n "${LVCI_LINUX_IMAGE:-}" ]; then
+          image="$LVCI_LINUX_IMAGE"
+        elif [ "${LVCI_USE_CUSTOM_IMAGE:-false}" = "true" ]; then
+          image="${CI_REGISTRY_IMAGE}/labview:linux-latest"
+        else
+          image="nationalinstruments/labview:latest-linux"
+        fi
+        if [[ "$image" == "${CI_REGISTRY_IMAGE}"/* ]]; then
+          echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+        fi
+        docker pull "$image"
+        if [ $? -eq 0 ]; then
+          CHANGED_FILES="$changed_files" docker run --rm \
+            -e CHANGED_FILES \
+            -e "GITHUB_REPOSITORY=$CI_PROJECT_PATH" \
+            -e "GITHUB_SHA=$head_sha" \
+            -v "$CI_PROJECT_DIR/$head_dir:/workspace" \
+            -v "$CI_PROJECT_DIR/$base_dir:/workspace-base" \
+            "$image" \
+            bash /workspace/.github/labview/vidiff.sh /workspace-base /workspace /workspace/ci-out/vidiff
+          diff_exit=$?
+          if [ -d "$head_dir/ci-out/vidiff" ]; then cp -a "$head_dir/ci-out/vidiff/." "$report_dir/"; fi
+        else
+          printf 'Could not pull LabVIEW image %s\n' "$image" > "$report_dir/vidiff.log"
+        fi
+      else
+        printf 'Could not materialize the GitLab comparison revisions.\n' > "$report_dir/vidiff.log"
+      fi
+      git worktree remove --force "$head_dir" >/dev/null 2>&1 || true
+      git worktree remove --force "$base_dir" >/dev/null 2>&1 || true
+      python3 .gitlab/labview-ci/scripts/stage-report.py \
+        --source "$report_dir" \
+        --destination "vidiff/$head_sha/linux" \
+        --fallback "VIDiff did not produce a report. See the GitLab job log."
+      exit "$diff_exit"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - ci-out/vidiff/
+      - ci-out/gitlab-pages/vidiff/

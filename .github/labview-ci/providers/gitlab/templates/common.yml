@@ -1,0 +1,39 @@
+# Shared primitives for LabVIEW CI jobs on GitLab.
+#
+# Windows work requires a self-managed Windows shell runner with Docker installed.
+# Linux work uses Docker-in-Docker and therefore requires a privileged runner.
+
+.lvci:context:
+  variables:
+    GITHUB_REPOSITORY: "$CI_PROJECT_PATH"
+    GITHUB_SHA: "$CI_COMMIT_SHA"
+    GITHUB_REF: "$CI_COMMIT_REF_NAME"
+
+.lvci:windows-docker:
+  extends: .lvci:context
+  tags:
+    - "$LVCI_WINDOWS_RUNNER_TAG"
+  variables:
+    GIT_CLONE_PATH: ""
+  before_script:
+    - $ErrorActionPreference = 'Stop'
+    - $env:GITHUB_REPOSITORY = $env:CI_PROJECT_PATH
+    - $env:GITHUB_SHA = $env:CI_COMMIT_SHA
+    - $env:GITHUB_REF = $env:CI_COMMIT_REF_NAME
+    - . .\.github\labview\ensure-docker.ps1
+
+.lvci:linux-docker:
+  extends: .lvci:context
+  image: docker:27-cli
+  services:
+    - name: docker:27-dind
+  tags:
+    - "$LVCI_LINUX_RUNNER_TAG"
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apk add --no-cache bash curl git python3
+    - export GITHUB_REPOSITORY="$CI_PROJECT_PATH"
+    - export GITHUB_SHA="$CI_COMMIT_SHA"
+    - export GITHUB_REF="$CI_COMMIT_REF_NAME"

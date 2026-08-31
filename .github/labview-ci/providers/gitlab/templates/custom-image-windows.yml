@@ -1,0 +1,52 @@
+lvci:worker-windows:
+  extends: .lvci:windows-docker
+  stage: prepare
+  resource_group: labview-ci-windows-worker
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - changes:
+        - ".github/labview-ci/catalog.json"
+        - ".github/docker/labview-ci-base.Dockerfile"
+        - ".github/docker/labview-ci.Dockerfile"
+        - ".github/labview/vipm/**/*"
+        - ".github/labview-ci.yml"
+        - ".gitlab/labview-ci/templates/custom-image-windows.yml"
+        - "**/*.vipc"
+        - "**/*.dragon"
+  script:
+    - |
+      $ErrorActionPreference = 'Stop'
+      $vipmDir = Join-Path $env:CI_PROJECT_DIR '.github\labview\vipm'
+      Get-ChildItem -Path $env:CI_PROJECT_DIR -Recurse -File -Include '*.vipc', '*.dragon' |
+        Where-Object { $_.FullName -notmatch '[\\/]\.github[\\/]' } |
+        ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $vipmDir $_.Name) -Force }
+      $env:CI_REGISTRY_PASSWORD | docker login $env:CI_REGISTRY --username $env:CI_REGISTRY_USER --password-stdin
+      $baseImage = "$env:CI_REGISTRY_IMAGE/labview-base:windows-$env:CI_COMMIT_SHA"
+      $workerImage = "$env:CI_REGISTRY_IMAGE/labview:windows-$env:CI_COMMIT_SHA"
+      $latestImage = "$env:CI_REGISTRY_IMAGE/labview:windows-latest"
+      $catalogPath = Join-Path $env:CI_PROJECT_DIR '.github\labview-ci\catalog.json'
+      $containers = (Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json).containers
+      $releaseId = if ($env:LVCI_CONTAINER_RELEASE) { $env:LVCI_CONTAINER_RELEASE } else { $containers.default }
+      $release = $containers.supported | Where-Object { $_.id -eq $releaseId } | Select-Object -First 1
+      if (-not $release) { throw "Unknown LabVIEW container release: $releaseId" }
+      $windowsTag = ($release.windowsTag -split ':')[-1]
+      Write-Host "Building Windows worker from catalog release $($release.id): $($release.windowsTag)"
+      docker build `
+        --build-arg "LV_CONTAINER_TAG=$windowsTag" `
+        --build-arg "NIPM_FEED_URL=$($release.nipmFeedUrl)" `
+        --build-arg "VIPM_INSTALLER_URL=$($release.vipmInstallerUrl)" `
+        -f .github\docker\labview-ci-base.Dockerfile -t $baseImage .
+      docker build --build-arg "LCWC_BASE_IMAGE=$baseImage" --build-arg "CI_WORKER_VERSION=$env:CI_COMMIT_SHORT_SHA" -f .github\docker\labview-ci.Dockerfile -t $workerImage -t $latestImage .
+      docker push $baseImage
+      docker push $workerImage
+      docker push $latestImage
+      $manifestDir = Join-Path $env:CI_PROJECT_DIR "ci-out\gitlab-pages\workers\windows\$env:CI_COMMIT_SHA"
+      New-Item -ItemType Directory -Force -Path $manifestDir | Out-Null
+      @{ platform = 'windows'; image = $latestImage; sha = $env:CI_COMMIT_SHA } | ConvertTo-Json -Compress | Set-Content -Encoding utf8 (Join-Path $manifestDir 'manifest.json')
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - ci-out/gitlab-pages/workers/windows/$CI_COMMIT_SHA/
