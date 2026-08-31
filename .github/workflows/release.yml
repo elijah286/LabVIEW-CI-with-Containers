@@ -171,8 +171,26 @@ jobs:
         run: bash .github/labview/publish-release.sh
 
       - name: Synchronize the GitLab distribution mirror
+        id: gitlab_mirror
         if: vars.GITLAB_MIRROR_ENABLED == 'true'
+        # The release is fully published by this point, so a mirror hiccup (bad
+        # token, GitLab outage) must not paint the whole run red — that reads as
+        # a broken release on the dashboard when nothing about the release
+        # failed. The step below turns the failure into a warning instead, and
+        # sync-gitlab-distribution.yml re-pushes the same tag once the cause is
+        # fixed.
+        continue-on-error: true
         env:
           GITLAB_MIRROR_TOKEN: ${{ secrets.GITLAB_MIRROR_TOKEN }}
           GITLAB_MIRROR_USERNAME: ${{ vars.GITLAB_MIRROR_USERNAME }}
         run: .github/labview-ci/sync-gitlab-mirror.sh
+
+      - name: Warn when the mirror sync failed
+        if: steps.gitlab_mirror.outcome == 'failure'
+        run: |
+          echo "::warning title=GitLab mirror not synchronized::The release published, but the push to the GitLab distribution mirror failed. Fix the cause (usually GITLAB_MIRROR_TOKEN), then dispatch 'Sync GitLab Distribution' with this release's tag."
+          {
+            echo "## GitLab mirror NOT synchronized"
+            echo ""
+            echo "The release itself published. Once the cause is fixed (usually \`GITLAB_MIRROR_TOKEN\`), re-push it by dispatching the **Sync GitLab Distribution** workflow with this release's tag."
+          } >> "$GITHUB_STEP_SUMMARY"
