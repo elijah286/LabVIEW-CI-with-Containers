@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "dc09f4cd38c4552d69048504a1af1ce87f04bbf9",
+  "sha": "3f7e6d84af2460890772bbb6c0e9b2359fa36b78",
   "revisions": [
+    {
+      "sha": "3f7e6d84af2460890772bbb6c0e9b2359fa36b78",
+      "short": "3f7e6d8",
+      "message": "Merge pull request #66 from elijah286/copilot/publish-gitlab-distribution",
+      "author": "Elijah Kerry",
+      "date": "2026-08-31T00:43:58Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "7022ae8178b6aac0b5167a1570942224c648ba17",
+      "short": "7022ae8",
+      "message": "feat: native GitLab CI distribution [minor]",
+      "author": "Elijah Kerry",
+      "date": "2026-08-31T00:40:10Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "dc09f4cd38c4552d69048504a1af1ce87f04bbf9",
       "short": "dc09f4c",
@@ -882,24 +900,6 @@
       "message": "What's New: hide the update-channel picker on the source repo (4.11.9)",
       "author": "Elijah Kerry",
       "date": "2026-07-23T20:04:45Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "4a9e168ada79bd7b1c138579358208af87a20010",
-      "short": "4a9e168",
-      "message": "VI Analyzer report: add Windows/Linux platform toggle",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T19:36:06Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "9d71cbdbdbb9b21627cc18ae24ce5f47bae4467a",
-      "short": "9d71cbd",
-      "message": "Release channels: three tiers (Dev/Beta/Stable) + cumulative dialog picker (4.11.7)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T11:40:54Z",
       "project": false,
       "dep_only": false
     },
