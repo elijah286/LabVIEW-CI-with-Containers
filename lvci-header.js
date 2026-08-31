@@ -2315,6 +2315,14 @@
   // Global attention bar: the most-recent still-failing workflows, with a
   // per-failure dismiss remembered in localStorage (a NEW failure re-appears).
   var ALERT_DKEY = 'lvci_alert_dismissed';
+  // Owner-only maintenance chores, keyed by workflow file basename. A failed run
+  // of one of these is actionable only by the maintainer (a mirror token, not
+  // this repo's CI health), so it never feeds the public failure banner or the
+  // pill's fail segment — the owner still sees it under GitHub's Actions tab.
+  var MAINT_WORKFLOWS = { 'sync-gitlab-distribution.yml': 1 };
+  function isMaintWorkflow(w) {
+    return !!MAINT_WORKFLOWS[String(w.path || '').split('/').pop().toLowerCase()];
+  }
   function alertDismissedIds() {
     try { var a = JSON.parse(localStorage.getItem(ALERT_DKEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
   }
@@ -2385,13 +2393,14 @@
         // Failed activities (newest run per workflow that ended in failure) feed
         // BOTH the pill's fail segment and the global attention bar. The runs list
         // is newest-first, so the first run seen per workflow is its latest; a
-        // workflow that has since gone green is therefore not flagged.
+        // workflow that has since gone green is therefore not flagged, and
+        // maintenance workflows (MAINT_WORKFLOWS) are never flagged at all.
         var seenWf = {}, fails = [];
         (d.workflow_runs || []).forEach(function (w) {
           var key = w.path || w.name || ('wf' + w.workflow_id);
           if (seenWf[key]) return;
           seenWf[key] = 1;
-          if (w.status === 'completed' && w.conclusion === 'failure') fails.push(w);
+          if (w.status === 'completed' && w.conclusion === 'failure' && !isMaintWorkflow(w)) fails.push(w);
         });
         failState.list = fails;
         renderBadge();
