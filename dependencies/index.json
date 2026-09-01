@@ -1285,7 +1285,7 @@
     "column": "windows",
     "ready": true,
     "health": "",
-    "manifest_version": "win-d72eb218c7db",
+    "manifest_version": "win-c86cdf68fa36",
     "files": [
       {
         "source_file": "example/Example.dragon",
@@ -3783,7 +3783,7 @@
         }
       ],
       "labview_version": "2026",
-      "version": "win-d72eb218c7db"
+      "version": "win-c86cdf68fa36"
     },
     {
       "key": "linux",
