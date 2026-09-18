@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "ff4daab9ff9a92cbd90dda1c5dfff27f6a88f73e",
+  "sha": "dc4f78e83643323385c3b8f7898356516745d1ad",
   "revisions": [
+    {
+      "sha": "dc4f78e83643323385c3b8f7898356516745d1ad",
+      "short": "dc4f78e",
+      "message": "Merge pull request #70 from MIpetrov-NI/Bug-fix-populate-history-checkboxes",
+      "author": "Milena",
+      "date": "2026-09-18T17:18:26Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "b258970795fd4c3d9715461c5a6c6cd97ce5e961",
+      "short": "b258970",
+      "message": "Fix dashboard history platform selection",
+      "author": "MIpetrov-NI",
+      "date": "2026-09-18T16:33:16Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "ff4daab9ff9a92cbd90dda1c5dfff27f6a88f73e",
       "short": "ff4daab",
@@ -882,24 +900,6 @@
       "message": "Docs: expand \u00a716.4 Unit Tests into a fully worked replication example",
       "author": "Elijah Kerry",
       "date": "2026-07-29T23:28:12Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "6ff3ab4fde1eda4ae8fb21e5989109e46884171f",
-      "short": "6ff3ab4",
-      "message": "Debug Run: simplify the dialog + choose operations inside the container (4.12.4)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-24T00:12:39Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "d7df7740d9ee40343bad33199dcce15b54d38738",
-      "short": "d7df774",
-      "message": "Debug Run: Linux-only dialog + \"Open the project\" as the primary action (4.12.3)",
-      "author": "Elijah Kerry",
-      "date": "2026-07-23T22:51:27Z",
       "project": false,
       "dep_only": false
     },
