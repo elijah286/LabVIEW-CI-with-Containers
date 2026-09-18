@@ -562,6 +562,10 @@ RUN_TARGETS = {
     'builds': {'label': 'Builds', 'platforms': {
         'windows': {'wf': 'build-binaries-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}},
         'linux':   {'wf': 'build-binaries-linux-container.yml',   'inputs': {'commit_sha': '{sha}'}}}},
+    # SBOM generation runs in the Windows worker because VIPM supplies the
+    # dependency inventory. The generated CycloneDX report is per revision.
+    'sbom-generation': {'label': 'SBOM Generation', 'platforms': {
+        'windows': {'wf': 'generate-sbom-windows-container.yml', 'inputs': {'commit_sha': '{sha}'}}}},
 }
 
 # Gate run targets to the workflows ACTUALLY installed in this repo, so the
@@ -683,7 +687,8 @@ for _cap, _d in RUN_TARGETS.items():
             _WF_TO_CAP[_p['batch']['wf']] = _cap
 _CAP_RUN_LABEL = {'masscompile': 'compile', 'vi-analyzer': 'analyze', 'vidiff': 'diff',
                   'snapshots': 'snapshots', 'snapshots2': '2.0 snapshots',
-                  'unit-tests': 'tests', 'antidoc': 'docs'}
+                  'unit-tests': 'tests', 'antidoc': 'docs',
+                  'sbom-generation': 'SBOM'}
 _WAITING_RUN_STATUSES = {'queued', 'requested', 'waiting', 'pending'}
 
 def _target_shas_for_run(run, cap):
@@ -816,7 +821,7 @@ def _chip_split(segments, url='', title=''):
 # is opened, and reports that predate the header (or carry none of their own)
 # still appear inside the chrome. Diff/Snapshots already open the VI Browser (its
 # own headered page), so only these two doctypes are wrapped here.
-DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile', 'unit-tests-report': 'Unit Tests', 'antidoc-report': 'Antidoc', 'builds-report': 'Builds'}
+DOC_LABELS = {'vi-analyzer-report': 'VI Analyzer', 'masscompile-report': 'Mass Compile', 'unit-tests-report': 'Unit Tests', 'antidoc-report': 'Antidoc', 'builds-report': 'Builds', 'sbom-report': 'SBOM'}
 
 def viewer_url(report_url, doctype, sha, short, platform=''):
     """Wrap a deployed report's absolute Pages URL so it opens framed under the
@@ -1444,6 +1449,11 @@ for c in commits_data:
                 f'{_chip_html}</td>')
     builds_badge = builds_cell()
 
+    # New runs publish the catalog-declared context. Keep the legacy context as
+    # a fallback so reports generated before this wiring remain discoverable.
+    sbom_badge = badge('SBOM', 'CI / SBOM Generation', 'CI / SBOM',
+                       cap='sbom-generation', doc=('sbom-report', 'sbom'))
+
     # Small camera/image glyph beside the commit message whenever this revision
     # has any rendered VI snapshots, so snapshot coverage is discoverable straight
     # from the main table (tooltip per request). Coverage is cached, so reusing it
@@ -1486,6 +1496,7 @@ for c in commits_data:
       {unit_badge}
       {antidoc_badge}
       {builds_badge}
+      {sbom_badge}
     </tr>""")
 
 rows = '\n'.join(rows_html)
@@ -2890,9 +2901,10 @@ run_dialog = (r"""
       'vi-analyzer': ['VI Analyzer',  'Runs the VI Analyzer suite, each revision'],
       'unit-tests':  ['Unit Tests',   'Runs the unit-test suite, each revision'],
       'antidoc':     ['Antidoc',      'Generates project documentation, each revision'],
-      'builds':      ['Builds',       'Runs the project build specifications (EXE, PPL, ...), each revision']
+      'builds':      ['Builds',       'Runs the project build specifications (EXE, PPL, ...), each revision'],
+      'sbom-generation': ['SBOM Generation', 'Generates a CycloneDX dependency report, each revision']
     };
-    var CAP_ORDER = ['snapshots','snapshots2','vidiff','masscompile','vi-analyzer','unit-tests','antidoc','builds'];
+    var CAP_ORDER = ['snapshots','snapshots2','vidiff','masscompile','vi-analyzer','unit-tests','antidoc','builds','sbom-generation'];
     var DIFF_CAPS = { snapshots:1, snapshots2:1, vidiff:1 };  // the lean "diff-based" subset
     var PLATFORM_CAPS = { snapshots2:1, vidiff:1, masscompile:1, 'vi-analyzer':1, builds:1 };
     var platState = {};                         // cap id -> selected platform keys for history rows
@@ -4032,6 +4044,7 @@ html = f"""<!DOCTYPE html>
         <th style="text-align:center">Unit Tests</th>
         <th style="text-align:center">Antidoc</th>
         <th style="text-align:center">Builds</th>
+        <th style="text-align:center">SBOM</th>
       </tr>
     </thead>
     <tbody>{rows}</tbody>

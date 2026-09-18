@@ -11,7 +11,8 @@
         'vi-analyzer-linux': { context: 'vi-analyzer-report', label: 'VI Analyzer', workflow: { windows: 'run-vi-analyzer-windows-container.yml' }, statuses: ['CI / VI Analyzer'] },
         'masscompile': { context: 'masscompile-report', label: 'Mass Compile', workflow: { windows: 'masscompile-windows-container.yml', linux: 'masscompile-linux-container.yml' }, statuses: ['CI / Mass Compile'] },
         'unit-tests': { context: 'unit-tests-report', label: 'Unit Tests', workflow: { windows: 'unit-tests-windows-container.yml' }, statuses: ['CI / Unit Tests'] },
-        'antidoc': { context: 'antidoc-report', label: 'Antidoc', workflow: { windows: 'run-antidoc-windows-container.yml' }, statuses: ['CI / Antidoc'] }
+        'antidoc': { context: 'antidoc-report', label: 'Antidoc', workflow: { windows: 'run-antidoc-windows-container.yml' }, statuses: ['CI / Antidoc'] },
+        'sbom': { context: 'sbom-report', label: 'SBOM', workflow: { windows: 'generate-sbom-windows-container.yml' }, statuses: ['CI / SBOM Generation', 'CI / SBOM'] }
       };
       function trimSlash(s) { return String(s || '').replace(/\/+$/, ''); }
       function pagesBase() {

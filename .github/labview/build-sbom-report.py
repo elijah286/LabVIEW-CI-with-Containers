@@ -107,7 +107,7 @@ def build_data(args) -> dict:
             meta_extra = {}
 
     if args.platform == "windows":
-        platforms = [{"id": "windows", "url": None}, {"id": "linux", "url": "linux/results.json"}]
+        platforms = [{"id": "windows", "url": None}, {"id": "linux", "url": None}]
         snap_depth = "../../"
     else:
         platforms = [{"id": "windows", "url": "../results.json"}, {"id": "linux", "url": None}]
@@ -195,6 +195,7 @@ def render(data: dict) -> str:
         "sha": m.get("sha", ""),
         "short": m.get("short", ""),
         "platform": m.get("platform", "windows"),
+        "rawUrl": "results/sbom.json",
     }
     dash = m.get("dash_url") or ""
     repo = m.get("repo") or ""

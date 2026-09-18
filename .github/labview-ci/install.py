@@ -946,6 +946,7 @@ def consumer_dashboard_workflow(catalog: dict, branch: str = "main") -> str:
         '      - "VI Snapshots and VI Browser"\n'
         '      - "Build LabVIEW CI Image"\n'
         '      - "Build LabVIEW CI Image - Linux"\n'
+        '      - "Generate SBOM \u2014 Windows Container"\n'
         "    types: [completed]\n"
         "  schedule:\n"
         "    - cron: '0 * * * *'\n"
