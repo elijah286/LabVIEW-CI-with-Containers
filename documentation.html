@@ -149,6 +149,7 @@
             <li class="sub"><a href="#cap-unittests">Unit Tests (worked example)</a></li>
             <li class="sub"><a href="#cap-antidoc">Antidoc</a></li>
             <li class="sub"><a href="#cap-snapshots">VI Snapshots / Browser</a></li>
+            <li class="sub"><a href="#cap-sbom">SBOM Generation</a></li>
           </ol>
         </li>
         <li><a href="#contracts">17. Report data contracts</a></li>
@@ -1895,6 +1896,28 @@ docker exec &lt;name&gt; powershell -File C:\ops\render-snapshots.ps1 ...   # pe
       <p>Both 2.0 renderers <strong>auto-run on every new revision</strong> via a <code>workflow_run</code> trigger after the snapshot pipeline finishes, each behind a gate job that reads <code>config.viBrowser.positionAware</code>: the Linux workflow runs when it includes <code>linux</code>, the Windows workflow when it includes <code>windows</code> (the configurator default). Because renders are content-addressed by git blob SHA, the worklist skips every VI whose blob already has a render &mdash; <strong>unchanged VIs reuse their existing frames with no work</strong> &mdash; and queues only the new/changed blobs, so a VI a revision actually changed gets a fresh render automatically.</p>
       <p>The browser now remembers its viewer mode and 2.0 platform choice in local storage, defaults to 2.0 when a VI has a 2.0 render (preferring the Windows render when both platforms exist), and shows dismissible coaching tip strips for the block-diagram toggle and the case/event selector arrows. The 2.0 auto-default is now enforced on open whenever a 2.0 render exists (unless the URL explicitly pins <code>viewer</code>/<code>plat2</code>). Those tips are browser-local too: dismissing one with <strong>Never show this again</strong> hides it only in that browser profile, and the dismissal keys are versioned so a new coaching rollout can deliberately surface the tips once more for everyone.</p>
 
+      <h3 id="cap-sbom">16.7 SBOM Generation <a class="anchor" href="#cap-sbom">#</a></h3>
+      <h4>At a glance</h4>
+      <table>
+        <tbody>
+          <tr><th>Driver</th><td><code>.github/labview/run-sbom-generation.ps1</code> <span class="pill win">Windows</span></td></tr>
+          <tr><th>Report builder</th><td><code>.github/labview/build-sbom-report.py</code></td></tr>
+          <tr><th>Workflow</th><td><code>generate-sbom-windows-container.yml</code> <span class="pill win">windows-2022</span></td></tr>
+          <tr><th>Output &amp; status</th><td><code>sbom/&lt;sha&gt;/</code>; commit status <code>CI / SBOM Generation</code></td></tr>
+        </tbody>
+      </table>
+      <p>The Windows worker invokes the VIPM CLI to inventory the revision&rsquo;s resolved LabVIEW package
+        dependencies and preserves its native CycloneDX document at
+        <code>sbom/&lt;sha&gt;/results/sbom.json</code>. The host report builder normalises that inventory into
+        <code>results.json</code> and a navigable <code>index.html</code>, then the workflow uploads the whole
+        directory as an Actions artifact and publishes it to GitHub Pages.</p>
+      <p>The dashboard has a per-revision <strong>SBOM</strong> column. Its status pill links to the Pages report
+        inside the shared report viewer; the viewer&rsquo;s <strong>CycloneDX JSON</strong> action opens the native
+        machine-readable document. Empty cells can dispatch SBOM generation for that revision, and SBOM participates
+        in Populate history, the activity switcher, revision navigation, and regeneration controls. Historical
+        <code>CI / SBOM</code> statuses remain readable, while new runs use the catalog-declared
+        <code>CI / SBOM Generation</code> context.</p>
+
       <!-- 17 ──────────────────────────────────────────────────────────────── -->
       <h2 id="contracts">17. Report data contracts <a class="anchor" href="#contracts">#</a></h2>
       <p>Each capability writes a small, stable JSON document that the dashboard and the shared header consume. The
@@ -1908,7 +1931,8 @@ docker exec &lt;name&gt; powershell -File C:\ops\render-snapshots.ps1 ...   # pe
           <tr><td><code>vidiff/&lt;segment&gt;/&lt;platform&gt;/vidiff/changes.json</code></td><td>VIDiff</td><td>Dashboard + VIDiff report</td></tr>
           <tr><td><code>unit-tests/&lt;sha&gt;/results.json</code></td><td>Unit-test report builder</td><td>Dashboard + report</td></tr>
           <tr><td><code>builds/&lt;sha&gt;/summary.json</code></td><td>Builds report builder</td><td>Dashboard cell (succeeded/failed split) + report</td></tr>
-          <tr><td><code>builds/&lt;sha&gt;/summary.json</code></td><td>Builds report builder</td><td>Dashboard cell (succeeded/failed split) + report</td></tr>
+          <tr><td><code>sbom/&lt;sha&gt;/results.json</code></td><td>SBOM report builder</td><td>Dashboard report availability + HTML report</td></tr>
+          <tr><td><code>sbom/&lt;sha&gt;/results/sbom.json</code></td><td>VIPM CLI</td><td>Native CycloneDX download</td></tr>
           <tr><td><code>vi-snapshots/&lt;sha&gt;/manifest.json</code></td><td>Snapshot gallery builder</td><td>VI Browser</td></tr>
           <tr><td><code>dependencies/index.json</code></td><td>Dashboard publisher</td><td>Dependencies page install-time inventory</td></tr>
           <tr><td><code>workers/&lt;platform&gt;/&lt;version&gt;/manifest.json</code></td><td>Worker image workflows</td><td>Dependencies page installed-package status</td></tr>

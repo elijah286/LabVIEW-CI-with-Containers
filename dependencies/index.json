@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "dc4f78e83643323385c3b8f7898356516745d1ad",
+  "sha": "692ac0ed8cf21e4ec2ba442e66fd25e24db283c2",
   "revisions": [
+    {
+      "sha": "692ac0ed8cf21e4ec2ba442e66fd25e24db283c2",
+      "short": "692ac0e",
+      "message": "Merge pull request #69 from MIpetrov-NI/feature/sbom-dashboard-integration",
+      "author": "Milena",
+      "date": "2026-09-18T17:44:41Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "152540c209200d135dcafbbfa40bf501de85dbb1",
+      "short": "152540c",
+      "message": "Release 4.18.3 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-09-18T17:18:38Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "dc4f78e83643323385c3b8f7898356516745d1ad",
       "short": "dc4f78e",
@@ -18,6 +36,24 @@
       "message": "Fix dashboard history platform selection",
       "author": "MIpetrov-NI",
       "date": "2026-09-18T16:33:16Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "ac9cade31fd8e45a7f3c310f159c670bb7c10f28",
+      "short": "ac9cade",
+      "message": "Regenerate consumer dashboards after SBOM runs",
+      "author": "MIpetrov-NI",
+      "date": "2026-09-16T20:54:38Z",
+      "project": false,
+      "dep_only": false
+    },
+    {
+      "sha": "5a5d8305648e96930bf00fc038cc1af6368fdc88",
+      "short": "5a5d830",
+      "message": "Surface SBOM reports in the GitHub Pages dashboard",
+      "author": "MIpetrov-NI",
+      "date": "2026-09-16T20:52:03Z",
       "project": false,
       "dep_only": false
     },
@@ -864,42 +900,6 @@
       "message": "added sbom workflow?",
       "author": "daniel-coons",
       "date": "2026-07-30T19:09:34Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "0063d90f0d44c708d5f37d05403efbcafe040d46",
-      "short": "0063d90",
-      "message": "attempt at sbom helper files",
-      "author": "daniel-coons",
-      "date": "2026-07-30T19:09:10Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "e9cd54bde4867ab7e69256ea61a2efed435bdd38",
-      "short": "e9cd54b",
-      "message": "Add LabVIEW CI pipeline",
-      "author": "Daniel Coons",
-      "date": "2026-07-30T18:15:38Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "7697512d87e54653dba4cec2286a7c6750c44619",
-      "short": "7697512",
-      "message": "Docs: give \u00a716.1\u201316.6 the worked-example treatment",
-      "author": "Elijah Kerry",
-      "date": "2026-07-30T00:58:35Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "0454a45331eb5b49b8c3fa8095cf5616247cb0e7",
-      "short": "0454a45",
-      "message": "Docs: expand \u00a716.4 Unit Tests into a fully worked replication example",
-      "author": "Elijah Kerry",
-      "date": "2026-07-29T23:28:12Z",
       "project": false,
       "dep_only": false
     },
