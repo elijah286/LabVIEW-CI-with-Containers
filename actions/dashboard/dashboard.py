@@ -3346,7 +3346,7 @@ run_dialog = (r"""
         var selected=(platState[cap] || keys.slice()).filter(function(k){ return k!==platform; });
         if(b.checked) selected.push(platform);
         platState[cap]=selected.filter(function(k,i,a){ return keys.indexOf(k)>=0 && a.indexOf(k)===i; });
-        histRender();
+        histRefresh();
       }); });
       Array.prototype.forEach.call(document.querySelectorAll('input[name="cidash-hist-scope"]'), function(r){ r.addEventListener('change', function(){ histScopeApply(); histRefresh(); }); });
       var hf=document.getElementById('cidash-hist-from'); if(hf) hf.addEventListener('change', histRefresh);
