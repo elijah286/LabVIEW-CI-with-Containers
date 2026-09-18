@@ -1,8 +1,17 @@
 {
   "schema": 1,
   "repo": "elijah286/LabVIEW-CI-with-Containers",
-  "sha": "692ac0ed8cf21e4ec2ba442e66fd25e24db283c2",
+  "sha": "46c8590034008d7e11f1bd72d83074fd3cc6baa2",
   "revisions": [
+    {
+      "sha": "46c8590034008d7e11f1bd72d83074fd3cc6baa2",
+      "short": "46c8590",
+      "message": "Release 4.18.4 [skip release]",
+      "author": "github-actions[bot]",
+      "date": "2026-09-18T17:44:54Z",
+      "project": false,
+      "dep_only": false
+    },
     {
       "sha": "692ac0ed8cf21e4ec2ba442e66fd25e24db283c2",
       "short": "692ac0e",
@@ -891,15 +900,6 @@
       "message": "updated catalog json",
       "author": "daniel-coons",
       "date": "2026-07-30T19:37:12Z",
-      "project": false,
-      "dep_only": false
-    },
-    {
-      "sha": "445ff838d243286c73b792b366e961a522c8d158",
-      "short": "445ff83",
-      "message": "added sbom workflow?",
-      "author": "daniel-coons",
-      "date": "2026-07-30T19:09:34Z",
       "project": false,
       "dep_only": false
     },
