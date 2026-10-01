@@ -1284,7 +1284,7 @@
     sel.addEventListener('change', function () {
       syncSteps();
       var v = sel.value;
-      if (v && v !== cfg.sha) window.location.href = docDest(v);
+      if (v && v !== cfg.sha && SHA_RE.test(v)) window.location.href = docDest(v);
     });
     sel._lvciSync = function () { rp.refresh(); syncSteps(); };
     wrap.appendChild(lbl); wrap.appendChild(prev); wrap.appendChild(rp.button); wrap.appendChild(next);
@@ -1953,10 +1953,20 @@
     pendbar.id = 'lvci-pendbar';
     pendbar.className = 'lvci-depbar';
     pendbar.setAttribute('role', 'alert');
-    pendbar.innerHTML =
-      '<span class="lvci-dep-txt"><strong>\u26A0\uFE0F Dependencies need to be installed into your containers. </strong>' +
-      '<span class="lvci-dep-sub">Your project declares dependencies that are not yet baked into the worker container(s); container CI may error or show broken code until you update them. </span>' +
-      '<a href="' + navBase + '/dependencies.html">Review &amp; update dependencies \u2197</a></span>';
+    var pendText = document.createElement('span');
+    pendText.className = 'lvci-dep-txt';
+    var pendTitle = document.createElement('strong');
+    pendTitle.textContent = '\u26A0\uFE0F Dependencies need to be installed into your containers. ';
+    var pendDescription = document.createElement('span');
+    pendDescription.className = 'lvci-dep-sub';
+    pendDescription.textContent = 'Your project declares dependencies that are not yet baked into the worker container(s); container CI may error or show broken code until you update them. ';
+    var pendLink = document.createElement('a');
+    pendLink.href = navBase + '/dependencies.html';
+    pendLink.textContent = 'Review & update dependencies \u2197';
+    pendText.appendChild(pendTitle);
+    pendText.appendChild(pendDescription);
+    pendText.appendChild(pendLink);
+    pendbar.appendChild(pendText);
 
     // Global attention bar (failure banner) — hidden until the activity poll
     // finds a workflow whose newest run failed; names it + links to the run.

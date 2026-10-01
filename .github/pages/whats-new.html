@@ -682,16 +682,41 @@
         prog.phase === PH.PUBLISHING ? ("Publishing v" + prog.ver + "\u2026") :
         prog.phase === PH.ERROR ? "Update didn\u2019t start" :
         ("Updating to v" + prog.ver + "\u2026");
-      const rp = $("upRepo"); if (rp) rp.innerHTML = state.repo ? `<a href="${esc(ghUrl(state.repo))}" target="_blank" rel="noopener">${esc(state.repo)}</a>` : "";
-      if (msg != null) { const m = $("upMsg"); if (m) m.innerHTML = msg; }
-      const links = [];
-      if (prog.phase === PH.DONE) {
-        const dash = clientPagesUrl();
-        if (dash) links.push(`<a class="primary" href="${esc(dash)}">Go to your dashboard &#8599;</a>`);
+      const rp = $("upRepo");
+      if (rp) {
+        rp.replaceChildren();
+        if (state.repo) {
+          const link = document.createElement("a");
+          link.href = ghUrl(state.repo);
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = state.repo;
+          rp.appendChild(link);
+        }
       }
-      if (prog.prUrl) links.push(`<a href="${esc(prog.prUrl)}" target="_blank" rel="noopener">Open pull request${prog.prNum ? " #" + prog.prNum : ""} &#8599;</a>`);
-      if (prog.runUrl) links.push(`<a href="${esc(prog.runUrl)}" target="_blank" rel="noopener">Open the workflow run &#8599;</a>`);
-      const lz = $("upLinks"); if (lz) lz.innerHTML = links.join("");
+      if (msg != null) { const m = $("upMsg"); if (m) m.textContent = msg; }
+      const lz = $("upLinks");
+      if (lz) {
+        lz.replaceChildren();
+        const appendLink = (url, text, primary) => {
+          let safeUrl;
+          try {
+            const parsed = new URL(url, location.href);
+            if (parsed.protocol !== "https:") return;
+            safeUrl = parsed.href;
+          } catch (_) { return; }
+          const link = document.createElement("a");
+          if (primary) link.className = "primary";
+          link.href = safeUrl;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = text;
+          lz.appendChild(link);
+        };
+        if (prog.phase === PH.DONE) appendLink(clientPagesUrl(), "Go to your dashboard \u2197", true);
+        if (prog.prUrl) appendLink(prog.prUrl, `Open pull request${prog.prNum ? " #" + prog.prNum : ""} \u2197`);
+        if (prog.runUrl) appendLink(prog.runUrl, "Open the workflow run \u2197");
+      }
       const foot = $("upProgFoot");
       if (foot) {
         // Dismiss only when the update has truly stopped (done/failed). While it
@@ -755,13 +780,13 @@
           prog.runId = run.id; prog.runUrl = run.html_url;
           if (run.status === "completed") {
             if (run.conclusion === "success") { startPrPoll(); return; }
-            setPhase(PH.ERROR, `The update workflow finished with <strong>${esc(run.conclusion || "a failure")}</strong>. Open the run to see why, then try again.`);
+            setPhase(PH.ERROR, `The update workflow finished with ${run.conclusion || "a failure"}. Open the run to see why, then try again.`);
             return;
           }
           setPhase(run.status === "in_progress" ? PH.RUNNING : PH.QUEUED,
             run.status === "in_progress"
-              ? "Building the update on GitHub Actions&hellip; this usually takes under a minute."
-              : "Queued on GitHub Actions&hellip; waiting for a runner.");
+              ? "Building the update on GitHub Actions\u2026 this usually takes under a minute."
+              : "Queued on GitHub Actions\u2026 waiting for a runner.");
         }
         if (tries < 40) later(() => pollRun(tries + 1), 3000);
         else startPrPoll(); // give up tracking the run; fall back to PR detection
@@ -769,7 +794,7 @@
     }
 
     function startPrPoll() {
-      if (prog.phase !== PH.APPLYING) setPhase(PH.APPLYING, "Applying the update to your repository&hellip;");
+      if (prog.phase !== PH.APPLYING) setPhase(PH.APPLYING, "Applying the update to your repository\u2026");
       pollOutcome(prog.ver, 0);
     }
 
@@ -783,7 +808,7 @@
       prog.ver = ver; prog.ts = Date.now(); prog.runId = 0; prog.runUrl = ""; prog.prUrl = ""; prog.prNum = 0;
       clearTimers();
       setCmdStatus("", null);
-      setPhase(PH.DISPATCH, "Starting the update&hellip;");
+      setPhase(PH.DISPATCH, "Starting the update\u2026");
       resolveBranch().then((branch) => {
         return fetch(`https://api.github.com/repos/${state.repo}/actions/workflows/apply-tooling-update.yml/dispatches`, {
           method: "POST",
@@ -793,7 +818,7 @@
           body: JSON.stringify({ ref: branch, inputs: { source_ref: "v" + ver } })
         });
       }).then(async (r) => {
-        if (r.status === 204) { setPhase(PH.QUEUED, "Queued on GitHub Actions&hellip; waiting for a runner."); pollRun(0); return; }
+        if (r.status === 204) { setPhase(PH.QUEUED, "Queued on GitHub Actions\u2026 waiting for a runner."); pollRun(0); return; }
         if (r.status === 401) { setPhase(PH.IDLE); clearTok(); refreshTokForget(); setCmdStatus("That token was rejected (401). Paste a valid one.", "err"); showTokenPanel(); return; }
         let ghMsg = ""; try { const j = await r.json(); ghMsg = (j && j.message) || ""; } catch (_) {}
         let hint;
@@ -998,14 +1023,13 @@
     // actually paused a check ("Action required") -- point at Approve and run.
     function reviewMsg(pr, ver, lead, note) {
       return (lead || "") +
-        `Pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> is open. ` +
-        `<strong>Merge it</strong> to finish updating to <code>v${esc(ver)}</code>.` +
+        `Pull request #${pr.number} is open. Merge it to finish updating to v${ver}.` +
         (note ? " " + note : "");
     }
     function showReview(pr, ver, lead) {
       prog.prUrl = pr.html_url; prog.prNum = pr.number;
       setPhase(PH.REVIEW, reviewMsg(pr, ver, lead,
-        `<span class="up-note">Most updates change only configuration and tooling, so there are no checks to wait for &mdash; you can merge right away.</span>`));
+        "Most updates change only configuration and tooling, so there are no checks to wait for - you can merge right away."));
       const sha = pr.head && pr.head.sha;
       if (!sha) return;
       // Best-effort: read the head commit's checks and tailor the note to reality.
@@ -1019,13 +1043,13 @@
           const running = runs.filter((r) => r.status !== "completed" && r.status !== "waiting" && r.status !== "action_required");
           let note;
           if (paused.length)
-            note = `<span class="up-note">GitHub paused a check (<em>&ldquo;Action&nbsp;required&rdquo;</em>) because the pull request was opened by automation &mdash; open its <a href="${esc(pr.html_url)}/checks" target="_blank" rel="noopener">Checks tab</a> (or the repo&rsquo;s <strong>Actions</strong> tab), click <strong>Approve and run</strong>, then merge.</span>`;
+            note = "GitHub paused a check (\"Action required\") because the pull request was opened by automation - open its Checks tab (or the repository's Actions tab), click Approve and run, then merge.";
           else if (running.length)
-            note = `<span class="up-note">Its checks are still running &mdash; they finish on their own, then you can merge.</span>`;
+            note = "Its checks are still running - they finish on their own, then you can merge.";
           else if (!runs.length)
-            note = `<span class="up-note">This update has <strong>no checks</strong> to wait for &mdash; it&rsquo;s ready to <strong>merge now</strong>.</span>`;
+            note = "This update has no checks to wait for - it's ready to merge now.";
           else
-            note = `<span class="up-note">Its checks have passed &mdash; it&rsquo;s ready to <strong>merge now</strong>.</span>`;
+            note = "Its checks have passed - it's ready to merge now.";
           renderProgress(reviewMsg(pr, ver, lead, note));
         })
         .catch(() => {});
@@ -1364,8 +1388,8 @@
       prog.ts = s.ts || Date.now(); prog.runId = s.runId || 0; prog.runUrl = s.runUrl || "";
       prog.prUrl = s.prUrl || ""; prog.prNum = s.prNum || 0;
       if (s.phase === PH.PUBLISHING) { startPublishPoll(prog.ver); }
-      else if (prog.prNum) { setPhase(PH.REVIEW, `Resuming&hellip; pull request <a href="${esc(prog.prUrl)}" target="_blank" rel="noopener">#${prog.prNum}</a> is open. <strong>Merge it</strong> to finish updating to <code>v${esc(prog.ver)}</code>. <span class="up-note">Most updates have no checks to wait for &mdash; you can merge right away.</span>`); pollPrMerged(prog.prNum, 0); }
-      else if (prog.runId || s.phase >= PH.QUEUED) { setPhase(PH.RUNNING, "Resuming&hellip; checking the update workflow&rsquo;s progress."); pollRun(0); }
+      else if (prog.prNum) { setPhase(PH.REVIEW, `Resuming\u2026 pull request #${prog.prNum} is open. Merge it to finish updating to v${prog.ver}. Most updates have no checks to wait for - you can merge right away.`); pollPrMerged(prog.prNum, 0); }
+      else if (prog.runId || s.phase >= PH.QUEUED) { setPhase(PH.RUNNING, "Resuming\u2026 checking the update workflow's progress."); pollRun(0); }
       else { startPrPoll(); }
     }
 
