@@ -2378,21 +2378,88 @@
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
 
       const done = [];
-      if (setup.kept) done.push(`Kept your existing settings &mdash; <strong>${esc(setup.kept)}</strong>.`);
-      if (setup.removed && setup.removed.length) done.push(`Removed <strong>${setup.removed.length}</strong> old tooling file${setup.removed.length > 1 ? "s" : ""} no longer used (in the pull request).`);
-      if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
-      if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
-      if (setup.toolingToken === "done") done.push(`Saved a one-time <strong>update token</strong> &mdash; future <em>Update now</em> clicks open their pull request automatically.`);
-      if (setup.buildImages && autoMerge) done.push(`Watching your <strong>worker container image build${setup.buildImage && setup.buildLinuxImage ? "s" : ""}</strong> &mdash; Windows and Linux image workflows are tracked separately below so it is clear which background work is still running.`);
+      const addDone = build => {
+        const item = document.createElement("li");
+        build(item);
+        done.push(item);
+      };
+      const appendText = (parent, text) => parent.appendChild(document.createTextNode(text));
+      const appendEmphasis = (parent, tag, text, className) => {
+        const el = document.createElement(tag);
+        if (className) el.className = className;
+        el.textContent = text;
+        parent.appendChild(el);
+        return el;
+      };
+      if (setup.kept) addDone(item => {
+        appendText(item, "Kept your existing settings - ");
+        appendEmphasis(item, "strong", setup.kept);
+        appendText(item, ".");
+      });
+      if (setup.removed && setup.removed.length) addDone(item => {
+        appendText(item, "Removed ");
+        appendEmphasis(item, "strong", setup.removed.length);
+        appendText(item, ` old tooling file${setup.removed.length > 1 ? "s" : ""} no longer used (in the pull request).`);
+      });
+      if (setup.readme) addDone(item => appendText(item, "Added a CI dashboard badge and link to your README (in the pull request)."));
+      if (setup.workflowPerms === "done") addDone(item => {
+        appendText(item, "Set ");
+        appendEmphasis(item, "strong", "Workflow permissions");
+        appendText(item, " to read and write.");
+      });
+      if (setup.toolingToken === "done") addDone(item => {
+        appendText(item, "Saved a one-time ");
+        appendEmphasis(item, "strong", "update token");
+        appendText(item, " - future ");
+        appendEmphasis(item, "em", "Update now");
+        appendText(item, " clicks open their pull request automatically.");
+      });
+      if (setup.buildImages && autoMerge) addDone(item => {
+        appendText(item, "Watching your ");
+        appendEmphasis(item, "strong", `worker container image build${setup.buildImage && setup.buildLinuxImage ? "s" : ""}`);
+        appendText(item, " - Windows and Linux image workflows are tracked separately below so it is clear which background work is still running.");
+      });
       // Show the dashboard URL as PLAIN TEXT until Pages is confirmed serving it
       // (revealLiveLink upgrades #insLiveUrl to a real link) so we never present a
       // link that 404s. When Pages already existed it's almost certainly live, so
       // that case links right away.
-      if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <span id="insLiveUrl"><code class="inl">${esc(url)}</code></span><small id="insLiveNote">It publishes within a minute of the install merge &mdash; no CI run required; the link activates here the moment it&rsquo;s live.</small>`);
-      else if (setup.pages === "exists") done.push(`<strong>GitHub Pages</strong> is already on &mdash; dashboard at <span id="insLiveUrl"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></span>.`);
-      else if (setup.hasDashboard) done.push(`Your dashboard will be at <span id="insLiveUrl"><code class="inl">${esc(url)}</code></span> once <strong>GitHub Pages</strong> is on.`);
+      const appendDashboardUrl = (item, live) => {
+        const location = document.createElement("span");
+        location.id = "insLiveUrl";
+        if (live) {
+          const link = document.createElement("a");
+          link.href = url;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = url;
+          location.appendChild(link);
+        } else {
+          appendEmphasis(location, "code", url, "inl");
+        }
+        item.appendChild(location);
+      };
+      if (setup.pages === "done") addDone(item => {
+        appendText(item, "Enabled ");
+        appendEmphasis(item, "strong", "GitHub Pages");
+        appendText(item, " - your dashboard will be at ");
+        appendDashboardUrl(item, false);
+        appendEmphasis(item, "small", "It publishes within a minute of the install merge - no CI run required; the link activates here the moment it's live.").id = "insLiveNote";
+      });
+      else if (setup.pages === "exists") addDone(item => {
+        appendEmphasis(item, "strong", "GitHub Pages");
+        appendText(item, " is already on - dashboard at ");
+        appendDashboardUrl(item, true);
+        appendText(item, ".");
+      });
+      else if (setup.hasDashboard) addDone(item => {
+        appendText(item, "Your dashboard will be at ");
+        appendDashboardUrl(item, false);
+        appendText(item, " once ");
+        appendEmphasis(item, "strong", "GitHub Pages");
+        appendText(item, " is on.");
+      });
       const doneEl = $("insDone");
-      if (doneEl) { doneEl.innerHTML = done.map(d => `<li>${d}</li>`).join(""); doneEl.style.display = done.length ? "" : "none"; }
+      if (doneEl) { doneEl.replaceChildren(...done); doneEl.style.display = done.length ? "" : "none"; }
 
       const steps = [];
       steps.push(`Review and merge pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a>.`);
