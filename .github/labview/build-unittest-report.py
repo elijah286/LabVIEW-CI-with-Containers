@@ -306,9 +306,10 @@ def build_data(args) -> dict:
         platforms = [{"id": "windows", "url": "../results.json"}, {"id": "linux", "url": None}]
         snap_depth = "../../../"
 
-    # Optional marker written by run-unit-tests.ps1 when a configured tool could
-    # not run because the selected container lacks the required tooling. Drives
-    # the shared "missing container tooling" banner (see tooling_banner_html).
+    # Optional marker written by run-unit-tests.ps1/.sh when a configured tool could
+    # not run because the selected container lacks the required tooling (drives the
+    # shared "missing container tooling" banner, see tooling_banner_html) or has no
+    # runner on this platform yet (see unsupported_note_html).
     tooling = {}
     res_dir = Path(args.results) if args.results else None
     if res_dir and (res_dir / "_tooling.json").exists():
@@ -391,6 +392,28 @@ def tooling_banner_html(missing: list, configure_url: str) -> str:
     )
 
 
+def unsupported_note_html(missing: list) -> str:
+    """Render an informational note for configured tools that have no runner on
+    this platform yet (kind `unsupported-on-linux`, written by run-unit-tests.sh),
+    so the report explains why those tools have no results here."""
+    if isinstance(missing, dict):
+        missing = [missing]
+    unsup = [x for x in (missing or []) if isinstance(x, dict) and x.get("kind") == "unsupported-on-linux"]
+    if not unsup:
+        return ""
+    names = ", ".join(_esc(x.get("name") or x.get("tool") or "") for x in unsup if (x.get("name") or x.get("tool")))
+    return (
+        '<div class="lvci-needtool info" role="note">'
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>'
+        '<line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+        '<div class="lvci-needtool-t"><strong>Not run on Linux.</strong>'
+        f'{names} {"is" if len(unsup) == 1 else "are"} enabled but not supported in the Linux container yet. '
+        f'{"Its" if len(unsup) == 1 else "Their"} results come from the Windows unit-test run.</div></div>'
+    )
+
+
 def render(data: dict) -> str:
     blob = json.dumps(data, ensure_ascii=False)
     blob = blob.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
@@ -409,7 +432,8 @@ def render(data: dict) -> str:
     dash = m.get("dash_url") or ""
     repo = m.get("repo") or ""
     cfg_url = (dash or "") + "configure.html" + ("?repo=" + quote(repo, safe="") if repo else "")
-    banner = tooling_banner_html((data.get("tooling") or {}).get("missing") or [], cfg_url)
+    missing = (data.get("tooling") or {}).get("missing") or []
+    banner = tooling_banner_html(missing, cfg_url) + unsupported_note_html(missing)
 
     out = _TEMPLATE.replace("__UT_DATA_JSON__", blob)
     out = out.replace("__UT_HEADER_CFG__", json.dumps(hdr_cfg, ensure_ascii=False))
@@ -516,6 +540,8 @@ details[open]>summary .tw{transform:rotate(90deg)}
 .lvci-needtool-cta{flex:0 0 auto;align-self:center;font-size:.85em;font-weight:600;color:#fff;background:#bb8009;border-radius:7px;padding:8px 13px;text-decoration:none;white-space:nowrap}
 .lvci-needtool-cta:hover{background:#a17609}
 @media(max-width:560px){.lvci-needtool{flex-wrap:wrap}.lvci-needtool-cta{align-self:stretch;text-align:center}}
+.lvci-needtool.info{background:rgba(56,139,253,.1);border-color:rgba(56,139,253,.4);border-left-color:#388bfd}
+.lvci-needtool.info svg{color:#388bfd}
 /* snapshot drawer */
 #backdrop{position:fixed;inset:0;background:rgba(1,4,9,.5);opacity:0;pointer-events:none;transition:opacity .15s;z-index:40}
 #backdrop.show{opacity:1;pointer-events:auto}

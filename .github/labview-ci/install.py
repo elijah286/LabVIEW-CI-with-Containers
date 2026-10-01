@@ -794,16 +794,17 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
             "    runs-on: ubuntu-latest\n"
             "    steps:\n"
             "      - uses: actions/checkout@v5\n"
-            "      - name: Read opted-in tooling ref from config\n"
+            "      - name: Read opted-in tooling source from config\n"
             "        id: cfg\n"
             "        shell: bash\n"
             "        run: |\n"
-            "          REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)\n"
+            + _DASHBOARD_SOURCE_READER +
+            "          echo \"repo=${REPO:-" + src_repo + "}\" >> \"$GITHUB_OUTPUT\"\n"
             "          echo \"ref=${REF:-" + alias + "}\" >> \"$GITHUB_OUTPUT\"\n"
             "      - name: Check out tooling (opted-in version)\n"
             "        uses: actions/checkout@v5\n"
             "        with:\n"
-            f"          repository: {src_repo}\n"
+            "          repository: ${{ steps.cfg.outputs.repo }}\n"
             "          ref: ${{ steps.cfg.outputs.ref }}\n"
             "          path: _lvci\n"
             "      - uses: ./_lvci/actions/dashboard\n"
@@ -896,6 +897,19 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
     return 0
 
 
+# Shell lines (inside a `run: |` block) that read the tooling source the dashboard
+# caller checks out: source.repo and source.ref from .github/labview-ci.yml. Both
+# are read, so repointing `source` (e.g. to a fork and one of its branches) is
+# honoured; reading only the ref made a fork-only branch get fetched from the
+# canonical repo. `^  repo:` matches source.repo only, never source.distribution.repo.
+# The caller appends the `echo` lines with its own install-time fallbacks.
+_DASHBOARD_SOURCE_READER = (
+    "          CFG=.github/labview-ci.yml\n"
+    "          REPO=$(awk '/^source:[[:space:]]*$/{s=1;next} s&&/^[^[:space:]]/{exit} s&&/^  repo:[[:space:]]/{print $2;exit}' \"$CFG\" 2>/dev/null)\n"
+    "          REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' \"$CFG\" 2>/dev/null)\n"
+)
+
+
 def consumer_dashboard_workflow(catalog: dict, branch: str = "main") -> str:
     """Thin dashboard workflow for a vendored consumer.
 
@@ -964,16 +978,17 @@ def consumer_dashboard_workflow(catalog: dict, branch: str = "main") -> str:
         "    steps:\n"
         "      - name: Checkout repository\n"
         "        uses: actions/checkout@v5\n"
-        "      - name: Read opted-in tooling ref from config\n"
+        "      - name: Read opted-in tooling source from config\n"
         "        id: cfg\n"
         "        shell: bash\n"
         "        run: |\n"
-        "          REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)\n"
+        + _DASHBOARD_SOURCE_READER +
+        '          echo "repo=${REPO:-' + src_repo + '}" >> "$GITHUB_OUTPUT"\n'
         '          echo "ref=${REF:-' + ref + '}" >> "$GITHUB_OUTPUT"\n'
         "      - name: Check out tooling (opted-in version)\n"
         "        uses: actions/checkout@v5\n"
         "        with:\n"
-        "          repository: " + src_repo + "\n"
+        "          repository: ${{ steps.cfg.outputs.repo }}\n"
         "          ref: ${{ steps.cfg.outputs.ref }}\n"
         "          path: _lvci\n"
         "      - name: Build CI dashboard\n"

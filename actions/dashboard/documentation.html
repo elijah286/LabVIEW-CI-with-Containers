@@ -399,7 +399,7 @@ flowchart TD
           <tr><td><strong>Mass Compile</strong></td><td>Compiles every VI/CTL and flags broken VIs and missing dependencies.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>VI Analyzer</strong></td><td>Runs NI's static-analysis test suite for correctness, performance, style and documentation.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>VIDiff</strong></td><td>Generates visual, side-by-side front-panel + block-diagram diffs of changed VIs between commits.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
-          <tr><td><strong>Unit Tests</strong></td><td>Runs Caraya / LUnit / VI Tester / NI Unit Test Framework headlessly and merges JUnit output into one report.</td><td><span class="pill win">Win</span></td></tr>
+          <tr><td><strong>Unit Tests</strong></td><td>Runs Caraya / LUnit / VI Tester / NI Unit Test Framework headlessly and merges JUnit output into one report. LUnit also runs on Linux.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
           <tr><td><strong>Antidoc</strong></td><td>Generates project documentation from the VI hierarchy using Wovalab's Antidoc CLI.</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>VI Snapshots / Browser</strong></td><td>Renders every VI to a content-addressed HTML snapshot gallery (the classic VI Browser).</td><td><span class="pill win">Win</span></td></tr>
           <tr><td><strong>VI Snapshots 2.0</strong></td><td>Position-aware, in-place VI Browser frames (JSON) rendered by the cross-platform toimages engine.</td><td><span class="pill win">Win</span> <span class="pill lin">Linux</span></td></tr>
@@ -1658,12 +1658,12 @@ LabVIEWCLI -OperationName PrintToSingleFileHtml `
       <h4>At a glance</h4>
       <table>
         <tbody>
-          <tr><th>In-container driver</th><td><code>.github/labview/run-unit-tests.ps1</code> &mdash; runs each enabled framework headless, writes one JUnit XML per tool.</td></tr>
+          <tr><th>In-container driver</th><td><code>.github/labview/run-unit-tests.ps1</code> (Windows) and <code>.github/labview/run-unit-tests.sh</code> (Linux) &mdash; run each enabled framework headless, write one JUnit XML per tool.</td></tr>
           <tr><th>Host report builder</th><td><code>.github/labview/build-unittest-report.py</code> &mdash; merges the JUnit XML into <code>results.json</code> + the navigable HTML report.</td></tr>
-          <tr><th>Per-commit workflow</th><td><code>unit-tests-windows-container.yml</code> on <span class="pill win">windows-2022</span>.</td></tr>
+          <tr><th>Per-commit workflow</th><td><code>unit-tests-windows-container.yml</code> on <span class="pill win">windows-2022</span>; <code>unit-tests-linux-container.yml</code> on <span class="pill lin">ubuntu-latest</span>.</td></tr>
           <tr><th>History backfill</th><td><code>unit-tests-backfill-windows.yml</code> + <code>unit-tests-backfill.ps1</code> &mdash; one warm container across many revisions.</td></tr>
-          <tr><th>Output &amp; status</th><td>Report deploys to <code>unit-tests/&lt;sha&gt;/</code> on <code>gh-pages</code>; commit-status context is <code>CI / Unit Tests</code>.</td></tr>
-          <tr><th>Platform</th><td>Windows only &mdash; every framework depends on baked VIPM/UTF tooling (<a href="#vipm">§15</a>).</td></tr>
+          <tr><th>Output &amp; status</th><td>Report deploys to <code>unit-tests/&lt;sha&gt;/</code> on <code>gh-pages</code> with commit-status context <code>CI / Unit Tests</code>; the Linux run deploys to <code>unit-tests/&lt;sha&gt;/linux/</code> with <code>CI / Unit Tests (Linux)</code>.</td></tr>
+          <tr><th>Platform</th><td>Windows; LUnit also runs on Linux. Every framework depends on baked VIPM/UTF tooling (<a href="#vipm">§15</a>).</td></tr>
         </tbody>
       </table>
 
@@ -1680,6 +1680,11 @@ LabVIEWCLI -OperationName PrintToSingleFileHtml `
           <tr><td><strong>NI UTF</strong></td><td><code>.lvtest</code> items inside a <code>.lvproj</code></td><td>native <code>LabVIEWCLI</code></td><td><code>"{cli}" -LogToConsole TRUE -OperationName RunUnitTests -ProjectPath "{proj}" -JUnitReportPath "{out}" -LabVIEWPath "{lv}" -Headless</code></td></tr>
         </tbody>
       </table>
+      <p>On Linux, LUnit runs with the same default command and tokens (<code>{lv}</code> is
+        <code>labviewprofull</code>, <code>{cli}</code> is <code>LabVIEWCLI</code>), so one <code>command:</code> line
+        works on both platforms. Keep <code>-Headless</code> as the <strong>last</strong> argument of any override: on
+        Linux, <code>LabVIEWCLI</code> swallows whatever follows it, and the Linux driver warns when an override doesn&rsquo;t
+        end with it.</p>
       <p>Tokens the driver substitutes: <code>{ver}</code> = LabVIEW year, <code>{dir}</code> = a resolved test-root
         directory, <code>{proj}</code> = a resolved <code>.lvproj</code>, <code>{out}</code> = the JUnit output path,
         <code>{lv}</code> = <code>LabVIEW.exe</code>, <code>{cli}</code> = <code>LabVIEWCLI.exe</code>.</p>
@@ -1758,6 +1763,22 @@ LabVIEWCLI -OperationName PrintToSingleFileHtml `
         <li><strong>Runs each command via <code>cmd.exe /c</code></strong>, capturing exit code and output; on a failed UTF/LUnit run it echoes the LabVIEW CLI <em>session log</em> (the console error is generic) and records a tooling finding.</li>
       </ul>
 
+      <h4>The Linux run</h4>
+      <p><code>unit-tests-linux-container.yml</code> follows the same step order on <span class="pill lin">ubuntu-latest</span>,
+        with the Linux image selection used by the other Linux activities (<code>config.container.actions.unit-tests</code>
+        &rarr; <code>config.container.use</code> &rarr; the shared Linux worker <code>:linux-latest</code>;
+        <code>base</code>/<code>none</code> selects <code>nationalinstruments/labview:latest-linux</code>). It runs the
+        driver in a fresh container:</p>
+      <pre><code>docker run --rm -v "$GITHUB_WORKSPACE:/workspace" "$LABVIEW_CONTAINER_IMAGE" \
+  bash /workspace/.github/labview/run-unit-tests.sh /workspace /workspace/ci-out/unit-tests/results</code></pre>
+      <ul>
+        <li><strong>LUnit.</strong> The driver dispatches each enabled tool to a <code>run_&lt;id&gt;()</code> handler
+          listed in <code>LINUX_TOOLS</code>; <code>lunit</code> is the only one.</li>
+        <li><strong>Exit codes are not results.</strong> On Linux, <code>LabVIEWCLI</code> exits 255 whenever an operation
+          fails, so the driver only trusts the JUnit file and always exits 0, like the Windows driver.</li>
+        <li><strong>History backfill</strong> has no Linux workflow yet; use the per-revision Run button.</li>
+      </ul>
+
       <h4>The output contract</h4>
       <p>The container emits raw JUnit XML; the host builder normalises it. Two files matter:</p>
       <ul>
@@ -1790,8 +1811,8 @@ LabVIEWCLI -OperationName PrintToSingleFileHtml `
         A framework whose CLI add-on is not baked into the image fails to load: UTF/LUnit surface LabVIEW CLI error
         <code>-350053</code> (&ldquo;missing or bad files in the operation folder&rdquo;). The driver records this in
         <code>_tooling.json</code> and the report renders an explicit &ldquo;the selected container is missing this
-        dependency&rdquo; banner instead of a bare &ldquo;no tests found.&rdquo; The UTF JUnit reporter in particular is
-        mandatory &mdash; see <a href="#vipm">§15</a>.</div>
+        dependency&rdquo; banner instead of a bare &ldquo;no tests found.&rdquo; On Linux the same banner appears when
+        LUnit CLI is missing (<code>-350053</code> or <code>-350006</code>). The UTF JUnit reporter in particular is mandatory &mdash; see <a href="#vipm">§15</a>.</div>
 
       <h3 id="cap-antidoc">16.5 Antidoc <a class="anchor" href="#cap-antidoc">#</a></h3>
 
@@ -1930,6 +1951,7 @@ docker exec &lt;name&gt; powershell -File C:\ops\render-snapshots.ps1 ...   # pe
           <tr><td><code>vi-analyzer/&lt;sha&gt;/linux/summary.json</code></td><td>VI Analyzer report builder (Linux)</td><td>Dashboard cell (Windows / Linux split)</td></tr>
           <tr><td><code>vidiff/&lt;segment&gt;/&lt;platform&gt;/vidiff/changes.json</code></td><td>VIDiff</td><td>Dashboard + VIDiff report</td></tr>
           <tr><td><code>unit-tests/&lt;sha&gt;/results.json</code></td><td>Unit-test report builder</td><td>Dashboard + report</td></tr>
+          <tr><td><code>unit-tests/&lt;sha&gt;/linux/results.json</code></td><td>Unit-test report builder (Linux)</td><td>Dashboard cell (Windows / Linux split) + report</td></tr>
           <tr><td><code>builds/&lt;sha&gt;/summary.json</code></td><td>Builds report builder</td><td>Dashboard cell (succeeded/failed split) + report</td></tr>
           <tr><td><code>sbom/&lt;sha&gt;/results.json</code></td><td>SBOM report builder</td><td>Dashboard report availability + HTML report</td></tr>
           <tr><td><code>sbom/&lt;sha&gt;/results/sbom.json</code></td><td>VIPM CLI</td><td>Native CycloneDX download</td></tr>

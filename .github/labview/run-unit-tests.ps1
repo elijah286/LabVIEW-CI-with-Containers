@@ -19,6 +19,11 @@
     template that can be overridden from the config (`command:` key) so the precise
     invocation can be corrected on a real worker without editing this script.
 
+    LINUX: run-unit-tests.sh is the Linux counterpart (LUnit only for now). The two
+    scripts share no code but share a contract: the config shape, the command
+    tokens, the <tool>-<n>.xml output names and the _tooling.json findings. A
+    framework added here should be added there the same way (see its header).
+
     HEADLESS: LabVIEW must run -Headless in LabVIEW 2026+ Windows containers (same
     constraint run-vi-analyzer.ps1 documents) or VI Server fails with -350000. g-cli
     launches LabVIEW the same way, so we pass the LabVIEW path/version through.

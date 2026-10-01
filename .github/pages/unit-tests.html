@@ -154,6 +154,7 @@
         ph: "e.g. tests/  or  **/*Tests.vi" },
       { id: "lunit",     name: "LUnit",
         conv: "LUnit (Astemes) tests are <b>Test Case classes</b> (<code>.lvclass</code> inheriting from LUnit's Test Case). The runner invokes the native <code>LabVIEWCLI -OperationName LUnit</code> operation, which discovers and runs every Test Case within the locations below.",
+        plat: "Runs on <b>Windows</b> and <b>Linux</b>.",
         ph: "e.g. tests/  or  source/**/*.lvclass" },
       { id: "vi-tester", name: "VI Tester",
         conv: "VI Tester tests are <b>TestCase classes</b> (<code>.lvclass</code> inheriting from <code>TestCase</code>). The runner discovers and runs every TestCase within the locations below.",
@@ -427,6 +428,7 @@
           ${projRows}
           ${locRows}
           <div class="conv">${t.conv}</div>
+          ${t.plat ? `<div class="conv">${t.plat}</div>` : ""}
         </div>`;
       }).join("");
       // wire inputs

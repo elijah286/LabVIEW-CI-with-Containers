@@ -16,6 +16,7 @@
     "templates/snapshots-2-windows.yml",
     "templates/snapshots-windows.yml",
     "templates/unit-tests-windows.yml",
+    "templates/unit-tests-linux.yml",
     "templates/vi-analyzer-linux.yml",
     "templates/vi-analyzer-windows.yml",
     "templates/antidoc-windows.yml",
@@ -44,7 +45,8 @@
       "linux": "templates/vi-analyzer-linux.yml"
     },
     "unit-tests": {
-      "windows": "templates/unit-tests-windows.yml"
+      "windows": "templates/unit-tests-windows.yml",
+      "linux": "templates/unit-tests-linux.yml"
     },
     "antidoc": {
       "windows": "templates/antidoc-windows.yml"

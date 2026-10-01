@@ -64,11 +64,14 @@ jobs:
           else
             REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)
           fi
+          # Check the tooling out from the configured source repo, not a fixed one, so
+          # a source repointed to a fork (and one of its branches) resolves.
+          echo "repo=${SOURCE_REPO:-elijah286/LabVIEW-CI-with-Containers}" >> "$GITHUB_OUTPUT"
           echo "ref=${REF:-v4.11.10}" >> "$GITHUB_OUTPUT"
       - name: Check out tooling (opted-in version)
         uses: actions/checkout@v5
         with:
-          repository: elijah286/LabVIEW-CI-with-Containers
+          repository: ${{ steps.cfg.outputs.repo }}
           ref: ${{ steps.cfg.outputs.ref }}
           path: _lvci
       - name: Build CI dashboard
