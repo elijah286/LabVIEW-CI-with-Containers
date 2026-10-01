@@ -743,21 +743,42 @@
       const repo = $("repo").value.trim() || "<owner>/<repo>";
       const rel = selectedRelease();
       const pinned = rel && catalog.containers && rel.id !== catalog.containers.default;
+      const varsStep = $("varsStep");
+      if (!varsStep) return;
+      const code = text => {
+        const el = document.createElement("code");
+        el.className = "inl";
+        el.textContent = text;
+        return el;
+      };
       if (isGitLab()) {
-        $("varsStep").innerHTML =
-          `Optional GitLab CI/CD variables can override installer defaults later; the initial scaffold records LabVIEW ${ver} in <code class="inl">.github/labview-ci.yml</code>.`;
+        varsStep.replaceChildren(
+          `Optional GitLab CI/CD variables can override installer defaults later; the initial scaffold records LabVIEW ${ver} in `,
+          code(".github/labview-ci.yml"),
+          "."
+        );
       } else if (pinned) {
         const s = source();
         const srcGhcr = "ghcr.io/" + s.repo.toLowerCase();
-        $("varsStep").innerHTML =
-          `Pinning this repo to <strong>${esc(rel.label)}</strong>: the browser install sets ` +
-          `<code class="inl">LCWC_BASE_IMAGE=${esc(srcGhcr)}-labview-base:${esc(rel.id)}</code> and ` +
-          `<code class="inl">LCWC_LINUX_BASE_IMAGE=${esc(srcGhcr)}-labview:linux-${esc(rel.id)}</code> as Actions variables ` +
-          `(command-line installs: set them with <code class="inl">gh variable set</code>).`;
+        const release = document.createElement("strong");
+        release.textContent = rel.label;
+        varsStep.replaceChildren(
+          "Pinning this repo to ",
+          release,
+          ": the browser install sets ",
+          code(`LCWC_BASE_IMAGE=${srcGhcr}-labview-base:${rel.id}`),
+          " and ",
+          code(`LCWC_LINUX_BASE_IMAGE=${srcGhcr}-labview:linux-${rel.id}`),
+          " as Actions variables (command-line installs: set them with ",
+          code("gh variable set"),
+          ")."
+        );
       } else {
-        $("varsStep").innerHTML =
-          `Optionally pin settings as Actions variables: ` +
-          `<code class="inl">gh variable set LABVIEW_VERSION -R ${repo} -b ${ver}</code> (has a safe fallback).`;
+        varsStep.replaceChildren(
+          "Optionally pin settings as Actions variables: ",
+          code(`gh variable set LABVIEW_VERSION -R ${repo} -b ${ver}`),
+          " (has a safe fallback)."
+        );
       }
     }
 
@@ -2351,7 +2372,7 @@
       const dashLink0 = $("insDashLink"); if (dashLink0) dashLink0.style.display = "none";
       const showDashLink = () => {
         const dl = $("insDashLink");
-        if (dl) { dl.href = url; dl.innerHTML = "Open your dashboard &#8599;"; dl.style.display = ""; }
+        if (dl) { dl.href = url; dl.textContent = "Open your dashboard \u2197"; dl.style.display = ""; }
       };
 
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");

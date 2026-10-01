@@ -1243,8 +1243,9 @@
     }
 
     function workflowUrl() {
-      const repo = $("repo").value.trim();
-      return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/reconfigure.yml" : "https://github.com/actions/workflows/reconfigure.yml";
+      const parts = $("repo").value.trim().split("/").filter(Boolean);
+      const repoPath = parts.length === 2 ? parts.map(encodeURIComponent).join("/") : "";
+      return repoPath ? "https://github.com/" + repoPath + "/actions/workflows/reconfigure.yml" : "https://github.com/actions/workflows/reconfigure.yml";
     }
     function token() { try { return localStorage.getItem(TOK_KEY) || ""; } catch (_) { return ""; } }
     function tokenUrl() {
@@ -1257,9 +1258,18 @@
       qp.set("actions", "write");
       return "https://github.com/settings/personal-access-tokens/new?" + qp.toString();
     }
-    function setApplyStatus(html, kind) {
+    function setApplyStatus(message, kind, workflowLink) {
       const st = $("applyStatus"); if (!st) return;
-      st.innerHTML = html || "";
+      st.replaceChildren(message || "");
+      if (workflowLink) {
+        const link = document.createElement("a");
+        link.href = workflowLink;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "View runs";
+        st.appendChild(link);
+        st.appendChild(document.createTextNode("."));
+      }
       st.className = "status" + (kind ? " " + kind : "");
     }
     function showTokenPanel(msg) {
@@ -1270,6 +1280,21 @@
       const inp = $("tokInput"); if (inp) inp.focus();
     }
     function hideTokenPanel() { const p = $("tokPanel"); if (p) p.hidden = true; }
+    // A dispatch 404 has three distinct causes: the token cannot see the repo, the
+    // workflow file is not installed, or -- the sneaky one -- the file EXISTS but
+    // GitHub never registered it as a workflow. Fork installs push the pipeline
+    // while Actions is still disabled, and GitHub only registers a workflow file
+    // when a push touches it while Actions is enabled (or an event first runs it),
+    // so a dispatch-only workflow can 404 forever with a perfectly good token.
+    // Probe the file anonymously (works on public repos; on private repos this
+    // yields "" and the token guidance stands) so the fix offered is the right one.
+    async function explainDispatch404(repo, file) {
+      try {
+        const r = await fetch("https://api.github.com/repos/" + repo + "/contents/.github/workflows/" + file, { headers: { "Accept": "application/vnd.github+json" }, cache: "no-cache" });
+        if (r.ok) return `Not a token problem - ${file} exists in this repository, but GitHub has not registered it as a runnable workflow, so dispatching it returns 404. This happens when workflow files were pushed while GitHub Actions was disabled (typical for fork installs). Fix: run What's New > Update now - tooling updates rewrite every workflow file (each carries a version stamp), and that push makes GitHub register them - or push any commit that edits .github/workflows/${file}, then retry.`;
+      } catch (_) {}
+      return "";
+    }
     async function dispatchReconfigure() {
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) { setApplyStatus("Choose a repository before applying.", "err"); return; }
@@ -1286,16 +1311,22 @@
         if (btn) { btn.disabled = false; btn.textContent = "Save and apply"; }
         if (r.status === 204) {
           hideTokenPanel();
-          setApplyStatus("Queued Reconfigure. It will open a pull request when the settings files are updated. <a href=\"" + workflowUrl() + "\" target=\"_blank\" rel=\"noopener\">View runs</a>.", "ok");
+          setApplyStatus("Queued Reconfigure. It will open a pull request when the settings files are updated. ", "ok", workflowUrl());
           return;
         }
         if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setApplyStatus("Token rejected (401).", "err"); return; }
         if (r.status === 403) { showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code class=\"inl\">" + escapeHtml(repo) + "</code>."); setApplyStatus("Dispatch forbidden (403).", "err"); return; }
-        if (r.status === 404) { showTokenPanel("The saved token cannot see <code class=\"inl\">" + escapeHtml(repo) + "</code>, or this repo does not have <code class=\"inl\">reconfigure.yml</code> installed."); setApplyStatus("Workflow not found or repo not accessible (404).", "err"); return; }
+        if (r.status === 404) {
+          const unregistered = await explainDispatch404(repo, "reconfigure.yml");
+          if (unregistered) { hideTokenPanel(); setApplyStatus(unregistered, "err"); return; }
+          showTokenPanel("The saved token cannot see <code class=\"inl\">" + escapeHtml(repo) + "</code>, or this repo does not have <code class=\"inl\">reconfigure.yml</code> installed.");
+          setApplyStatus("Workflow not found or repo not accessible (404).", "err");
+          return;
+        }
         setApplyStatus("Dispatch failed (HTTP " + r.status + ").", "err");
       } catch (e) {
         if (btn) { btn.disabled = false; btn.textContent = "Save and apply"; }
-        setApplyStatus("Network error: " + escapeHtml(String(e && e.message || e)), "err");
+        setApplyStatus("Network error: " + String(e && e.message || e), "err");
       }
     }
 
